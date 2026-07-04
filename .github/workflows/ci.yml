@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - dev
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repo-policy:
+    name: repo-policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: 필수 프로젝트 파일 확인
+        run: |
+          missing=0
+
+          check_file() {
+            if [ ! -f "$1" ]; then
+              echo "::error title=필수 파일 누락::$1 파일이 없습니다. 프로젝트 기본 구조를 다시 확인해주세요."
+              missing=1
+            fi
+          }
+
+          check_non_empty_file() {
+            if [ ! -s "$1" ]; then
+              echo "::error title=필수 파일 누락 또는 빈 파일::$1 파일이 없거나 비어 있습니다. 템플릿 내용을 작성해주세요."
+              missing=1
+            fi
+          }
+
+          check_directory() {
+            if [ ! -d "$1" ]; then
+              echo "::error title=필수 폴더 누락::$1 폴더가 없습니다. GitHub 템플릿 구조를 다시 확인해주세요."
+              missing=1
+            fi
+          }
+
+          check_file README.md
+          check_file .gitignore
+          check_file .env.example
+          check_non_empty_file .github/pull_request_template.md
+          check_directory .github/ISSUE_TEMPLATE
+
+          if [ "$missing" -ne 0 ]; then
+            echo "필수 파일 또는 폴더가 누락되어 CI를 중단합니다."
+            exit 1
+          fi
+
+      - name: 실제 환경변수 파일 커밋 방지
+        run: |
+          tracked_env_files="$(git ls-files | grep -E '(^|/)\.env$|(^|/)\.env\.(local|development|production|test)$' || true)"
+
+          if [ -n "$tracked_env_files" ]; then
+            echo "::error title=민감정보 파일 커밋 감지::실제 .env 파일이 Git에 포함되어 있습니다. 실제 환경변수 값은 커밋하지 말고 .env.example에는 키 이름만 작성해주세요."
+            echo "감지된 파일:"
+            echo "$tracked_env_files"
+            exit 1
+          fi
+
+  frontend:
+    name: frontend
+    if: ${{ hashFiles('frontend/package.json') != '' }}
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: 저장소 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 프론트엔드 의존성 설치
+        run: |
+          npm ci || {
+            echo "::error title=프론트엔드 의존성 설치 실패::npm ci가 실패했습니다. package.json과 package-lock.json의 의존성 버전이 맞는지 확인해주세요."
+            exit 1
+          }
+
+      - name: 프론트엔드 빌드 확인
+        run: |
+          npm run build || {
+            echo "::error title=프론트엔드 빌드 실패::npm run build가 실패했습니다. 위 로그에서 Vue/Vite 문법 오류, import 경로, 빌드 설정 문제를 확인해주세요."
+            exit 1
+          }
