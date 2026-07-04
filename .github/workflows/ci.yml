@@ -76,7 +76,6 @@ jobs:
 
   frontend:
     name: frontend
-    if: ${{ hashFiles('frontend/package.json') != '' }}
     runs-on: ubuntu-latest
 
     defaults:
