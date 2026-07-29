@@ -102,6 +102,6 @@ function goToLogin() {
 .login-text span {
   color: #111111;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
 }
 </style>
