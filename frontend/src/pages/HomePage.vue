@@ -9,15 +9,28 @@
     <img src="@/assets/rabbit.png" class="character" alt="티니머니 캐릭터" />
 
     <div class="actions">
-      <button class="start-btn" type="button">시작하기</button>
+      <button class="start-btn" type="button" @click="goToSignup">시작하기</button>
       <p class="login-text">
-        이미 계정이 있으신가요? <span>로그인</span>
+        이미 계정이 있으신가요? <span @click="goToLogin">로그인</span>
       </p>
     </div>
   </div>
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+function goToSignup() {
+  router.push({ name: 'signup' });
+}
+
+function goToLogin() {
+  router.push({ name: 'login' });
+}
+
+
 </script>
 
 <style scoped>
@@ -87,8 +100,8 @@
 }
 
 .login-text span {
-  font-weight: 700;
   color: #111111;
   cursor: pointer;
+  font-weight: 600;
 }
 </style>

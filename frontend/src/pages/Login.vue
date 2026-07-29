@@ -107,14 +107,12 @@ function handleGoogleLogin() {
 </template>
  
 <style scoped>
-/* 색상 토큰 (Figma 기준) */
-/* Shark #191B1E / Oslo Gray #8B9097 / French Gray #B9BEC5 */
-/* Selective Yellow #FFBC00 / Athens Gray #ECEEF1·#E9ECEF·#F0F1F3 */
  
 .login-screen {
   box-sizing: border-box;
   width: 360px;
   height: 730px;
+  margin: 0 auto;
   background: #ffffff;
   border: 1px solid #eceef1;
   font-family: 'Inter', -apple-system, sans-serif;
