@@ -171,10 +171,15 @@ function goBack() {
   router.back();
 }
 
-function requestVerification() {
+async function requestVerification() {
   if (!form.phone.trim()) {
     return;
   }
+
+  // TODO: 인증번호 발송 API 호출
+  // POST  ~
+  // body: 
+  // 성공 시 타이머 시작, 실패 시 에러 메시지 표시
 
   timerSeconds.value = 167;
   timerActive.value = true;
@@ -199,10 +204,24 @@ function toggleTerms() {
   form.agreedToTerms = !form.agreedToTerms;
 }
 
-function submit() {
+async function submit() {
   if (!canSubmit.value) {
     return;
   }
+
+  // TODO: 회원가입 API 호출
+  // POST /auth/signup
+  // body: {
+  //   name: form.name,
+  //   birthdate: form.birthdate,
+  //   phone: form.phone,
+  //   verificationCode: form.verificationCode,  // 백엔드에서 인증코드 일치 여부 검증
+  //   email: form.email,
+  //   password: form.password,
+  //   agreedToTerms: form.agreedToTerms,
+  // }
+  // 성공 시 → router.push('/login') 또는 홈으로 이동
+  // 실패 시 → 에러 메시지 표시
 }
 
 onUnmounted(() => {
