@@ -1,0 +1,434 @@
+<template>
+  <div class="page">
+    <div class="scroll">
+      <header class="nav">
+        <button class="back-btn" type="button" aria-label="뒤로 가기" @click="goBack">
+          <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
+        </button>
+        <h1 class="nav-title">회원가입</h1>
+      </header>
+
+      <div class="content">
+        <h2 class="heading">정보를 입력해 주세요</h2>
+
+        <div class="field field-active">
+          <label class="label" for="name">이름</label>
+          <input
+            id="name"
+            v-model="form.name"
+            class="input"
+            type="text"
+            autocomplete="name"
+          />
+        </div>
+
+        <div class="field">
+          <label class="label" for="birthdate">생년월일</label>
+          <input
+            id="birthdate"
+            v-model="form.birthdate"
+            class="input"
+            type="text"
+            inputmode="numeric"
+            placeholder="YYYYMMDD"
+          />
+        </div>
+
+        <div class="field field-phone">
+          <label class="label" for="phone">휴대폰 번호</label>
+          <div class="input-row">
+            <input
+              id="phone"
+              v-model="form.phone"
+              class="input input-inline"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+            />
+            <button class="verify-btn" type="button" @click="requestVerification">
+              인증
+            </button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="code">인증번호</label>
+          <div class="input-row">
+            <input
+              id="code"
+              v-model="form.verificationCode"
+              class="input input-inline"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="인증번호 6자리 입력"
+            />
+            <span v-if="timerActive" class="timer">{{ formattedTimer }}</span>
+          </div>
+          <p class="helper">문자로 받은 6자리 숫자를 입력해 주세요</p>
+        </div>
+
+        <div class="field">
+          <label class="label" for="email">이메일</label>
+          <input
+            id="email"
+            v-model="form.email"
+            class="input"
+            type="email"
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="field">
+          <label class="label" for="password">비밀번호</label>
+          <input
+            id="password"
+            v-model="form.password"
+            class="input"
+            type="password"
+            autocomplete="new-password"
+            placeholder="비밀번호 입력 (8자 이상)"
+          />
+        </div>
+
+        <div class="field">
+          <label class="label" for="passwordConfirm">비밀번호 확인</label>
+          <input
+            id="passwordConfirm"
+            v-model="form.passwordConfirm"
+            class="input"
+            type="password"
+            autocomplete="new-password"
+            placeholder="비밀번호 재입력"
+          />
+        </div>
+
+        <button class="terms" type="button" @click="toggleTerms">
+          <span class="checkbox" :class="{ checked: form.agreedToTerms }">
+            <img
+              v-if="form.agreedToTerms"
+              src="@/assets/icons/icon-check.svg"
+              alt=""
+              class="check-icon"
+            />
+          </span>
+          <span class="terms-text">
+            서비스 이용약관·개인정보 동의 <span class="required">(필수)</span>
+          </span>
+          <img src="@/assets/icons/icon-chevron.svg" alt="" class="chevron-icon" />
+        </button>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button class="submit-btn" type="button" :disabled="!canSubmit" @click="submit">
+        가입 완료
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, onUnmounted, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const form = reactive({
+  name: '',
+  birthdate: '',
+  phone: '',
+  verificationCode: '',
+  email: '',
+  password: '',
+  passwordConfirm: '',
+  agreedToTerms: true,
+});
+
+const timerSeconds = ref(167);
+const timerActive = ref(false);
+let timerInterval = null;
+
+const formattedTimer = computed(() => {
+  const minutes = Math.floor(timerSeconds.value / 60);
+  const seconds = timerSeconds.value % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+});
+
+const canSubmit = computed(
+  () =>
+    form.name.trim() &&
+    form.birthdate.trim() &&
+    form.phone.trim() &&
+    form.verificationCode.trim().length === 6 &&
+    form.email.trim() &&
+    form.password.length >= 8 &&
+    form.password === form.passwordConfirm &&
+    form.agreedToTerms,
+);
+
+function goBack() {
+  router.back();
+}
+
+function requestVerification() {
+  if (!form.phone.trim()) {
+    return;
+  }
+
+  timerSeconds.value = 167;
+  timerActive.value = true;
+
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+
+  timerInterval = setInterval(() => {
+    if (timerSeconds.value <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerActive.value = false;
+      return;
+    }
+
+    timerSeconds.value -= 1;
+  }, 1000);
+}
+
+function toggleTerms() {
+  form.agreedToTerms = !form.agreedToTerms;
+}
+
+function submit() {
+  if (!canSubmit.value) {
+    return;
+  }
+}
+
+onUnmounted(() => {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+});
+</script>
+
+<style scoped>
+.page {
+  position: relative;
+  width: 360px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background-color: #ffffff;
+  border: 1px solid #eceef1;
+}
+
+.scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-bottom: 97px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 20px 6px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.back-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.nav-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #191b1e;
+  letter-spacing: -0.32px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  padding: 10px 20px 0;
+}
+
+.heading {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #191b1e;
+  letter-spacing: -0.38px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b9097;
+  letter-spacing: -0.13px;
+}
+
+.input {
+  width: 100%;
+  padding: 0 0 13px;
+  border: none;
+  border-bottom: 1px solid #f0f1f3;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 500;
+  color: #191b1e;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #8b9097;
+}
+
+.field-active .input,
+.field-active .input-row {
+  border-bottom-color: #eaedf1;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #f0f1f3;
+  padding-bottom: 13px;
+}
+
+.input-inline {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.verify-btn {
+  flex-shrink: 0;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 8px;
+  background-color: #f4b400;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.timer {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #8b9097;
+  letter-spacing: -0.28px;
+}
+
+.helper {
+  margin: -3px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #b9bec5;
+}
+
+.terms {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 17px 0 16px;
+  border: none;
+  border-top: 1px solid #f0f1f3;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background-color: #f0f1f3;
+}
+
+.checkbox.checked {
+  background-color: #ffbc00;
+}
+
+.check-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.terms-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #191b1e;
+}
+
+.required {
+  color: #8b9097;
+}
+
+.chevron-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.footer {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 360px;
+  padding: 6px 20px 22px;
+  background-color: #ffffff;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 49px;
+  border: none;
+  border-radius: 8px;
+  background-color: #ffbc00;
+  font-size: 14px;
+  font-weight: 700;
+  color: #191b1e;
+  letter-spacing: -0.14px;
+  cursor: pointer;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>
