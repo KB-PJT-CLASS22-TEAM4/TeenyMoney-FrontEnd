@@ -16,12 +16,16 @@
       <img src="@/assets/logo.svg" alt="티니머니 로고" class="wallet-logo" />
       <div class="wallet-info">
         <p class="wallet-label">티니머니 지갑</p>
+        <!-- TODO: API 연동 후 실제 잔액으로 교체 -->
+        <!-- GET /wallet/balance → res.data.balance -->
         <p class="wallet-amount">24,500원</p>
       </div>
     </div>
 
     <!-- 필터 탭 -->
     <div class="filter-tabs">
+      <!-- TODO: 탭 클릭 시 해당 필터로 API 재호출 -->
+      <!-- GET /transactions?type=all | income | expense -->
       <button class="tab tab-active">전체</button>
       <button class="tab">입금</button>
       <button class="tab">출금</button>
@@ -29,10 +33,14 @@
         <img src="@/assets/icons/icon-calendar.svg" alt="" class="calendar-icon" />
         기간
       </button>
+      <!-- TODO: 기간 설정 클릭 시 날짜 선택 후 API 재호출 -->
+      <!-- GET /transactions?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD -->
     </div>
 
     <!-- 거래 내역 -->
     <div class="transaction-list">
+      <!-- TODO: 하드코딩 데이터 제거 후 API 응답 데이터로 교체 -->
+      <!-- GET /transactions → res.data (날짜별 그룹핑된 배열) -->
       <div v-for="group in transactions" :key="group.date" class="transaction-group">
         <p class="date-label">{{ group.date }}</p>
         <div class="transaction-card">
@@ -78,6 +86,21 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
+// TODO: API 연동 후 ref([]) 로 변경 및 onMounted 에서 호출
+// const transactions = ref([])
+
+// onMounted(async () => {
+//   try {
+//     const res = await api.get('/transactions')
+//     transactions.value = res.data
+//   } catch (error) {
+//     console.error('거래내역 불러오기 실패', error)
+//   }
+// })
+
+// TODO: 아래 하드코딩 데이터 API 연동 후 제거
 const transactions = [
   {
     date: '2025.10.24',
