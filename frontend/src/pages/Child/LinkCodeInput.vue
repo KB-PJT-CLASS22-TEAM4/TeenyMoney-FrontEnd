@@ -41,6 +41,9 @@
 
 <script setup>
 import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+const router = useRouter();
+
 
 const CODE_LENGTH = 6;
 const code = ref(''); 
@@ -73,6 +76,13 @@ function verifyCode() {
   // 성공 → router.push({ name: 'LinkConfirm' })
   // 실패 → 코드 초기화 + 에러 메세지 안내
   console.log('입력 완료:', code.value);
+  // 임시: 코드가 "123456"이면 성공이라고 가정 (테스트용)
+  if (code.value === '123456') {
+    router.push({ name: 'child-link-confirm' });   // 일치 → 보호자 확인 화면
+  } else {
+    errorMsg.value = '코드가 일치하지 않아요';
+    code.value = '';
+  }
 }
 
 // 코드 에러 메세지 
