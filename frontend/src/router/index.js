@@ -7,6 +7,8 @@ import Signup from '@/pages/Signup.vue';
 import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
 // 자녀 연동 코드 보호자 확인 페이지
 import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
+// 자녀 코드 연동 완료 페이지
+import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,6 +41,12 @@ const router = createRouter({
       name: 'child-link-confirm',
       component: LinkConfirm,
     },
+    // 자녀 코드 연동 완료 페이지
+    {
+      path: '/child/linkcomplete',
+      name: 'child-link-complete',
+      component: LinkComplete,
+    }
   ],
 });
 

@@ -30,7 +30,7 @@
     </div>
 
     <!-- 연동하기 버튼 -->
-    <button class="cta" @click="confirmLink">연동하기</button>
+    <button class="cta" @click="goToCompletePage">연동하기</button>
   </div>
 </template>
 
@@ -40,6 +40,10 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
+const goToCompletePage = () => {
+  // 백엔드 API 연동 성공 후 이동하도록 설정할 수 있습니다.
+  router.push('/child/linkcomplete')
+};
 // ===== API 연동 필요 =====
 // 이전 화면(코드 검증)에서 받은 보호자 정보를 넘겨받음.
 const guardian = ref({ name: '김부모', relation: '엄마' });
@@ -53,7 +57,7 @@ function confirmLink() {
   // 실제로 부모-자녀 연동을 확정하는 요청
   //     성공 → 연동 완료 화면으로 이동
   console.log('연동 확정');
-  // router.push({ name: 'child-linkcomplete' });
+  router.push({ name: 'child-linkcomplete' });
 }
 </script>
 
@@ -130,7 +134,7 @@ function confirmLink() {
   gap: 4px;
   width: 258px;
   padding: 34px 18px 26px;
-  border: 1px solid #eef0f3;
+  border: 1px solid #e4e1e1;
   border-radius: 8px;
 }
 
@@ -140,7 +144,7 @@ function confirmLink() {
   align-items: center;
   width: 64px;
   height: 64px;
-  background: #f7f8fa;
+  background: #e5e7eb;
   border-radius: 50%;
   margin-bottom: 6px;
 }
@@ -161,15 +165,15 @@ function confirmLink() {
 
 /* 연동하기 버튼 */
 .cta {
-  width: 310px;
-  margin: 60px auto auto;  
-  padding: 14px;
+width: 318px;
+  margin: auto auto 0;
+  padding: 15px;
   border: none;
   border-radius: 4px;
   background: #ffbc00;
   color: #191b1e;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 14.5px;
   cursor: pointer;
 }
 
