@@ -4,6 +4,9 @@ import LoginView from '@/pages/Login.vue';
 import Signup from '@/pages/Signup.vue';
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
+import ChildList from '@/pages/Parents/ChildList.vue';
+import LinkCode from '@/pages/Parents/LinkCode.vue';
+import LinkComplete from '@/pages/Parents/LinkComplete.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,8 +37,22 @@ const router = createRouter({
       path: '/parents/transaction',
       name: 'parents-transaction',
       component: Transaction,
+    },
+    {
+      path: '/parents/childlist',
+      name: 'parents-child-list',
+      component: ChildList,
+    },
+    {
+      path: '/parents/linkcode',
+      name: 'parents-link-code',
+      component: LinkCode,
+    },
+    {
+      path: '/parents/linkcomplete',
+      name: 'parents-link-complete',
+      component: LinkComplete,
     }
-
     ]
 });
 
