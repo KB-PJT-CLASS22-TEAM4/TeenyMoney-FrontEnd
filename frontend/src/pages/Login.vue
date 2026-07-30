@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import logoUrl from '@/assets/logo.svg'  // 지갑 로고: src/assets/logo.svg 에 저장
- 
+import { useRouter } from 'vue-router'
+const router = useRouter() 
+
 const email = ref('')
 const password = ref('')
  
@@ -30,8 +32,15 @@ function handleGoogleLogin() {
 </script>
  
 <template>
+        
   <div class="login-screen">
     <div class="scroll">
+      
+      /* back-btn 관련 추가 */
+      <header class="nav">
+            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()"/>
+      </header>
+
       <div class="pad">
         <img class="logo" :src="logoUrl" alt="티니머니" />
  
@@ -81,7 +90,7 @@ function handleGoogleLogin() {
             <span class="sep">|</span>
             <span class="link">비밀번호 찾기</span>
             <span class="sep">|</span>
-            <span class="link">회원가입</span>
+            <span class="link" @click="router.push('/signup')">회원가입</span>
           </div>
  
           <div class="divider">
@@ -104,7 +113,7 @@ function handleGoogleLogin() {
       </div>
     </div>
   </div>
-</template>
+    </template>
  
 <style scoped>
  
@@ -123,6 +132,13 @@ function handleGoogleLogin() {
   width: 100%;
   height: 100%;
   overflow-y: auto;
+}
+
+/* back-btn 관련 추가 */
+.nav {
+  display: flex;
+  align-items: center;
+  padding: 18px 20px 6px;  /* ← 좌우 20px 여백 추가 */
 }
  
 .pad {
