@@ -7,7 +7,7 @@
       </button>
       <h1 class="nav-title">전체 거래내역</h1>
       <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-bell.svg" alt="" class="alarm-icon" />
+        <img src="@/assets/icons/icon-chevron.svg" alt="" class="alarm-icon" />
       </button>
     </header>
 
@@ -321,7 +321,7 @@ const transactions = [
 }
 
 .nav-item-active .nav-label {
-  color: #ffbc00;
+  color: black;
   font-weight: 700;
 }
 </style>

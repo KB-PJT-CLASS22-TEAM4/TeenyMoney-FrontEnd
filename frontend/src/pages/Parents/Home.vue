@@ -45,6 +45,7 @@
           src="@/assets/icons/icon-chevron.svg" 
           alt="" 
           class="chevron-icon"
+          @click ="$router.push('/parents/transaction')"
         />
       </div>
 
