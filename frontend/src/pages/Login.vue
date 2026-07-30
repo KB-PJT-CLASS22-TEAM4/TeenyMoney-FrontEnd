@@ -36,7 +36,7 @@ function handleGoogleLogin() {
   <div class="login-screen">
     <div class="scroll">
       
-      /* back-btn 관련 추가 */
+      
       <header class="nav">
             <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()"/>
       </header>
