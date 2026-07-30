@@ -82,8 +82,17 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-const router = useRouter()
+const router = useRouter()  
 
+// 뒤로가기 버튼
+function goBack() {
+  router.back()
+}
+
+// 홈 탭 클릭
+function goHome() {
+  router.push('/parents/home')
+}
 // TODO: API 연동 후 하드코딩 제거
 // GET /children → children.value 로 교체
 const children = ref([
