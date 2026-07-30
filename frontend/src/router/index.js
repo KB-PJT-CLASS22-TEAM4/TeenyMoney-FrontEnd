@@ -9,6 +9,9 @@ import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
 import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 // 자녀 코드 연동 완료 페이지
 import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
+// 자녀 홈 화면
+import ChildHome from '@/pages/Child/ChildHome.vue';
+
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
 
@@ -59,7 +62,12 @@ const router = createRouter({
       path: '/parents/transaction',
       name: 'parents-transaction',
       component: Transaction,
-    }
+    },
+    {
+      path: '/child/home',
+      name: 'child-home',
+      component: ChildHome,
+    },
   ],
 });
 
