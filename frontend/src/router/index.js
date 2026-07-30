@@ -29,7 +29,8 @@ const router = createRouter({
       name: 'parents-home',
       component: ParentsHome,
     }
-  ],
+
+    ]
 });
 
 export default router;
