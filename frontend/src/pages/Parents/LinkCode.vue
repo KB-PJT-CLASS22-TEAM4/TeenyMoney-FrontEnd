@@ -40,13 +40,11 @@
           <span class="step">3</span>
           <p>연결 완료! 바로 관리할 수 있어요</p>
         </div>
+        <div class="remaker">
+          <button class="btn btn-secondary" @click="copyCode">코드 복사</button>
+          <button class="btn btn-primary" @click="generateCode">새 코드 발급</button>
+        </div>
       </div>
-    </div>
-
-    <!-- 하단 버튼 -->
-    <div class="footer">
-      <button class="btn btn-secondary" @click="copyCode">코드 복사</button>
-      <button class="btn btn-primary" @click="generateCode">새 코드 발급</button>
     </div>
   </div>
 </template>
@@ -285,17 +283,13 @@ onUnmounted(() => {
 }
 
 /* 하단 버튼 */
-.footer {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+.remaker {
   width: 360px;
   display: flex;
   gap: 10px;
-  padding: 10px 16px 28px;
+  padding: 10px 16px 28px 0px;
+  margin-top: 35px; 
   background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
 }
 
 .btn {
