@@ -9,6 +9,7 @@ import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 // 자녀 코드 연동 완료 페이지
 import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
 import ParentsHome from '@/pages/Parents/Home.vue';
+import Transaction from '@/pages/Parents/Transaction.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,6 +54,11 @@ const router = createRouter({
       path: '/parents/home',
       name: 'parents-home',
       component: ParentsHome,
+    },
+    {
+      path: '/parents/transaction',
+      name: 'parents-transaction',
+      component: Transaction,
     }
 
     ]
