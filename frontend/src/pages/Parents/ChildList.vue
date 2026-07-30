@@ -2,13 +2,16 @@
   <div class="page">
     <!-- 헤더 -->
     <header class="nav">
+        <button class="back-btn" ype="button" aria-label="뒤로 가기" @click="goBack">
+        <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
+      </button>
       <h1 class="nav-title">자녀 목록</h1>
       <button class="alarm-btn" type="button" aria-label="알림">
         <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
     <p class="subtitle">연결된 자녀 {{ children.length }}명</p>
-
+t
     <div class="content">
       <!-- 자녀 목록 -->
       <!-- TODO: API 연동 후 하드코딩 제거 -->
