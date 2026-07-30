@@ -16,7 +16,7 @@
       <div v-if="children.length > 0">
         <div v-for="child in children" :key="child.id" class="child-card">
           <div class="child-info">
-            <img src="@/assets/icons/icon-child-alive.svg" alt="" class="child-avatar" />
+            <img src="@/assets/icons/child-profile.svg" alt="" class="child-avatar" />
             <div>
               <p class="child-name">{{ child.name }}</p>
               <p class="child-email">{{ child.email }}</p>
@@ -32,9 +32,10 @@
               <span>{{ child.points.toLocaleString() }}점</span>
             </div>
           </div>
+          <!-- 추후에 상세 관리에 @click 이벤트 추가 -->
           <div class="child-btns">
-            <button class="btn btn-primary" @click="goToDetail(child.id)">상세 관리</button>
-            <button class="btn btn-secondary" @click="unlinkChild(child.id)">연동 해제</button>
+            <button class="btn btn-primary">상세 관리</button> 
+            <button class="btn btn-secondary">연동 해제</button>
           </div>
         </div>
       </div>
@@ -61,7 +62,7 @@
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button class="nav-item" type="button" @click="router.push('/parent/home')">
+      <button class="nav-item" type="button" @click="router.push('/parents/home')">
         <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
         <span class="nav-label">홈</span>
       </button>
@@ -69,7 +70,7 @@
         <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
         <span class="nav-label">자녀관리</span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parent/mypage')">
+      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
         <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
         <span class="nav-label">마이페이지</span>
       </button>
@@ -99,13 +100,15 @@ const children = ref([
 //   }
 // })
 
+
 function goToLinkCode() {
-  router.push('/parent/children/link-code')
+    router.push('/parents/children/linkcode')
 }
 
-function goToDetail(id) {
-  router.push(`/parent/children/${id}`)
-}
+// 특정 자녀 선택 시 자녀 상세 화면 이동 
+//function goToDetail(id) {
+//  router.push(`/parents/children/${id}`)
+//}
 
 async function unlinkChild(id) {
   // TODO: API 연동
