@@ -61,6 +61,11 @@ const timerSeconds = ref(600)
 let timerInterval = null
 let pollingInterval = null
 
+// 뒤로가기 버튼
+function goBack() {
+  router.back()
+}
+
 const formattedTimer = computed(() => {
   const minutes = Math.floor(timerSeconds.value / 60)
   const seconds = timerSeconds.value % 60
