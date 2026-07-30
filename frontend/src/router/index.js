@@ -3,6 +3,7 @@ import HomePage from '@/pages/HomePage.vue';
 import LoginView from '@/pages/Login.vue';
 import Signup from '@/pages/Signup.vue';
 import ParentsHome from '@/pages/Parents/Home.vue';
+import Transaction from '@/pages/Parents/Transaction.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +29,11 @@ const router = createRouter({
       path: '/parents/home',
       name: 'parents-home',
       component: ParentsHome,
+    },
+    {
+      path: '/parents/transaction',
+      name: 'parents-transaction',
+      component: Transaction,
     }
 
     ]

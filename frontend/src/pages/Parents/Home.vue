@@ -45,6 +45,7 @@
           src="@/assets/icons/icon-chevron.svg" 
           alt="" 
           class="chevron-icon"
+          @click ="$router.push('/parents/transaction')"
         />
       </div>
 
@@ -85,11 +86,27 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
+// TODO: 하드코딩 데이터 API 연동 후 제거
 const recentTransactions = [
   { id: 1, date: '07.15  21:17', name: '잔액 충전', amount: 10000, balance: 10000 },
   { id: 2, date: '07.14  16:07', name: '보상금 지급', amount: -3200, balance: 10000 },
   { id: 3, date: '07.13  15:50', name: '용돈 지급', amount: -1500, balance: 10000 },
 ]
+
+// TODO: API 연동 후 아래 코드로 교체
+// const recentTransactions = ref([])
+
+// onMounted(async () => {
+//   try {
+//     const res = await api.get('/transactions/recent')
+//     // 백엔드에서 최신 3개만 내려주거나, 프론트에서 slice(0, 3) 으로 자르기
+//     recentTransactions.value = res.data.slice(0, 3)
+//   } catch (error) {
+//     console.error('최근 거래내역 불러오기 실패', error)
+//   }
+// })
 </script>
 
 <style scoped>
