@@ -142,7 +142,7 @@ const form = reactive({
   email: '',
   password: '',
   passwordConfirm: '',
-  agreedToTerms: true,
+  agreedToTerms: false, // 서비스 이용약관·개인정보 동의 여부
 });
 
 const timerSeconds = ref(167);
@@ -220,8 +220,18 @@ async function submit() {
   //   password: form.password,
   //   agreedToTerms: form.agreedToTerms,
   // }
-  // 성공 시 → router.push('/login') 또는 홈으로 이동
-  // 실패 시 → 에러 메시지 표시
+  // 가입완료 → 로그인 페이지로 이동 , 실패 시 → 에러 메시지 표시
+  
+  async function submit() {
+  if (!canSubmit.value) return;
+
+  try {
+    await api.post('/auth/signup', { ...form })
+    router.push('/login') // 성공 후 이동
+  } catch (error) {
+    alert('회원가입에 실패했습니다.')
+  }
+ }
 }
 
 onUnmounted(() => {
