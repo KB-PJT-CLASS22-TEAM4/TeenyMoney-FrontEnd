@@ -2,7 +2,7 @@
   <div class="page">
     <!-- 헤더 -->
     <header class="nav">
-      <button class="back-btn" type="button" aria-label="뒤로 가기">
+      <button class="back-btn" type="button" aria-label="뒤로 가기" @click="goBack">
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
       <h1 class="nav-title">전체 거래내역</h1>
@@ -69,7 +69,7 @@
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button class="nav-item nav-item-active" type="button">
+      <button class="nav-item nav-item-active" type="button" @click="goHome">
         <img src="@/assets/icons/icon-home-alive.svg" alt="" class="nav-icon" />
         <span class="nav-label">홈</span>
       </button>
@@ -86,7 +86,21 @@
 </template>
 
 <script setup>
+
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'  // ← 추가
+
+const router = useRouter()  // ← 추가
+
+// 뒤로가기 버튼
+function goBack() {
+  router.back()
+}
+
+// 홈 탭 클릭
+function goHome() {
+  router.push('/parents/home')
+}
 
 // TODO: API 연동 후 ref([]) 로 변경 및 onMounted 에서 호출
 // const transactions = ref([])
