@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '@/pages/HomePage.vue';
 import LoginView from '@/pages/Login.vue';
-// 회원가입 페이지
 import Signup from '@/pages/Signup.vue';
 // 자녀 연동 코드 입력 페이지
 import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
@@ -9,6 +8,7 @@ import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
 import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 // 자녀 코드 연동 완료 페이지
 import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
+import ParentsHome from '@/pages/Parents/Home.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,6 +48,14 @@ const router = createRouter({
       component: LinkComplete,
     }
   ],
+    // 부모 홈 페이지
+    {
+      path: '/parents/home',
+      name: 'parents-home',
+      component: ParentsHome,
+    }
+
+    ]
 });
 
 export default router;
