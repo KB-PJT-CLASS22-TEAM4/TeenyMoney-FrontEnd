@@ -77,7 +77,7 @@
         <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
         <span class="nav-label">자녀관리</span>
       </button>
-      <button class="nav-item" type="button">
+      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
         <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
         <span class="nav-label">마이페이지</span>
       </button>
@@ -90,6 +90,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'  // ← 추가
 
 const router = useRouter()  
+
 
 // 홈 탭 클릭
 function goHome() {

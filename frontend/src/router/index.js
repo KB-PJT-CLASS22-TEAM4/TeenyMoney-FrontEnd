@@ -10,6 +10,8 @@ import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
+import ChildList from '@/pages/Parents/ChildList.vue';
+import LinkCode from '@/pages/Parents/LinkCode.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

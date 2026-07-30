@@ -2,16 +2,14 @@
   <div class="page">
     <!-- 헤더 -->
     <header class="nav">
-        <button class="back-btn" ype="button" aria-label="뒤로 가기" @click="goBack">
-        <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
-      </button>
+        <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()" />
       <h1 class="nav-title">자녀 목록</h1>
       <button class="alarm-btn" type="button" aria-label="알림">
         <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
     <p class="subtitle">연결된 자녀 {{ children.length }}명</p>
-t
+
     <div class="content">
       <!-- 자녀 목록 -->
       <!-- TODO: API 연동 후 하드코딩 제거 -->
@@ -87,15 +85,6 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()  
 
-// 뒤로가기 버튼
-function goBack() {
-  router.back()
-}
-
-// 홈 탭 클릭
-function goHome() {
-  router.push('/parents/home')
-}
 // TODO: API 연동 후 하드코딩 제거
 // GET /children → children.value 로 교체
 const children = ref([
@@ -114,7 +103,7 @@ const children = ref([
 
 
 function goToLinkCode() {
-    router.push('/parents/children/linkcode')
+    router.push('/parents/linkcode')
 }
 
 // 특정 자녀 선택 시 자녀 상세 화면 이동 
