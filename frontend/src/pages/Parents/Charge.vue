@@ -6,7 +6,7 @@
       </button>
       <h1 class="nav-title">충전</h1>
       <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-bell.svg" alt="" class="alarm-icon" />
+        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
 
@@ -51,7 +51,7 @@
       <button class="auto-charge-banner" @click="goToAutoCharge">
         <div class="banner-left">
           <div class="banner-icon-wrap">
-            <img src="@/assets/icons/icon-refresh.svg" alt="" class="banner-icon" />
+            <!-- <img src="@/assets/icons/icon-refresh.svg" alt="" class="banner-icon" /> -->
           </div>
           <div>
             <p class="banner-title">자동 충전 설정</p>
