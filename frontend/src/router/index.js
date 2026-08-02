@@ -16,6 +16,11 @@ import Transaction from '@/pages/Parents/Transaction.vue';
 import ChildList from '@/pages/Parents/ChildList.vue';
 import LinkCode from '@/pages/Parents/LinkCode.vue';
 
+import Charge from '@/pages/Parents/Charge.vue'
+import AutoCharge from '@/pages/Parents/AutoCharge.vue'
+import Charging from '@/pages/Parents/Charging.vue'
+import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -83,6 +88,22 @@ const router = createRouter({
       path: '/child/home',
       name: 'child-home',
       component: ChildHome,
+    },
+    { path: '/parents/charge', 
+      name: 'charge', 
+      component:Charge 
+    },
+    { path: '/parents/charge/auto', 
+      name: 'auto-charge', 
+      component: AutoCharge 
+    },
+    { path: '/parents/charge/charging', 
+      name: 'charging', 
+      component: Charging
+    },
+    { path: '/parents/charge/complete', 
+      name: 'charge-complete', 
+      component: ChargeComplete 
     },
   ],
 });
