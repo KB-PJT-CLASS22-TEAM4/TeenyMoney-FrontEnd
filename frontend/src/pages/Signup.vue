@@ -131,6 +131,7 @@
 <script setup>
 import { computed, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import {checkEmail , sendPhoneVerificationCode, signup} from '@/api/auth'; // API 호출 함수 임포트
 
 const router = useRouter();
 
@@ -144,6 +145,14 @@ const form = reactive({
   passwordConfirm: '',
   agreedToTerms: false, // 서비스 이용약관·개인정보 동의 여부
 });
+
+// 1단계: 이메일 중복 확인
+async function handleCheckEmail() {
+  const res = await checkEmail(form.value.email)
+  if (res.success) {
+    alert('사용 가능한 이메일이에요!')
+  }
+}
 
 const timerSeconds = ref(167);
 const timerActive = ref(false);
@@ -171,7 +180,7 @@ function goBack() {
   router.back();
 }
 
-async function requestVerification() {
+async function re() {
   if (!form.phone.trim()) {
     return;
   }
@@ -180,6 +189,13 @@ async function requestVerification() {
   // POST  ~
   // body: 
   // 성공 시 타이머 시작, 실패 시 에러 메시지 표시
+  async function handleSendPhone() {
+  const res = await sendPhoneVerification(form.value.phone)
+  if (res.success) {
+    alert('인증번호가 발송됐어요!')
+  }
+}
+  
 
   timerSeconds.value = 167;
   timerActive.value = true;
@@ -222,6 +238,14 @@ async function submit() {
   // }
   // 가입완료 → 로그인 페이지로 이동 , 실패 시 → 에러 메시지 표시
   
+  async function handleSignup() {
+    const res = await signup(form.value)
+    if (res.success) {
+      alert('회원가입 완료!')
+      router.push('/login')  // 로그인 페이지로 이동
+    }
+  }
+
   async function submit() {
   if (!canSubmit.value) return;
 
