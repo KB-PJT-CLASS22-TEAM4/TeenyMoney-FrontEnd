@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import logoUrl from '@/assets/logo.svg'  // 지갑 로고: src/assets/logo.svg 에 저장
 import { useRouter } from 'vue-router'
 const router = useRouter() 
+import { login } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
 
 const email = ref('')
 const password = ref('')
@@ -18,11 +20,15 @@ const showPasswordHint = computed(
   () => password.value.length > 0 && !isPasswordValid.value
 )
  
-function handleLogin() {
-  if (!canSubmit.value) return  // 조건 안 맞으면 막기 (이중 안전장치)
-  // TODO: 여기서 auth store / axios 로 로그인 요청 보내기
-  // 예) await authStore.login({ email: email.value, password: password.value })
-  console.log('login', { email: email.value, password: password.value })
+async function handleLogin() {
+  const res = await login(email.value, password.value)
+
+  if (res.success) {
+    // Pinia에 유저 정보 + 토큰 저장
+    authStore.setUser(res.data)
+
+    router.push('/home')  // 메인 페이지로 이동
+  }
 }
  
 function handleGoogleLogin() {
