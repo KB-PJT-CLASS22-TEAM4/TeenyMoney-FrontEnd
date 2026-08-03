@@ -3,11 +3,13 @@
     <!-- 상단 헤더 -->
     <header class="header">
       <span class="username">{{ userName }}님</span>
-      <button class="bell-btn">
+      <button class="bell-btn"  @click="goNotification">
         <svg viewBox="0 0 24 24" width="23" height="23" fill="none">
           <path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#4a4e55" stroke-width="1.7" stroke-linejoin="round"/>
           <path d="M10 20a2 2 0 0 0 4 0" stroke="#4a4e55" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
+        <!-- 안 읽은 알림 있으면 빨간 점 -->
+        <span v-if="hasUnread" class="bell-dot"></span>
       </button>
     </header>
 
@@ -90,11 +92,12 @@
 import FinanceCard from '@/components/Child/FinanceCard.vue';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 import { ref } from 'vue';
-// import { useRouter } from 'vue-router';
-// const router = useRouter();
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
 const activeCard = ref(0);
 const scrollRef = ref(null);
+const hasUnread = ref(true); 
 
 function onScroll() {
   const el = scrollRef.value;
@@ -103,6 +106,11 @@ function onScroll() {
   const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
   activeCard.value = Math.round(ratio * (finances.length - 1));
 }
+
+function goNotification() {
+  router.push({ name: 'child-notification' });
+}
+
 
 function goPayment() {
   // TODO: 결제내역 페이지 만들면 연결
@@ -156,7 +164,7 @@ function onTabSelect(key) {
   width: 360px;
   min-height: 730px;
   margin: 0 auto;
-  padding-top: 10px;
+  padding-top: 50px;
   background: #ffffff;
   border: 1px solid #eceef1;
 }
@@ -176,11 +184,22 @@ function onTabSelect(key) {
 }
 
 .bell-btn {
+  position: relative;  
   border: none;
   background: transparent;
   cursor: pointer;
   padding: 0;
   display: flex;
+}
+.bell-dot {
+  position: absolute;
+  top: -2px;
+  right: 1px;
+  width: 7px;
+  height: 7px;
+  background: #ff4d4f;  
+  border-radius: 50%;
+  border: 1.5px solid #fff;  
 }
 
 /* 잔액 */
