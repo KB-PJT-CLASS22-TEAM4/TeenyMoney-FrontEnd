@@ -118,11 +118,11 @@ import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 
 const router = useRouter();
 
-// 거래유형: 화면에 그대로 노출 (바로 반영)
+// 거래유형
 const activeFilter = ref('전체');
 const filters = ['전체', '입금', '출금'];
 
-// 기간·정렬: 실제 적용된 조회 조건 (바텀시트에서 조회하기 눌러야 반영)
+// 기간·정렬
 const activePeriod = ref('최근 1개월');
 const activeSort = ref('최신순');
 
@@ -144,14 +144,21 @@ function applyFilter() {
   activePeriod.value = tempPeriod.value;
   activeSort.value = tempSort.value;
   showFilter.value = false;
-  // [API] 선택한 조건으로 거래내역 다시 조회
-  //   예) GET /api/child/transactions?period=...&sort=...
+  // [API] 선택한 기간,정렬로 거래내역 다시 조회
+  //  요청 예)
+  //     GET /api/child/transactions
+  //         ?period={activePeriod}   // 예: 최근 1개월 → '1m'
+  //         &sort={activeSort}        // 최신순 → 'desc' / 과거순 → 'asc'
+  //   응답 결과를 transactions.value 에 넣어주면 됨
+  // fetchTransactions();
 }
 
 // ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API] 지갑 잔액 조회
-//   예) GET /api/child/balance → { balance }
-const balance = '342,000';
+// [API 연동] 지갑 잔액 조회
+//   요청 예) GET /api/child/balance
+//   응답 예) { balance: 342000 }
+//   → 지금은 더미 문자열, 나중에 응답값을 balance 에 넣기
+const balance = ref('342,000');
 
 // [API] 거래 내역 목록 조회 (기간·필터 조건 포함)
 //   예) GET /api/child/transactions?period=1m&type=all
