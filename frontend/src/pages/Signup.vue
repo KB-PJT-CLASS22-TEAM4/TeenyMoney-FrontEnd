@@ -177,19 +177,19 @@ function validatePassword() {
   const phone = formatPhone(form.value.phone)
 
   if (pw.length < 10 || pw.length > 64) {
-    errors.value.password = '비밀번호는 10~64자여야 해요'
+    errors.value.password = '비밀번호는 10~64자여야 합니다'
     return false
   }
   if (!/[a-zA-Z]/.test(pw)) {
-    errors.value.password = '영문자를 포함해야 해요'
+    errors.value.password = '영문자를 포함해야 합니다'
     return false
   }
   if (!/[0-9]/.test(pw)) {
-    errors.value.password = '숫자를 포함해야 해요'
+    errors.value.password = '숫자를 포함해야 합니다'
     return false
   }
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) {
-    errors.value.password = '특수문자를 포함해야 해요'
+    errors.value.password = '특수문자를 포함해야 합니다'
     return false
   }
   if (form.value.email && pw.includes(form.value.email)) {
