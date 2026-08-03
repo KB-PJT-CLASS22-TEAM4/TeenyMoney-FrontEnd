@@ -75,15 +75,15 @@
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button class="nav-item nav-item-active" type="button" @click="router.push('/parent/home')">
+      <button class="nav-item nav-item-active" type="button" @click="router.push('/parents/home')">
         <img src="@/assets/icons/icon-home-alive.svg" alt="" class="nav-icon" />
         <span class="nav-label">홈</span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parent/children')">
+      <button class="nav-item" type="button" @click="router.push('/parents/Childlist')">
         <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
         <span class="nav-label">자녀관리</span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parent/mypage')">
+      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
         <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
         <span class="nav-label">마이페이지</span>
       </button>
@@ -119,12 +119,12 @@ function addAmount(value) {
 }
 
 function goToAutoCharge() {
-  router.push('/parent/charge/auto')
+  router.push('/parents/charge/auto')
 }
 
 function goToCharging() {
   router.push({
-    path: '/parent/charge/charging',
+    path: '/parents/charge/charging',
     query: { amount: chargeAmount.value },
   })
 }

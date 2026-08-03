@@ -106,12 +106,13 @@ const router = createRouter({
     },
     { path: '/parents/charge/complete', 
       name: 'charge-complete', 
-      component: ChargeComplete 
+      component: ChargeComplete
+    },
     {
       path: '/child/notification',
       name: 'child-notification',
       component: ChildNotification,
-    },
+    }
   ],
 });
 
