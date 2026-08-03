@@ -55,7 +55,7 @@
         >{{ f }}</span>
       </div>
 
-      <!-- 조회 필터 바 (기간,정렬) → 누르면 바텀시트 -->
+      <!-- 조회 필터 바 (기간,정렬) 누르면 바텀시트 -->
       <button class="filter-bar" @click="openFilter">
         <span class="filter-summary">{{ activePeriod }} · {{ activeSort }}</span>
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
@@ -84,7 +84,7 @@
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
 
-    <!-- 조회 필터 바텀시트 (기간 + 정렬만) -->
+    <!-- 조회 필터 바텀시트 (기간,정렬만) -->
     <transition name="sheet">
       <div v-if="showFilter" class="sheet-dim" @click.self="showFilter = false">
         <div class="sheet">
@@ -144,25 +144,16 @@ function applyFilter() {
   activePeriod.value = tempPeriod.value;
   activeSort.value = tempSort.value;
   showFilter.value = false;
+  // ==== API 연동 필요 ====
   // [API] 선택한 기간,정렬로 거래내역 다시 조회
-  //  요청 예)
-  //     GET /api/child/transactions
-  //         ?period={activePeriod}   // 예: 최근 1개월 → '1m'
-  //         &sort={activeSort}        // 최신순 → 'desc' / 과거순 → 'asc'
-  //   응답 결과를 transactions.value 에 넣어주면 됨
-  // fetchTransactions();
 }
 
 // ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API 연동] 지갑 잔액 조회
-//   요청 예) GET /api/child/balance
-//   응답 예) { balance: 342000 }
-//   → 지금은 더미 문자열, 나중에 응답값을 balance 에 넣기
+// [API] 지갑 잔액 조회
 const balance = ref('342,000');
 
-// [API] 거래 내역 목록 조회 (기간·필터 조건 포함)
-//   예) GET /api/child/transactions?period=1m&type=all
-//       → [{ time, name, amount, balance, group, type }, ...]
+// ==== API 연동 필요 (지금은 더미 데이터) ====
+// [API] 거래 내역 목록 조회 (기간·필터,유형 조건 포함)
 const transactions = ref([
   { id: 1, group: '오늘 07.13 월', time: '14:30', name: '용돈 입금', amount: 50000, balance: 342000, type: '입금' },
   { id: 2, group: '오늘 07.13 월', time: '13:10', name: 'GS25 강남점', amount: -3200, balance: 292000, type: '출금' },
@@ -177,6 +168,7 @@ const transactions = ref([
 ]);
 
 // 거래유형 필터 + 날짜 그룹핑 + 정렬
+// 실제 API 붙이면 서버가 조건 맞춰 내려주므로 아래 필터·정렬 로직은 걷어내고 그룹핑만 남겨도 됨.
 const groupedList = computed(() => {
   const filtered = activeFilter.value === '전체'
     ? transactions.value
@@ -197,7 +189,7 @@ function goBack() {
   router.push({ name: 'child-home' });
 }
 function goReport() {
-  // [라우터] 소비 리포트 화면 (별도 이슈, 만들면 연결)
+  // [라우터] 소비 리포트 화면 연결
   // router.push({ name: 'child-report' });
 }
 function onTabSelect(key) {
