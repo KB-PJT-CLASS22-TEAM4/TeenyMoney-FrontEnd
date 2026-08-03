@@ -1,4 +1,4 @@
-import {definedStore} from 'pinia';
+import {defineStore} from 'pinia';
 import {ref, computed} from 'vue';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -24,3 +24,4 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return { accessToken, memberId, role, name, is1Authenticated, setUser, clearUser }
+})
