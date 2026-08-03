@@ -1,4 +1,4 @@
-const BASE_URL = '/api/v1/auth/'
+const BASE_URL = `${import.meta.env.API_BASE_URL}/api/v1/auth`
 
 // 이메일 중복 확인
 export async function checkEmail(email) {
