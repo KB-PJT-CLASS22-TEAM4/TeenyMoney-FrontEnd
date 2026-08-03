@@ -119,12 +119,12 @@ function addAmount(value) {
 }
 
 function goToAutoCharge() {
-  router.push('/parent/charge/auto')
+  router.push('/parents/charge/auto')
 }
 
 function goToCharging() {
   router.push({
-    path: '/parent/charge/charging',
+    path: '/parents/charge/charging',
     query: { amount: chargeAmount.value },
   })
 }

@@ -131,6 +131,7 @@
 <script setup>
 import { computed, onUnmounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import {checkEmail , sendPhoneVerificationCode, signup} from '@/api/auth'; // API 호출 함수 임포트
 
 const router = useRouter();
 
@@ -144,6 +145,74 @@ const form = reactive({
   passwordConfirm: '',
   agreedToTerms: false, // 서비스 이용약관·개인정보 동의 여부
 });
+
+// 휴대폰: 10~11자리 숫자, 하이픈 제거
+function formatPhone(value) {
+  return value.replace(/-/g, '').replace(/[^0-9]/g, '')
+}
+
+// 1단계: 이메일 중복 확인
+async function handleCheckEmail() {
+  const res = await checkEmail(form.value.email)
+  if (res.success) {
+    alert('사용 가능한 이메일이에요!')
+  }
+}
+
+// 이메일 형식 검증
+function validateEmail() {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(form.value.email)) {
+    errors.value.email = '이메일 형식이 올바르지 않아요'
+    return false
+  }
+  errors.value.email = ''
+  return true
+}
+
+// 비밀번호 검증
+// 10~64자, 영문+숫자+특수문자 포함, 이메일·전화번호와 동일하거나 포함되는 값 제한
+function validatePassword() {
+  const pw = form.value.password
+  const phone = formatPhone(form.value.phone)
+
+  if (pw.length < 10 || pw.length > 64) {
+    errors.value.password = '비밀번호는 10~64자여야 합니다'
+    return false
+  }
+  if (!/[a-zA-Z]/.test(pw)) {
+    errors.value.password = '영문자를 포함해야 합니다'
+    return false
+  }
+  if (!/[0-9]/.test(pw)) {
+    errors.value.password = '숫자를 포함해야 합니다'
+    return false
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) {
+    errors.value.password = '특수문자를 포함해야 합니다'
+    return false
+  }
+  if (form.value.email && pw.includes(form.value.email)) {
+    errors.value.password = '이메일을 포함할 수 없어요'
+    return false
+  }
+  if (phone && pw.includes(phone)) {
+    errors.value.password = '전화번호를 포함할 수 없어요'
+    return false
+  }
+  errors.value.password = ''
+  return true
+}
+
+// 비밀번호 확인 (일치 여부만)
+function validatePasswordConfirm() {
+  if (form.value.password !== form.value.passwordConfirm) {
+    errors.value.passwordConfirm = '비밀번호가 일치하지 않아요'
+    return false
+  }
+  errors.value.passwordConfirm = ''
+  return true
+}
 
 const timerSeconds = ref(167);
 const timerActive = ref(false);
@@ -171,7 +240,7 @@ function goBack() {
   router.back();
 }
 
-async function requestVerification() {
+async function re() {
   if (!form.phone.trim()) {
     return;
   }
@@ -180,6 +249,14 @@ async function requestVerification() {
   // POST  ~
   // body: 
   // 성공 시 타이머 시작, 실패 시 에러 메시지 표시
+  // 휴대폰 인증번호 발송
+  async function handleSendPhone() {
+  if (!validatePhone()) return
+  const phone = formatPhone(form.value.phone)
+  const res = await sendPhoneVerification(phone)
+  if (res.success) alert('인증번호가 발송됐어요!')
+}
+  
 
   timerSeconds.value = 167;
   timerActive.value = true;
@@ -222,6 +299,30 @@ async function submit() {
   // }
   // 가입완료 → 로그인 페이지로 이동 , 실패 시 → 에러 메시지 표시
   
+  // 최종 회원가입
+  async function handleSignup() {
+  const isValid =
+    validateEmail() &&
+    validatePhone() &&
+    validatePassword() &&
+    validatePasswordConfirm()
+
+  if (!isValid) return
+
+  const res = await signup({
+    email: form.value.email,
+    password: form.value.password,
+    phone: formatPhone(form.value.phone),  // 하이픈 제거 후 전송
+    name: form.value.name
+    // passwordConfirm은 DB 저장 안 하니까 전송 안 함
+  })
+
+  if (res.success) {
+    alert('회원가입 완료!')
+    router.push('/login')
+  }
+}
+
   async function submit() {
   if (!canSubmit.value) return;
 

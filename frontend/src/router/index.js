@@ -108,7 +108,7 @@ const router = createRouter({
     },
     { path: '/parents/charge/complete', 
       name: 'charge-complete', 
-      component: ChargeComplete 
+      component: ChargeComplete
     },
     // 자녀 거래내역 조회
     {
