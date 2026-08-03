@@ -52,9 +52,7 @@ function goBack() {
 }
 
 function goHome() {
-  // 연동 완료 후 홈으로 (홈 화면 만들어지면 연결)
-  // router.push({ name: 'child-home' });
-  console.log('홈으로 이동');
+  router.push({ name: 'child-home' });
 }
 </script>
 

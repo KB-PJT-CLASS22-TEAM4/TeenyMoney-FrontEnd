@@ -10,6 +10,9 @@ import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
 // 자녀 홈 화면
 import ChildHome from '@/pages/Child/ChildHome.vue';
+// 자녀 알림페이지
+import ChildNotification from '@/pages/Child/ChildNotification.vue';
+
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -104,6 +107,10 @@ const router = createRouter({
     { path: '/parents/charge/complete', 
       name: 'charge-complete', 
       component: ChargeComplete 
+    {
+      path: '/child/notification',
+      name: 'child-notification',
+      component: ChildNotification,
     },
   ],
 });
