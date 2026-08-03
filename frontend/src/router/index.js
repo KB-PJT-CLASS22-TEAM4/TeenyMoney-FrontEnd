@@ -11,6 +11,8 @@ import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
 // 자녀 홈 화면
 import ChildHome from '@/pages/Child/ChildHome.vue';
+// 자녀 거래내역 조회
+import ChildTransaction from '@/pages/Child/ChildTransaction.vue';
 // 자녀 알림페이지
 import ChildNotification from '@/pages/Child/ChildNotification.vue';
 
@@ -71,6 +73,13 @@ const router = createRouter({
       name: 'child-home',
       component: ChildHome,
     },
+    // 자녀 거래내역 조회
+    {
+      path: '/child/transaction',
+      name: 'child-transaction',
+      component: ChildTransaction,
+    },
+    // 자녀 알림페이지
     {
       path: '/child/notification',
       name: 'child-notification',
