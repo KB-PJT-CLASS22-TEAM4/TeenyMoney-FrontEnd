@@ -142,8 +142,8 @@ const router = useRouter()
 
 const form = reactive({
   name: '',
-  birthdate: '',
-  phone: '',
+  birthDate: '',
+  phoneNumber: '',
   verificationCode: '',
   email: '',
   password: '',
@@ -152,7 +152,7 @@ const form = reactive({
 })
 
 const errors = reactive({
-  phone: '',
+  phoneNumber: '',
   email: '',
   password: '',
   passwordConfirm: '',
@@ -177,7 +177,7 @@ function validateEmail() {
 // 비밀번호 검증
 function validatePassword() {
   const pw = form.password
-  const phone = formatPhone(form.phone)
+  const phone = formatPhone(form.phoneNumber)
 
   if (pw.length < 10 || pw.length > 64) {
     errors.password = '비밀번호는 10~64자여야 해요'
@@ -232,8 +232,8 @@ const formattedTimer = computed(() => {
 const canSubmit = computed(
   () =>
     form.name.trim() &&
-    form.birthdate.trim() &&
-    form.phone.trim() &&
+    form.birthDate.trim() &&
+    form.phoneNumber.trim() &&
     form.verificationCode.trim().length === 6 &&
     form.email.trim() &&
     form.password.length >= 10 &&
@@ -247,9 +247,9 @@ function goBack() {
 
 // 인증번호 발송
 async function requestVerification() {
-  if (!form.phone.trim()) return
+  if (!form.phoneNumber.trim()) return
 
-  const phone = formatPhone(form.phone)
+  const phone = formatPhone(form.phoneNumber)
 
   try {
     const res = await sendPhoneVerificationCode(phone)
@@ -294,8 +294,8 @@ async function submit() {
   try {
     const res = await signup({
       name: form.name,
-      birthdate: form.birthdate,
-      phone: formatPhone(form.phone),
+      birthDate: form.birthDate,
+      phoneNumber: formatPhone(form.phoneNumber),
       verificationCode: form.verificationCode,
       email: form.email,
       password: form.password,
