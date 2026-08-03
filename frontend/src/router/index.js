@@ -38,7 +38,7 @@ const router = createRouter({
     path: '/login',
     name: 'login',
     component: LoginView
-  },
+    },
     // 회원가입 페이지
     {
       path: '/signup',
@@ -109,7 +109,7 @@ const router = createRouter({
     { path: '/parents/charge/complete', 
       name: 'charge-complete', 
       component: ChargeComplete 
-    }
+    },
     // 자녀 거래내역 조회
     {
       path: '/child/transaction',
