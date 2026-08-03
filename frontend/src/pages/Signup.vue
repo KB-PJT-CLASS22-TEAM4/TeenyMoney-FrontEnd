@@ -77,6 +77,7 @@
             type="email"
             autocomplete="email"
           />
+          <p v-if="errors.email" style="color: red; font-size: 12px;">{{ errors.email }}</p>
         </div>
 
         <div class="field">
@@ -89,6 +90,7 @@
             autocomplete="new-password"
             placeholder="비밀번호 입력 (8자 이상)"
           />
+          <p v-if="errors.password" style="color: red; font-size: 12px;">{{ errors.password }}</p>
         </div>
 
         <div class="field">
@@ -101,6 +103,7 @@
             autocomplete="new-password"
             placeholder="비밀번호 재입력"
           />
+          <p v-if="errors.passwordConfirm" style="color: red; font-size: 12px;">{{ errors.passwordConfirm }}</p>
         </div>
 
         <button class="terms" type="button" @click="toggleTerms">
@@ -126,13 +129,16 @@
       </button>
     </div>
   </div>
-</template>
+
+ </template>
+
 
 <script setup>
-import { computed, onUnmounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, onUnmounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { sendPhoneVerificationCode, signup } from '@/api/auth'
 
-const router = useRouter();
+const router = useRouter()
 
 const form = reactive({
   name: '',
@@ -142,19 +148,87 @@ const form = reactive({
   email: '',
   password: '',
   passwordConfirm: '',
-  agreedToTerms: false, // 서비스 이용약관·개인정보 동의 여부
-});
+  agreedToTerms: false,
+})
 
-const timerSeconds = ref(167);
-const timerActive = ref(false);
-let timerInterval = null;
+const errors = reactive({
+  phone: '',
+  email: '',
+  password: '',
+  passwordConfirm: '',
+})
+
+// 하이픈 제거
+function formatPhone(value) {
+  return value.replace(/-/g, '').replace(/[^0-9]/g, '')
+}
+
+// 이메일 검증
+function validateEmail() {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(form.email)) {
+    errors.email = '이메일 형식이 올바르지 않아요'
+    return false
+  }
+  errors.email = ''
+  return true
+}
+
+// 비밀번호 검증
+function validatePassword() {
+  const pw = form.password
+  const phone = formatPhone(form.phone)
+
+  if (pw.length < 10 || pw.length > 64) {
+    errors.password = '비밀번호는 10~64자여야 해요'
+    return false
+  }
+  if (!/[a-zA-Z]/.test(pw)) {
+    errors.password = '영문자를 포함해야 해요'
+    return false
+  }
+  if (!/[0-9]/.test(pw)) {
+    errors.password = '숫자를 포함해야 해요'
+    return false
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) {
+    errors.password = '특수문자를 포함해야 해요'
+    return false
+  }
+  if (form.email && pw.includes(form.email)) {
+    errors.password = '이메일을 포함할 수 없어요'
+    return false
+  }
+  if (phone && pw.includes(phone)) {
+    errors.password = '전화번호를 포함할 수 없어요'
+    return false
+  }
+  errors.password = ''
+  return true
+}
+
+// 비밀번호 확인
+function validatePasswordConfirm() {
+  if (form.password !== form.passwordConfirm) {
+    errors.passwordConfirm = '비밀번호가 일치하지 않아요'
+    return false
+  }
+  errors.passwordConfirm = ''
+  return true
+}
+
+// 타이머
+const timerSeconds = ref(180)
+const timerActive = ref(false)
+let timerInterval = null
 
 const formattedTimer = computed(() => {
-  const minutes = Math.floor(timerSeconds.value / 60);
-  const seconds = timerSeconds.value % 60;
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
-});
+  const minutes = Math.floor(timerSeconds.value / 60)
+  const seconds = timerSeconds.value % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+})
 
+// 가입 완료 버튼 활성화 조건
 const canSubmit = computed(
   () =>
     form.name.trim() &&
@@ -162,83 +236,84 @@ const canSubmit = computed(
     form.phone.trim() &&
     form.verificationCode.trim().length === 6 &&
     form.email.trim() &&
-    form.password.length >= 8 &&
+    form.password.length >= 10 &&
     form.password === form.passwordConfirm &&
     form.agreedToTerms,
-);
+)
 
 function goBack() {
-  router.back();
+  router.back()
 }
 
+// 인증번호 발송
 async function requestVerification() {
-  if (!form.phone.trim()) {
-    return;
-  }
+  if (!form.phone.trim()) return
 
-  // TODO: 인증번호 발송 API 호출
-  // POST  ~
-  // body: 
-  // 성공 시 타이머 시작, 실패 시 에러 메시지 표시
+  const phone = formatPhone(form.phone)
 
-  timerSeconds.value = 167;
-  timerActive.value = true;
+  try {
+    const res = await sendPhoneVerificationCode(phone)
+    if (res.success) {
+      alert('인증번호가 발송됐어요!')
 
-  if (timerInterval) {
-    clearInterval(timerInterval);
-  }
+      timerSeconds.value = 180
+      timerActive.value = true
 
-  timerInterval = setInterval(() => {
-    if (timerSeconds.value <= 0) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-      timerActive.value = false;
-      return;
+      if (timerInterval) clearInterval(timerInterval)
+
+      timerInterval = setInterval(() => {
+        if (timerSeconds.value <= 0) {
+          clearInterval(timerInterval)
+          timerInterval = null
+          timerActive.value = false
+          return
+        }
+        timerSeconds.value -= 1
+      }, 1000)
     }
-
-    timerSeconds.value -= 1;
-  }, 1000);
+  } catch (e) {
+    alert('인증번호 발송에 실패했어요')
+  }
 }
 
 function toggleTerms() {
-  form.agreedToTerms = !form.agreedToTerms;
+  form.agreedToTerms = !form.agreedToTerms
 }
 
+// 회원가입
 async function submit() {
-  if (!canSubmit.value) {
-    return;
-  }
+  if (!canSubmit.value) return
 
-  // TODO: 회원가입 API 호출
-  // POST /auth/signup
-  // body: {
-  //   name: form.name,
-  //   birthdate: form.birthdate,
-  //   phone: form.phone,
-  //   verificationCode: form.verificationCode,  // 백엔드에서 인증코드 일치 여부 검증
-  //   email: form.email,
-  //   password: form.password,
-  //   agreedToTerms: form.agreedToTerms,
-  // }
-  // 가입완료 → 로그인 페이지로 이동 , 실패 시 → 에러 메시지 표시
-  
-  async function submit() {
-  if (!canSubmit.value) return;
+  const isValid =
+    validateEmail() &&
+    validatePassword() &&
+    validatePasswordConfirm()
+
+  if (!isValid) return
 
   try {
-    await api.post('/auth/signup', { ...form })
-    router.push('/login') // 성공 후 이동
-  } catch (error) {
-    alert('회원가입에 실패했습니다.')
+    const res = await signup({
+      name: form.name,
+      birthdate: form.birthdate,
+      phone: formatPhone(form.phone),
+      verificationCode: form.verificationCode,
+      email: form.email,
+      password: form.password,
+      agreedToTerms: form.agreedToTerms,
+    })
+
+    if (res.success) {
+      alert('회원가입이 완료됐어요!')
+      router.push('/login')
+    }
+  } catch (e) {
+    alert('회원가입에 실패했어요')
   }
- }
 }
 
 onUnmounted(() => {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-  }
-});
+  if (timerInterval) clearInterval(timerInterval)
+})
 </script>
 
 <style scoped>
