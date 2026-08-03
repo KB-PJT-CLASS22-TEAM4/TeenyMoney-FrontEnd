@@ -1,7 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import logoUrl from '@/assets/logo.svg'  // 지갑 로고: src/assets/logo.svg 에 저장
- 
+import { useRouter } from 'vue-router'
+const router = useRouter() 
+import { login } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
+
 const email = ref('')
 const password = ref('')
  
@@ -16,11 +20,15 @@ const showPasswordHint = computed(
   () => password.value.length > 0 && !isPasswordValid.value
 )
  
-function handleLogin() {
-  if (!canSubmit.value) return  // 조건 안 맞으면 막기 (이중 안전장치)
-  // TODO: 여기서 auth store / axios 로 로그인 요청 보내기
-  // 예) await authStore.login({ email: email.value, password: password.value })
-  console.log('login', { email: email.value, password: password.value })
+async function handleLogin() {
+  const res = await login(email.value, password.value)
+
+  if (res.success) {
+    // Pinia에 유저 정보 + 토큰 저장
+    authStore.setUser(res.data)
+
+    router.push('/home')  // 메인 페이지로 이동
+  }
 }
  
 function handleGoogleLogin() {
@@ -30,8 +38,15 @@ function handleGoogleLogin() {
 </script>
  
 <template>
+        
   <div class="login-screen">
     <div class="scroll">
+      
+      
+      <header class="nav">
+            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()"/>
+      </header>
+
       <div class="pad">
         <img class="logo" :src="logoUrl" alt="티니머니" />
  
@@ -81,7 +96,7 @@ function handleGoogleLogin() {
             <span class="sep">|</span>
             <span class="link">비밀번호 찾기</span>
             <span class="sep">|</span>
-            <span class="link">회원가입</span>
+            <span class="link" @click="router.push('/signup')">회원가입</span>
           </div>
  
           <div class="divider">
@@ -104,7 +119,7 @@ function handleGoogleLogin() {
       </div>
     </div>
   </div>
-</template>
+    </template>
  
 <style scoped>
  
@@ -123,6 +138,13 @@ function handleGoogleLogin() {
   width: 100%;
   height: 100%;
   overflow-y: auto;
+}
+
+/* back-btn 관련 추가 */
+.nav {
+  display: flex;
+  align-items: center;
+  padding: 18px 20px 6px;  /* ← 좌우 20px 여백 추가 */
 }
  
 .pad {

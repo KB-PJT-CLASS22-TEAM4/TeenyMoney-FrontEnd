@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomePage from '@/pages/HomePage.vue';
 import LoginView from '@/pages/Login.vue';
-// 회원가입 페이지
 import Signup from '@/pages/Signup.vue';
 // 자녀 연동 코드 입력 페이지
 import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
@@ -19,6 +18,13 @@ import ChildNotification from '@/pages/Child/ChildNotification.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
+import ChildList from '@/pages/Parents/ChildList.vue';
+import LinkCode from '@/pages/Parents/LinkCode.vue';
+
+import Charge from '@/pages/Parents/Charge.vue'
+import AutoCharge from '@/pages/Parents/AutoCharge.vue'
+import Charging from '@/pages/Parents/Charging.vue'
+import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -69,9 +75,40 @@ const router = createRouter({
       component: Transaction,
     },
     {
+      path: '/parents/childlist',
+      name: 'parents-child-list',
+      component: ChildList,
+    },
+    {
+      path: '/parents/linkcode',
+      name: 'parents-link-code',
+      component: LinkCode,
+    },
+    {
+      path: '/parents/linkcomplete',
+      name: 'parents-link-complete',
+      component: LinkComplete,
+    },
+    {
       path: '/child/home',
       name: 'child-home',
       component: ChildHome,
+    },
+    { path: '/parents/charge', 
+      name: 'charge', 
+      component:Charge 
+    },
+    { path: '/parents/charge/auto', 
+      name: 'auto-charge', 
+      component: AutoCharge 
+    },
+    { path: '/parents/charge/charging', 
+      name: 'charging', 
+      component: Charging
+    },
+    { path: '/parents/charge/complete', 
+      name: 'charge-complete', 
+      component: ChargeComplete
     },
     // 자녀 거래내역 조회
     {
@@ -84,7 +121,7 @@ const router = createRouter({
       path: '/child/notification',
       name: 'child-notification',
       component: ChildNotification,
-    },
+    }
   ],
 });
 
