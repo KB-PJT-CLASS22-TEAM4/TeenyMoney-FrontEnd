@@ -37,12 +37,14 @@
         </div>
         <div class="report-text">
           <b class="report-title">이번 달 소비 리포트</b>
-          <span class="report-sub">이번 달 소비를 한눈에 확인하기</span>
+          <span class="report-sub">카테고리별 소비를 한눈에 확인하기</span>
         </div>
-        <span class="chev">›</span>
+        <svg class="chev" viewBox="0 0 24 24" width="20" height="20" fill="none">
+          <path d="M9 6l6 6-6 6" stroke="#8b9097" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </div>
 
-      <!-- 필터 -->
+      <!-- 거래유형 필터 (전체,입금,출금) -->
       <div class="filters">
         <span
           v-for="f in filters"
@@ -53,23 +55,13 @@
         >{{ f }}</span>
       </div>
 
-      <!-- 기간 선택 -->
-<div class="period-wrap">
-  <div class="period" @click="showPeriod = !showPeriod">
-    {{ activePeriod }} <span class="chev-sm">›</span>
-  </div>
-
-  <!-- 기간 옵션 (클릭 시 펼쳐짐) -->
-  <div v-if="showPeriod" class="period-options">
-    <span
-      v-for="p in periods"
-      :key="p"
-      class="period-item"
-      :class="{ active: p === activePeriod }"
-      @click="selectPeriod(p)"
-    >{{ p }}</span>
-  </div>
-</div>
+      <!-- 조회 필터 바 (기간,정렬) → 누르면 바텀시트 -->
+      <button class="filter-bar" @click="openFilter">
+        <span class="filter-summary">{{ activePeriod }} · {{ activeSort }}</span>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+          <path d="M7 10l5 5 5-5" stroke="#8b9097" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
 
       <!-- 날짜별 거래 목록 -->
       <div v-for="group in groupedList" :key="group.date" class="group">
@@ -91,6 +83,31 @@
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
+
+    <!-- 조회 필터 바텀시트 (기간 + 정렬만) -->
+    <transition name="sheet">
+      <div v-if="showFilter" class="sheet-dim" @click.self="showFilter = false">
+        <div class="sheet">
+          <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+
+          <p class="sheet-group-title">조회기간</p>
+          <div class="sheet-chips">
+            <button v-for="p in periods" :key="p" class="s-chip"
+              :class="{ on: p === tempPeriod }" @click="tempPeriod = p">
+              {{ p.replace('최근 ', '') }}
+            </button>
+          </div>
+
+          <p class="sheet-group-title">정렬</p>
+          <div class="sheet-chips">
+            <button v-for="s in sorts" :key="s" class="s-chip"
+              :class="{ on: s === tempSort }" @click="tempSort = s">{{ s }}</button>
+          </div>
+
+          <button class="sheet-apply" @click="applyFilter">조회하기</button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -101,12 +118,35 @@ import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 
 const router = useRouter();
 
+// 거래유형: 화면에 그대로 노출 (바로 반영)
 const activeFilter = ref('전체');
 const filters = ['전체', '입금', '출금'];
 
+// 기간·정렬: 실제 적용된 조회 조건 (바텀시트에서 조회하기 눌러야 반영)
 const activePeriod = ref('최근 1개월');
-const showPeriod = ref(false);
+const activeSort = ref('최신순');
+
 const periods = ['최근 1주일', '최근 1개월', '최근 3개월', '최근 6개월'];
+const sorts = ['최신순', '과거순'];
+
+// 바텀시트 상태 + 시트 안에서 고르는 임시값
+const showFilter = ref(false);
+const tempPeriod = ref(activePeriod.value);
+const tempSort = ref(activeSort.value);
+
+function openFilter() {
+  // 시트 열 때 현재 적용값을 임시값으로 동기화
+  tempPeriod.value = activePeriod.value;
+  tempSort.value = activeSort.value;
+  showFilter.value = true;
+}
+function applyFilter() {
+  activePeriod.value = tempPeriod.value;
+  activeSort.value = tempSort.value;
+  showFilter.value = false;
+  // [API] 선택한 조건으로 거래내역 다시 조회
+  //   예) GET /api/child/transactions?period=...&sort=...
+}
 
 // ==== API 연동 필요 (지금은 더미 데이터) ====
 // [API] 지갑 잔액 조회
@@ -129,7 +169,7 @@ const transactions = ref([
   { id: 10, group: '07.08 수', time: '13:05', name: '편의점 결제', amount: -2800, balance: 344150, type: '출금' },
 ]);
 
-// 필터 + 날짜 그룹핑
+// 거래유형 필터 + 날짜 그룹핑 + 정렬
 const groupedList = computed(() => {
   const filtered = activeFilter.value === '전체'
     ? transactions.value
@@ -140,11 +180,14 @@ const groupedList = computed(() => {
     if (!groups[t.group]) groups[t.group] = [];
     groups[t.group].push(t);
   });
-  return Object.keys(groups).map(date => ({ date, items: groups[date] }));
+
+  const list = Object.keys(groups).map(date => ({ date, items: groups[date] }));
+  // 더미는 이미 최신순 → 과거순이면 뒤집기
+  return activeSort.value === '과거순' ? list.reverse() : list;
 });
 
 function goBack() {
-  router.back();
+  router.push({ name: 'child-home' });
 }
 function goReport() {
   // [라우터] 소비 리포트 화면 (별도 이슈, 만들면 연결)
@@ -162,18 +205,12 @@ function onScroll() {
   clearTimeout(scrollTimer);
   scrollTimer = setTimeout(() => { isScrolling.value = false; }, 800);
 }
-
-function selectPeriod(p) {
-  activePeriod.value = p;
-  showPeriod.value = false;
-  // [API] 선택한 기간으로 거래내역 다시 조회
-  //   예) GET /api/child/transactions?period=...
-}
 </script>
 
 <style scoped>
 .history-screen {
   box-sizing: border-box;
+  position: relative;         
   display: flex;
   flex-direction: column;
   width: 360px;
@@ -196,7 +233,7 @@ function selectPeriod(p) {
 .nav-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 20px;
 }
 
 .back-btn, .search-btn {
@@ -266,7 +303,8 @@ function selectPeriod(p) {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: #f7f8fa;
+  background: #fff;
+  border: px solid #e7e9ec; 
   border-radius: 12px;
   cursor: pointer;
 }
@@ -298,15 +336,15 @@ function selectPeriod(p) {
 .report-sub {
   font-weight: 500;
   font-size: 11.5px;
-  color: #b9bec5;
+  color: #9da0a3;
 }
 
 .chev {
   font-size: 20px;
-  color: #c5cad0;
+  color: none;  
 }
 
-/* 필터 */
+/* 거래유형 필터 칩 */
 .filters {
   display: flex;
   gap: 8px;
@@ -330,54 +368,22 @@ function selectPeriod(p) {
   color: #191b1e;
 }
 
-/* 기간 */
-.period-wrap {
-  position: relative;
+/* 조회 필터 바 (기간·정렬) — 왼쪽 정렬 */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
   padding: 14px 0 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
-.period {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.filter-summary {
   font-weight: 600;
   font-size: 13px;
   color: #8b9097;
-  cursor: pointer;
-}
-
-.chev-sm {
-  font-size: 15px;
-  color: #b9bec5;
-}
-
-/* 펼쳐지는 옵션 */
-.period-options {
-  display: flex;
-  flex-direction: column;
-  margin-top: 8px;
-  background: #fff;
-  border: 1px solid #eaedf1;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.period-item {
-  padding: 12px 16px;
-  font-weight: 600;
-  font-size: 13px;
-  color: #4a4e55;
-  cursor: pointer;
-}
-
-.period-item:hover {
-  background: #f7f8fa;
-}
-
-.period-item.active {
-  color: #191b1e;
-  font-weight: 700;
-  background: #fff8e6;   /* 선택된 건 연노랑 */
 }
 
 /* 날짜 그룹 */
@@ -442,5 +448,93 @@ function selectPeriod(p) {
 /* 하단 탭바 고정 */
 .history-screen :deep(.tabbar) {
   margin-top: auto;
+}
+
+/* ===== 조회 필터 바텀시트 ===== */
+.sheet-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-end;
+  z-index: 50;
+}
+
+.sheet {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 16px 20px 28px;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.sheet-handle-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.sheet-group-title {
+  margin: 18px 0 10px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #8b9097;
+}
+
+.sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.s-chip {
+  padding: 8px 16px;
+  border: 1px solid #e7e9ec;
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  color: #959ba3;
+  cursor: pointer;
+}
+
+.s-chip.on {
+  background: #fff8e6;
+  border-color: #ffbc00;
+  color: #ffbc00;
+}
+
+.sheet-apply {
+  width: 100%;
+  margin-top: 24px;
+  padding: 15px 0;
+  border: none;
+  border-radius: 14px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* 슬라이드 업 애니메이션 */
+.sheet-enter-active, .sheet-leave-active {
+  transition: opacity 0.25s ease;
+}
+.sheet-enter-active .sheet, .sheet-leave-active .sheet {
+  transition: transform 0.25s ease;
+}
+.sheet-enter-from, .sheet-leave-to {
+  opacity: 0;
+}
+.sheet-enter-from .sheet, .sheet-leave-to .sheet {
+  transform: translateY(100%);
 }
 </style>

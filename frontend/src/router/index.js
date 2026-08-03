@@ -79,6 +79,7 @@ const router = createRouter({
       name: 'child-transaction',
       component: ChildTransaction,
     },
+    // 자녀 알림페이지
     {
       path: '/child/notification',
       name: 'child-notification',
