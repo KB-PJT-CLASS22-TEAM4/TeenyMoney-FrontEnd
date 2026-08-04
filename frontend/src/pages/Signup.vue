@@ -26,7 +26,7 @@
           <label class="label" for="birthdate">생년월일</label>
           <input
             id="birthdate"
-            v-model="form.birthdate"
+            v-model="form.birthDate"
             class="input"
             type="text"
             inputmode="numeric"
@@ -39,7 +39,7 @@
           <div class="input-row">
             <input
               id="phone"
-              v-model="form.phone"
+              v-model="form.phoneNumber"
               class="input input-inline"
               type="tel"
               inputmode="tel"
@@ -77,7 +77,7 @@
             type="email"
             autocomplete="email"
           />
-          <p v-if="errors.email" style="color: red; font-size: 12px;">{{ errors.email }}</p>
+          <p v-if="errors.email" class="error-text">{{ errors.email }}</p>
         </div>
 
         <div class="field">
@@ -88,9 +88,9 @@
             class="input"
             type="password"
             autocomplete="new-password"
-            placeholder="비밀번호 입력 (8자 이상)"
+            placeholder="비밀번호 입력 (10자 이상, 영문+숫자+특수문자)"
           />
-          <p v-if="errors.password" style="color: red; font-size: 12px;">{{ errors.password }}</p>
+          <p v-if="errors.password" class="error-text">{{ errors.password }}</p>
         </div>
 
         <div class="field">
@@ -103,7 +103,7 @@
             autocomplete="new-password"
             placeholder="비밀번호 재입력"
           />
-          <p v-if="errors.passwordConfirm" style="color: red; font-size: 12px;">{{ errors.passwordConfirm }}</p>
+          <p v-if="errors.passwordConfirm" class="error-text">{{ errors.passwordConfirm }}</p>
         </div>
 
         <button class="terms" type="button" @click="toggleTerms">
@@ -120,18 +120,17 @@
           </span>
           <img src="@/assets/icons/icon-chevron.svg" alt="" class="chevron-icon" />
         </button>
+
+        <!-- footer 를 scroll 안으로 이동 -->
+        <div class="footer">
+          <button class="submit-btn" type="button" :disabled="!canSubmit" @click="submit">
+            가입 완료
+          </button>
+        </div>
       </div>
     </div>
-
-    <div class="footer">
-      <button class="submit-btn" type="button" :disabled="!canSubmit" @click="submit">
-        가입 완료
-      </button>
-    </div>
   </div>
-
- </template>
-
+</template>
 
 <script setup>
 import { computed, onUnmounted, reactive, ref } from 'vue'
@@ -158,12 +157,10 @@ const errors = reactive({
   passwordConfirm: '',
 })
 
-// 하이픈 제거
 function formatPhone(value) {
   return value.replace(/-/g, '').replace(/[^0-9]/g, '')
 }
 
-// 이메일 검증
 function validateEmail() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(form.email)) {
@@ -174,40 +171,38 @@ function validateEmail() {
   return true
 }
 
-// 비밀번호 검증
 function validatePassword() {
   const pw = form.password
   const phone = formatPhone(form.phoneNumber)
 
   if (pw.length < 10 || pw.length > 64) {
-    errors.password = '비밀번호는 10~64자여야 해요'
+    errors.password = '비밀번호는 10~64자여야 합니다.'
     return false
   }
   if (!/[a-zA-Z]/.test(pw)) {
-    errors.password = '영문자를 포함해야 해요'
+    errors.password = '영문자를 포함해야 합니다.'
     return false
   }
   if (!/[0-9]/.test(pw)) {
-    errors.password = '숫자를 포함해야 해요'
+    errors.password = '숫자를 포함해야 합니다.'
     return false
   }
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) {
-    errors.password = '특수문자를 포함해야 해요'
+    errors.password = '특수문자를 포함해야 합니다.'
     return false
   }
   if (form.email && pw.includes(form.email)) {
-    errors.password = '이메일을 포함할 수 없어요'
+    errors.password = '이메일을 포함할 수 없습니다.'
     return false
   }
   if (phone && pw.includes(phone)) {
-    errors.password = '전화번호를 포함할 수 없어요'
+    errors.password = '전화번호를 포함할 수 없습니다.'
     return false
   }
   errors.password = ''
   return true
 }
 
-// 비밀번호 확인
 function validatePasswordConfirm() {
   if (form.password !== form.passwordConfirm) {
     errors.passwordConfirm = '비밀번호가 일치하지 않아요'
@@ -217,7 +212,6 @@ function validatePasswordConfirm() {
   return true
 }
 
-// 타이머
 const timerSeconds = ref(180)
 const timerActive = ref(false)
 let timerInterval = null
@@ -228,7 +222,6 @@ const formattedTimer = computed(() => {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 })
 
-// 가입 완료 버튼 활성화 조건
 const canSubmit = computed(
   () =>
     form.name.trim() &&
@@ -245,7 +238,6 @@ function goBack() {
   router.back()
 }
 
-// 인증번호 발송
 async function requestVerification() {
   if (!form.phoneNumber.trim()) return
 
@@ -280,7 +272,6 @@ function toggleTerms() {
   form.agreedToTerms = !form.agreedToTerms
 }
 
-// 회원가입
 async function submit() {
   if (!canSubmit.value) return
 
@@ -330,7 +321,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  padding-bottom: 97px;
 }
 
 .nav {
@@ -456,6 +446,14 @@ onUnmounted(() => {
   color: #b9bec5;
 }
 
+/* 에러 메시지 */
+.error-text {
+  margin: -8px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ff3b30;
+}
+
 .terms {
   display: flex;
   align-items: center;
@@ -507,13 +505,9 @@ onUnmounted(() => {
   height: 18px;
 }
 
+/* footer - fixed 제거하고 스크롤과 함께 움직이도록 수정 */
 .footer {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 360px;
-  padding: 6px 20px 22px;
+  padding: 6px 0 22px;
   background-color: #ffffff;
 }
 

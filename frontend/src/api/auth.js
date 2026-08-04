@@ -1,5 +1,7 @@
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/auth`
 
+console.log(import.meta.env.VITE_API_BASE_URL)
+
 // 이메일 중복 확인
 export async function checkEmail(email) {
     const res = await fetch(`${BASE_URL}/check-email?email=${email}`)
