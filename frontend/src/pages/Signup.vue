@@ -121,6 +121,56 @@
           <img src="@/assets/icons/icon-chevron.svg" alt="" class="chevron-icon" />
         </button>
 
+        <!-- 보호자 인증 모달 -->
+<div v-if="showGuardianModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title-wrap">
+      <div class="modal-bar"></div>
+      <h2 class="modal-title">법정대리인(보호자) 정보</h2>
+    </div>
+
+    <div class="field">
+      <label class="label">보호자명</label>
+      <input
+        v-model="guardian.name"
+        class="input"
+        type="text"
+        placeholder="보호자 이름 입력"
+      />
+    </div>
+
+    <div class="field">
+      <label class="label">휴대전화</label>
+      <div class="input-row">
+        <input
+          v-model="guardian.phone"
+          class="input input-inline"
+          type="tel"
+          placeholder="010-0000-0000"
+        />
+        <button class="verify-btn" @click="requestGuardianVerification">인증</button>
+      </div>
+      <p v-if="guardianCodeSent" class="sent-text">인증번호가 발송되었습니다</p>
+    </div>
+
+    <div class="field">
+      <label class="label">인증번호</label>
+      <div class="input-row">
+        <input
+          v-model="guardian.code"
+          class="input input-inline"
+          type="text"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="인증번호 6자리 입력"
+        />
+        <button class="confirm-btn" @click="verifyGuardianCode">확인</button>
+      </div>
+      <p class="helper">문자로 받은 6자리 숫자를 입력해 주세요</p>
+    </div>
+  </div>
+</div>
+
         <!-- footer 를 scroll 안으로 이동 -->
         <div class="footer">
           <button class="submit-btn" type="button" :disabled="!canSubmit" @click="submit">
@@ -149,6 +199,26 @@ const form = reactive({
   passwordConfirm: '',
   agreedToTerms: false,
 })
+
+// 만 14세 미만 여부 체크
+function isUnder14() {
+  if (!form.birthDate || form.birthDate.length !== 8) return false
+
+  const birth = form.birthDate // YYYYMMDD
+  const birthYear = parseInt(birth.slice(0, 4))
+  const birthMonth = parseInt(birth.slice(4, 6))
+  const birthDay = parseInt(birth.slice(6, 8))
+
+  const today = new Date()
+  const age = today.getFullYear() - birthYear
+    - (today.getMonth() + 1 < birthMonth ||
+      (today.getMonth() + 1 === birthMonth && today.getDate() < birthDay) ? 1 : 0)
+
+  return age < 14
+}
+
+// 만 14세 미만이면 보호자 인증 모달 표시 여부
+const showGuardianModal = ref(false)
 
 const errors = reactive({
   phoneNumber: '',
@@ -222,6 +292,7 @@ const formattedTimer = computed(() => {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 })
 
+
 const canSubmit = computed(
   () =>
     form.name.trim() &&
@@ -282,6 +353,16 @@ async function submit() {
 
   if (!isValid) return
 
+  if (isUnder14()) {
+    showGuardianModal.value = true
+    return
+  }
+
+  // 14세 이상이면 바로 회원가입 API 호출
+  await doSignup()
+}
+
+async function doSignup() {
   try {
     const res = await signup({
       name: form.name,
