@@ -609,4 +609,64 @@ onUnmounted(() => {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  width: 360px;
+  background-color: #ffffff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-bar {
+  width: 4px;
+  height: 18px;
+  background-color: #ffbc00;
+  border-radius: 2px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #191b1e;
+}
+
+.sent-text {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #ffbc00;
+}
+
+.confirm-btn {
+  flex-shrink: 0;
+  padding: 8px 15px;
+  border: 1.5px solid #191b1e;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #191b1e;
+  cursor: pointer;
+}
+
 </style>
