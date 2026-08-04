@@ -305,6 +305,45 @@ const canSubmit = computed(
     form.agreedToTerms,
 )
 
+// 14세 미만 시 보호자 정보 입력
+const guardian = reactive({
+  name: '',
+  phone: '',
+  code: '',
+})
+const guardianCodeSent = ref(false)
+
+// 보호자 인증번호 발송
+async function requestGuardianVerification() {
+  if (!guardian.phone.trim()) return
+
+  try {
+    // TODO: API 연동
+    // POST /auth/guardian/send-code
+    // body: { phone: formatPhone(guardian.phone) }
+    guardianCodeSent.value = true
+    alert('보호자 인증번호가 발송됐어요!')
+  } catch (e) {
+    alert('인증번호 발송에 실패했어요')
+  }
+}
+
+// 보호자 인증번호 확인 후 회원가입 진행
+async function verifyGuardianCode() {
+  if (guardian.code.length !== 6) return
+
+  try {
+    // TODO: API 연동
+    // POST /auth/guardian/verify
+    // body: { phone: formatPhone(guardian.phone), code: guardian.code }
+    // 성공 시 → 회원가입 API 호출
+    showGuardianModal.value = false
+    await doSignup()
+  } catch (e) {
+    alert('인증번호가 올바르지 않아요')
+  }
+}
+
 function goBack() {
   router.back()
 }
