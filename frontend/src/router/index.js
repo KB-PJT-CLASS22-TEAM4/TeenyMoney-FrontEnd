@@ -41,6 +41,7 @@ const router = createRouter({
       name: 'home',
       component: HomePage,
     },
+    // 로그인 페이지
     {
     path: '/login',
     name: 'login',
@@ -76,43 +77,52 @@ const router = createRouter({
       name: 'parents-home',
       component: ParentsHome,
     },
+    // 부모 거래네역 전체 페이지
     {
       path: '/parents/transaction',
       name: 'parents-transaction',
       component: Transaction,
     },
+    // 자녀 목록 페이지
     {
       path: '/parents/childlist',
       name: 'parents-child-list',
       component: ChildList,
     },
+    // 부모 연동 코드 발급 신청 페이지
     {
       path: '/parents/linkcode',
       name: 'parents-link-code',
       component: LinkCode,
     },
+    // 부모 연동 코드 발급 완료 페이지
     {
       path: '/parents/linkcomplete',
       name: 'parents-link-complete',
       component: LinkComplete,
     },
+    // 자녀 홈 화면
     {
       path: '/child/home',
       name: 'child-home',
       component: ChildHome,
     },
+    // 충전 관련 페이지
     { path: '/parents/charge', 
       name: 'charge', 
       component:Charge 
     },
+    // 자동 충전 페이지
     { path: '/parents/charge/auto', 
       name: 'auto-charge', 
       component: AutoCharge 
     },
+    // 충전 진행 중 페이지
     { path: '/parents/charge/charging', 
       name: 'charging', 
       component: Charging
     },
+    // 충전 완료 페이지
     { path: '/parents/charge/complete', 
       name: 'charge-complete', 
       component: ChargeComplete
