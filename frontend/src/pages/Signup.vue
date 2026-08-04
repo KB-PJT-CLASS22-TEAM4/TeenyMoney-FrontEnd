@@ -241,10 +241,10 @@ function goBack() {
 async function requestVerification() {
   if (!form.phoneNumber.trim()) return
 
-  const phone = formatPhone(form.phoneNumber)
+  const phoneNumber = formatPhone(form.phoneNumber)
 
   try {
-    const res = await sendPhoneVerificationCode(phone)
+    const res = await sendPhoneVerificationCode(phoneNumber)
     if (res.success) {
       alert('인증번호가 발송됐어요!')
 

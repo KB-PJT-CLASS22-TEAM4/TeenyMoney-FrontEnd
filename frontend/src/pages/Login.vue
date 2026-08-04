@@ -20,6 +20,7 @@ const showPasswordHint = computed(
   () => password.value.length > 0 && !isPasswordValid.value
 )
  
+const authStore = useAuthStore()
 async function handleLogin() {
   const res = await login(email.value, password.value)
 
@@ -35,6 +36,8 @@ function handleGoogleLogin() {
   // TODO: 구글 OAuth 연동
   console.log('google login')
 }
+
+
 </script>
  
 <template>
