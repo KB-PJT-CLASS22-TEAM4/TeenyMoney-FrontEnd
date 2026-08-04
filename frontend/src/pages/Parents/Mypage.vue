@@ -1,12 +1,44 @@
-<!-- 현재 로그인 한 사용자 --> 
-
 <template>
-  <div class="mypage">
-    <!-- 상단 헤더 -->
-    <header class="page-header">
-      <h1 class="page-title">마이페이지</h1>
+  <div class="page">
+    <!-- 헤더 -->
+    <header class="nav">
+      <div class="nav-side"></div>
+
+      <h1 class="nav-title">마이페이지</h1>
+
+      <button
+        class="alarm-btn"
+        type="button"
+        aria-label="알림"
+      >
+        <img
+          src="@/assets/icons/icon-notification.svg"
+          alt=""
+          class="alarm-icon"
+        />
+      </button>
     </header>
 
+    <!-- 로딩 -->
+    <div v-if="isLoading" class="state-box">
+      <p class="state-text">회원 정보를 불러오는 중입니다.</p>
+    </div>
+
+    <!-- 오류 -->
+    <div v-else-if="errorMessage" class="state-box error-state">
+      <p class="state-text">{{ errorMessage }}</p>
+
+      <button
+        type="button"
+        class="retry-button"
+        @click="fetchMyInfo"
+      >
+        다시 시도
+      </button>
+    </div>
+
+    <!-- 마이페이지 내용 -->
+    <main v-else class="content">
       <!-- 프로필 -->
       <section class="profile-section">
         <div class="profile-image-wrapper">
@@ -20,8 +52,8 @@
 
           <div v-else class="default-profile">
             <svg
-              width="52"
-              height="52"
+              width="48"
+              height="48"
               viewBox="0 0 52 52"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -33,6 +65,7 @@
                 stroke="currentColor"
                 stroke-width="4"
               />
+
               <path
                 d="M9 46C9 35.5066 16.6112 29 26 29C35.3888 29 43 35.5066 43 46"
                 stroke="currentColor"
@@ -44,15 +77,18 @@
         </div>
 
         <div class="profile-text">
-          <strong class="member-name">{{ member.name }}</strong>
+          <strong class="member-name">
+            {{ member.name || '-' }}
+          </strong>
+
           <span class="member-birth">
-            {{ formattedBirthDate }}
+            {{ formattedBirthDate || '-' }}
           </span>
         </div>
       </section>
 
-      <!-- 회원 정보 -->
-      <section class="info-section">
+      <!-- 회원 정보 카드 -->
+      <section class="info-card">
         <div class="info-item">
           <div class="info-heading">
             <span class="info-label">연락처</span>
@@ -67,7 +103,7 @@
           </div>
 
           <p class="info-value">
-            {{ formattedPhoneNumber }}
+            {{ formattedPhoneNumber || '-' }}
           </p>
         </div>
 
@@ -85,165 +121,164 @@
           </div>
 
           <p class="info-value email-value">
-            {{ member.email }}
+            {{ member.email || '-' }}
           </p>
         </div>
       </section>
 
-      <div class="divider"></div>
-
       <!-- 비밀번호 변경 -->
-      <button
-        type="button"
-        class="menu-button password-button"
-        @click="goToPasswordChange"
-      >
-        <span>비밀번호 변경</span>
-        <span class="chevron">›</span>
-      </button>
+      <section class="menu-card">
+        <button
+          type="button"
+          class="menu-button"
+          @click="goToPasswordChange"
+        >
+          <span>비밀번호 변경</span>
+          <span class="chevron">›</span>
+        </button>
+      </section>
 
       <!-- 연결된 자녀 -->
-      <section class="children-section">
+      <section class="section-block">
         <h2 class="section-title">연결된 자녀</h2>
 
-        <div class="section-divider"></div>
+        <div class="section-card">
+          <template v-if="children.length > 0">
+            <div
+              v-for="(child, index) in children"
+              :key="child.memberId"
+              class="child-item"
+              :class="{ 'with-border': index !== children.length - 1 }"
+            >
+              <div class="child-info">
+                <img
+                  src="@/assets/icons/child-profile.svg"
+                  alt=""
+                  class="child-icon"
+                />
 
-        <div v-if="children.length > 0">
-          <div
-            v-for="child in children"
-            :key="child.memberId"
-            class="child-item"
-          >
-            <div class="child-info">
-              <div class="child-icon">
-                <svg
-                  width="28"
-                  height="28"
-                  viewBox="0 0 52 52"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <circle
-                    cx="26"
-                    cy="17"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  />
-                  <path
-                    d="M9 46C9 35.5066 16.6112 29 26 29C35.3888 29 43 35.5066 43 46"
-                    stroke="currentColor"
-                    stroke-width="4"
-                    stroke-linecap="round"
-                  />
-                </svg>
+                <strong class="child-name">
+                  {{ child.name }}
+                </strong>
               </div>
 
-              <strong class="child-name">
-                {{ child.name }}
-              </strong>
+              <button
+                type="button"
+                class="disconnect-button"
+                @click="disconnectChild(child)"
+              >
+                연동 해제
+              </button>
             </div>
+          </template>
 
-            <button
-              type="button"
-              class="disconnect-button"
-              @click="disconnectChild(child)"
-            >
-              연동 해제
-            </button>
-          </div>
+          <p v-else class="empty-message">
+            연결된 자녀가 없습니다.
+          </p>
         </div>
-
-        <p v-else class="empty-message">
-          연결된 자녀가 없습니다.
-        </p>
       </section>
 
       <!-- 고객지원 -->
-      <section class="support-section">
+      <section class="section-block">
         <h2 class="section-title">고객지원</h2>
-        <div class="section-divider"></div>
 
-        <button
-          type="button"
-          class="menu-button"
-          @click="goToFaq"
-        >
-          <span>자주 묻는 질문</span>
-          <span class="chevron">›</span>
-        </button>
+        <div class="menu-card">
+          <button
+            type="button"
+            class="menu-button menu-border"
+            @click="goToFaq"
+          >
+            <span>자주 묻는 질문</span>
+            <span class="chevron">›</span>
+          </button>
 
-        <button
-          type="button"
-          class="menu-button"
-          @click="goToInquiry"
-        >
-          <span>문의하기</span>
-          <span class="chevron">›</span>
-        </button>
+          <button
+            type="button"
+            class="menu-button menu-border"
+            @click="goToInquiry"
+          >
+            <span>문의하기</span>
+            <span class="chevron">›</span>
+          </button>
 
-        <button
-          type="button"
-          class="menu-button"
-          @click="goToPolicy"
-        >
-          <span>약관 및 정책</span>
-          <span class="chevron">›</span>
-        </button>
+          <button
+            type="button"
+            class="menu-button"
+            @click="goToPolicy"
+          >
+            <span>약관 및 정책</span>
+            <span class="chevron">›</span>
+          </button>
+        </div>
       </section>
 
       <!-- 계정관리 -->
-      <section class="account-section">
+      <section class="section-block">
         <h2 class="section-title">계정관리</h2>
-        <div class="section-divider"></div>
 
-        <button
-          type="button"
-          class="menu-button"
-          @click="logout"
-        >
-          <span>로그아웃</span>
-          <span class="chevron">›</span>
-        </button>
+        <div class="menu-card">
+          <button
+            type="button"
+            class="menu-button menu-border"
+            @click="logout"
+          >
+            <span>로그아웃</span>
+            <span class="chevron">›</span>
+          </button>
 
-        <button
-          type="button"
-          class="menu-button"
-          @click="withdraw"
-        >
-          <span>회원 탈퇴</span>
-          <span class="chevron">›</span>
-        </button>
+          <button
+            type="button"
+            class="menu-button"
+            @click="withdraw"
+          >
+            <span>회원 탈퇴</span>
+            <span class="chevron">›</span>
+          </button>
+        </div>
       </section>
-    
+    </main>
 
     <!-- 하단 네비게이션 -->
-    <nav class="bottom-navigation">
+    <nav class="bottom-nav">
       <button
-        type="button"
         class="nav-item"
+        type="button"
         @click="router.push('/parents/home')"
       >
-        <span class="nav-icon">⌂</span>
-        <span>홈</span>
+        <img
+          src="@/assets/icons/icon-home.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">홈</span>
       </button>
 
       <button
-        type="button"
         class="nav-item"
-        @click="router.push('/parents/children')"
+        type="button"
+        @click="router.push('/parents/childlist')"
       >
-        <span class="nav-icon">♧</span>
-        <span>자녀관리</span>
+        <img
+          src="@/assets/icons/icon-child.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">자녀관리</span>
       </button>
 
       <button
+        class="nav-item nav-item-active"
         type="button"
-        class="nav-item active"
-        @click="router.push('/parents/mypage')"
       >
-        <span class="nav-icon">♙</span>
-        <span>마이페이지</span>
+        <img
+          src="@/assets/icons/icon-mypage-alive.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">마이페이지</span>
       </button>
     </nav>
   </div>
@@ -271,8 +306,13 @@ const member = reactive({
   profileImageUrl: '',
 })
 
-const children = ref([]) // 연결된 자녀 목록
-
+/*
+ * 현재 GET /api/v1/members/me 응답에는
+ * 연결된 자녀 목록이 포함되어 있지 않으므로 빈 배열로 둡니다.
+ *
+ * 추후 자녀 목록 API 연동 후 교체하면 됩니다.
+ */
+const children = ref([])
 
 const formattedBirthDate = computed(() => {
   if (!member.birthDate) {
@@ -311,17 +351,36 @@ async function fetchMyInfo() {
   errorMessage.value = ''
 
   try {
-    const data = await getMyInfo()
+    if (!authStore.accessToken) {
+      throw new Error('로그인이 필요합니다.')
+    }
 
-    member.memberId = data.memberId
-    member.role = data.role
-    member.name = data.name
-    member.email = data.email
-    member.phoneNumber = data.phoneNumber
-    member.birthDate = data.birthDate
-    member.profileImageUrl = data.profileImageUrl || ''
+    const data = await getMyInfo(authStore.accessToken)
+
+    Object.assign(member, {
+      memberId: data.memberId,
+      role: data.role,
+      name: data.name,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      birthDate: data.birthDate,
+      profileImageUrl: data.profileImageUrl || '',
+    })
+
+    /*
+     * authStore에 updateUserInfo 함수가 있다면
+     * 아래 코드를 사용할 수 있습니다.
+     */
+    if (typeof authStore.updateUserInfo === 'function') {
+      authStore.updateUserInfo({
+        memberId: data.memberId,
+        role: data.role,
+        name: data.name,
+      })
+    }
   } catch (error) {
     console.error('회원 정보 조회 실패:', error)
+
     errorMessage.value =
       error.message || '회원 정보를 불러오지 못했습니다.'
   } finally {
@@ -329,22 +388,22 @@ async function fetchMyInfo() {
   }
 }
 
+function handleProfileImageError() {
+  member.profileImageUrl = ''
+}
 
 // 로그아웃
-// function logout() {
-//   const confirmed = window.confirm('로그아웃하시겠습니까?')
+function logout() {
+  const confirmed = window.confirm('로그아웃하시겠습니까?')
 
-//   if (!confirmed) {
-//     return
-//   }
+  if (!confirmed) {
+    return
+  }
 
-//   localStorage.removeItem('accessToken')
-//   localStorage.removeItem('refreshToken')
+  authStore.clearUser()
+  router.replace('/login')
+}
 
-//   router.replace('/login')
-// }
-
-// 회원 탈퇴
 // function withdraw() {
 //   const confirmed = window.confirm(
 //     '회원 탈퇴 화면으로 이동하시겠습니까?'
@@ -371,37 +430,78 @@ button {
   font: inherit;
 }
 
-.mypage {
+.page {
+  width: 360px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding-bottom: 90px;
+  color: #191b1e;
+  background-color: #f4f5f7;
+}
+
+/* 헤더 */
+.nav {
   position: relative;
-  width: 100%;
-  min-height: 100vh;
-  padding: 0 24px 110px;
-  color: #222;
-  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 18px 20px 4px;
+  background-color: #f4f5f7;
 }
 
-.page-header {
-  padding-top: 36px;
+.nav-side {
+  width: 24px;
+  height: 24px;
 }
 
-.page-title {
+.nav-title {
+  position: absolute;
+  left: 50%;
   margin: 0;
-  font-size: 27px;
-  font-weight: 800;
-  line-height: 1.3;
+  color: #191b1e;
+  font-size: 18px;
+  font-weight: 700;
+  transform: translateX(-50%);
 }
 
+.alarm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.alarm-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* 전체 콘텐츠 */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 24px;
+}
+
+/* 프로필 */
 .profile-section {
   display: flex;
   align-items: center;
-  gap: 30px;
-  padding: 32px 16px 43px;
+  gap: 20px;
+  padding: 20px 18px;
+  border-radius: 16px;
+  background-color: #ffffff;
 }
 
 .profile-image-wrapper {
   flex-shrink: 0;
-  width: 132px;
-  height: 132px;
+  width: 86px;
+  height: 86px;
 }
 
 .profile-image,
@@ -421,30 +521,39 @@ button {
   align-items: center;
   justify-content: center;
   color: #b8bdc5;
-  background: #f6f7f9;
+  background-color: #f4f5f7;
 }
 
 .profile-text {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 6px;
 }
 
 .member-name {
-  font-size: 30px;
+  overflow: hidden;
+  color: #191b1e;
+  font-size: 22px;
   font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .member-birth {
-  color: #90959e;
-  font-size: 21px;
+  color: #8b9097;
+  font-size: 15px;
   font-weight: 600;
 }
 
-.info-section {
+/* 연락처, 이메일 */
+.info-card {
   display: flex;
   flex-direction: column;
-  gap: 38px;
+  gap: 28px;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
 }
 
 .info-item {
@@ -457,91 +566,63 @@ button {
   justify-content: space-between;
 }
 
-.info-label,
-.section-title {
-  margin: 0;
-  color: #92979f;
-  font-size: 19px;
+.info-label {
+  color: #8b9097;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .info-value {
-  margin: 12px 0 0;
-  font-size: 26px;
+  margin: 9px 0 0;
+  color: #191b1e;
+  font-size: 20px;
   font-weight: 500;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
 .email-value {
-  font-size: 24px;
+  font-size: 18px;
 }
 
 .edit-button,
 .disconnect-button {
   border: 1px solid #d9dee5;
-  border-radius: 5px;
+  border-radius: 6px;
   color: #3c4046;
-  background: #fff;
+  background-color: #ffffff;
   cursor: pointer;
 }
 
 .edit-button {
-  padding: 5px 11px;
-  font-size: 14px;
+  padding: 5px 10px;
+  font-size: 12px;
 }
 
 .disconnect-button {
-  padding: 10px 13px;
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 섹션 */
+.section-block {
+  margin-top: 20px;
+}
+
+.section-title {
+  margin: 0 0 10px 4px;
+  color: #8b9097;
   font-size: 14px;
-}
-
-.divider,
-.section-divider {
-  width: 100%;
-  height: 1px;
-  background: #e5e7eb;
-}
-
-.divider {
-  margin-top: 42px;
-}
-
-.password-button {
-  margin-top: 8px;
-}
-
-.children-section,
-.support-section,
-.account-section {
-  margin-top: 72px;
-}
-
-.section-divider {
-  margin-top: 18px;
-}
-
-.child-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 90px;
-  padding: 0 4px 0 16px;
-}
-
-.child-info {
-  display: flex;
-  align-items: center;
-  gap: 26px;
-}
-
-.child-icon {
-  display: flex;
-  color: #51565d;
-}
-
-.child-name {
-  font-size: 21px;
   font-weight: 700;
+}
+
+/* 공통 카드 */
+.menu-card,
+.section-card {
+  overflow: hidden;
+  border-radius: 16px;
+  background-color: #ffffff;
 }
 
 .menu-button {
@@ -549,99 +630,138 @@ button {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 76px;
-  padding: 0;
-  border: 0;
-  color: #202124;
-  font-size: 22px;
-  font-weight: 600;
+  min-height: 58px;
+  padding: 0 16px;
+  border: none;
+  color: #191b1e;
+  font-size: 15px;
+  font-weight: 700;
   text-align: left;
-  background: transparent;
+  background-color: #ffffff;
   cursor: pointer;
 }
 
+.menu-border {
+  border-bottom: 1px solid #f0f1f3;
+}
+
 .chevron {
-  color: #b8bdc5;
-  font-size: 38px;
+  color: #b9bec5;
+  font-size: 28px;
   font-weight: 300;
   line-height: 1;
 }
 
+/* 연결된 자녀 */
+.child-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 70px;
+  padding: 0 16px;
+}
+
+.child-item.with-border {
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.child-info {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.child-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+}
+
+.child-name {
+  overflow: hidden;
+  color: #191b1e;
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .empty-message {
-  margin: 28px 0;
-  color: #92979f;
+  margin: 0;
+  padding: 34px 16px;
+  color: #b9bec5;
+  font-size: 13px;
   text-align: center;
 }
 
+/* 상태 화면 */
 .state-box {
-  padding: 100px 20px;
-  color: #777;
+  padding: 120px 20px;
   text-align: center;
 }
 
-.error-state {
+.state-text {
+  margin: 0;
+  color: #8b9097;
+  font-size: 14px;
+}
+
+.error-state .state-text {
   color: #d14343;
 }
 
 .retry-button {
   margin-top: 16px;
   padding: 10px 18px;
-  border: 0;
+  border: none;
   border-radius: 8px;
-  color: #fff;
-  background: #222;
+  color: #191b1e;
+  font-size: 13px;
+  font-weight: 700;
+  background-color: #ffbc00;
   cursor: pointer;
 }
 
-.bottom-navigation {
+/* 하단 네비게이션 */
+.bottom-nav {
   position: fixed;
-  right: 0;
   bottom: 0;
-  left: 0;
-  z-index: 10;
+  left: 50%;
+  z-index: 100;
   display: flex;
-  height: 92px;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
+  justify-content: space-around;
+  width: 360px;
+  padding: 10px 0 20px;
+  border-top: 1px solid #f0f1f3;
+  background-color: #ffffff;
+  transform: translateX(-50%);
 }
 
 .nav-item {
   display: flex;
-  flex: 1;
+  min-width: 70px;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border: 0;
-  color: #b8bdc5;
-  font-size: 13px;
-  font-weight: 700;
+  gap: 4px;
+  padding: 0;
+  border: none;
   background: transparent;
   cursor: pointer;
 }
 
-.nav-item.active {
-  color: #202124;
-}
-
 .nav-icon {
-  font-size: 29px;
-  line-height: 1;
+  width: 24px;
+  height: 24px;
 }
 
-@media (min-width: 600px) {
-  .mypage {
-    max-width: 600px;
-    margin: 0 auto;
-    border-right: 1px solid #eee;
-    border-left: 1px solid #eee;
-  }
+.nav-label {
+  color: #8b9097;
+  font-size: 11px;
+}
 
-  .bottom-navigation {
-    right: 50%;
-    left: 50%;
-    width: 600px;
-    transform: translateX(-50%);
-  }
+.nav-item-active .nav-label {
+  color: #191b1e;
+  font-weight: 700;
 }
 </style>
