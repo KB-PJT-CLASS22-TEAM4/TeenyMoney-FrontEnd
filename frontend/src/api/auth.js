@@ -11,7 +11,7 @@ export async function checkEmail(email) {
 
 // 휴대폰 인증 번호 발송
 export async function sendPhoneVerificationCode(phone){
-    const res = await fetch(`${BASE_URL}/phone-verification/send-code?phone=${phone}`, {
+    const res = await fetch(`${BASE_URL}/phone-verification/send?phone=${phone}`, {
         method: 'POST',
         headers : { 'Content-Type': 'application/json' },
         body : JSON.stringify({ phone })
