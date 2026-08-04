@@ -15,7 +15,9 @@ import ChildTransaction from '@/pages/Child/ChildTransaction.vue';
 // 자녀 알림페이지
 import ChildNotification from '@/pages/Child/ChildNotification.vue';
 // QR스캔
-import QrScan from '@/pages/Child/Payment/QRscan.vue';
+import QRScan from '@/pages/Child/Payment/QRscan.vue';
+// QR코드 보여주기
+import QRcode from '@/pages/Child/Payment/QRcode.vue';
 
 
 import ParentsHome from '@/pages/Parents/Home.vue';
@@ -128,7 +130,13 @@ const router = createRouter({
     {
       path: '/child/payment/scan',
       name: 'qr-scan',
-      component: QrScan,
+      component: QRScan,
+    },
+    // QR코드 보여주기
+    {
+      path: '/child/payment/qrcode',
+      name: 'qr-code',
+      component: QRcode,
     },
   ],
 });
