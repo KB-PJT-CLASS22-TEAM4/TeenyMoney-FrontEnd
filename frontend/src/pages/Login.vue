@@ -23,12 +23,19 @@ const showPasswordHint = computed(
 const authStore = useAuthStore()
 async function handleLogin() {
   const res = await login(email.value, password.value)
+  console.log('로그인 응답:', res)
 
   if (res.success) {
-    // Pinia에 유저 정보 + 토큰 저장
     authStore.setUser(res.data)
 
-    router.push('/home')  // 메인 페이지로 이동
+    // role에 따라 다른 페이지로 이동
+    if (res.data.role === 'CHILD') {
+      router.push('/child/home')
+    } else {
+      router.push('/parents/home')
+    }
+  } else {
+    console.log('로그인 실패:', res.message)
   }
 }
  
