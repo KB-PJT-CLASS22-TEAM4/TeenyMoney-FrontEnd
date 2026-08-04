@@ -14,6 +14,8 @@ import ChildHome from '@/pages/Child/ChildHome.vue';
 import ChildTransaction from '@/pages/Child/ChildTransaction.vue';
 // 자녀 알림페이지
 import ChildNotification from '@/pages/Child/ChildNotification.vue';
+// QR스캔
+import QrScan from '@/pages/Child/Payment/QRscan.vue';
 
 
 import ParentsHome from '@/pages/Parents/Home.vue';
@@ -121,7 +123,13 @@ const router = createRouter({
       path: '/child/notification',
       name: 'child-notification',
       component: ChildNotification,
-    }
+    },
+    // QR스캔
+    {
+      path: '/child/payment/scan',
+      name: 'qr-scan',
+      component: QrScan,
+    },
   ],
 });
 
