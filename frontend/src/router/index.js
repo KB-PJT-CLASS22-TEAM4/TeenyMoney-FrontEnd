@@ -18,7 +18,8 @@ import ChildNotification from '@/pages/Child/ChildNotification.vue';
 import QRScan from '@/pages/Child/Payment/QRscan.vue';
 // QR코드 보여주기
 import QRcode from '@/pages/Child/Payment/QRcode.vue';
-
+// 결제 정보
+import PayInfo from '@/pages/Child/Payment/PayInfo.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -137,6 +138,12 @@ const router = createRouter({
       path: '/child/payment/qrcode',
       name: 'qr-code',
       component: QRcode,
+    },
+    // 결제 정보 표시
+    {
+      path: '/child/payment/info',
+      name: 'pay-info',
+      component: PayInfo,
     },
   ],
 });
