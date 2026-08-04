@@ -10,11 +10,28 @@ import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
 // 자녀 홈 화면
 import ChildHome from '@/pages/Child/ChildHome.vue';
+// 자녀 거래내역 조회
+import ChildTransaction from '@/pages/Child/ChildTransaction.vue';
+// 자녀 알림페이지
+import ChildNotification from '@/pages/Child/ChildNotification.vue';
+// QR스캔
+import QRScan from '@/pages/Child/Payment/QRscan.vue';
+// QR코드 보여주기
+import QRcode from '@/pages/Child/Payment/QRcode.vue';
+// 결제 정보
+import PayInfo from '@/pages/Child/Payment/PayInfo.vue';
+// 결제 비밀번호 입력
+import PayPassword from '@/pages/Child/Payment/PayPassword.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
 import ChildList from '@/pages/Parents/ChildList.vue';
 import LinkCode from '@/pages/Parents/LinkCode.vue';
+
+import Charge from '@/pages/Parents/Charge.vue'
+import AutoCharge from '@/pages/Parents/AutoCharge.vue'
+import Charging from '@/pages/Parents/Charging.vue'
+import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -83,6 +100,58 @@ const router = createRouter({
       path: '/child/home',
       name: 'child-home',
       component: ChildHome,
+    },
+    { path: '/parents/charge', 
+      name: 'charge', 
+      component:Charge 
+    },
+    { path: '/parents/charge/auto', 
+      name: 'auto-charge', 
+      component: AutoCharge 
+    },
+    { path: '/parents/charge/charging', 
+      name: 'charging', 
+      component: Charging
+    },
+    { path: '/parents/charge/complete', 
+      name: 'charge-complete', 
+      component: ChargeComplete
+    },
+    // 자녀 거래내역 조회
+    {
+      path: '/child/transaction',
+      name: 'child-transaction',
+      component: ChildTransaction,
+    },
+    // 자녀 알림페이지
+    {
+      path: '/child/notification',
+      name: 'child-notification',
+      component: ChildNotification,
+    },
+    // QR스캔
+    {
+      path: '/child/payment/scan',
+      name: 'qr-scan',
+      component: QRScan,
+    },
+    // QR코드 보여주기
+    {
+      path: '/child/payment/qrcode',
+      name: 'qr-code',
+      component: QRcode,
+    },
+    // 결제 정보 표시
+    {
+      path: '/child/payment/info',
+      name: 'pay-info',
+      component: PayInfo,
+    },
+    // 결제 비밀번호 입력
+    {
+     path: '/child/payment/password',
+     name: 'pay-password',
+      component: PayPassword,
     },
   ],
 });
