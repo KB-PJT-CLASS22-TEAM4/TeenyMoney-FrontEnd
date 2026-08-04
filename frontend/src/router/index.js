@@ -20,6 +20,8 @@ import QRScan from '@/pages/Child/Payment/QRscan.vue';
 import QRcode from '@/pages/Child/Payment/QRcode.vue';
 // 결제 정보
 import PayInfo from '@/pages/Child/Payment/PayInfo.vue';
+// 결제 비밀번호 입력
+import PayPassword from '@/pages/Child/Payment/PayPassword.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -144,6 +146,12 @@ const router = createRouter({
       path: '/child/payment/info',
       name: 'pay-info',
       component: PayInfo,
+    },
+    // 결제 비밀번호 입력
+    {
+     path: '/child/payment/password',
+     name: 'pay-password',
+      component: PayPassword,
     },
   ],
 });
