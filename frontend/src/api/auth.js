@@ -1,5 +1,7 @@
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/auth`
 
+console.log(import.meta.env.VITE_API_BASE_URL)
+
 // 이메일 중복 확인
 export async function checkEmail(email) {
     const res = await fetch(`${BASE_URL}/check-email?email=${email}`)
@@ -9,7 +11,7 @@ export async function checkEmail(email) {
 
 // 휴대폰 인증 번호 발송
 export async function sendPhoneVerificationCode(phone){
-    const res = await fetch(`${BASE_URL}/send-phone-verification-code?phone=${phone}`, {
+    const res = await fetch(`${BASE_URL}/phone-verification/send-code?phone=${phone}`, {
         method: 'POST',
         headers : { 'Content-Type': 'application/json' },
         body : JSON.stringify({ phone })
