@@ -252,9 +252,11 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const isLoading = ref(true)
 const errorMessage = ref('')
@@ -269,22 +271,8 @@ const member = reactive({
   profileImageUrl: '',
 })
 
-/**
- * 현재 GET /members/me 응답에는 자녀 목록이 없으므로
- * 임시 데이터로 작성한 상태입니다.
- *
- * 자녀 목록 API가 생기면 해당 API 응답으로 교체하면 됩니다.
- */
-const children = ref([
-  {
-    memberId: 101,
-    name: '김첫째',
-  },
-  {
-    memberId: 102,
-    name: '김둘째',
-  },
-])
+const children = ref([]) // 연결된 자녀 목록
+
 
 const formattedBirthDate = computed(() => {
   if (!member.birthDate) {
@@ -341,79 +329,33 @@ async function fetchMyInfo() {
   }
 }
 
-function handleProfileImageError() {
-  member.profileImageUrl = ''
-}
 
-function goToPhoneEdit() {
-  router.push('/parents/mypage/phone')
-}
+// 로그아웃
+// function logout() {
+//   const confirmed = window.confirm('로그아웃하시겠습니까?')
 
-function goToEmailEdit() {
-  router.push('/parents/mypage/email')
-}
+//   if (!confirmed) {
+//     return
+//   }
 
-function goToPasswordChange() {
-  router.push('/parents/mypage/password')
-}
+//   localStorage.removeItem('accessToken')
+//   localStorage.removeItem('refreshToken')
 
-function goToFaq() {
-  router.push('/faq')
-}
+//   router.replace('/login')
+// }
 
-function goToInquiry() {
-  router.push('/inquiry')
-}
+// 회원 탈퇴
+// function withdraw() {
+//   const confirmed = window.confirm(
+//     '회원 탈퇴 화면으로 이동하시겠습니까?'
+//   )
 
-function goToPolicy() {
-  router.push('/policy')
-}
+//   if (!confirmed) {
+//     return
+//   }
 
-function disconnectChild(child) {
-  const confirmed = window.confirm(
-    `${child.name} 자녀와의 연동을 해제하시겠습니까?`
-  )
-
-  if (!confirmed) {
-    return
-  }
-
-  /*
-   * TODO
-   * 자녀 연동 해제 API가 생기면 여기서 호출
-   *
-   * await disconnectChildApi(child.memberId)
-   */
-
-  children.value = children.value.filter(
-    item => item.memberId !== child.memberId
-  )
-}
-
-function logout() {
-  const confirmed = window.confirm('로그아웃하시겠습니까?')
-
-  if (!confirmed) {
-    return
-  }
-
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
-
-  router.replace('/login')
-}
-
-function withdraw() {
-  const confirmed = window.confirm(
-    '회원 탈퇴 화면으로 이동하시겠습니까?'
-  )
-
-  if (!confirmed) {
-    return
-  }
-
-  router.push('/parents/mypage/withdraw')
-}
+//   router.push('/parents/mypage/withdraw')
+// }
 
 onMounted(() => {
   fetchMyInfo()
