@@ -32,6 +32,8 @@ import PasswordSetting from '@/pages/Child/PasswordSetting.vue';
 import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 // 결제 비밀번호 변경
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
+// 자녀 소비 리포트 
+import ChildReport from '@/pages/Child/ChildReport.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -211,6 +213,12 @@ const router = createRouter({
   name: 'child-password-change',
   component: PasswordChange,
 },
+// 자녀 소비 리포트
+   {
+  path: '/child/report',
+  name: 'child-report',
+  component: ChildReport,
+  },
   ],
 });
 
