@@ -6,9 +6,9 @@ import { getMyInfo } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
-const authStore = useAuthStore();  
+const authStore = useAuthStore();
 
-// 자녀 정보 API 
+// 자녀 정보 API
 const user = ref({
   name: '',
   birth: '',
@@ -19,14 +19,16 @@ const user = ref({
 const parent = ref({ name: '', status: '' });
 
 onMounted(async () => {
-  const res = await getMyInfo();
-  if (res.success) {
+  try {
+    const data = await getMyInfo(authStore.accessToken);   // ① 토큰 넘김
     user.value = {
-      name: res.data.name,
-      birth: res.data.birthDate,      
-      phone: res.data.phoneNumber,    
-      email: res.data.email,
+      name: data.name,          // ③ data.name (data 한 번!)
+      birth: data.birthDate,
+      phone: data.phoneNumber,
+      email: data.email,
     };
+  } catch (e) {                 // ② try/catch로 실패 처리
+    console.log('회원정보 조회 실패:', e.message);
   }
 });
 
@@ -69,9 +71,11 @@ function unlink() {
 }
 
 function onTabSelect(key) {
-  // TODO: 하단 바 탭 선택 시 해당 페이지로 이동 연결
+  if (key === 'home') router.push({ name: 'child-home' });
+  if (key === 'my') router.push({ name: 'child-mypage' });
+  if (key === 'q') router.push({ name: 'qr-scan' });     
+  // finance, report는 페이지 만들면 추가
 }
-
 //스크롤 
 const isScrolling = ref(false);
 let scrollTimer = null;
