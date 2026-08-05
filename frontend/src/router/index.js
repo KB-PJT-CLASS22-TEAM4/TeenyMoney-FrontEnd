@@ -26,6 +26,14 @@ import PayPassword from '@/pages/Child/Payment/PayPassword.vue';
 import PayProcessing from '@/pages/Child/Payment/PayProcessing.vue';
 // 결제 완료
 import PayDone from '@/pages/Child/Payment/PayDone.vue';
+// 자녀 결제 비밀번호 설정         
+import PasswordSetting from '@/pages/Child/PasswordSetting.vue';
+// 자녀 결제 비밀번호 설정 완료
+import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
+// 결제 비밀번호 변경
+import PasswordChange from '@/pages/Child/PasswordChange.vue';
+// 자녀 소비 리포트 
+import ChildReport from '@/pages/Child/ChildReport.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -186,7 +194,31 @@ const router = createRouter({
       path: '/parents/mypage',
       name: 'parents-mypage',
       component : Mypage,
-    }
+    },
+    // 자녀 결제 비밀번호 설정
+    {
+      path: '/child/passwordsetting',
+      name: 'child-password-setting',
+      component: PasswordSetting,
+    },
+    // 결제 비밀번호 설정 완료
+  {
+  path: '/child/passwordsetting/done',
+  name: 'child-password-setting-done',
+  component: PasswordSettingDone,
+  },
+  // 결제 비밀번호 변경
+  {
+  path: '/child/passwordchange',
+  name: 'child-password-change',
+  component: PasswordChange,
+},
+// 자녀 소비 리포트
+   {
+  path: '/child/report',
+  name: 'child-report',
+  component: ChildReport,
+  },
   ],
 });
 
