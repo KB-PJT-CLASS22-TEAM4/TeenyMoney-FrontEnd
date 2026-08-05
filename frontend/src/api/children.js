@@ -12,7 +12,6 @@ api.interceptors.request.use(config => {
 })
 
 // 연동된 자녀 목록 조회
-// GET /api/v1/members/me/children
 export async function getChildren() {
   const res = await api.get('/api/v1/members/me/children')
   return res.data // { code, data: [...], message, success }
