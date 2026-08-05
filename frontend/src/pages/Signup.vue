@@ -2,17 +2,29 @@
   <div class="page">
     <div class="scroll">
       <header class="nav">
-        <button class="back-btn" type="button" aria-label="뒤로 가기" @click="goBack">
-          <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
+        <button
+          class="back-btn"
+          type="button"
+          aria-label="뒤로 가기"
+          @click="goBack"
+        >
+          <img
+            src="@/assets/icons/icon-back.svg"
+            alt=""
+            class="back-icon"
+          />
         </button>
+
         <h1 class="nav-title">회원가입</h1>
       </header>
 
       <div class="content">
         <h2 class="heading">정보를 입력해 주세요</h2>
 
+        <!-- 이름 -->
         <div class="field field-active">
           <label class="label" for="name">이름</label>
+
           <input
             id="name"
             v-model="form.name"
@@ -22,8 +34,10 @@
           />
         </div>
 
+        <!-- 생년월일 -->
         <div class="field">
           <label class="label" for="birthdate">생년월일</label>
+
           <input
             id="birthdate"
             v-model="form.birthDate"
@@ -34,12 +48,24 @@
             maxlength="10"
             @input="formatBirthDateInput"
           />
-          <p class="helper">만 14세 미만의 경우 개인정보보호법에 따라 법적 대리인의 인증이 필요합니다</p>
-          <p v-if="errors.birthDate" class="error-text">{{ errors.birthDate }}</p>
+
+          <p class="helper">
+            만 14세 미만의 경우 개인정보보호법에 따라 법정대리인의 인증이
+            필요합니다
+          </p>
+
+          <p
+            v-if="errors.birthDate"
+            class="error-text"
+          >
+            {{ errors.birthDate }}
+          </p>
         </div>
 
+        <!-- 휴대폰 번호 -->
         <div class="field field-phone">
           <label class="label" for="phone">휴대폰 번호</label>
+
           <div class="input-row">
             <input
               id="phone"
@@ -49,16 +75,24 @@
               inputmode="numeric"
               autocomplete="tel"
               placeholder="010-0000-0000"
+              maxlength="13"
               @input="formatPhoneNumberInput"
             />
-            <button class="verify-btn" type="button" @click="requestVerification">
+
+            <button
+              class="verify-btn"
+              type="button"
+              @click="requestVerification"
+            >
               인증
             </button>
           </div>
         </div>
 
+        <!-- 본인 인증번호 -->
         <div class="field">
           <label class="label" for="code">인증번호</label>
+
           <div class="input-row">
             <input
               id="code"
@@ -68,14 +102,26 @@
               inputmode="numeric"
               maxlength="6"
               placeholder="인증번호 6자리 입력"
+              @input="formatVerificationCodeInput"
             />
-            <span v-if="timerActive" class="timer">{{ formattedTimer }}</span>
+
+            <span
+              v-if="timerActive"
+              class="timer"
+            >
+              {{ formattedTimer }}
+            </span>
           </div>
-          <p class="helper">문자로 받은 6자리 숫자를 입력해 주세요</p>
+
+          <p class="helper">
+            문자로 받은 6자리 숫자를 입력해 주세요
+          </p>
         </div>
 
+        <!-- 이메일 -->
         <div class="field">
           <label class="label" for="email">이메일</label>
+
           <input
             id="email"
             v-model="form.email"
@@ -83,11 +129,19 @@
             type="email"
             autocomplete="email"
           />
-          <p v-if="errors.email" class="error-text">{{ errors.email }}</p>
+
+          <p
+            v-if="errors.email"
+            class="error-text"
+          >
+            {{ errors.email }}
+          </p>
         </div>
 
+        <!-- 비밀번호 -->
         <div class="field">
           <label class="label" for="password">비밀번호</label>
+
           <input
             id="password"
             v-model="form.password"
@@ -96,11 +150,21 @@
             autocomplete="new-password"
             placeholder="비밀번호 입력 (10자 이상, 영문+숫자+특수문자)"
           />
-          <p v-if="errors.password" class="error-text">{{ errors.password }}</p>
+
+          <p
+            v-if="errors.password"
+            class="error-text"
+          >
+            {{ errors.password }}
+          </p>
         </div>
 
+        <!-- 비밀번호 확인 -->
         <div class="field">
-          <label class="label" for="passwordConfirm">비밀번호 확인</label>
+          <label class="label" for="passwordConfirm">
+            비밀번호 확인
+          </label>
+
           <input
             id="passwordConfirm"
             v-model="form.passwordConfirm"
@@ -109,11 +173,25 @@
             autocomplete="new-password"
             placeholder="비밀번호 재입력"
           />
-          <p v-if="errors.passwordConfirm" class="error-text">{{ errors.passwordConfirm }}</p>
+
+          <p
+            v-if="errors.passwordConfirm"
+            class="error-text"
+          >
+            {{ errors.passwordConfirm }}
+          </p>
         </div>
 
-        <button class="terms" type="button" @click="toggleTerms">
-          <span class="checkbox" :class="{ checked: form.agreedToTerms }">
+        <!-- 약관 동의 -->
+        <button
+          class="terms"
+          type="button"
+          @click="toggleTerms"
+        >
+          <span
+            class="checkbox"
+            :class="{ checked: form.agreedToTerms }"
+          >
             <img
               v-if="form.agreedToTerms"
               src="@/assets/icons/icon-check.svg"
@@ -121,23 +199,42 @@
               class="check-icon"
             />
           </span>
+
           <span class="terms-text">
-            서비스 이용약관·개인정보 동의 <span class="required">(필수)</span>
+            서비스 이용약관·개인정보 동의
+            <span class="required">(필수)</span>
           </span>
-          <img src="@/assets/icons/icon-chevron.svg" alt="" class="chevron-icon" />
+
+          <img
+            src="@/assets/icons/icon-chevron.svg"
+            alt=""
+            class="chevron-icon"
+          />
         </button>
 
         <!-- 보호자 인증 모달 -->
-        <div v-if="showGuardianModal" class="modal-overlay">
+        <div
+          v-if="showGuardianModal"
+          class="modal-overlay"
+          @click.self="closeGuardianModal"
+        >
           <div class="modal">
             <div class="modal-title-wrap">
               <div class="modal-bar"></div>
-              <h2 class="modal-title">법정대리인(보호자) 인증</h2>
+
+              <h2 class="modal-title">
+                법정대리인(보호자) 인증
+              </h2>
             </div>
 
+            <!-- 보호자 이름 -->
             <div class="field">
-              <label class="label">보호자명</label>
+              <label class="label" for="guardianName">
+                보호자명
+              </label>
+
               <input
+                id="guardianName"
                 v-model="guardian.name"
                 class="input"
                 type="text"
@@ -145,53 +242,112 @@
               />
             </div>
 
+            <!-- 보호자 관계 -->
             <div class="field">
-              <label class="label">관계</label>
-              <select v-model="guardian.relationship" class="input select">
-                <option v-for="opt in relationshipOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              <label class="label" for="guardianRelationship">
+                관계
+              </label>
+
+              <select
+                id="guardianRelationship"
+                v-model="guardian.relationship"
+                class="input select"
+              >
+                <option
+                  v-for="option in relationshipOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
               </select>
             </div>
 
+            <!-- 보호자 휴대전화 -->
             <div class="field">
-              <label class="label">휴대전화</label>
+              <label class="label" for="guardianPhone">
+                휴대전화
+              </label>
+
               <div class="input-row">
                 <input
+                  id="guardianPhone"
                   v-model="guardian.phone"
                   class="input input-inline"
                   type="tel"
                   inputmode="numeric"
                   placeholder="010-0000-0000"
+                  maxlength="13"
                   @input="formatGuardianPhoneInput"
                 />
-                <button class="verify-btn" type="button" @click="requestGuardianVerification">인증</button>
+
+                <button
+                  class="verify-btn"
+                  type="button"
+                  @click="requestGuardianVerification"
+                >
+                  인증
+                </button>
               </div>
-              <p v-if="guardianCodeSent" class="sent-text">인증번호가 발송되었습니다</p>
+
+              <p
+                v-if="guardianCodeSent"
+                class="sent-text"
+              >
+                인증번호가 발송되었습니다
+              </p>
             </div>
 
+            <!-- 보호자 인증번호 -->
             <div class="field">
-              <label class="label">인증번호</label>
+              <label class="label" for="guardianCode">
+                인증번호
+              </label>
+
               <div class="input-row">
                 <input
+                  id="guardianCode"
                   v-model="guardian.code"
                   class="input input-inline"
                   type="text"
                   inputmode="numeric"
                   maxlength="6"
                   placeholder="인증번호 6자리 입력"
+                  @input="formatGuardianCodeInput"
                 />
-                <button class="confirm-btn" type="button" @click="verifyGuardianCode">확인</button>
+
+                <button
+                  class="confirm-btn"
+                  type="button"
+                  @click="verifyGuardianCode"
+                >
+                  확인
+                </button>
               </div>
-              <p class="helper">문자로 받은 6자리 숫자를 입력해 주세요</p>
+
+              <p class="helper">
+                문자로 받은 6자리 숫자를 입력해 주세요
+              </p>
             </div>
           </div>
         </div>
 
+        <!-- 가입 완료 -->
         <div class="footer">
-          <p v-if="submitBlockReason" class="block-reason">
+          <p
+            v-if="submitBlockReason"
+            class="block-reason"
+          >
             {{ submitBlockReason }}
           </p>
-          <button class="submit-btn" type="button" :disabled="!canSubmit" @click="submit">
-            가입 완료
+
+          <button
+            class="submit-btn"
+            type="button"
+            :disabled="!canSubmit || signupLoading"
+            @click="submit"
+          >
+            {{ signupLoading ? '가입 처리 중...' : '가입 완료' }}
           </button>
         </div>
       </div>
@@ -200,9 +356,20 @@
 </template>
 
 <script setup>
-import { computed, onUnmounted, reactive, ref } from 'vue'
+import {
+  computed,
+  onUnmounted,
+  reactive,
+  ref,
+} from 'vue'
 import { useRouter } from 'vue-router'
-import { sendPhoneVerificationCode, signup, sendGuardianVerificationCode, confirmGuardianVerification } from '@/api/auth'
+
+import {
+  confirmGuardianVerification,
+  sendGuardianVerificationCode,
+  sendPhoneVerificationCode,
+  signup,
+} from '@/api/auth'
 
 const router = useRouter()
 
@@ -215,8 +382,6 @@ const form = reactive({
   password: '',
   passwordConfirm: '',
   agreedToTerms: false,
-  serviceTermsAgreed: true,
-  privacyAgreed: true,
 })
 
 const errors = reactive({
@@ -226,57 +391,112 @@ const errors = reactive({
   passwordConfirm: '',
 })
 
-// ✅ 생년월일 자동 포맷 (YYYY-MM-DD, 숫자만, 미래 날짜 금지)
-function formatBirthDateInput(e) {
-  const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
+const guardian = reactive({
+  name: '',
+  phone: '',
+  code: '',
+  relationship: 'MOTHER',
+})
+
+const relationshipOptions = [
+  {
+    value: 'MOTHER',
+    label: '어머니',
+  },
+  {
+    value: 'FATHER',
+    label: '아버지',
+  },
+  {
+    value: 'OTHER',
+    label: '기타',
+  },
+]
+
+const showGuardianModal = ref(false)
+const guardianVerified = ref(false)
+const guardianCodeSent = ref(false)
+const signupLoading = ref(false)
+
+const timerSeconds = ref(180)
+const timerActive = ref(false)
+
+let timerInterval = null
+
+/*
+ * 생년월일 자동 포맷
+ * 20150101 → 2015-01-01
+ */
+function formatBirthDateInput(event) {
+  const digits = event.target.value
+    .replace(/\D/g, '')
+    .slice(0, 8)
 
   let formatted = ''
+
   if (digits.length <= 4) {
     formatted = digits
   } else if (digits.length <= 6) {
-    formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`
+    formatted =
+      `${digits.slice(0, 4)}-${digits.slice(4)}`
   } else {
-    formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+    formatted =
+      `${digits.slice(0, 4)}-` +
+      `${digits.slice(4, 6)}-` +
+      `${digits.slice(6, 8)}`
   }
 
   form.birthDate = formatted
 
-  // 날짜가 완성됐을 때만 미래 날짜 검증
   if (digits.length === 8) {
     validateBirthDate()
   } else {
     errors.birthDate = ''
   }
+
+  // 생년월일이 변경되면 기존 보호자 인증은 무효화
+  guardianVerified.value = false
 }
 
+/*
+ * 생년월일 유효성 검사
+ */
 function validateBirthDate() {
   const digits = form.birthDate.replace(/-/g, '')
+
   if (digits.length !== 8) {
-    errors.birthDate = '생년월일을 완전히 입력해주세요'
+    errors.birthDate =
+      '생년월일을 완전히 입력해 주세요.'
     return false
   }
 
-  const year = parseInt(digits.slice(0, 4))
-  const month = parseInt(digits.slice(4, 6))
-  const day = parseInt(digits.slice(6, 8))
+  const year = Number(digits.slice(0, 4))
+  const month = Number(digits.slice(4, 6))
+  const day = Number(digits.slice(6, 8))
 
-  const date = new Date(year, month - 1, day)
+  const birthDate = new Date(
+    year,
+    month - 1,
+    day,
+  )
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  // 유효하지 않은 날짜 체크 (예: 2월 30일)
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() + 1 !== month ||
-    date.getDate() !== day
-  ) {
-    errors.birthDate = '올바른 날짜를 입력해주세요'
+  const isInvalidDate =
+    birthDate.getFullYear() !== year ||
+    birthDate.getMonth() + 1 !== month ||
+    birthDate.getDate() !== day
+
+  if (isInvalidDate) {
+    errors.birthDate =
+      '올바른 날짜를 입력해 주세요.'
     return false
   }
 
-  // 미래 날짜 금지
-  if (date > today) {
-    errors.birthDate = '미래 날짜는 입력할 수 없어요'
+  if (birthDate > today) {
+    errors.birthDate =
+      '미래 날짜는 입력할 수 없어요.'
     return false
   }
 
@@ -284,246 +504,576 @@ function validateBirthDate() {
   return true
 }
 
-// ✅ 공통 포맷 함수 (숫자만 추출 후 하이픈 추가)
-function applyPhoneFormat(digits) {
-  if (digits.length <= 3) return digits
-  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`
+/*
+ * 전화번호 자동 포맷
+ * 01012345678 → 010-1234-5678
+ */
+function applyPhoneFormat(value) {
+  const digits = value
+    .replace(/\D/g, '')
+    .slice(0, 11)
+
+  if (digits.length <= 3) {
+    return digits
+  }
+
+  if (digits.length <= 7) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  }
+
+  return (
+    `${digits.slice(0, 3)}-` +
+    `${digits.slice(3, 7)}-` +
+    `${digits.slice(7, 11)}`
+  )
 }
 
-// ✅ 회원가입 폼 전화번호 (한글/영어 차단 + 하이픈 자동 추가)
-function formatPhoneNumberInput(e) {
-  const digits = e.target.value.replace(/\D/g, '')
-  form.phoneNumber = applyPhoneFormat(digits)
+/*
+ * 회원 휴대폰 번호 입력
+ */
+function formatPhoneNumberInput(event) {
+  form.phoneNumber =
+    applyPhoneFormat(event.target.value)
 }
 
-// ✅ 보호자 전화번호 (한글/영어 차단 + 하이픈 자동 추가)
-function formatGuardianPhoneInput(e) {
-  const digits = e.target.value.replace(/\D/g, '')
-  guardian.phone = applyPhoneFormat(digits)
+/*
+ * 보호자 휴대폰 번호 입력
+ */
+function formatGuardianPhoneInput(event) {
+  guardian.phone =
+    applyPhoneFormat(event.target.value)
+
+  guardianCodeSent.value = false
+  guardianVerified.value = false
 }
 
-// API 전송 시 하이픈 제거
+/*
+ * 인증번호 숫자만 입력
+ */
+function formatVerificationCodeInput(event) {
+  form.verificationCode = event.target.value
+    .replace(/\D/g, '')
+    .slice(0, 6)
+}
+
+/*
+ * 보호자 인증번호 숫자만 입력
+ */
+function formatGuardianCodeInput(event) {
+  guardian.code = event.target.value
+    .replace(/\D/g, '')
+    .slice(0, 6)
+}
+
+/*
+ * API 전송용 전화번호
+ * 하이픈 제거
+ */
 function formatPhone(value) {
-  return value.replace(/-/g, '').replace(/[^0-9]/g, '')
+  return String(value ?? '')
+    .replace(/\D/g, '')
 }
 
-// 만 14세 미만 여부 체크
+/*
+ * 만 14세 미만 여부
+ */
 function isUnder14() {
-  if (!form.birthDate || form.birthDate.length !== 10) return false
+  if (!validateBirthDate()) {
+    return false
+  }
 
-  const digits = form.birthDate.replace(/-/g, '')
-  const birthYear = parseInt(digits.slice(0, 4))
-  const birthMonth = parseInt(digits.slice(4, 6))
-  const birthDay = parseInt(digits.slice(6, 8))
+  const digits =
+    form.birthDate.replace(/-/g, '')
+
+  const birthYear =
+    Number(digits.slice(0, 4))
+  const birthMonth =
+    Number(digits.slice(4, 6))
+  const birthDay =
+    Number(digits.slice(6, 8))
 
   const today = new Date()
-  const age =
-    today.getFullYear() -
-    birthYear -
-    (today.getMonth() + 1 < birthMonth ||
-    (today.getMonth() + 1 === birthMonth && today.getDate() < birthDay)
-      ? 1
-      : 0)
+
+  let age =
+    today.getFullYear() - birthYear
+
+  const hasBirthdayPassed =
+    today.getMonth() + 1 > birthMonth ||
+    (
+      today.getMonth() + 1 === birthMonth &&
+      today.getDate() >= birthDay
+    )
+
+  if (!hasBirthdayPassed) {
+    age -= 1
+  }
 
   return age < 14
 }
 
-const showGuardianModal = ref(false)
-
+/*
+ * 이메일 유효성 검사
+ */
 function validateEmail() {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(form.email)) {
-    errors.email = '이메일 형식이 올바르지 않아요'
+  const emailRegex =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+  if (!emailRegex.test(form.email.trim())) {
+    errors.email =
+      '이메일 형식이 올바르지 않아요.'
     return false
   }
+
   errors.email = ''
   return true
 }
 
+/*
+ * 비밀번호 유효성 검사
+ */
 function validatePassword() {
-  const pw = form.password
-  const phone = formatPhone(form.phoneNumber)
+  const password = form.password
+  const phoneNumber =
+    formatPhone(form.phoneNumber)
 
-  if (pw.length < 10 || pw.length > 64) {
-    errors.password = '비밀번호는 10~64자여야 합니다.'
+  if (
+    password.length < 10 ||
+    password.length > 64
+  ) {
+    errors.password =
+      '비밀번호는 10~64자여야 합니다.'
     return false
   }
-  if (!/[a-zA-Z]/.test(pw)) {
-    errors.password = '영문자를 포함해야 합니다.'
+
+  if (!/[a-zA-Z]/.test(password)) {
+    errors.password =
+      '영문자를 포함해야 합니다.'
     return false
   }
-  if (!/[0-9]/.test(pw)) {
-    errors.password = '숫자를 포함해야 합니다.'
+
+  if (!/[0-9]/.test(password)) {
+    errors.password =
+      '숫자를 포함해야 합니다.'
     return false
   }
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(pw)) {
-    errors.password = '특수문자를 포함해야 합니다.'
+
+  if (
+    !/[!@#$%^&*(),.?":{}|<>]/.test(password)
+  ) {
+    errors.password =
+      '특수문자를 포함해야 합니다.'
     return false
   }
-  if (form.email && pw.includes(form.email)) {
-    errors.password = '이메일을 포함할 수 없습니다.'
+
+  if (
+    form.email &&
+    password.includes(form.email)
+  ) {
+    errors.password =
+      '이메일을 포함할 수 없습니다.'
     return false
   }
-  if (phone && pw.includes(phone)) {
-    errors.password = '전화번호를 포함할 수 없습니다.'
+
+  if (
+    phoneNumber &&
+    password.includes(phoneNumber)
+  ) {
+    errors.password =
+      '전화번호를 포함할 수 없습니다.'
     return false
   }
+
   errors.password = ''
   return true
 }
 
+/*
+ * 비밀번호 확인
+ */
 function validatePasswordConfirm() {
-  if (form.password !== form.passwordConfirm) {
-    errors.passwordConfirm = '비밀번호가 일치하지 않아요'
+  if (
+    form.password !==
+    form.passwordConfirm
+  ) {
+    errors.passwordConfirm =
+      '비밀번호가 일치하지 않아요.'
     return false
   }
+
   errors.passwordConfirm = ''
   return true
 }
 
-const timerSeconds = ref(180)
-const timerActive = ref(false)
-let timerInterval = null
-
+/*
+ * 인증 타이머 표시
+ */
 const formattedTimer = computed(() => {
-  const minutes = Math.floor(timerSeconds.value / 60)
-  const seconds = timerSeconds.value % 60
-  return `${minutes}:${String(seconds).padStart(2, '0')}`
+  const minutes =
+    Math.floor(timerSeconds.value / 60)
+
+  const seconds =
+    timerSeconds.value % 60
+
+  return (
+    `${minutes}:` +
+    String(seconds).padStart(2, '0')
+  )
 })
 
+/*
+ * 가입 버튼 비활성화 이유
+ */
 const submitBlockReason = computed(() => {
-  if (!form.name.trim()) return '이름을 입력해주세요'
-  if (!form.birthDate.trim() || form.birthDate.length !== 10) return '생년월일을 입력해주세요 (YYYY-MM-DD)'
-  if (errors.birthDate) return errors.birthDate
-  if (!form.phoneNumber.trim()) return '휴대폰 번호를 입력해주세요'
-  if (form.verificationCode.trim().length !== 6) return '인증번호 6자리를 입력해주세요'
-  if (!form.email.trim()) return '이메일을 입력해주세요'
-  if (form.password.length < 10) return `비밀번호가 ${form.password.length}자예요 (10자 이상 필요)`
-  if (form.password !== form.passwordConfirm) return '비밀번호가 일치하지 않아요'
-  if (!form.agreedToTerms) return '약관에 동의해주세요'
+  if (!form.name.trim()) {
+    return '이름을 입력해 주세요.'
+  }
+
+  if (
+    !form.birthDate.trim() ||
+    form.birthDate.length !== 10
+  ) {
+    return '생년월일을 입력해 주세요. (YYYY-MM-DD)'
+  }
+
+  if (errors.birthDate) {
+    return errors.birthDate
+  }
+
+  if (
+    formatPhone(form.phoneNumber).length !== 11
+  ) {
+    return '휴대폰 번호를 정확히 입력해 주세요.'
+  }
+
+  if (
+    form.verificationCode.trim().length !== 6
+  ) {
+    return '인증번호 6자리를 입력해 주세요.'
+  }
+
+  if (!form.email.trim()) {
+    return '이메일을 입력해 주세요.'
+  }
+
+  if (form.password.length < 10) {
+    return (
+      `비밀번호가 ${form.password.length}자예요. ` +
+      '(10자 이상 필요)'
+    )
+  }
+
+  if (
+    form.password !==
+    form.passwordConfirm
+  ) {
+    return '비밀번호가 일치하지 않아요.'
+  }
+
+  if (!form.agreedToTerms) {
+    return '약관에 동의해 주세요.'
+  }
+
   return null
 })
 
-const canSubmit = computed(
-  () =>
+/*
+ * 가입 버튼 활성화 조건
+ */
+const canSubmit = computed(() => {
+  return Boolean(
     form.name.trim() &&
     form.birthDate.trim().length === 10 &&
     !errors.birthDate &&
-    form.phoneNumber.trim() &&
+    formatPhone(form.phoneNumber).length === 11 &&
     form.verificationCode.trim().length === 6 &&
     form.email.trim() &&
     form.password.length >= 10 &&
     form.password === form.passwordConfirm &&
-    form.agreedToTerms,
-)
-
-// 보호자 정보
-const guardian = reactive({
-  name: '',
-  phone: '',
-  code: '',
-  relationship: 'MOTHER',
+    form.agreedToTerms
+  )
 })
-const guardianCodeSent = ref(false)
 
-const relationshipOptions = [
-  { value: 'MOTHER', label: '어머니' },
-  { value: 'FATHER', label: '아버지' },
-  { value: 'OTHER', label: '기타' },
-]
-
-async function requestGuardianVerification() {
-  if (!guardian.phone.trim()) return
-
-  try {
-    const res = await sendGuardianVerificationCode(guardian.phone)
-    if (res.success) {
-      guardianCodeSent.value = true
-      alert('보호자 인증번호가 발송됐어요!')
-    } else {
-      alert(res.message || '인증번호 발송에 실패했어요')
-    }
-  } catch (e) {
-    alert('인증번호 발송에 실패했어요')
-  }
-}
-
-async function verifyGuardianCode() {
-  if (guardian.code.length !== 6) return
-
-  try {
-    const res = await confirmGuardianVerification({
-      legalGuardianName: guardian.name,
-      legalGuardianTermsAgreed: true,
-      phoneNumber: guardian.phone,
-      privacyTermsVersion: 1,
-      relationship: guardian.relationship,
-      serviceTermsVersion: 1,
-      verificationCode: parseInt(guardian.code),
-    })
-
-    if (res.success) {
-      showGuardianModal.value = false
-      await doSignup()
-    } else {
-      alert(res.message || '인증번호가 올바르지 않아요')
-    }
-  } catch (e) {
-    alert('인증번호가 올바르지 않아요')
-  }
-}
-
-function goBack() {
-  router.back()
-}
-
+/*
+ * 사용자 휴대폰 인증번호 발송
+ */
 async function requestVerification() {
-  if (!form.phoneNumber.trim()) return
+  const phoneNumber =
+    formatPhone(form.phoneNumber)
 
-  const phoneNumber = formatPhone(form.phoneNumber)
+  if (phoneNumber.length !== 11) {
+    alert(
+      '휴대폰 번호를 정확히 입력해 주세요.',
+    )
+    return
+  }
 
   try {
-    const res = await sendPhoneVerificationCode(phoneNumber)
-    if (res.success) {
-      alert('인증번호가 발송됐어요!')
+    const response =
+      await sendPhoneVerificationCode(
+        phoneNumber,
+      )
 
-      timerSeconds.value = 180
-      timerActive.value = true
-
-      if (timerInterval) clearInterval(timerInterval)
-
-      timerInterval = setInterval(() => {
-        if (timerSeconds.value <= 0) {
-          clearInterval(timerInterval)
-          timerInterval = null
-          timerActive.value = false
-          return
-        }
-        timerSeconds.value -= 1
-      }, 1000)
+    if (!response.success) {
+      alert(
+        response.message ||
+        '인증번호 발송에 실패했어요.',
+      )
+      return
     }
-  } catch (e) {
-    alert('인증번호 발송에 실패했어요')
+
+    alert('인증번호가 발송됐어요!')
+
+    startTimer()
+  } catch (error) {
+    console.error(
+      '본인 인증번호 발송 실패:',
+      error,
+    )
+
+    alert(
+      '인증번호 발송에 실패했어요.',
+    )
   }
 }
 
-function toggleTerms() {
-  form.agreedToTerms = !form.agreedToTerms
+/*
+ * 인증번호 타이머 시작
+ */
+function startTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+  }
 
-  // 동의 체크 시 + 14세 미만이면 보호자 모달 표시
-  if (form.agreedToTerms && isUnder14()) {
+  timerSeconds.value = 180
+  timerActive.value = true
+
+  timerInterval = setInterval(() => {
+    timerSeconds.value -= 1
+
+    if (timerSeconds.value <= 0) {
+      stopTimer()
+    }
+  }, 1000)
+}
+
+/*
+ * 인증번호 타이머 종료
+ */
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+
+  timerSeconds.value = 0
+  timerActive.value = false
+}
+
+/*
+ * 보호자 인증번호 발송
+ */
+async function requestGuardianVerification() {
+  const legalGuardianName =
+    guardian.name.trim()
+
+  const guardianPhone =
+    formatPhone(guardian.phone)
+
+  if (!legalGuardianName) {
+    alert('보호자 이름을 입력해 주세요.')
+    return
+  }
+
+  if (guardianPhone.length !== 11) {
+    alert(
+      '보호자 휴대전화 번호를 정확히 입력해 주세요.',
+    )
+    return
+  }
+
+  try {
+    const response =
+      await sendGuardianVerificationCode(
+        guardianPhone,
+      )
+
+    if (!response.success) {
+      alert(
+        response.message ||
+        '보호자 인증번호 발송에 실패했어요.',
+      )
+      return
+    }
+
+    guardianCodeSent.value = true
+
+    alert(
+      '보호자 인증번호가 발송됐어요!',
+    )
+  } catch (error) {
+    console.error(
+      '보호자 인증번호 발송 실패:',
+      error,
+    )
+
+    alert(
+      '보호자 인증번호 발송에 실패했어요.',
+    )
+  }
+}
+
+/*
+ * 보호자 인증번호 확인
+ */
+async function verifyGuardianCode() {
+  const legalGuardianName =
+    guardian.name.trim()
+
+  const guardianPhone =
+    formatPhone(guardian.phone)
+
+  if (!legalGuardianName) {
+    alert('보호자 이름을 입력해 주세요.')
+    return
+  }
+
+  if (guardianPhone.length !== 11) {
+    alert(
+      '보호자 휴대전화 번호를 정확히 입력해 주세요.',
+    )
+    return
+  }
+
+  if (!guardianCodeSent.value) {
+    alert(
+      '먼저 보호자 인증번호를 발송해 주세요.',
+    )
+    return
+  }
+
+  if (guardian.code.length !== 6) {
+    alert(
+      '보호자 인증번호 6자리를 입력해 주세요.',
+    )
+    return
+  }
+
+  try {
+    const requestData = {
+      legalGuardianName,
+      legalGuardianTermsAgreed: true,
+      phoneNumber: guardianPhone,
+
+      // 백엔드에서 숫자 타입을 요구하는 것으로 맞춤
+      privacyTermsVersion: 1,
+      serviceTermsVersion: 1,
+
+      relationship: guardian.relationship,
+
+      // 앞자리가 0일 수 있으므로 문자열 유지
+      verificationCode: guardian.code,
+    }
+
+    console.log(
+      '보호자 인증 확인 요청:',
+      requestData,
+    )
+
+    const response =
+      await confirmGuardianVerification(
+        requestData,
+      )
+
+    console.log(
+      '보호자 인증 확인 응답:',
+      response,
+    )
+
+    if (!response.success) {
+      alert(
+        response.message ||
+        '보호자 인증번호가 올바르지 않아요.',
+      )
+      return
+    }
+
+    guardianVerified.value = true
+    showGuardianModal.value = false
+
+    alert(
+      '보호자 인증이 완료됐어요! 가입 완료 버튼을 눌러 주세요.',
+    )
+  } catch (error) {
+    console.error(
+      '보호자 인증 확인 실패:',
+      error,
+    )
+
+    alert(
+      '보호자 인증번호 확인에 실패했어요.',
+    )
+  }
+}
+
+/*
+ * 약관 동의
+ */
+function toggleTerms() {
+  form.agreedToTerms =
+    !form.agreedToTerms
+
+  if (
+    form.agreedToTerms &&
+    isUnder14() &&
+    !guardianVerified.value
+  ) {
     showGuardianModal.value = true
   }
 }
 
+/*
+ * 보호자 인증창 닫기
+ */
+function closeGuardianModal() {
+  showGuardianModal.value = false
+}
+
+/*
+ * 가입 완료 버튼
+ */
 async function submit() {
-  if (!canSubmit.value) return
+  if (
+    !canSubmit.value ||
+    signupLoading.value
+  ) {
+    return
+  }
 
-  const isValid = validateBirthDate() && validateEmail() && validatePassword() && validatePasswordConfirm()
-  if (!isValid) return
+  const isValidBirthDate =
+    validateBirthDate()
 
-  if (isUnder14()) {
+  const isValidEmail =
+    validateEmail()
+
+  const isValidPassword =
+    validatePassword()
+
+  const isValidPasswordConfirm =
+    validatePasswordConfirm()
+
+  if (
+    !isValidBirthDate ||
+    !isValidEmail ||
+    !isValidPassword ||
+    !isValidPasswordConfirm
+  ) {
+    return
+  }
+
+  if (
+    isUnder14() &&
+    !guardianVerified.value
+  ) {
     showGuardianModal.value = true
     return
   }
@@ -531,45 +1081,102 @@ async function submit() {
   await doSignup()
 }
 
+/*
+ * 회원가입 API 요청
+ */
 async function doSignup() {
+  signupLoading.value = true
+
   try {
-    const res = await signup({
-      name: form.name,
-      birthDate: form.birthDate.replace(/-/g, ''),
-      phoneNumber: formatPhone(form.phoneNumber),
-      verificationCode: form.verificationCode,
-      email: form.email,
+    const requestData = {
+      name: form.name.trim(),
+
+      // 화면에 표시된 YYYY-MM-DD 형식 그대로 전송
+      birthDate: form.birthDate,
+
+      phoneNumber:
+        formatPhone(form.phoneNumber),
+
+      // 인증번호는 문자열 유지
+      verificationCode:
+        form.verificationCode,
+
+      email: form.email.trim(),
       password: form.password,
-      passwordConfirm: form.passwordConfirm,
+      passwordConfirm:
+        form.passwordConfirm,
 
-      serviceTermsAgreed: form.agreedToTerms,
-      privacyAgreed: form.agreedToTerms,
-      serviceTermsVersion: '1.0',
-      privacyTermsVersion: '1.0',
-    })
+      serviceTermsAgreed:
+        form.agreedToTerms,
 
-    if (res.success) {
-      alert('회원가입이 완료됐어요!')
+      privacyAgreed:
+        form.agreedToTerms,
 
-      if (res.data?.role === 'CHILD') {
-        router.push('/child/home')
-      } else {
-        router.push('/parents/home')
-      }
+      // 백엔드 DTO 숫자 타입에 맞춰 전송
+      serviceTermsVersion: 1,
+      privacyTermsVersion: 1,
     }
-  } catch (e) {
-    console.error('회원가입 실패:', e)
+
+    console.log(
+      '회원가입 요청 데이터:',
+      requestData,
+    )
+
+    console.log(
+      '회원가입 요청 JSON:',
+      JSON.stringify(requestData),
+    )
+
+    const response =
+      await signup(requestData)
+
+    console.log(
+      '회원가입 응답:',
+      response,
+    )
+
+    if (!response.success) {
+      alert(
+        response.message ||
+        '회원가입에 실패했어요.',
+      )
+      return
+    }
+
+    alert('회원가입이 완료됐어요!')
+
+    if (
+      response.data?.role === 'CHILD'
+    ) {
+      await router.push('/child/home')
+    } else {
+      await router.push('/parents/home')
+    }
+  } catch (error) {
+    console.error(
+      '회원가입 실패:',
+      error,
+    )
+
     alert('회원가입에 실패했어요.')
+  } finally {
+    signupLoading.value = false
   }
 }
 
+function goBack() {
+  router.back()
+}
+
+/*
+ * 페이지를 벗어날 때 타이머 제거
+ */
 onUnmounted(() => {
   if (timerInterval) {
     clearInterval(timerInterval)
     timerInterval = null
   }
 })
-
 </script>
 
 <style scoped>
@@ -653,11 +1260,11 @@ onUnmounted(() => {
   border: none;
   border-bottom: 1px solid #f0f1f3;
   background: transparent;
+  box-sizing: border-box;
   font-size: 16px;
   font-weight: 500;
   color: #191b1e;
   outline: none;
-  box-sizing: border-box;
 }
 
 .input::placeholder {
@@ -673,8 +1280,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid #f0f1f3;
   padding-bottom: 13px;
+  border-bottom: 1px solid #f0f1f3;
 }
 
 .input-inline {
@@ -708,6 +1315,7 @@ onUnmounted(() => {
   margin: -3px 0 0;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.5;
   color: #b9bec5;
 }
 
@@ -802,22 +1410,25 @@ onUnmounted(() => {
 
 .modal-overlay {
   position: fixed;
+  z-index: 100;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
 .modal {
-  width: 360px;
-  background-color: #ffffff;
-  border-radius: 20px 20px 0 0;
-  padding: 20px 20px 40px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  width: 360px;
+  max-height: 90dvh;
+  padding: 20px 20px 40px;
+  overflow-y: auto;
+  border-radius: 20px 20px 0 0;
+  background-color: #ffffff;
+  box-sizing: border-box;
 }
 
 .modal-title-wrap {
@@ -829,8 +1440,8 @@ onUnmounted(() => {
 .modal-bar {
   width: 4px;
   height: 18px;
-  background-color: #ffbc00;
   border-radius: 2px;
+  background-color: #ffbc00;
 }
 
 .modal-title {
