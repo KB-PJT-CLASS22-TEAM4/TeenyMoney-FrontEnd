@@ -127,7 +127,9 @@ const recentTransactions = [
   background-color: #f4f5f7;
   display: flex;
   flex-direction: column;
-  padding-bottom: 70px;
+  position: relative;
+  top: -8px;
+  padding-bottom: 50px;
 }
 
 /* 헤더 */
