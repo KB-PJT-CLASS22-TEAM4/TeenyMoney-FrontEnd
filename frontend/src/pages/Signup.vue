@@ -34,7 +34,7 @@
             maxlength="10"
             @input="formatBirthDateInput"
           />
-          <p class="helper">만 14세 미만의 경우 행정규칙에 따라 법적 대리인의 동의가 필요합니다</p>
+          <p class="helper">만 14세 미만의 경우 개인정보보호법에 따라 법적 대리인의 인증이 필요합니다</p>
           <p v-if="errors.birthDate" class="error-text">{{ errors.birthDate }}</p>
         </div>
 
@@ -146,6 +146,13 @@
             </div>
 
             <div class="field">
+              <label class="label">관계</label>
+              <select v-model="guardian.relationship" class="input select">
+                <option v-for="opt in relationshipOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+            </div>
+
+            <div class="field">
               <label class="label">휴대전화</label>
               <div class="input-row">
                 <input
@@ -195,7 +202,7 @@
 <script setup>
 import { computed, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { sendPhoneVerificationCode, signup } from '@/api/auth'
+import { sendPhoneVerificationCode, signup, sendGuardianVerificationCode, confirmGuardianVerification } from '@/api/auth'
 
 const router = useRouter()
 
@@ -219,7 +226,7 @@ const errors = reactive({
   passwordConfirm: '',
 })
 
-// 생년월일 자동 포맷 (YYYY-MM-DD, 숫자만, 미래 날짜 금지)
+// ✅ 생년월일 자동 포맷 (YYYY-MM-DD, 숫자만, 미래 날짜 금지)
 function formatBirthDateInput(e) {
   const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
 
@@ -416,16 +423,27 @@ const guardian = reactive({
   name: '',
   phone: '',
   code: '',
+  relationship: 'MOTHER',
 })
 const guardianCodeSent = ref(false)
+
+const relationshipOptions = [
+  { value: 'MOTHER', label: '어머니' },
+  { value: 'FATHER', label: '아버지' },
+  { value: 'OTHER', label: '기타' },
+]
 
 async function requestGuardianVerification() {
   if (!guardian.phone.trim()) return
 
   try {
-    // TODO: 보호자 인증 API 연동
-    guardianCodeSent.value = true
-    alert('보호자 인증번호가 발송됐어요!')
+    const res = await sendGuardianVerificationCode(guardian.phone)
+    if (res.success) {
+      guardianCodeSent.value = true
+      alert('보호자 인증번호가 발송됐어요!')
+    } else {
+      alert(res.message || '인증번호 발송에 실패했어요')
+    }
   } catch (e) {
     alert('인증번호 발송에 실패했어요')
   }
@@ -435,9 +453,22 @@ async function verifyGuardianCode() {
   if (guardian.code.length !== 6) return
 
   try {
-    // TODO: 보호자 인증번호 확인 API 연동
-    showGuardianModal.value = false
-    await doSignup()
+    const res = await confirmGuardianVerification({
+      legalGuardianName: guardian.name,
+      legalGuardianTermsAgreed: true,
+      phoneNumber: guardian.phone,
+      privacyTermsVersion: 1,
+      relationship: guardian.relationship,
+      serviceTermsVersion: 1,
+      verificationCode: parseInt(guardian.code),
+    })
+
+    if (res.success) {
+      showGuardianModal.value = false
+      await doSignup()
+    } else {
+      alert(res.message || '인증번호가 올바르지 않아요')
+    }
   } catch (e) {
     alert('인증번호가 올바르지 않아요')
   }
@@ -485,7 +516,6 @@ function toggleTerms() {
     showGuardianModal.value = true
   }
 }
-
 
 async function submit() {
   if (!canSubmit.value) return
@@ -812,5 +842,11 @@ onUnmounted(() => {
   font-weight: 600;
   color: #191b1e;
   cursor: pointer;
+}
+
+.select {
+  appearance: none;
+  cursor: pointer;
+  color: #191b1e;
 }
 </style>
