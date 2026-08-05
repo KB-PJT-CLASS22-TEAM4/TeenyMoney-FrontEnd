@@ -21,14 +21,18 @@ const showPasswordHint = computed(
 )
  
 const authStore = useAuthStore()
+
 async function handleLogin() {
   const res = await login(email.value, password.value)
-  console.log('로그인 응답:', res)
+
+  console.log('로그인 전체 응답:', res)
+  console.log('응답 data:', res.data)
+  console.log('Access Token:', res.data?.accessToken)
+  console.log('Role:', res.data?.role)
 
   if (res.success) {
     authStore.setUser(res.data)
 
-    // role에 따라 다른 페이지로 이동
     if (res.data.role === 'CHILD') {
       router.push('/child/home')
     } else {
@@ -45,6 +49,8 @@ function handleGoogleLogin() {
 }
 
 
+
+
 </script>
  
 <template>
@@ -54,7 +60,7 @@ function handleGoogleLogin() {
       
       
       <header class="nav">
-            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()"/>
+            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.push('/')"/>
       </header>
 
       <div class="pad">

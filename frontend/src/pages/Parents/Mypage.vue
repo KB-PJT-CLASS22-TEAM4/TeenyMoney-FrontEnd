@@ -21,19 +21,26 @@
 
     <!-- 로딩 -->
     <div v-if="isLoading" class="state-box">
-      <p class="state-text">회원 정보를 불러오는 중입니다.</p>
+      <p class="state-text">
+        회원 정보를 불러오는 중입니다.
+      </p>
     </div>
 
     <!-- 오류 -->
-    <div v-else-if="errorMessage" class="state-box error-state">
-      <p class="state-text">{{ errorMessage }}</p>
+    <div
+      v-else-if="errorMessage"
+      class="state-box error-state"
+    >
+      <p class="state-text">
+        {{ errorMessage }}
+      </p>
 
       <button
         type="button"
         class="retry-button"
-        @click="fetchMyInfo"
+        @click="goToLogin"
       >
-        다시 시도
+        로그인 화면으로 이동
       </button>
     </div>
 
@@ -87,11 +94,13 @@
         </div>
       </section>
 
-      <!-- 회원 정보 카드 -->
+      <!-- 회원 정보 -->
       <section class="info-card">
         <div class="info-item">
           <div class="info-heading">
-            <span class="info-label">연락처</span>
+            <span class="info-label">
+              연락처
+            </span>
 
             <button
               type="button"
@@ -109,7 +118,9 @@
 
         <div class="info-item">
           <div class="info-heading">
-            <span class="info-label">이메일</span>
+            <span class="info-label">
+              이메일
+            </span>
 
             <button
               type="button"
@@ -140,7 +151,9 @@
 
       <!-- 연결된 자녀 -->
       <section class="section-block">
-        <h2 class="section-title">연결된 자녀</h2>
+        <h2 class="section-title">
+          연결된 자녀
+        </h2>
 
         <div class="section-card">
           <template v-if="children.length > 0">
@@ -148,7 +161,10 @@
               v-for="(child, index) in children"
               :key="child.memberId"
               class="child-item"
-              :class="{ 'with-border': index !== children.length - 1 }"
+              :class="{
+                'with-border':
+                  index !== children.length - 1
+              }"
             >
               <div class="child-info">
                 <img
@@ -180,7 +196,9 @@
 
       <!-- 고객지원 -->
       <section class="section-block">
-        <h2 class="section-title">고객지원</h2>
+        <h2 class="section-title">
+          고객지원
+        </h2>
 
         <div class="menu-card">
           <button
@@ -214,7 +232,9 @@
 
       <!-- 계정관리 -->
       <section class="section-block">
-        <h2 class="section-title">계정관리</h2>
+        <h2 class="section-title">
+          계정관리
+        </h2>
 
         <div class="menu-card">
           <button
@@ -265,7 +285,9 @@
           class="nav-icon"
         />
 
-        <span class="nav-label">자녀관리</span>
+        <span class="nav-label">
+          자녀관리
+        </span>
       </button>
 
       <button
@@ -278,14 +300,21 @@
           class="nav-icon"
         />
 
-        <span class="nav-label">마이페이지</span>
+        <span class="nav-label">
+          마이페이지
+        </span>
       </button>
     </nav>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import {
+  computed,
+  onMounted,
+  reactive,
+  ref,
+} from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
@@ -293,7 +322,7 @@ import { getMyInfo } from '@/api/member'
 const router = useRouter()
 const authStore = useAuthStore()
 
-const isLoading = ref(true)
+const isLoading = ref(false)
 const errorMessage = ref('')
 
 const member = reactive({
@@ -306,12 +335,6 @@ const member = reactive({
   profileImageUrl: '',
 })
 
-/*
- * 현재 GET /api/v1/members/me 응답에는
- * 연결된 자녀 목록이 포함되어 있지 않으므로 빈 배열로 둡니다.
- *
- * 추후 자녀 목록 API 연동 후 교체하면 됩니다.
- */
 const children = ref([])
 
 const formattedBirthDate = computed(() => {
@@ -323,7 +346,10 @@ const formattedBirthDate = computed(() => {
 })
 
 const formattedPhoneNumber = computed(() => {
-  const phone = member.phoneNumber?.replace(/[^0-9]/g, '')
+  const phone = member.phoneNumber?.replace(
+    /[^0-9]/g,
+    ''
+  )
 
   if (!phone) {
     return ''
@@ -346,16 +372,24 @@ const formattedPhoneNumber = computed(() => {
   return member.phoneNumber
 })
 
+function goToLogin() {
+  authStore.clearUser()
+  router.replace('/login')
+}
+
 async function fetchMyInfo() {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
     if (!authStore.accessToken) {
-      throw new Error('로그인이 필요합니다.')
+      errorMessage.value = '로그인이 필요합니다.'
+      return
     }
 
-    const data = await getMyInfo(authStore.accessToken)
+    const data = await getMyInfo(
+      authStore.accessToken
+    )
 
     Object.assign(member, {
       memberId: data.memberId,
@@ -364,14 +398,14 @@ async function fetchMyInfo() {
       email: data.email,
       phoneNumber: data.phoneNumber,
       birthDate: data.birthDate,
-      profileImageUrl: data.profileImageUrl || '',
+      profileImageUrl:
+        data.profileImageUrl || '',
     })
 
-    /*
-     * authStore에 updateUserInfo 함수가 있다면
-     * 아래 코드를 사용할 수 있습니다.
-     */
-    if (typeof authStore.updateUserInfo === 'function') {
+    if (
+      typeof authStore.updateUserInfo ===
+      'function'
+    ) {
       authStore.updateUserInfo({
         memberId: data.memberId,
         role: data.role,
@@ -379,10 +413,21 @@ async function fetchMyInfo() {
       })
     }
   } catch (error) {
-    console.error('회원 정보 조회 실패:', error)
+    console.error(
+      '회원 정보 조회 실패:',
+      error
+    )
+
+    if (error.status === 401) {
+      authStore.clearUser()
+      errorMessage.value =
+        '로그인이 필요합니다.'
+      return
+    }
 
     errorMessage.value =
-      error.message || '회원 정보를 불러오지 못했습니다.'
+      error.message ||
+      '회원 정보를 불러오지 못했습니다.'
   } finally {
     isLoading.value = false
   }
@@ -392,9 +437,10 @@ function handleProfileImageError() {
   member.profileImageUrl = ''
 }
 
-// 로그아웃
 function logout() {
-  const confirmed = window.confirm('로그아웃하시겠습니까?')
+  const confirmed = window.confirm(
+    '로그아웃하시겠습니까?'
+  )
 
   if (!confirmed) {
     return
@@ -403,18 +449,6 @@ function logout() {
   authStore.clearUser()
   router.replace('/login')
 }
-
-// function withdraw() {
-//   const confirmed = window.confirm(
-//     '회원 탈퇴 화면으로 이동하시겠습니까?'
-//   )
-
-//   if (!confirmed) {
-//     return
-//   }
-
-//   router.push('/parents/mypage/withdraw')
-// }
 
 onMounted(() => {
   fetchMyInfo()
@@ -439,7 +473,6 @@ button {
   background-color: #f4f5f7;
 }
 
-/* 헤더 */
 .nav {
   position: relative;
   display: flex;
@@ -480,7 +513,6 @@ button {
   height: 24px;
 }
 
-/* 전체 콘텐츠 */
 .content {
   display: flex;
   flex-direction: column;
@@ -488,7 +520,6 @@ button {
   padding: 12px 16px 24px;
 }
 
-/* 프로필 */
 .profile-section {
   display: flex;
   align-items: center;
@@ -546,7 +577,6 @@ button {
   font-weight: 600;
 }
 
-/* 연락처, 이메일 */
 .info-card {
   display: flex;
   flex-direction: column;
@@ -605,7 +635,6 @@ button {
   white-space: nowrap;
 }
 
-/* 섹션 */
 .section-block {
   margin-top: 20px;
 }
@@ -617,7 +646,6 @@ button {
   font-weight: 700;
 }
 
-/* 공통 카드 */
 .menu-card,
 .section-card {
   overflow: hidden;
@@ -652,7 +680,6 @@ button {
   line-height: 1;
 }
 
-/* 연결된 자녀 */
 .child-item {
   display: flex;
   align-items: center;
@@ -695,7 +722,6 @@ button {
   text-align: center;
 }
 
-/* 상태 화면 */
 .state-box {
   padding: 120px 20px;
   text-align: center;
@@ -723,7 +749,6 @@ button {
   cursor: pointer;
 }
 
-/* 하단 네비게이션 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
