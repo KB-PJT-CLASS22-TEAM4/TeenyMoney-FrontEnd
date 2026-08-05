@@ -60,7 +60,7 @@ function handleGoogleLogin() {
       
       
       <header class="nav">
-            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()"/>
+            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.push('/')"/>
       </header>
 
       <div class="pad">
