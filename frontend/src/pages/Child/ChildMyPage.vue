@@ -1,6 +1,94 @@
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import BottomTabBar from '@/components/Child/BottomTabBar.vue';
+import { getMyInfo } from '@/api/member';
+import { useAuthStore } from '@/stores/auth';
+
+const router = useRouter();
+const authStore = useAuthStore();  
+
+// 자녀 정보 API 
+const user = ref({
+  name: '',
+  birth: '',
+  phone: '',
+  email: '',
+});
+
+const parent = ref({ name: '', status: '' });
+
+onMounted(async () => {
+  const res = await getMyInfo();
+  if (res.success) {
+    user.value = {
+      name: res.data.name,
+      birth: res.data.birthDate,      
+      phone: res.data.phoneNumber,    
+      email: res.data.email,
+    };
+  }
+});
+
+function editContact() {
+  // 연락처 수정
+}
+function editEmail() {
+  // 이메일 수정
+}
+
+function goPasswordSetting() {
+  // [라우터] 결제 비밀번호 설정 화면
+  // router.push({ name: 'child-payment-password' });
+}
+
+
+function addParent() {
+router.push({ name: 'child-link' });
+}
+//========고객 지원===========
+function goFaq() {
+  // 자주 묻는 질문 
+}
+function goContact() {
+  // 문의하기 
+}
+function goPolicy() {
+  // 약관 및 정책
+}
+
+//=========계정 관리===========
+function logout() {
+authStore.clearUser();  // ← 서랍 비우기 (토큰 정보 삭제)
+router.push({ name: 'login' });
+}
+
+function unlink() {
+  // 부모-자녀 연동 해제
+  router.push({ name: 'child-link' });
+}
+
+function onTabSelect(key) {
+  // TODO: 하단 바 탭 선택 시 해당 페이지로 이동 연결
+}
+
+//스크롤 
+const isScrolling = ref(false);
+let scrollTimer = null;
+
+function onScroll() {
+  isScrolling.value = true;
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false;  
+  }, 800);
+}
+</script>
+
+
 <template>
   <div class="mypage-screen">
-    <div class="scroll":class="{ scrolling: isScrolling }" @scroll="onScroll">
+    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
       <h1 class="page-title">마이페이지</h1>
 
       <!-- 프로필 -->
@@ -100,78 +188,6 @@
     <BottomTabBar active="my" @select="onTabSelect" />
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import BottomTabBar from '@/components/Child/BottomTabBar.vue';
-
-const router = useRouter();
-
-// ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API] 사용자 프로필 조회
-const user = ref({
-  name: '김첫째',
-  birth: '2013.12.17',
-  phone: '010-1234-5678',
-  email: 'teeny@example.com',
-});
-
-// [API] 연결된 부모님 조회
-const parent = ref({ name: '김부모', status: '활동 중' });
-
-function editContact() {
-  // [API] 연락처 수정 
-}
-function editEmail() {
-  // [API] 이메일 수정 
-}
-
-// --- 메뉴 이동 (대상 화면 만들면 연결) ---
-function goPasswordSetting() {
-  // [라우터] 결제 비밀번호 설정 화면
-  // router.push({ name: 'child-payment-password' });
-}
-
-
-function addParent() {
-router.push({ name: 'child-link' });
-}
-
-function goFaq() {
-  // [라우터] 자주 묻는 질문
-}
-function goContact() {
-  // [라우터] 문의하기
-}
-function goPolicy() {
-  // [라우터] 약관 및 정책
-}
-
-// --- 계정 관리 ---
-function logout() {
-router.push({ name: 'login' });
-}
-function unlink() {
-  // 부모-자녀 연동 해제
-  router.push({ name: 'child-link' });
-}
-
-function onTabSelect(key) {
-  // TODO: 탭 선택 시 해당 페이지로 이동 연결
-}
-
-const isScrolling = ref(false);
-let scrollTimer = null;
-
-function onScroll() {
-  isScrolling.value = true;
-  clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => {
-    isScrolling.value = false;   // 0.8초간 안 움직이면 숨김
-  }, 800);
-}
-</script>
 
 <style scoped>
 .mypage-screen {
