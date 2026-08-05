@@ -6,40 +6,20 @@
 
       <h1 class="nav-title">마이페이지</h1>
 
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
+      <button class="alarm-btn" type="button" aria-label="알림">
+        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
 
     <!-- 로딩 -->
     <div v-if="isLoading" class="state-box">
-      <p class="state-text">
-        회원 정보를 불러오는 중입니다.
-      </p>
+      <p class="state-text">회원 정보를 불러오는 중입니다.</p>
     </div>
 
     <!-- 오류 -->
-    <div
-      v-else-if="errorMessage"
-      class="state-box error-state"
-    >
-      <p class="state-text">
-        {{ errorMessage }}
-      </p>
-
-      <button
-        type="button"
-        class="retry-button"
-        @click="goToLogin"
-      >
+    <div v-else-if="errorMessage" class="state-box error-state">
+      <p class="state-text">{{ errorMessage }}</p>
+      <button type="button" class="retry-button" @click="goToLogin">
         로그인 화면으로 이동
       </button>
     </div>
@@ -56,41 +36,17 @@
             class="profile-image"
             @error="handleProfileImageError"
           />
-
           <div v-else class="default-profile">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 52 52"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                cx="26"
-                cy="17"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-
-              <path
-                d="M9 46C9 35.5066 16.6112 29 26 29C35.3888 29 43 35.5066 43 46"
-                stroke="currentColor"
-                stroke-width="4"
-                stroke-linecap="round"
-              />
+            <svg width="48" height="48" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="26" cy="17" r="10" stroke="currentColor" stroke-width="4" />
+              <path d="M9 46C9 35.5066 16.6112 29 26 29C35.3888 29 43 35.5066 43 46" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
             </svg>
           </div>
         </div>
 
         <div class="profile-text">
-          <strong class="member-name">
-            {{ member.name || '-' }}
-          </strong>
-
-          <span class="member-birth">
-            {{ formattedBirthDate || '-' }}
-          </span>
+          <strong class="member-name">{{ member.name || '-' }}</strong>
+          <span class="member-birth">{{ formattedBirthDate || '-' }}</span>
         </div>
       </section>
 
@@ -98,52 +54,24 @@
       <section class="info-card">
         <div class="info-item">
           <div class="info-heading">
-            <span class="info-label">
-              연락처
-            </span>
-
-            <button
-              type="button"
-              class="edit-button"
-              @click="goToPhoneEdit"
-            >
-              수정
-            </button>
+            <span class="info-label">연락처</span>
+            <button type="button" class="edit-button" @click="goToPhoneEdit">수정</button>
           </div>
-
-          <p class="info-value">
-            {{ formattedPhoneNumber || '-' }}
-          </p>
+          <p class="info-value">{{ formattedPhoneNumber || '-' }}</p>
         </div>
 
         <div class="info-item">
           <div class="info-heading">
-            <span class="info-label">
-              이메일
-            </span>
-
-            <button
-              type="button"
-              class="edit-button"
-              @click="goToEmailEdit"
-            >
-              수정
-            </button>
+            <span class="info-label">이메일</span>
+            <button type="button" class="edit-button" @click="goToEmailEdit">수정</button>
           </div>
-
-          <p class="info-value email-value">
-            {{ member.email || '-' }}
-          </p>
+          <p class="info-value email-value">{{ member.email || '-' }}</p>
         </div>
       </section>
 
       <!-- 비밀번호 변경 -->
       <section class="menu-card">
-        <button
-          type="button"
-          class="menu-button"
-          @click="goToPasswordChange"
-        >
+        <button type="button" class="menu-button" @click="goToPasswordChange">
           <span>비밀번호 변경</span>
           <span class="chevron">›</span>
         </button>
@@ -151,79 +79,60 @@
 
       <!-- 연결된 자녀 -->
       <section class="section-block">
-        <h2 class="section-title">
-          연결된 자녀
-        </h2>
+        <h2 class="section-title">연결된 자녀</h2>
 
-        <div class="section-card">
+        <!-- 자녀 로딩 중 -->
+        <div v-if="isChildrenLoading" class="section-card">
+          <p class="empty-message">자녀 정보를 불러오는 중입니다.</p>
+        </div>
+
+        <!-- 자녀 로딩 에러 -->
+        <div v-else-if="childrenError" class="section-card">
+          <p class="empty-message" style="color: #d14343;">{{ childrenError }}</p>
+        </div>
+
+        <!-- 자녀 목록 -->
+        <div v-else class="section-card">
           <template v-if="children.length > 0">
             <div
               v-for="(child, index) in children"
-              :key="child.memberId"
+              :key="child.childId"
               class="child-item"
-              :class="{
-                'with-border':
-                  index !== children.length - 1
-              }"
+              :class="{ 'with-border': index !== children.length - 1 }"
             >
               <div class="child-info">
                 <img
-                  src="@/assets/icons/child-profile.svg"
+                  :src="child.profileImageUrl || '/src/assets/icons/child-profile.svg'"
                   alt=""
                   class="child-icon"
+                  @error="(e) => e.target.src = '/src/assets/icons/child-profile.svg'"
                 />
-
-                <strong class="child-name">
-                  {{ child.name }}
-                </strong>
+                <strong class="child-name">{{ child.name }}</strong>
               </div>
-
-              <button
-                type="button"
-                class="disconnect-button"
-                @click="disconnectChild(child)"
-              >
+              <button type="button" class="disconnect-button" @click="disconnectChild(child)">
                 연동 해제
               </button>
             </div>
           </template>
 
-          <p v-else class="empty-message">
-            연결된 자녀가 없습니다.
-          </p>
+          <p v-else class="empty-message">연결된 자녀가 없습니다.</p>
         </div>
       </section>
 
       <!-- 고객지원 -->
       <section class="section-block">
-        <h2 class="section-title">
-          고객지원
-        </h2>
+        <h2 class="section-title">고객지원</h2>
 
         <div class="menu-card">
-          <button
-            type="button"
-            class="menu-button menu-border"
-            @click="goToFaq"
-          >
+          <button type="button" class="menu-button menu-border" @click="goToFaq">
             <span>자주 묻는 질문</span>
             <span class="chevron">›</span>
           </button>
-
-          <button
-            type="button"
-            class="menu-button menu-border"
-            @click="goToInquiry"
-          >
+          <button type="button" class="menu-button menu-border" @click="goToInquiry">
             <span>문의하기</span>
             <span class="chevron">›</span>
           </button>
-
-          <button
-            type="button"
-            class="menu-button"
-            @click="goToPolicy"
-          >
+          <button type="button" class="menu-button" @click="goToPolicy">
             <span>약관 및 정책</span>
             <span class="chevron">›</span>
           </button>
@@ -232,25 +141,14 @@
 
       <!-- 계정관리 -->
       <section class="section-block">
-        <h2 class="section-title">
-          계정관리
-        </h2>
+        <h2 class="section-title">계정관리</h2>
 
         <div class="menu-card">
-          <button
-            type="button"
-            class="menu-button menu-border"
-            @click="logout"
-          >
+          <button type="button" class="menu-button menu-border" @click="logout">
             <span>로그아웃</span>
             <span class="chevron">›</span>
           </button>
-
-          <button
-            type="button"
-            class="menu-button"
-            @click="withdraw"
-          >
+          <button type="button" class="menu-button" @click="withdraw">
             <span>회원 탈퇴</span>
             <span class="chevron">›</span>
           </button>
@@ -260,70 +158,38 @@
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
+      <button class="nav-item" type="button" @click="router.push('/parents/home')">
+        <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
         <span class="nav-label">홈</span>
       </button>
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
+      <button class="nav-item" type="button" @click="router.push('/parents/childlist')">
+        <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
+        <span class="nav-label">자녀관리</span>
       </button>
-
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-      >
-        <img
-          src="@/assets/icons/icon-mypage-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
+      <button class="nav-item nav-item-active" type="button">
+        <img src="@/assets/icons/icon-mypage-alive.svg" alt="" class="nav-icon" />
+        <span class="nav-label">마이페이지</span>
       </button>
     </nav>
   </div>
 </template>
 
 <script setup>
-import {
-  computed,
-  onMounted,
-  reactive,
-  ref,
-} from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
+import { getChildren } from '@/api/children'  
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+// 자녀 목록 관련 상태 추가
+const isChildrenLoading = ref(false)
+const childrenError = ref('')
 
 const member = reactive({
   memberId: null,
@@ -338,37 +204,15 @@ const member = reactive({
 const children = ref([])
 
 const formattedBirthDate = computed(() => {
-  if (!member.birthDate) {
-    return ''
-  }
-
+  if (!member.birthDate) return ''
   return member.birthDate.replaceAll('-', '.')
 })
 
 const formattedPhoneNumber = computed(() => {
-  const phone = member.phoneNumber?.replace(
-    /[^0-9]/g,
-    ''
-  )
-
-  if (!phone) {
-    return ''
-  }
-
-  if (phone.length === 11) {
-    return phone.replace(
-      /(\d{3})(\d{4})(\d{4})/,
-      '$1-$2-$3'
-    )
-  }
-
-  if (phone.length === 10) {
-    return phone.replace(
-      /(\d{3})(\d{3})(\d{4})/,
-      '$1-$2-$3'
-    )
-  }
-
+  const phone = member.phoneNumber?.replace(/[^0-9]/g, '')
+  if (!phone) return ''
+  if (phone.length === 11) return phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+  if (phone.length === 10) return phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')
   return member.phoneNumber
 })
 
@@ -387,9 +231,7 @@ async function fetchMyInfo() {
       return
     }
 
-    const data = await getMyInfo(
-      authStore.accessToken
-    )
+    const data = await getMyInfo(authStore.accessToken)
 
     Object.assign(member, {
       memberId: data.memberId,
@@ -398,14 +240,10 @@ async function fetchMyInfo() {
       email: data.email,
       phoneNumber: data.phoneNumber,
       birthDate: data.birthDate,
-      profileImageUrl:
-        data.profileImageUrl || '',
+      profileImageUrl: data.profileImageUrl || '',
     })
 
-    if (
-      typeof authStore.updateUserInfo ===
-      'function'
-    ) {
+    if (typeof authStore.updateUserInfo === 'function') {
       authStore.updateUserInfo({
         memberId: data.memberId,
         role: data.role,
@@ -413,24 +251,50 @@ async function fetchMyInfo() {
       })
     }
   } catch (error) {
-    console.error(
-      '회원 정보 조회 실패:',
-      error
-    )
-
+    console.error('회원 정보 조회 실패:', error)
     if (error.status === 401) {
       authStore.clearUser()
-      errorMessage.value =
-        '로그인이 필요합니다.'
+      errorMessage.value = '로그인이 필요합니다.'
       return
     }
-
-    errorMessage.value =
-      error.message ||
-      '회원 정보를 불러오지 못했습니다.'
+    errorMessage.value = error.message || '회원 정보를 불러오지 못했습니다.'
   } finally {
     isLoading.value = false
   }
+}
+
+async function fetchChildren() {
+  isChildrenLoading.value = true
+  childrenError.value = ''
+
+  try {
+    const res = await getChildren(authStore.accessToken)  // ← 토큰 전달
+    if (res.success) {
+      children.value = res.data.map(child => ({
+        childId: child.childId,
+        name: child.name,
+        email: child.email,
+        balance: child.balance,
+        teenyScore: child.teenyScore,
+        profileImageUrl: child.profileImageUrl || '',
+      }))
+    }
+  } catch (error) {
+    console.error('자녀 목록 불러오기 실패:', error)
+    childrenError.value = '자녀 정보를 불러오지 못했습니다.'
+  } finally {
+    isChildrenLoading.value = false
+  }
+}
+
+async function disconnectChild(child) {
+  const confirmed = window.confirm(`${child.name} 자녀와의 연동을 해제하시겠습니까?`)
+  if (!confirmed) return
+
+  // TODO: API 연동
+  // DELETE /api/v1/members/me/children/:childId
+  // 성공 시 목록에서 제거
+  // children.value = children.value.filter(c => c.childId !== child.childId)
 }
 
 function handleProfileImageError() {
@@ -438,20 +302,15 @@ function handleProfileImageError() {
 }
 
 function logout() {
-  const confirmed = window.confirm(
-    '로그아웃하시겠습니까?'
-  )
-
-  if (!confirmed) {
-    return
-  }
-
+  const confirmed = window.confirm('로그아웃하시겠습니까?')
+  if (!confirmed) return
   authStore.clearUser()
   router.replace('/login')
 }
 
 onMounted(() => {
   fetchMyInfo()
+  fetchChildren()  // ← 추가
 })
 </script>
 
@@ -468,9 +327,11 @@ button {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding-bottom: 90px;
+  padding-bottom: 60px;
   color: #191b1e;
   background-color: #f4f5f7;
+  position: relative;
+  top: -8px;
 }
 
 .nav {
@@ -479,7 +340,7 @@ button {
   align-items: center;
   justify-content: space-between;
   height: 64px;
-  padding: 18px 20px 4px;
+  padding: 0px 20px 4px;
   background-color: #f4f5f7;
 }
 
@@ -703,6 +564,8 @@ button {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .child-name {
