@@ -544,11 +544,12 @@ async function doSignup() {
     })
 
     if (res.success) {
-      alert('회원가입이 완료됐어요!')
-      router.push('/login')
-    }
-  } catch (e) {
-    alert('회원가입에 실패했어요')
+  alert('회원가입이 완료됐어요!')
+
+  if (res.data?.role === 'CHILD') {
+    router.push('/child/home')   // 14세 미만
+  } else {
+    router.push('/parents/home') // 14세 이상
   }
 }
 
