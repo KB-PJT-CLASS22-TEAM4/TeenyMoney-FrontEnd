@@ -1,19 +1,46 @@
 // 마이페이지 조회 API
 
-//자녀 마이페이지
-import { useAuthStore } from '@/stores/auth'
+const API_BASE_URL = import.meta.env.DEV
+  ? ''
+  : import.meta.env.VITE_API_BASE_URL
 
-const API_BASE_URL = import.meta.env.DEV ? '' : import.meta.env.VITE_API_BASE_URL
-const MEMBER_URL = `${API_BASE_URL}/api/v1/members`
+const BASE_URL = `${API_BASE_URL}/api/v1/auth`
 
-export async function getMyInfo() {
-  const authStore = useAuthStore()
+// console.log(import.meta.env.VITE_API_BASE_URL)
 
-  const res = await fetch(`${MEMBER_URL}/me`, {
-    headers: {
-      'Authorization': `Bearer ${authStore.accessToken}`   // ← store에서 토큰 꺼냄
+console.log(import.meta.env.VITE_API_BASE_URL)
+
+
+// 부모 마이페이지 조회
+export async function getMyInfo(accessToken) {
+  if (!accessToken) {
+    throw new Error('로그인이 필요합니다.')
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/members/me`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
     }
-  })
+  )
 
-  return res.json()
+  let result
+
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(
+      result.message || '회원 정보를 불러오지 못했습니다.'
+    )
+  }
+
+  return result.data
 }

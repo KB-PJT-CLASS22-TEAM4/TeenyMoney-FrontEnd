@@ -69,3 +69,24 @@ export async function login(email, password) {
   })
   return res.json()
 }
+
+// 법정대리인 인증번호 발송
+export async function sendGuardianVerificationCode(phoneNumber) {
+  const res = await fetch(`${BASE_URL}/legal-guardian-verification/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phoneNumber })
+  })
+  return res.json()
+}
+
+// 법정대리인 인증번호 확인
+export async function confirmGuardianVerification(data) {
+  const res = await fetch(`${BASE_URL}/legal-guardian-verification/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  return res.json()
+}
+

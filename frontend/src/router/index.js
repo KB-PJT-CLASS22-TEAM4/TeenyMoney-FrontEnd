@@ -38,6 +38,8 @@ import Charge from '@/pages/Parents/Charge.vue'
 import AutoCharge from '@/pages/Parents/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
+import Mypage from '@/pages/Parents/Mypage.vue'
+
 
 
 const router = createRouter({
@@ -188,6 +190,12 @@ const router = createRouter({
       name: 'child-mypage',
       component: ChildMyPage,
     },
+    // 부모 마이페이지
+    {
+      path: '/parents/mypage',
+      name: 'parents-mypage',
+      component : Mypage,
+    }
   ],
 });
 
