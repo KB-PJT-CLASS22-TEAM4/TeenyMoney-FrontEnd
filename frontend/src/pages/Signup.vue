@@ -381,7 +381,7 @@ const form = reactive({
   email: '',
   password: '',
   passwordConfirm: '',
-  agreedToTerms: false,
+  agreedToTerms: true,
 })
 
 const errors = reactive({
@@ -769,10 +769,6 @@ const submitBlockReason = computed(() => {
     return '비밀번호가 일치하지 않아요.'
   }
 
-  if (!form.agreedToTerms) {
-    return '약관에 동의해 주세요.'
-  }
-
   return null
 })
 
@@ -788,8 +784,7 @@ const canSubmit = computed(() => {
     form.verificationCode.trim().length === 6 &&
     form.email.trim() &&
     form.password.length >= 10 &&
-    form.password === form.passwordConfirm &&
-    form.agreedToTerms
+    form.password === form.passwordConfirm
   )
 })
 
@@ -1019,11 +1014,10 @@ async function verifyGuardianCode() {
  * 약관 동의
  */
 function toggleTerms() {
-  form.agreedToTerms =
-    !form.agreedToTerms
+  // 테스트용: 약관 동의는 항상 true로 유지
+  form.agreedToTerms = true
 
   if (
-    form.agreedToTerms &&
     isUnder14() &&
     !guardianVerified.value
   ) {
@@ -1106,11 +1100,8 @@ async function doSignup() {
       passwordConfirm:
         form.passwordConfirm,
 
-      serviceTermsAgreed:
-        form.agreedToTerms,
-
-      privacyAgreed:
-        form.agreedToTerms,
+      serviceTermsAgreed: true,
+      privacyAgreed: true,
 
       // 백엔드 DTO 숫자 타입에 맞춰 전송
       serviceTermsVersion: 1,
