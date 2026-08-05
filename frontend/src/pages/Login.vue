@@ -139,7 +139,6 @@ function handleGoogleLogin() {
   height: 730px;
   margin: 0 auto;
   background: #ffffff;
-  border: 1px solid #eceef1;
   font-family: 'Inter', -apple-system, sans-serif;
   overflow: hidden;
 }
