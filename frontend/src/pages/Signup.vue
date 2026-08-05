@@ -30,8 +30,11 @@
             class="input"
             type="text"
             inputmode="numeric"
-            placeholder="YYYYMMDD"
+            placeholder="YYYY-MM-DD"
+            maxlength="10"
+            @input="formatBirthDateInput"
           />
+          <p v-if="errors.birthDate" class="error-text">{{ errors.birthDate }}</p>
         </div>
 
         <div class="field field-phone">
@@ -42,8 +45,10 @@
               v-model="form.phoneNumber"
               class="input input-inline"
               type="tel"
-              inputmode="tel"
+              inputmode="numeric"
               autocomplete="tel"
+              placeholder="010-0000-0000"
+              @input="formatPhoneNumberInput"
             />
             <button class="verify-btn" type="button" @click="requestVerification">
               인증
@@ -122,57 +127,61 @@
         </button>
 
         <!-- 보호자 인증 모달 -->
-<div v-if="showGuardianModal" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-title-wrap">
-      <div class="modal-bar"></div>
-      <h2 class="modal-title">법정대리인(보호자) 정보</h2>
-    </div>
+        <div v-if="showGuardianModal" class="modal-overlay">
+          <div class="modal">
+            <div class="modal-title-wrap">
+              <div class="modal-bar"></div>
+              <h2 class="modal-title">법정대리인(보호자) 정보</h2>
+            </div>
 
-    <div class="field">
-      <label class="label">보호자명</label>
-      <input
-        v-model="guardian.name"
-        class="input"
-        type="text"
-        placeholder="보호자 이름 입력"
-      />
-    </div>
+            <div class="field">
+              <label class="label">보호자명</label>
+              <input
+                v-model="guardian.name"
+                class="input"
+                type="text"
+                placeholder="보호자 이름 입력"
+              />
+            </div>
 
-    <div class="field">
-      <label class="label">휴대전화</label>
-      <div class="input-row">
-        <input
-          v-model="guardian.phone"
-          class="input input-inline"
-          type="tel"
-          placeholder="010-0000-0000"
-        />
-        <button class="verify-btn" @click="requestGuardianVerification">인증</button>
-      </div>
-      <p v-if="guardianCodeSent" class="sent-text">인증번호가 발송되었습니다</p>
-    </div>
+            <div class="field">
+              <label class="label">휴대전화</label>
+              <div class="input-row">
+                <input
+                  v-model="guardian.phone"
+                  class="input input-inline"
+                  type="tel"
+                  inputmode="numeric"
+                  placeholder="010-0000-0000"
+                  @input="formatGuardianPhoneInput"
+                />
+                <button class="verify-btn" type="button" @click="requestGuardianVerification">인증</button>
+              </div>
+              <p v-if="guardianCodeSent" class="sent-text">인증번호가 발송되었습니다</p>
+            </div>
 
-    <div class="field">
-      <label class="label">인증번호</label>
-      <div class="input-row">
-        <input
-          v-model="guardian.code"
-          class="input input-inline"
-          type="text"
-          inputmode="numeric"
-          maxlength="6"
-          placeholder="인증번호 6자리 입력"
-        />
-        <button class="confirm-btn" @click="verifyGuardianCode">확인</button>
-      </div>
-      <p class="helper">문자로 받은 6자리 숫자를 입력해 주세요</p>
-    </div>
-  </div>
-</div>
+            <div class="field">
+              <label class="label">인증번호</label>
+              <div class="input-row">
+                <input
+                  v-model="guardian.code"
+                  class="input input-inline"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="6"
+                  placeholder="인증번호 6자리 입력"
+                />
+                <button class="confirm-btn" type="button" @click="verifyGuardianCode">확인</button>
+              </div>
+              <p class="helper">문자로 받은 6자리 숫자를 입력해 주세요</p>
+            </div>
+          </div>
+        </div>
 
-        <!-- footer 를 scroll 안으로 이동 -->
         <div class="footer">
+          <p v-if="submitBlockReason" class="block-reason">
+            {{ submitBlockReason }}
+          </p>
           <button class="submit-btn" type="button" :disabled="!canSubmit" @click="submit">
             가입 완료
           </button>
@@ -198,38 +207,121 @@ const form = reactive({
   password: '',
   passwordConfirm: '',
   agreedToTerms: false,
+  serviceTermsAgreed: true,
+  privacyAgreed: true,
 })
 
-// 만 14세 미만 여부 체크
-function isUnder14() {
-  if (!form.birthDate || form.birthDate.length !== 8) return false
-
-  const birth = form.birthDate // YYYYMMDD
-  const birthYear = parseInt(birth.slice(0, 4))
-  const birthMonth = parseInt(birth.slice(4, 6))
-  const birthDay = parseInt(birth.slice(6, 8))
-
-  const today = new Date()
-  const age = today.getFullYear() - birthYear
-    - (today.getMonth() + 1 < birthMonth ||
-      (today.getMonth() + 1 === birthMonth && today.getDate() < birthDay) ? 1 : 0)
-
-  return age < 14
-}
-
-// 만 14세 미만이면 보호자 인증 모달 표시 여부
-const showGuardianModal = ref(false)
-
 const errors = reactive({
-  phoneNumber: '',
+  birthDate: '',
   email: '',
   password: '',
   passwordConfirm: '',
 })
 
+// ✅ 생년월일 자동 포맷 (YYYY-MM-DD, 숫자만, 미래 날짜 금지)
+function formatBirthDateInput(e) {
+  const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
+
+  let formatted = ''
+  if (digits.length <= 4) {
+    formatted = digits
+  } else if (digits.length <= 6) {
+    formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`
+  } else {
+    formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`
+  }
+
+  form.birthDate = formatted
+
+  // 날짜가 완성됐을 때만 미래 날짜 검증
+  if (digits.length === 8) {
+    validateBirthDate()
+  } else {
+    errors.birthDate = ''
+  }
+}
+
+function validateBirthDate() {
+  const digits = form.birthDate.replace(/-/g, '')
+  if (digits.length !== 8) {
+    errors.birthDate = '생년월일을 완전히 입력해주세요'
+    return false
+  }
+
+  const year = parseInt(digits.slice(0, 4))
+  const month = parseInt(digits.slice(4, 6))
+  const day = parseInt(digits.slice(6, 8))
+
+  const date = new Date(year, month - 1, day)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  // 유효하지 않은 날짜 체크 (예: 2월 30일)
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() + 1 !== month ||
+    date.getDate() !== day
+  ) {
+    errors.birthDate = '올바른 날짜를 입력해주세요'
+    return false
+  }
+
+  // 미래 날짜 금지
+  if (date > today) {
+    errors.birthDate = '미래 날짜는 입력할 수 없어요'
+    return false
+  }
+
+  errors.birthDate = ''
+  return true
+}
+
+// ✅ 공통 포맷 함수 (숫자만 추출 후 하이픈 추가)
+function applyPhoneFormat(digits) {
+  if (digits.length <= 3) return digits
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`
+}
+
+// ✅ 회원가입 폼 전화번호 (한글/영어 차단 + 하이픈 자동 추가)
+function formatPhoneNumberInput(e) {
+  const digits = e.target.value.replace(/\D/g, '')
+  form.phoneNumber = applyPhoneFormat(digits)
+}
+
+// ✅ 보호자 전화번호 (한글/영어 차단 + 하이픈 자동 추가)
+function formatGuardianPhoneInput(e) {
+  const digits = e.target.value.replace(/\D/g, '')
+  guardian.phone = applyPhoneFormat(digits)
+}
+
+// API 전송 시 하이픈 제거
 function formatPhone(value) {
   return value.replace(/-/g, '').replace(/[^0-9]/g, '')
 }
+
+// 만 14세 미만 여부 체크
+function isUnder14() {
+  if (!form.birthDate || form.birthDate.length !== 10) return false
+
+  const digits = form.birthDate.replace(/-/g, '')
+  const birthYear = parseInt(digits.slice(0, 4))
+  const birthMonth = parseInt(digits.slice(4, 6))
+  const birthDay = parseInt(digits.slice(6, 8))
+
+  const today = new Date()
+  const age =
+    today.getFullYear() -
+    birthYear -
+    (today.getMonth() + 1 < birthMonth ||
+    (today.getMonth() + 1 === birthMonth && today.getDate() < birthDay)
+      ? 1
+      : 0)
+
+  return age < 14
+}
+
+const showGuardianModal = ref(false)
 
 function validateEmail() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -292,11 +384,24 @@ const formattedTimer = computed(() => {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 })
 
+const submitBlockReason = computed(() => {
+  if (!form.name.trim()) return '이름을 입력해주세요'
+  if (!form.birthDate.trim() || form.birthDate.length !== 10) return '생년월일을 입력해주세요 (YYYY-MM-DD)'
+  if (errors.birthDate) return errors.birthDate
+  if (!form.phoneNumber.trim()) return '휴대폰 번호를 입력해주세요'
+  if (form.verificationCode.trim().length !== 6) return '인증번호 6자리를 입력해주세요'
+  if (!form.email.trim()) return '이메일을 입력해주세요'
+  if (form.password.length < 10) return `비밀번호가 ${form.password.length}자예요 (10자 이상 필요)`
+  if (form.password !== form.passwordConfirm) return '비밀번호가 일치하지 않아요'
+  if (!form.agreedToTerms) return '약관에 동의해주세요'
+  return null
+})
 
 const canSubmit = computed(
   () =>
     form.name.trim() &&
-    form.birthDate.trim() &&
+    form.birthDate.trim().length === 10 &&
+    !errors.birthDate &&
     form.phoneNumber.trim() &&
     form.verificationCode.trim().length === 6 &&
     form.email.trim() &&
@@ -305,7 +410,7 @@ const canSubmit = computed(
     form.agreedToTerms,
 )
 
-// 14세 미만 시 보호자 정보 입력
+// 보호자 정보
 const guardian = reactive({
   name: '',
   phone: '',
@@ -313,14 +418,11 @@ const guardian = reactive({
 })
 const guardianCodeSent = ref(false)
 
-// 보호자 인증번호 발송
 async function requestGuardianVerification() {
   if (!guardian.phone.trim()) return
 
   try {
-    // TODO: API 연동
-    // POST /auth/guardian/send-code
-    // body: { phone: formatPhone(guardian.phone) }
+    // TODO: 보호자 인증 API 연동
     guardianCodeSent.value = true
     alert('보호자 인증번호가 발송됐어요!')
   } catch (e) {
@@ -328,15 +430,11 @@ async function requestGuardianVerification() {
   }
 }
 
-// 보호자 인증번호 확인 후 회원가입 진행
 async function verifyGuardianCode() {
   if (guardian.code.length !== 6) return
 
   try {
-    // TODO: API 연동
-    // POST /auth/guardian/verify
-    // body: { phone: formatPhone(guardian.phone), code: guardian.code }
-    // 성공 시 → 회원가입 API 호출
+    // TODO: 보호자 인증번호 확인 API 연동
     showGuardianModal.value = false
     await doSignup()
   } catch (e) {
@@ -385,11 +483,7 @@ function toggleTerms() {
 async function submit() {
   if (!canSubmit.value) return
 
-  const isValid =
-    validateEmail() &&
-    validatePassword() &&
-    validatePasswordConfirm()
-
+  const isValid = validateBirthDate() && validateEmail() && validatePassword() && validatePasswordConfirm()
   if (!isValid) return
 
   if (isUnder14()) {
@@ -397,7 +491,6 @@ async function submit() {
     return
   }
 
-  // 14세 이상이면 바로 회원가입 API 호출
   await doSignup()
 }
 
@@ -405,7 +498,7 @@ async function doSignup() {
   try {
     const res = await signup({
       name: form.name,
-      birthDate: form.birthDate,
+      birthDate: form.birthDate.replace(/-/g, ''),  // YYYYMMDD 형식으로 전송
       phoneNumber: formatPhone(form.phoneNumber),
       verificationCode: form.verificationCode,
       email: form.email,
@@ -513,6 +606,7 @@ onUnmounted(() => {
   font-weight: 500;
   color: #191b1e;
   outline: none;
+  box-sizing: border-box;
 }
 
 .input::placeholder {
@@ -566,12 +660,19 @@ onUnmounted(() => {
   color: #b9bec5;
 }
 
-/* 에러 메시지 */
 .error-text {
   margin: -8px 0 0;
   font-size: 12px;
   font-weight: 500;
   color: #ff3b30;
+}
+
+.block-reason {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #e5484d;
+  text-align: center;
 }
 
 .terms {
@@ -625,7 +726,6 @@ onUnmounted(() => {
   height: 18px;
 }
 
-/* footer - fixed 제거하고 스크롤과 함께 움직이도록 수정 */
 .footer {
   padding: 6px 0 22px;
   background-color: #ffffff;
@@ -707,5 +807,4 @@ onUnmounted(() => {
   color: #191b1e;
   cursor: pointer;
 }
-
 </style>
