@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 import { getMyInfo } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
+import { logout as logoutApi } from '@/api/auth';
+import ConfirmModal from '@/components/ConfirmModal.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -20,14 +22,14 @@ const parent = ref({ name: '', status: '' });
 
 onMounted(async () => {
   try {
-    const data = await getMyInfo(authStore.accessToken);   // ① 토큰 넘김
+    const data = await getMyInfo(authStore.accessToken);   // 토큰 넘김
     user.value = {
-      name: data.name,          // ③ data.name (data 한 번!)
+      name: data.name,          // data.name 
       birth: data.birthDate,
       phone: data.phoneNumber,
       email: data.email,
     };
-  } catch (e) {                 // ② try/catch로 실패 처리
+  } catch (e) {                 // try/catch로 실패 처리
     console.log('회원정보 조회 실패:', e.message);
   }
 });
@@ -40,14 +42,15 @@ function editEmail() {
 }
 
 function goPasswordSetting() {
-  // [라우터] 결제 비밀번호 설정 화면
-  // router.push({ name: 'child-payment-password' });
+  // 결제 비밀번호 설정
+  router.push({ name: 'child-password-setting' });
 }
-
 
 function addParent() {
+  // 부모님 추가 
 router.push({ name: 'child-link' });
 }
+
 //========고객 지원===========
 function goFaq() {
   // 자주 묻는 질문 
@@ -59,24 +62,66 @@ function goPolicy() {
   // 약관 및 정책
 }
 
-//=========계정 관리===========
+//=========로그아웃=============
+const showLogoutModal = ref(false)
+
 function logout() {
-authStore.clearUser();  // ← 서랍 비우기 (토큰 정보 삭제)
-router.push({ name: 'login' });
+  showLogoutModal.value = true
 }
+
+function cancelLogout() {
+  showLogoutModal.value = false
+}
+
+// API 호출 후 로그아웃 처리
+async function confirmLogout() {
+  showLogoutModal.value = false
+
+  try {
+    await logoutApi(authStore.accessToken)
+  } catch (error) {
+    console.error('로그아웃 요청 실패:', error)
+  } finally {
+    authStore.clearUser()
+    router.replace('/login')
+  }
+}
+
+//=======연동 해제=========
+const showUnlinkModal = ref(false)
 
 function unlink() {
-  // 부모-자녀 연동 해제
-  router.push({ name: 'child-link' });
+  showUnlinkModal.value = true
 }
 
+function cancelUnlink() {
+  showUnlinkModal.value = false
+}
+
+// API 호출 후 연동 해제 처리
+async function confirmUnlink() {
+  showUnlinkModal.value = false   
+
+  try {
+    // TODO: [API] 자녀 연동 해제 API
+    console.log('연동 해제 요청 (API 자리)')
+  } catch (error) {
+    console.error('연동 해제 실패:', error)
+  } finally {
+    router.push({ name: 'child-link' })
+  }
+}
+
+// =========하단 탭==========
 function onTabSelect(key) {
   if (key === 'home') router.push({ name: 'child-home' });
+  if (key === 'report') router.push({ name: 'child-report' });
   if (key === 'my') router.push({ name: 'child-mypage' });
   if (key === 'q') router.push({ name: 'qr-scan' });     
-  // finance, report는 페이지 만들면 추가
+  // 금융상품은 페이지 만들면 추가
 }
-//스크롤 
+
+// 스크롤 바
 const isScrolling = ref(false);
 let scrollTimer = null;
 
@@ -174,22 +219,44 @@ function onScroll() {
         </div>
       </section>
 
-      <!-- 계정관리 -->
-      <section class="menu-group">
-        <p class="section-label">계정관리</p>
-        <div class="menu-row" @click="logout">
-          <span class="menu-title">로그아웃</span>
-          <span class="chev">›</span>
-        </div>
-        <div class="menu-row" @click="unlink">
-          <span class="menu-title">연동 해제</span>
-          <span class="chev">›</span>
-        </div>
-      </section>
+    <!-- 계정관리 -->
+    <section class="menu-group">
+      <p class="section-label">계정관리</p>
+      <div class="menu-row" @click="logout">
+        <span class="menu-title">로그아웃</span>
+        <span class="chev">›</span>
+      </div>
+    <div class="menu-row" @click="unlink">      
+      <span class="menu-title">연동 해제</span>
+      <span class="chev">›</span>
+    </div>
+    </section>
     </div>
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="my" @select="onTabSelect" />
+
+    <!-- 로그아웃 확인 모달 -->
+    <ConfirmModal
+      :show="showLogoutModal"
+      title="로그아웃할까요?"
+      confirm-text="로그아웃"
+      description="더 이상 티니머니를 이용할 수 없습니다"
+      cancel-text="취소"
+      @confirm="confirmLogout"
+      @cancel="cancelLogout"
+    />
+
+    <!-- 연동 해제 확인 모달 -->
+    <ConfirmModal
+      :show="showUnlinkModal"
+      title="연동을 해제할까요?"
+      description="연동을 해제하면 부모님과의 연결이 끊어져요"
+      confirm-text="해제"
+      cancel-text="취소"
+      @confirm="confirmUnlink"
+      @cancel="cancelUnlink"
+    />
   </div>
 </template>
 
@@ -217,14 +284,12 @@ function onScroll() {
   width: 3px;
 }
 
-/* 평소엔 투명 (안 보임) */
 .scroll::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 999px;
   transition: background 0.3s;
 }
 
-/* 스크롤 중일 때만 회색으로 나타남 */
 .scroll.scrolling::-webkit-scrollbar-thumb {
   background: #d8dbdf;
 }
