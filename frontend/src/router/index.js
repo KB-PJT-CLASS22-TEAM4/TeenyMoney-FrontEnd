@@ -22,6 +22,10 @@ import QRcode from '@/pages/Child/Payment/QRcode.vue';
 import PayInfo from '@/pages/Child/Payment/PayInfo.vue';
 // 결제 비밀번호 입력
 import PayPassword from '@/pages/Child/Payment/PayPassword.vue';
+// 결제 진행중
+import PayProcessing from '@/pages/Child/Payment/PayProcessing.vue';
+// 결제 완료
+import PayDone from '@/pages/Child/Payment/PayDone.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -32,6 +36,8 @@ import Charge from '@/pages/Parents/Charge.vue'
 import AutoCharge from '@/pages/Parents/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
+import Mypage from '@/pages/Parents/Mypage.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -163,6 +169,24 @@ const router = createRouter({
      name: 'pay-password',
       component: PayPassword,
     },
+    // 결제 진행 중
+    {
+      path: '/child/payment/processing',
+      name: 'pay-processing',
+      component: PayProcessing,
+    },
+    // 결제 완료
+    {
+      path: '/child/payment/done',
+      name: 'pay-done',
+      component: PayDone,
+    },
+    // 부모 마이페이지
+    {
+      path: '/parents/mypage',
+      name: 'parents-mypage',
+      component : Mypage,
+    }
   ],
 });
 
