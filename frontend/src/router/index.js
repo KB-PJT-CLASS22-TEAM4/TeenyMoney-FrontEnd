@@ -22,6 +22,10 @@ import QRcode from '@/pages/Child/Payment/QRcode.vue';
 import PayInfo from '@/pages/Child/Payment/PayInfo.vue';
 // 결제 비밀번호 입력
 import PayPassword from '@/pages/Child/Payment/PayPassword.vue';
+// 결제 진행중
+import PayProcessing from '@/pages/Child/Payment/PayProcessing.vue';
+// 결제 완료
+import PayDone from '@/pages/Child/Payment/PayDone.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -162,6 +166,18 @@ const router = createRouter({
      path: '/child/payment/password',
      name: 'pay-password',
       component: PayPassword,
+    },
+    // 결제 진행 중
+    {
+      path: '/child/payment/processing',
+      name: 'pay-processing',
+      component: PayProcessing,
+    },
+    // 결제 완료
+    {
+      path: '/child/payment/done',
+      name: 'pay-done',
+      component: PayDone,
     },
   ],
 });
