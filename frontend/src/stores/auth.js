@@ -14,6 +14,11 @@ export const useAuthStore = defineStore('auth', () => {
     memberId.value = data.memberId
     role.value = data.role
     name.value = data.name
+
+    localStorage.setItem('accessToken', data.accessToken)
+    localStorage.setItem('memberId', String(data.memberId))
+    localStorage.setItem('role', data.role)
+    localStorage.setItem('name', data.name)
   }
 
   function clearUser() {
