@@ -468,9 +468,11 @@ button {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding-bottom: 90px;
+  padding-bottom: 60px;
   color: #191b1e;
   background-color: #f4f5f7;
+  position: relative;
+  top: -8px;
 }
 
 .nav {
@@ -479,7 +481,7 @@ button {
   align-items: center;
   justify-content: space-between;
   height: 64px;
-  padding: 18px 20px 4px;
+  padding: 0px 20px 4px;
   background-color: #f4f5f7;
 }
 

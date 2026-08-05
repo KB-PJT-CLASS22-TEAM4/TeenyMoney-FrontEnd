@@ -2,22 +2,23 @@
   <div class="page">
     <!-- 헤더 -->
     <header class="nav">
-        <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()" />
+      <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()" />
       <h1 class="nav-title">자녀 목록</h1>
       <button class="alarm-btn" type="button" aria-label="알림">
         <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
-    <p class="subtitle">연결된 자녀 {{ children.length }}명</p>
-
+    
     <div class="content">
       <!-- 자녀 목록 -->
-      <!-- TODO: API 연동 후 하드코딩 제거 -->
-      <!-- GET /children → children 배열로 교체 -->
       <div v-if="children.length > 0">
         <div v-for="child in children" :key="child.id" class="child-card">
           <div class="child-info">
-            <img src="@/assets/icons/child-profile.svg" alt="" class="child-avatar" />
+            <img
+              :src="child.profileImageUrl || '/src/assets/icons/child-profile.svg'"
+              alt=""
+              class="child-avatar"
+            />
             <div>
               <p class="child-name">{{ child.name }}</p>
               <p class="child-email">{{ child.email }}</p>
@@ -33,10 +34,9 @@
               <span>{{ child.points.toLocaleString() }}점</span>
             </div>
           </div>
-          <!-- 추후에 상세 관리에 @click 이벤트 추가 -->
           <div class="child-btns">
-            <button class="btn btn-primary">상세 관리</button> 
-            <button class="btn btn-secondary">연동 해제</button>
+            <button class="btn btn-primary" @click="goToDetail(child.id)">상세 관리</button>
+            <button class="btn btn-secondary" @click="unlinkChild(child.id)">연동 해제</button>
           </div>
         </div>
       </div>
@@ -82,41 +82,44 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getChildren } from '@/api/children'
 
-const router = useRouter()  
+const router = useRouter()
 
-// TODO: API 연동 후 하드코딩 제거
-// GET /children → children.value 로 교체
-const children = ref([
-  { id: 1, name: '김첫째', email: 'teeny@example.com', balance: 18300, points: 850 },
-  { id: 2, name: '김첫째', email: 'teeny@example.com', balance: 18300, points: 850 },
-])
+const children = ref([])
 
-// onMounted(async () => {
-//   try {
-//     const res = await api.get('/children')
-//     children.value = res.data
-//   } catch (error) {
-//     console.error('자녀 목록 불러오기 실패', error)
-//   }
-// })
-
+onMounted(async () => {
+  try {
+    const res = await getChildren()
+    if (res.success) {
+      children.value = res.data.map(child => ({
+        id: child.childId,
+        name: child.name,
+        email: child.email,
+        balance: child.balance,
+        points: child.teenyScore,
+        profileImageUrl: child.profileImageUrl,
+      }))
+    }
+  } catch (error) {
+    console.error('자녀 목록 불러오기 실패', error)
+  }
+})
 
 function goToLinkCode() {
-    router.push('/parents/linkcode')
+  router.push('/parents/linkcode')
 }
 
-// 특정 자녀 선택 시 자녀 상세 화면 이동 
-//function goToDetail(id) {
-//  router.push(`/parents/children/${id}`)
-//}
-
-async function unlinkChild(id) {
-  // TODO: API 연동
-  // DELETE /children/:id
-  // await api.delete(`/children/${id}`)
-  // children.value = children.value.filter(c => c.id !== id)
+function goToDetail(id) {
+  router.push(`/parents/children/${id}`)
 }
+
+// async function unlinkChild(id) {
+//   // TODO: API 연동
+//   // DELETE /children/:id
+//   // await api.delete(`/children/${id}`)
+//   // children.value = children.value.filter(c => c.id !== id)
+// }
 </script>
 
 <style scoped>
@@ -127,7 +130,9 @@ async function unlinkChild(id) {
   background-color: #f4f5f7;
   display: flex;
   flex-direction: column;
-  padding-bottom: 70px;
+  position: relative;
+  top: -8px;
+  padding-bottom: 80px;
 }
 
 .nav {
@@ -155,6 +160,12 @@ async function unlinkChild(id) {
   height: 24px;
 }
 
+.back-icon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
 .subtitle {
   margin: 0 0 16px;
   padding: 0 20px;
@@ -165,18 +176,23 @@ async function unlinkChild(id) {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
   padding: 0 16px;
 }
 
-/* 자녀 카드 */
+.content > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .child-card {
   background-color: #ffffff;
   border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 30px;
 }
 
 .child-info {
@@ -188,6 +204,8 @@ async function unlinkChild(id) {
 .child-avatar {
   width: 36px;
   height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .child-name {
@@ -250,7 +268,6 @@ async function unlinkChild(id) {
   color: #191b1e;
 }
 
-/* 빈 상태 */
 .empty {
   padding: 60px 0;
   text-align: center;
@@ -262,7 +279,6 @@ async function unlinkChild(id) {
   color: #b9bec5;
 }
 
-/* 연동 코드 카드 */
 .link-card {
   background-color: #ffffff;
   border-radius: 16px;
@@ -318,7 +334,6 @@ async function unlinkChild(id) {
   color: #8b9097;
 }
 
-/* 하단 네비게이션 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
