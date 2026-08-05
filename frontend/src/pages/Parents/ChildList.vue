@@ -127,7 +127,9 @@ async function unlinkChild(id) {
   background-color: #f4f5f7;
   display: flex;
   flex-direction: column;
-  padding-bottom: 70px;
+  position: relative;
+  top: -8px;
+  padding-bottom: 80px;
 }
 
 .nav {
@@ -165,8 +167,15 @@ async function unlinkChild(id) {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px; /* 자녀 목록과 코드 생성 박스 사이 */
   padding: 0 16px;
+}
+
+/* 자녀 카드 목록 */
+.content > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 14px; /* 자녀간 카드 두 개 사이 */
 }
 
 /* 자녀 카드 */
@@ -176,7 +185,7 @@ async function unlinkChild(id) {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 30px;
 }
 
 .child-info {
