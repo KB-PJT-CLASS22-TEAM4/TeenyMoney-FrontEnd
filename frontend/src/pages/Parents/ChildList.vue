@@ -43,7 +43,7 @@
 
       <!-- 자녀 없을 때 -->
       <div v-else class="empty">
-        <p class="empty-text">자녀 목록이 없습니다</p>
+        <p class="empty-text">연결된 자녀가 없습니다.</p>
       </div>
 
       <!-- 연동 코드 생성 카드 -->
@@ -82,15 +82,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const children = ref([])
 
 onMounted(async () => {
   try {
-    const res = await getChildren()
+    const res = await getChildren(authStore.accessToken)
     if (res.success) {
       children.value = res.data.map(child => ({
         id: child.childId,
