@@ -34,6 +34,7 @@
             maxlength="10"
             @input="formatBirthDateInput"
           />
+          <p class="helper">만 14세 미만의 경우 행정규칙에 따라 법적 대리인의 동의가 필요합니다</p>
           <p v-if="errors.birthDate" class="error-text">{{ errors.birthDate }}</p>
         </div>
 
@@ -131,7 +132,7 @@
           <div class="modal">
             <div class="modal-title-wrap">
               <div class="modal-bar"></div>
-              <h2 class="modal-title">법정대리인(보호자) 정보</h2>
+              <h2 class="modal-title">법정대리인(보호자) 인증</h2>
             </div>
 
             <div class="field">
@@ -218,7 +219,7 @@ const errors = reactive({
   passwordConfirm: '',
 })
 
-// ✅ 생년월일 자동 포맷 (YYYY-MM-DD, 숫자만, 미래 날짜 금지)
+// 생년월일 자동 포맷 (YYYY-MM-DD, 숫자만, 미래 날짜 금지)
 function formatBirthDateInput(e) {
   const digits = e.target.value.replace(/\D/g, '').slice(0, 8)
 
@@ -478,7 +479,13 @@ async function requestVerification() {
 
 function toggleTerms() {
   form.agreedToTerms = !form.agreedToTerms
+
+  // 동의 체크 시 + 14세 미만이면 보호자 모달 표시
+  if (form.agreedToTerms && isUnder14()) {
+    showGuardianModal.value = true
+  }
 }
+
 
 async function submit() {
   if (!canSubmit.value) return
@@ -527,7 +534,6 @@ onUnmounted(() => {
   min-height: 100dvh;
   margin: 0 auto;
   background-color: #ffffff;
-  border: 1px solid #eceef1;
 }
 
 .scroll {
