@@ -2,10 +2,10 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
-  const accessToken = ref(null)
-  const memberId = ref(null)
-  const role = ref(null)
-  const name = ref(null)
+  const accessToken = ref(localStorage.getItem('accessToken'))
+  const memberId = ref(localStorage.getItem('memberId'))
+  const role = ref(localStorage.getItem('role'))
+  const name = ref(localStorage.getItem('name'))
 
   const isAuthenticated = computed(() => Boolean(accessToken.value))
 
@@ -21,6 +21,11 @@ export const useAuthStore = defineStore('auth', () => {
     memberId.value = null
     role.value = null
     name.value = null
+
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('memberId')
+    localStorage.removeItem('role')
+    localStorage.removeItem('name')
   }
 
   return {
