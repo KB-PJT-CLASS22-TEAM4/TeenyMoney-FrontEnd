@@ -26,6 +26,8 @@ import PayPassword from '@/pages/Child/Payment/PayPassword.vue';
 import PayProcessing from '@/pages/Child/Payment/PayProcessing.vue';
 // 결제 완료
 import PayDone from '@/pages/Child/Payment/PayDone.vue';
+// 자녀 마이페이지
+import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -36,6 +38,7 @@ import Charge from '@/pages/Parents/Charge.vue'
 import AutoCharge from '@/pages/Parents/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -178,6 +181,12 @@ const router = createRouter({
       path: '/child/payment/done',
       name: 'pay-done',
       component: PayDone,
+    },
+    // 자녀 마이페이지
+    {
+      path: '/child/mypage',
+      name: 'child-mypage',
+      component: ChildMyPage,
     },
   ],
 });
