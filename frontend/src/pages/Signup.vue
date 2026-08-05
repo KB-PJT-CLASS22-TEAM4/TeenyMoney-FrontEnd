@@ -535,27 +535,41 @@ async function doSignup() {
   try {
     const res = await signup({
       name: form.name,
-      birthDate: form.birthDate.replace(/-/g, ''),  // YYYYMMDD 형식으로 전송
+      birthDate: form.birthDate.replace(/-/g, ''),
       phoneNumber: formatPhone(form.phoneNumber),
       verificationCode: form.verificationCode,
       email: form.email,
       password: form.password,
-      agreedToTerms: form.agreedToTerms,
+      passwordConfirm: form.passwordConfirm,
+
+      serviceTermsAgreed: form.agreedToTerms,
+      privacyAgreed: form.agreedToTerms,
+      serviceTermsVersion: '1.0',
+      privacyTermsVersion: '1.0',
     })
 
     if (res.success) {
-  alert('회원가입이 완료됐어요!')
+      alert('회원가입이 완료됐어요!')
 
-  if (res.data?.role === 'CHILD') {
-    router.push('/child/home')   // 14세 미만
-  } else {
-    router.push('/parents/home') // 14세 이상
+      if (res.data?.role === 'CHILD') {
+        router.push('/child/home')
+      } else {
+        router.push('/parents/home')
+      }
+    }
+  } catch (e) {
+    console.error('회원가입 실패:', e)
+    alert('회원가입에 실패했어요.')
   }
 }
 
 onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval)
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
 })
+
 </script>
 
 <style scoped>
