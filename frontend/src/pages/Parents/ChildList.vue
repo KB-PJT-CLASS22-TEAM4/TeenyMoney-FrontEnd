@@ -82,6 +82,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getChildren } from '@/api/children'
 
 const router = useRouter()  
 
