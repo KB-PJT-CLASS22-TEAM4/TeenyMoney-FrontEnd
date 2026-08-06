@@ -16,7 +16,8 @@
         </div>
         <p class="timer-row">
           <img src="@/assets/icons/icon-clock.svg" alt="" class="clock-icon" />
-          유효시간 <span class="timer">{{ formattedTimer }}</span>
+          <span v-if="isExpired" class="timer expired">코드가 만료되었습니다</span>
+          <span v-else>유효시간 <span class="timer">{{ formattedTimer }}</span></span>
         </p>
       </div>
 
@@ -41,8 +42,12 @@
           <p>연결 완료! 바로 관리할 수 있어요</p>
         </div>
         <div class="remaker">
-          <button class="btn btn-secondary" @click="copyCode">코드 복사</button>
-          <button class="btn btn-primary" @click="generateCode">새 코드 발급</button>
+          <button class="btn btn-secondary" :disabled="isExpired" @click="copyCode">
+            코드 복사
+          </button>
+          <button class="btn btn-primary" :disabled="!isExpired" @click="generateCode">
+            새 코드 발급
+          </button>
         </div>
       </div>
     </div>
@@ -54,15 +59,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const linkCode = ref('482913')
+const linkCode = ref('000000')
 const timerSeconds = ref(600)
+const isExpired = ref(false)
 let timerInterval = null
 let pollingInterval = null
-
-// 뒤로가기 버튼
-function goBack() {
-  router.back()
-}
 
 const formattedTimer = computed(() => {
   const minutes = Math.floor(timerSeconds.value / 60)
@@ -74,8 +75,9 @@ async function generateCode() {
   // TODO: API 연동
   // POST /children/link-code → res.data.code
   // linkCode.value = res.data.code
-  linkCode.value = '482913' // 하드코딩 임시값
+  linkCode.value = '482913'
 
+  isExpired.value = false
   startTimer()
   startPolling()
 }
@@ -87,6 +89,8 @@ function startTimer() {
   timerInterval = setInterval(() => {
     if (timerSeconds.value <= 0) {
       clearInterval(timerInterval)
+      timerInterval = null
+      isExpired.value = true
       stopPolling()
       return
     }
@@ -102,7 +106,7 @@ function startPolling() {
     // GET /children/link-status
     // if (res.data.linked) {
     //   stopPolling()
-    //   router.push('/parent/children/link-complete')
+    //   router.push('/parents/link-complete')
     // }
   }, 3000)
 }
@@ -172,7 +176,6 @@ onUnmounted(() => {
   padding: 20px 16px;
 }
 
-/* 코드 카드 */
 .code-card {
   background-color: #f4f5f7;
   border-radius: 16px;
@@ -226,7 +229,10 @@ onUnmounted(() => {
   color: #ffbc00;
 }
 
-/* 안내 */
+.timer.expired {
+  color: #ff3b30;
+}
+
 .notice {
   display: flex;
   align-items: center;
@@ -242,7 +248,6 @@ onUnmounted(() => {
   height: 16px;
 }
 
-/* 연동 방법 */
 .guide {
   display: flex;
   flex-direction: column;
@@ -282,13 +287,12 @@ onUnmounted(() => {
   color: #8b9097;
 }
 
-/* 하단 버튼 */
 .remaker {
   width: 360px;
   display: flex;
   gap: 10px;
   padding: 10px 16px 28px 0px;
-  margin-top: 35px; 
+  margin-top: 35px;
   background-color: #ffffff;
 }
 
@@ -310,5 +314,10 @@ onUnmounted(() => {
 .btn-secondary {
   background-color: #f4f5f7;
   color: #191b1e;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>
