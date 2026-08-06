@@ -1,15 +1,19 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
 const router = useRouter()
 
-// 상단 탭 (나의 상품 고정 / 필요시 신규 상품 이동 연결 가능)
 const activeTab = ref('나의 상품')
 const tabs = ['신규 상품', '나의 상품']
 
-// 카테고리 필터
+watch(activeTab, (val) => {
+  if (val === '신규 상품') {
+    router.push({ name: 'child-finance-newproducts' })
+  }
+})
+
 const activeCategory = ref('전체')
 const categories = ['전체', '적금', '예금', '대출']
 
@@ -56,21 +60,17 @@ const myProducts = ref([
   },
 ])
 
-// 카테고리별 필터링
 const filteredProducts = computed(() => {
-  if (activeCategory.value === '전체') {
-    return myProducts.value
-  }
+  if (activeCategory.value === '전체') return myProducts.value
   return myProducts.value.filter((p) => p.category === activeCategory.value)
 })
 
-// 중도해지 버튼 동작
 function handleCancelProduct(product) {
   alert(`${product.title} 중도해지 신청 화면으로 이동합니다.`)
 }
 
 function goBack() {
-  router.back()
+  router.push({ name: 'child-home' })
 }
 
 function onTabSelect(key) {
@@ -80,7 +80,6 @@ function onTabSelect(key) {
   if (key === 'q') router.push({ name: 'qr-scan' })
 }
 
-// 스크롤바 제어
 const isScrolling = ref(false)
 let scrollTimer = null
 function onScroll() {
@@ -92,7 +91,6 @@ function onScroll() {
 
 <template>
   <div class="product-screen">
-    <!-- 상단 네비 -->
     <div class="nav">
       <button class="icon-btn" @click="goBack" aria-label="뒤로">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
@@ -104,7 +102,6 @@ function onScroll() {
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <!-- 1. 신규 상품 / 나의 상품 탭 -->
       <div class="tabs">
         <button
           v-for="tab in tabs"
@@ -115,7 +112,6 @@ function onScroll() {
         >{{ tab }}</button>
       </div>
 
-      <!-- 2. 상품 종류 필터 (전체/적금/예금/대출) -->
       <div class="filters">
         <button
           v-for="c in categories"
@@ -126,15 +122,9 @@ function onScroll() {
         >{{ c }}</button>
       </div>
 
-      <!-- 3. 상품 카운트 -->
       <p class="count-row">상품<span class="count-num">{{ filteredProducts.length }}</span></p>
 
-      <!-- 4. 나의 가입 상품 카드 리스트 -->
-      <div
-        v-for="product in filteredProducts"
-        :key="product.id"
-        class="card my-card"
-      >
+      <div v-for="product in filteredProducts" :key="product.id" class="card">
         <div class="card-top">
           <div class="card-info">
             <div class="title-row">
@@ -147,41 +137,38 @@ function onScroll() {
 
         <div class="divider"></div>
 
-        <!-- 세부 정보 -->
-        <div class="my-details">
+        <div class="details">
           <div class="detail-row">
             <span class="d-label">가입일</span>
-            <span class="d-value date-val">{{ product.joinDate }}</span>
+            <span class="d-value">{{ product.joinDate }}</span>
           </div>
           <div class="detail-row">
             <span class="d-label">{{ product.amountLabel }}</span>
-            <span class="d-value bold-val">{{ product.amountValue }}</span>
+            <span class="d-value">{{ product.amountValue }}</span>
           </div>
           <div class="detail-row">
             <span class="d-label">상태</span>
-            <span class="d-value status-val" :class="product.statusColor">{{ product.status }}</span>
+            <span class="d-value" :class="product.statusColor">{{ product.status }}</span>
           </div>
         </div>
 
         <p class="rate-summary">{{ product.rateText }}</p>
 
-        <!-- 중도해지 버튼 -->
         <button type="button" class="cancel-btn" @click="handleCancelProduct(product)">
           중도해지
         </button>
       </div>
     </div>
 
-    <!-- 하단 고정 탭바 -->
     <BottomTabBar active="finance" @select="onTabSelect" />
   </div>
 </template>
 
 <style scoped>
-/* 메인 프레임 */
+/* 신규 상품과 동일한 프레임 */
 .product-screen {
   box-sizing: border-box;
-  position: relative;         
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
@@ -193,13 +180,11 @@ function onScroll() {
   overflow: hidden;
 }
 
-/* 상단 네비 */
 .nav {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 2px 20px 10px;
-  flex: none;
 }
 
 .icon-btn {
@@ -217,29 +202,20 @@ function onScroll() {
   color: #15171b;
 }
 
-/* 스크롤 영역 */
 .scroll {
   flex: 1;
-  min-height: 0;
   overflow-y: auto;
   padding: 8px 20px 20px;
 }
-
-.scroll::-webkit-scrollbar {
-  width: 3px;
-}
-
+.scroll::-webkit-scrollbar { width: 3px; }
 .scroll::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 999px;
   transition: background 0.3s;
 }
+.scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
-.scroll.scrolling::-webkit-scrollbar-thumb {
-  background: #d8dbdf;
-}
-
-/* 탭 버튼 */
+/* 탭 — 신규 상품과 동일 */
 .tabs {
   display: flex;
   padding: 5px;
@@ -247,11 +223,10 @@ function onScroll() {
   border-radius: 12px;
   margin-bottom: 16px;
 }
-
 .tab {
   flex: 1;
   border: none;
-  padding: 12px 0;
+  padding: 8px 0;           /* 신규 상품과 동일 */
   font-family: inherit;
   font-weight: 700;
   font-size: 15px;
@@ -260,32 +235,29 @@ function onScroll() {
   border-radius: 9px;
   cursor: pointer;
 }
-
 .tab.off {
   background: transparent;
   color: #9ca1a8;
   font-weight: 600;
 }
 
-/* 필터 칩 */
+/* 필터 칩 — 신규 상품과 동일 */
 .filters {
   display: flex;
   gap: 8px;
   margin-bottom: 18px;
 }
-
 .chip {
-  padding: 9px 20px;
+  padding: 7px 16px;        /* 신규 상품과 동일 */
   border: none;
   border-radius: 999px;
   font-family: inherit;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;          /* 신규 상품과 동일 */
   color: #15171b;
   background: #ffbc00;
   cursor: pointer;
 }
-
 .chip.off {
   background: #ffffff;
   border: 1.3px solid #e7e9ec;
@@ -293,24 +265,23 @@ function onScroll() {
   font-weight: 600;
 }
 
-/* 카운트 */
+/* 카운트 — 신규 상품과 동일 */
 .count-row {
   font-weight: 800;
   font-size: 16px;
   color: #15171b;
   margin: 0 0 14px;
 }
-
 .count-num {
   color: #2e7bf0;
   margin-left: 6px;
 }
 
-/* 카드 공통 스타일 */
+/* 카드 — 신규 상품과 동일 */
 .card {
   border: 1.3px solid #eaedf1;
   border-radius: 14px;
-  padding: 18px;
+  padding: 17px;            /* 신규 상품과 동일 */
   margin-bottom: 14px;
 }
 
@@ -319,120 +290,88 @@ function onScroll() {
   justify-content: space-between;
   align-items: flex-start;
 }
-
 .card-info {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-
 .title-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* 뱃지 — 신규 상품과 동일 */
 .badge {
-  padding: 4px 9px;
+  padding: 3px 7px;         /* 신규 상품과 동일 */
   border-radius: 5px;
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 11px;          /* 신규 상품과 동일 */
 }
-
-.badge.blue {
-  background: #e8f1fd;
-  color: #2e7bf0;
-}
-
-.badge.orange {
-  background: #fff3e0;
-  color: #f57c00;
-}
+.badge.blue   { background: #e8f1fd; color: #2e7bf0; }
+.badge.orange { background: #fff3e0; color: #f57c00; }
 
 .prod-title {
   font-weight: 800;
-  font-size: 16.5px;
+  font-size: 15px;          /* 신규 상품과 동일 */
   color: #15171b;
 }
-
 .prod-desc {
   font-weight: 500;
-  font-size: 12.5px;
+  font-size: 11.5px;        /* 신규 상품과 동일 */
   color: #b9bec5;
 }
 
 .divider {
   height: 1px;
   background: #f2f4f6;
-  margin: 16px 0 12px;
+  margin: 13px 0;           /* 신규 상품과 동일 */
 }
 
-/* 나의 상품 세부 스타일 */
-.my-details {
+/* 세부 정보 — 신규 상품 details와 동일 */
+.details {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 8px;                 /* 신규 상품과 동일 */
   margin-bottom: 12px;
 }
-
 .detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-
 .d-label {
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 12.5px;        /* 신규 상품과 동일 */
   color: #8b9097;
 }
-
 .d-value {
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 12.5px;        /* 신규 상품과 동일 */
   color: #15171b;
 }
-
-.date-val {
-  font-weight: 600;
-  color: #4a4e55;
-}
-
-.bold-val {
-  font-weight: 800;
-  color: #15171b;
-}
-
-.status-val.blue {
-  color: #2e7bf0;
-  font-weight: 700;
-}
-
-.status-val.orange {
-  color: #f57c00;
-  font-weight: 700;
-}
+.d-value.blue   { color: #2e7bf0; }
+.d-value.orange { color: #f57c00; }
 
 .rate-summary {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 12.5px;        /* d-label과 동일 */
   color: #8b9097;
   margin-bottom: 14px;
 }
 
 .cancel-btn {
   width: 100%;
-  height: 42px;
+  height: 38px;             /* 신규 상품 카드 높이감에 맞게 축소 */
   background: #f7f8fa;
   border: 1.2px solid #e7e9ec;
   border-radius: 8px;
+  font-family: inherit;
   font-weight: 700;
   font-size: 13px;
   color: #4a4e55;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
-
 .cancel-btn:hover {
   background: #f2f4f6;
   color: #15171b;

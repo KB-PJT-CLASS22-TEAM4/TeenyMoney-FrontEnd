@@ -254,7 +254,7 @@ const router = createRouter({
     path: '/child/todayallow/confirm',
     name: 'child-todayallow-confirm',
     component: Confirm,
-  }
+  },
   // 자녀 나의 금융상품 페이지
   {
     path: '/child/finance/myproducts',
