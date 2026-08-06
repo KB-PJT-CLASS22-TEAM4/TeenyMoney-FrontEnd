@@ -98,6 +98,7 @@ const blockList = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 
+// 오늘만 허용 요청은 아직 API가 없으므로 임시로 더미 데이터 사용
 const pendingRequests = ref([
   {
     id: 1,
