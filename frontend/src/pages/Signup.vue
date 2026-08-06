@@ -960,8 +960,8 @@ async function verifyGuardianCode() {
       phoneNumber: guardianPhone,
 
       // 백엔드에서 숫자 타입을 요구하는 것으로 맞춤
-      privacyTermsVersion: 1.0,
-      serviceTermsVersion: 1.0,
+      privacyTermsVersion: "1.0",
+      serviceTermsVersion: "1.0",
 
       relationship: guardian.relationship,
 
@@ -1104,8 +1104,8 @@ async function doSignup() {
       privacyAgreed: true,
 
       // 백엔드 DTO 숫자 타입에 맞춰 전송
-      serviceTermsVersion: 1.0,
-      privacyTermsVersion: 1.0,
+      serviceTermsVersion: "1.0",
+      privacyTermsVersion: "1.0",
     }
 
     console.log(
