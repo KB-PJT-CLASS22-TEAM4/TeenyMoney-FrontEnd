@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAllowRequestStore } from '@/stores/allowRequest'
 
 const router = useRouter()
+const allowStore = useAllowRequestStore()
 
 // TODO: 부모가 설정한 주의/차단 업종 목록을 API로 받아와야 함
 // 주의 업종(복수 선택 가능)
@@ -52,21 +54,22 @@ function onScroll() {
 }
 
 function goBack() {
-  router.push({ name: 'child-home' }) 
+  router.push({ name: 'child-home' })
 }
 
 // 요청 확인 페이지로 이동
 function onSubmit() {
   if (!canSubmit.value) return
-  router.push({
-    name: 'child-todayallow-requestconfirm',   // TODO: 라우트명 확정 후 맞춰서 변경
-    state: {
-      // TODO: 실제 연동 시 아래 데이터를 POST /api/child/allow-requests 바디로 사용
-      categoryIds: selectedCategories.value.map((c) => c.id),
-      categoryLabels: selectedCategories.value.map((c) => c.label),
-      reason: reason.value.trim(),
-    },
-  })
+
+  // 스토어에 선택 데이터 저장
+  // TODO: 실제 연동 시 POST /api/child/allow-requests 바디로 사용
+  allowStore.set(
+    selectedCategories.value.map((c) => c.id),
+    selectedCategories.value.map((c) => c.label),
+    reason.value.trim(),
+  )
+
+  router.push({ name: 'child-todayallow-requestconfirm' })
 }
 </script>
 
