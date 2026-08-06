@@ -56,7 +56,7 @@ import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
 import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
-import PlaceList from '@/pages/Parents/Placelist.vue'
+import PlaceList from '@/pages/Parents/PlaceList.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
