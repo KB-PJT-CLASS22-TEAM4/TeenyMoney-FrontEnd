@@ -31,11 +31,11 @@
         <p class="guide-title">연동 방법</p>
         <div class="guide-item">
           <span class="step">1</span>
-          <p>자녀 앱에서 [설정 › 자녀 연동]을 열어요</p>
+          <p>자녀 앱에서 회원가입을 해주세요</p>
         </div>
         <div class="guide-item">
           <span class="step">2</span>
-          <p>이 코드 6자리를 입력해요</p>
+          <p>이 코드 6자리를 입력해주세요</p>
         </div>
         <div class="guide-item">
           <span class="step">3</span>
