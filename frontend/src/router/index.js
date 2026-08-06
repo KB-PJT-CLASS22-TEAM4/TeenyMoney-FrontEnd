@@ -279,7 +279,6 @@ const router = createRouter({
     name: 'child-finance-join',
     component: ProductsJoin,
   },
-
   ],
 });
 
