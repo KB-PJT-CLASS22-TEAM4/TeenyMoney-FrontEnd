@@ -69,7 +69,7 @@ function onSubmit() {
     reason.value.trim(),
   )
 
-  router.push({ name: 'child-todayallow-requestconfirm' })
+  router.push({ name: 'child-todayallow-confirm' })
 }
 </script>
 

@@ -38,6 +38,8 @@ import ChildReport from '@/pages/Child/ChildReport.vue';
 import Request from '@/pages/Child/TodayAllow/Request.vue';
 // 자녀 마이페이지
 import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
+// 자녀 오늘만 허용 요청 확인
+import Confirm from '@/pages/Child/TodayAllow/Confirm.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -237,6 +239,12 @@ const router = createRouter({
     component: Request,
     meta: { requiresAuth: true },   // 로그인 가드 쓰면
   },
+  // 자녀 오늘만 허용 요청 확인
+  {
+    path: '/child/todayallow/confirm',
+    name: 'child-todayallow-confirm',
+    component: Confirm,
+  }
   ],
 });
 
