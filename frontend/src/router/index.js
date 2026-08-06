@@ -34,6 +34,8 @@ import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
 // 자녀 소비 리포트 
 import ChildReport from '@/pages/Child/ChildReport.vue';
+// 자녀 마이페이지
+import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -45,6 +47,7 @@ import AutoCharge from '@/pages/Parents/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
+
 
 
 const router = createRouter({
@@ -188,6 +191,12 @@ const router = createRouter({
       path: '/child/payment/done',
       name: 'pay-done',
       component: PayDone,
+    },
+    // 자녀 마이페이지
+    {
+      path: '/child/mypage',
+      name: 'child-mypage',
+      component: ChildMyPage,
     },
     // 부모 마이페이지
     {
