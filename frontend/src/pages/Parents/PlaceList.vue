@@ -79,7 +79,7 @@
         <span class="nav-label">홈</span>
       </button>
       <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
+        <img src="@/assets/icons/icon-child-alive.svg" alt="" class="nav-icon" />
         <span class="nav-label">자녀관리</span>
       </button>
       <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
@@ -303,17 +303,6 @@ async function handleSave() {
 
 .error-text { color: #ff3b30; }
 
-/* 하단 버튼 */
-.footer {
-  position: fixed;
-  bottom: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  padding: 10px 16px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
 
 .submit-btn {
   width: 100%;

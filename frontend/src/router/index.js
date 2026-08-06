@@ -229,12 +229,12 @@ const router = createRouter({
   component: ChildReport,
   },
   {
-    path: '/parents/{childId}/harmfulcategory',
+    path: '/parents/harmfulcategory',
     name: 'parents-harmful-category',
     component: HarmfulCategory,
   },
   {
-    path: '/parents/{childId}/place-list',
+    path: '/parents/place-list',
     name: 'parents-place-list',
     component: PlaceList,
   }
