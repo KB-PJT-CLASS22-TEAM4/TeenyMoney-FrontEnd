@@ -36,6 +36,8 @@ import PasswordChange from '@/pages/Child/PasswordChange.vue';
 import ChildReport from '@/pages/Child/ChildReport.vue';
 // 자녀 마이페이지
 import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
+// 자녀 오늘만 허용 요청 확인
+import Confirm from '@/pages/Child/TodayAllow/Confirm.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -228,6 +230,12 @@ const router = createRouter({
   name: 'child-report',
   component: ChildReport,
   },
+  // 자녀 오늘만 허용 요청 확인
+  {
+    path: '/child/todayallow/confirm',
+    name: 'child-todayallow-confirm',
+    component: Confirm,
+  }
   ],
 });
 
