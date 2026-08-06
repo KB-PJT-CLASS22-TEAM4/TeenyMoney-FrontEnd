@@ -34,8 +34,16 @@ import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
 // 자녀 소비 리포트 
 import ChildReport from '@/pages/Child/ChildReport.vue';
+// 자녀 오늘만 허용 요청
+import Request from '@/pages/Child/TodayAllow/Request.vue';
 // 자녀 마이페이지
 import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
+// 자녀 오늘만 허용 요청 확인
+import Confirm from '@/pages/Child/TodayAllow/Confirm.vue';
+// 자녀 신규 금융상품 목록
+import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
+// 자녀 나의 금융상품 페이지
+import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -48,7 +56,11 @@ import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
 import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
+<<<<<<< HEAD
 import PlaceList from '@/pages/Parents/Placelist.vue'
+=======
+import PlaceList from '@/pages/Parents/PlaceList.vue'
+>>>>>>> 33a1ec16799071ec06766d5bb079973b49b6e9a8
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -237,6 +249,31 @@ const router = createRouter({
     path: '/parents/place-list',
     name: 'parents-place-list',
     component: PlaceList,
+  },
+  // 자녀 신규 금융상품 목록
+  {
+  path: '/child/finance/newproducts',
+  name: 'child-finance-newproducts',
+  component: NewProducts,
+  },
+  // 자녀 오늘만 허용 요청
+   {
+    path: '/child/todayallow/request',
+    name: 'child-todayallow-request',
+    component: Request,
+    meta: { requiresAuth: true },   // 로그인 가드 쓰면
+  },
+  // 자녀 오늘만 허용 요청 확인
+  {
+    path: '/child/todayallow/confirm',
+    name: 'child-todayallow-confirm',
+    component: Confirm,
+  },
+  // 자녀 나의 금융상품 페이지
+  {
+    path: '/child/finance/myproducts',
+    name: 'child-finance-myproducts',
+    component: MyProducts,
   }
   ],
 });
