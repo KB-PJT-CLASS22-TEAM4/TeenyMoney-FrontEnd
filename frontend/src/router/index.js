@@ -34,6 +34,8 @@ import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
 // 자녀 소비 리포트 
 import ChildReport from '@/pages/Child/ChildReport.vue';
+// 자녀 금융상품 가입 확인 페이지
+import ProductConfirm from '@/pages/Child/Finance/ProductsConfirm.vue';
 // 자녀 오늘만 허용 요청
 import Request from '@/pages/Child/TodayAllow/Request.vue';
 // 자녀 마이페이지
@@ -237,6 +239,12 @@ const router = createRouter({
   path: '/child/report',
   name: 'child-report',
   component: ChildReport,
+  },
+  // 자녀 금융상품 가입 확인 페이지
+  {
+    path: '/child/finance/confirm',
+    name: 'product-confirm',
+    component: ProductConfirm,
   },
   {
     path: '/parents/harmfulcategory',
