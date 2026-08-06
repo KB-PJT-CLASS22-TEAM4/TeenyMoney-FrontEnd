@@ -1104,8 +1104,8 @@ async function doSignup() {
       privacyAgreed: true,
 
       // 백엔드 DTO 숫자 타입에 맞춰 전송
-      serviceTermsVersion: 1,
-      privacyTermsVersion: 1,
+      serviceTermsVersion: 1.0,
+      privacyTermsVersion: 1.0,
     }
 
     console.log(
