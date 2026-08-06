@@ -123,6 +123,24 @@ function onScroll() {
   clearTimeout(scrollTimer)
   scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
 }
+
+function goToApply(product) {
+  if (product.category === '대출') return  // 대출은 이동 안 함
+
+  const detail = (label) => product.details.find((d) => d.label === label)
+  router.push({
+    name: 'child-finance-join',
+    query: {
+      category:   product.category,
+      title:      product.title,
+      rate:       detail('금리')?.value ?? '',
+      periodInfo: detail('기간')?.value ?? '',
+      limit:      detail('납입한도')?.value || detail('예치한도')?.value || '',
+      scoreReq:   detail('티니점수 조건')?.value ?? '',
+      scoreColor: detail('티니점수 조건')?.color ?? 'green',
+    },
+  })
+}
 </script>
 
 <template>
@@ -171,6 +189,8 @@ function onScroll() {
           :key="product.id"
           class="card"
           :class="{ liked: product.liked }"
+          @click="goToApply(product)"
+          style="cursor: pointer;"
         >
           <div class="card-top">
             <div class="card-info">
@@ -180,7 +200,7 @@ function onScroll() {
               </div>
               <span class="prod-desc">{{ product.desc }}</span>
             </div>
-            <button class="star-btn" @click="toggleLike(product)" aria-label="찜하기">
+            <button class="star-btn"  @click.stop="toggleLike(product)" aria-label="찜하기">
               <svg
                 class="star"
                 :class="{ on: product.liked }"
