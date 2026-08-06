@@ -270,7 +270,7 @@ const router = createRouter({
     path: '/child/finance/myproducts',
     name: 'child-finance-myproducts',
     component: MyProducts,
-  },
+  }
   ],
 });
 
