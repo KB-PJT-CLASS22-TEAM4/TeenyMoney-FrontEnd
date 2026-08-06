@@ -40,6 +40,8 @@ import Request from '@/pages/Child/TodayAllow/Request.vue';
 import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
 // 자녀 오늘만 허용 요청 확인
 import Confirm from '@/pages/Child/TodayAllow/Confirm.vue';
+// 자녀 신규 금융상품 목록
+import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -231,6 +233,12 @@ const router = createRouter({
   path: '/child/report',
   name: 'child-report',
   component: ChildReport,
+  },
+  // 자녀 신규 금융상품 목록
+  {
+  path: '/child/finance/newproducts',
+  name: 'child-finance-newproducts',
+  component: NewProducts,
   },
   // 자녀 오늘만 허용 요청
    {
