@@ -34,6 +34,8 @@ import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
 // 자녀 소비 리포트 
 import ChildReport from '@/pages/Child/ChildReport.vue';
+// 자녀 오늘만 허용 요청
+import Request from '@/pages/Child/TodayAllow/request.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -218,6 +220,13 @@ const router = createRouter({
   path: '/child/report',
   name: 'child-report',
   component: ChildReport,
+  },
+  // 자녀 오늘만 허용 요청
+   {
+    path: '/child/todayallow/request',
+    name: 'child-todayallow-request',
+    component: Request,
+    meta: { requiresAuth: true },   // 로그인 가드 쓰면
   },
   ],
 });
