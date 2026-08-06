@@ -47,7 +47,7 @@ import AutoCharge from '@/pages/Parents/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
-
+import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
 
 
 const router = createRouter({
@@ -223,11 +223,16 @@ const router = createRouter({
   component: PasswordChange,
 },
 // 자녀 소비 리포트
-   {
+  {
   path: '/child/report',
   name: 'child-report',
   component: ChildReport,
   },
+  {
+    path: '/parents/harmfulcategory',
+    name: 'parents-harmful-category',
+    component: HarmfulCategory,
+  }
   ],
 });
 
