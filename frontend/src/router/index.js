@@ -42,6 +42,8 @@ import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
 import Confirm from '@/pages/Child/TodayAllow/Confirm.vue';
 // 자녀 신규 금융상품 목록
 import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
+// 자녀 나의 금융상품 페이지
+import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -252,7 +254,13 @@ const router = createRouter({
     path: '/child/todayallow/confirm',
     name: 'child-todayallow-confirm',
     component: Confirm,
-  }
+  },
+  // 자녀 나의 금융상품 페이지
+  {
+    path: '/child/finance/myproducts',
+    name: 'child-finance-myproducts',
+    component: MyProducts,
+  },
   ],
 });
 
