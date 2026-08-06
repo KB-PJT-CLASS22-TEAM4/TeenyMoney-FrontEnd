@@ -245,7 +245,7 @@ const router = createRouter({
     path: '/parents/place-list',
     name: 'parents-place-list',
     component: PlaceList,
-  }
+  },
   // 자녀 신규 금융상품 목록
   {
   path: '/child/finance/newproducts',
