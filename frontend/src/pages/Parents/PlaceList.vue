@@ -6,7 +6,7 @@
       </button>
       <h1 class="nav-title">오늘만 허용</h1>
       <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-bell.svg" alt="" class="alarm-icon" />
+        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
 
