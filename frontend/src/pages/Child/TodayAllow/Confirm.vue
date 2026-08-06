@@ -18,13 +18,17 @@ function goHome() {
   <div class="confirm-screen">
     <!-- 본문 -->
     <main class="body">
-      <!-- 체크 아이콘 -->
-      <div class="icon-wrap">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </div>
+     <div class="icon-container">
+  <!-- 애니메이션 효과-->
+  <span v-for="n in 8" :key="n" :class="`spark spark-${n}`"></span>
+  <!-- 체크 원 -->
+  <div class="icon-wrap">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+      <path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </div>
+</div>
 
       <!-- 타이틀 -->
       <h1 class="title">요청을 보냈어요</h1>
@@ -99,6 +103,17 @@ function goHome() {
 }
 
 /* 체크 아이콘 원 */
+.icon-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
 .icon-wrap {
   display: flex;
   justify-content: center;
@@ -107,8 +122,38 @@ function goHome() {
   height: 60px;
   background: #ffbc00;
   border-radius: 50%;
-  margin-bottom: 22px;
-  flex-shrink: 0;
+  animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+  z-index: 1;
+}
+
+@keyframes pop {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.spark {
+  position: absolute;
+  width: 14px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: burst 0.8s ease-out 0.3s forwards;
+}
+
+.spark-1 { background: #ff6b6b; --tx: 0px;    --ty: -75px; }
+.spark-2 { background: #ffd93d; --tx: 53px;   --ty: -53px; }
+.spark-3 { background: #6bcb77; --tx: 75px;   --ty: 0px;   }
+.spark-4 { background: #4d96ff; --tx: 53px;   --ty: 53px;  }
+.spark-5 { background: #ff6b6b; --tx: 0px;    --ty: 75px;  }
+.spark-6 { background: #ffd93d; --tx: -53px;  --ty: 53px;  }
+.spark-7 { background: #6bcb77; --tx: -75px;  --ty: 0px;   }
+.spark-8 { background: #4d96ff; --tx: -53px;  --ty: -53px; }
+
+@keyframes burst {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0; }
+  20%  { transform: translate(calc(var(--tx) * 0.3), calc(var(--ty) * 0.3)) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
 }
 
 .title {
