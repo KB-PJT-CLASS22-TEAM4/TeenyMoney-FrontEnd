@@ -34,6 +34,8 @@ import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
 // 자녀 소비 리포트 
 import ChildReport from '@/pages/Child/ChildReport.vue';
+// 자녀 신규 금융상품 목록
+import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -218,6 +220,12 @@ const router = createRouter({
   path: '/child/report',
   name: 'child-report',
   component: ChildReport,
+  },
+  // 자녀 신규 금융상품 목록
+  {
+  path: '/child/finance/newproducts',
+  name: 'child-finance-newproducts',
+  component: NewProducts,
   },
   ],
 });
