@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed , watch} from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
@@ -13,6 +13,12 @@ const router = useRouter()
 // 탭: 신규 상품 / 나의 상품
 const activeTab = ref('신규 상품')
 const tabs = ['신규 상품', '나의 상품']
+
+watch(activeTab, (val) => {
+  if (val === '나의 상품') {
+    router.push({ name: 'child-finance-myproducts' })
+  }
+})
 
 // 상품 종류 필터
 const activeCategory = ref('전체')
@@ -273,7 +279,7 @@ function onScroll() {
 .tab {
   flex: 1;
   border: none;
-  padding: 12px 0;
+  padding: 8px 0;
   font-family: inherit;
   font-weight: 700;
   font-size: 15px;
@@ -297,12 +303,12 @@ function onScroll() {
 }
 
 .chip {
-  padding: 9px 20px;
+  padding: 7px 16px;
   border: none;
   border-radius: 999px;
   font-family: inherit;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   color: #15171b;
   background: #ffbc00;
   cursor: pointer;
@@ -332,7 +338,7 @@ function onScroll() {
 .card {
   border: 1.3px solid #eaedf1;
   border-radius: 14px;
-  padding: 18px;
+  padding: 17px;
   margin-bottom: 14px;
   transition: border-color 0.3s, background 0.3s;
 }
@@ -361,10 +367,10 @@ function onScroll() {
 }
 
 .badge {
-  padding: 4px 9px;
+  padding: 3px 7px;
   border-radius: 5px;
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 11px;
 }
 
 .badge.blue {
@@ -379,13 +385,13 @@ function onScroll() {
 
 .prod-title {
   font-weight: 800;
-  font-size: 16.5px;
+  font-size: 15px;
   color: #15171b;
 }
 
 .prod-desc {
   font-weight: 500;
-  font-size: 12.5px;
+  font-size: 11.5px;
   color: #b9bec5;
 }
 
@@ -422,13 +428,13 @@ function onScroll() {
 .divider {
   height: 1px;
   background: #f2f4f6;
-  margin: 16px 0;
+  margin: 13px 0;
 }
 
 .details {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .detail-row {
@@ -439,13 +445,13 @@ function onScroll() {
 
 .d-label {
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: #8b9097;
 }
 
 .d-value {
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: #15171b;
 }
 
