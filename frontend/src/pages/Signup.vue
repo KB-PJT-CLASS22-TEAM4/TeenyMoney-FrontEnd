@@ -960,8 +960,8 @@ async function verifyGuardianCode() {
       phoneNumber: guardianPhone,
 
       // 백엔드에서 숫자 타입을 요구하는 것으로 맞춤
-      privacyTermsVersion: 1,
-      serviceTermsVersion: 1,
+      privacyTermsVersion: 1.0,
+      serviceTermsVersion: 1.0,
 
       relationship: guardian.relationship,
 
