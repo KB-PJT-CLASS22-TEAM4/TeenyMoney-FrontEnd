@@ -57,8 +57,8 @@ import AutoCharge from '@/pages/Parents/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
-
-
+import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
+import PlaceList from '@/pages/Parents/PlaceList.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,7 +73,7 @@ const router = createRouter({
     path: '/login',
     name: 'login',
     component: LoginView
-  },
+    },
     // 회원가입 페이지
     {
       path: '/signup',
@@ -233,10 +233,20 @@ const router = createRouter({
   component: PasswordChange,
 },
 // 자녀 소비 리포트
-   {
+  {
   path: '/child/report',
   name: 'child-report',
   component: ChildReport,
+  },
+  {
+    path: '/parents/harmfulcategory',
+    name: 'parents-harmful-category',
+    component: HarmfulCategory,
+  },
+  {
+    path: '/parents/place-list',
+    name: 'parents-place-list',
+    component: PlaceList,
   },
   // 자녀 신규 금융상품 목록
   {

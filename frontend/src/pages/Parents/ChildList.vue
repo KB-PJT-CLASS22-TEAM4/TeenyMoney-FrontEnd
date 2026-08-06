@@ -179,7 +179,7 @@ function goToDetail(id) {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 0 16px;
+  padding: 16px 16px 0;
 }
 
 .content > div:first-child {
@@ -194,7 +194,7 @@ function goToDetail(id) {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 10px;
 }
 
 .child-info {
@@ -295,10 +295,20 @@ function goToDetail(id) {
   gap: 10px;
 }
 
-.link-icon {
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
+.stat-icon-box {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.stat-icon-wallet {
+  width: 18px;
+  height: 18px;
+}
+
+.stat-icon-point {
+  width: 21px;
+  height: 21px;
 }
 
 .link-title {
