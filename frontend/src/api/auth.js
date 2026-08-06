@@ -70,6 +70,22 @@ export async function login(email, password) {
   return res.json()
 }
 
+// 로그아웃
+export async function logout(accessToken) {
+  const csrfToken = await getCsrfToken()   // ← CSRF 토큰 먼저 받기
+
+  const res = await fetch(`${BASE_URL}/logout`, {
+    method: 'POST',
+    credentials: 'include',  // ← 쿠키 포함
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+      'X-XSRF-TOKEN': csrfToken,             // ← CSRF 헤더 추가
+    },
+  })
+  return res.json()
+}
+
 // 법정대리인 인증번호 발송
 export async function sendGuardianVerificationCode(phoneNumber) {
   const res = await fetch(`${BASE_URL}/legal-guardian-verification/send`, {
