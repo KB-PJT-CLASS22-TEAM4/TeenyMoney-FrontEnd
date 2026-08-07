@@ -298,7 +298,6 @@ const router = createRouter({
     name: 'product-cancel',
     component: ProductsCancel,
   },
-    },
     // QR스캔
     {
       path: '/child/payment/scan',
