@@ -70,6 +70,8 @@ import SendAllowance from '@/pages/Parents/SendAllowance.vue'
 import SendingAllowance from '@/pages/Parents/SendingAllowance.vue'
 import SendFail from '@/pages/Parents/SendFail.vue'
 import SendComplete from '@/pages/Parents/SendComplete.vue'
+import PaymentChange from '@/pages/Parents/PaymentChange.vue'
+import PaymentChangeComplete from '@/pages/Parents/PaymentChangeComplete.vue'
 
 
 const router = createRouter({
@@ -325,7 +327,18 @@ const router = createRouter({
     { path: '/parents/send/complete', 
       name: 'send-complete', 
       component: SendComplete 
-    }
+    },
+    { 
+      path: '/parents/payment/change',
+     name: 'payment-change', 
+     component: PaymentChange 
+    },
+{ 
+  path: '/parents/payment/change-complete', 
+  name: 'payment-change-complete', 
+  component: PaymentChangeComplete 
+}
+
   ],
 });
 
