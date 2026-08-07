@@ -238,6 +238,8 @@ async function handleSave() {
   flex-direction: column;
   gap: 8px;
   padding: 0 16px;
+  /* 카드가 수정하기 버튼을 가리지 않도록 */
+  padding-bottom: 150px;
 }
 
 .place-card {
@@ -304,15 +306,36 @@ async function handleSave() {
 .error-text { color: #ff3b30; }
 
 
+/* 수정 완료 버튼 영역 */
+.footer {
+  position: fixed;
+  bottom: 90px; /* 하단바와 버튼 사이 간격 */
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: 100%;
+  max-width: 450px;
+
+  padding: 0 60px;
+  box-sizing: border-box;
+
+  z-index: 99;
+}
+
+/* 수정 완료 버튼 */
 .submit-btn {
+
   width: 100%;
   height: 49px;
+
   border: none;
   border-radius: 10px;
   background-color: #ffbc00;
+
   font-size: 16px;
   font-weight: 700;
   color: #191b1e;
+
   cursor: pointer;
 }
 
