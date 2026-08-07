@@ -134,7 +134,6 @@ import { useRouter, useRoute } from 'vue-router';
 const router = useRouter();
 const route = useRoute();
 
-// 스크롤 제어
 const isScrolling = ref(false);
 let scrollTimer = null;
 function onScroll() {
@@ -143,50 +142,62 @@ function onScroll() {
   scrollTimer = setTimeout(() => { isScrolling.value = false; }, 800);
 }
 
-// 전달 데이터
-const confirmData = reactive({
-  title: route.query.title || '티니 꿈나무 적금',
-  productTypeDesc: '자유적립식 적금 · 최고 연 4.5%',
-  amountLabel: '월 납입금액',
-  amount: Number(route.query.amount) || 10000,
-  periodLabel: '가입기간',
-  period: Number(route.query.period) || 6,
-  appliedRate: route.query.rate || '4.0%',
-  autoTransfer: route.query.autoTransfer !== 'false',
-  transferDay: route.query.transferDay || 1,
-  debitAccount: '티니머니 지갑',
-  maturityDate: '2027.02.06',
-  principal: 60000,
-  interest: 700,
-  score: 5,
-  get totalReturn() {
-    return this.principal + this.interest;
-  }
-});
+const category = route.query.category || '적금'
+const isSavings = category === '적금'
 
-// 체크박스 초기값 (미선택)
+// 만기일 계산
+function calcMaturityDate(period) {
+  const d = new Date()
+  d.setMonth(d.getMonth() + Number(period))
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+}
+
+const amount   = Number(route.query.amount)   || 0
+const period   = Number(route.query.period)   || 0
+const total    = Number(route.query.total)    || 0
+const interest = Number(route.query.interest) || 0
+const principal = isSavings ? amount * period : amount
+
+const confirmData = reactive({
+  title:           route.query.title || '',
+  productTypeDesc: isSavings ? '자유적립식 · 매월 자동저축' : '정기예금 · 목표까지 안전하게 저축',
+  amountLabel:     isSavings ? '월 납입금액' : '예치 금액',
+  amount,
+  periodLabel:     isSavings ? '가입기간' : '예치기간',
+  period,
+  appliedRate:     route.query.rate || '',
+  autoTransfer:    isSavings,          // 예금은 자동이체 없음
+  transferDay:     1,
+  debitAccount:    '티니머니 지갑',
+  maturityDate:    calcMaturityDate(period),
+  principal,
+  interest,
+  score:           isSavings ? 3 : 0,
+  totalReturn:     total || principal + interest,
+})
+
 const agreeConfirm = ref(false);
 const agreeAutoTransfer = ref(false);
 
-const isAllAgreed = computed(() => agreeConfirm.value && agreeAutoTransfer.value);
+// 예금은 자동이체 동의 없이 가입 가능
+const isAllAgreed = computed(() =>
+  isSavings
+    ? agreeConfirm.value && agreeAutoTransfer.value
+    : agreeConfirm.value
+)
 
-// 🌟 모달 표시 상태값
 const showSuccessModal = ref(false);
 
-const goBack = () => {
-  router.back();
-};
+const goBack = () => { router.back(); };
 
-// 가입완료 버튼 클릭 시 모달 열기
 const openModal = () => {
   if (!isAllAgreed.value) return;
   showSuccessModal.value = true;
 };
 
-// 모달 확인 버튼 클릭 시 목록으로 이동
 const closeModalAndNavigate = () => {
   showSuccessModal.value = false;
-  router.push({ name: 'product-list' });
+  router.push({ name: 'child-finance-myproducts' })
 };
 </script>
 
