@@ -12,7 +12,7 @@
     </div>
 
     <div class="footer">
-      <button class="home-btn" @click="router.push('/parent/home')">홈으로 돌아가기</button>
+      <button class="home-btn" @click="router.push('/parents/home')">홈으로 돌아가기</button>
     </div>
   </div>
 </template>

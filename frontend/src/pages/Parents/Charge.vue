@@ -34,13 +34,12 @@
           <span class="won-unit">원</span>
         </div>
 
-        <!-- 빠른 금액 선택 -->
         <div class="quick-btns">
           <button
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="addAmount(quick.value)"
+            @click="chargeAmount = quick.value"
           >
             {{ quick.label }}
           </button>
