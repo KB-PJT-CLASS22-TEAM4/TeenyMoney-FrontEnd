@@ -229,7 +229,21 @@ const goBack = () => router.back()
 const handleSubmit = () => {
   if (!isFormValid.value) return
   // TODO: POST /api/child/finance/join
-  alert(`${pageTitle.value} 처리가 완료되었습니다.`)
+  router.push({
+    name: 'product-confirm',
+    query: {
+      category: rawCategory,
+      title: productTitle.value,
+      amount: productCategory.value === 'SAVINGS'
+        ? savingsForm.amount
+        : depositForm.amount,
+      period: productCategory.value === 'SAVINGS'
+        ? savingsForm.period
+        : depositForm.period,
+      total: calculatedReturn.value.total,
+      interest: calculatedReturn.value.interest,
+    },
+  })
 }
 </script>
 

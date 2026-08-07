@@ -50,8 +50,6 @@ import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 // 자녀 금융상품 중도해지
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
-// 자녀 금융상품 가입 확인 페이지
-import ProductConfirm from '@/pages/Child/Finance/ProductsConfirm.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -296,12 +294,6 @@ const router = createRouter({
     path: '/child/finance/cancel',
     name: 'product-cancel',
     component: ProductsCancel,
-  },
-  // 자녀 금융상품 가입 확인 페이지
-  {
-    path: '/child/finance/confirm',
-    name: 'product-confirm',
-    component: ProductConfirm,
   },
   ],
 });
