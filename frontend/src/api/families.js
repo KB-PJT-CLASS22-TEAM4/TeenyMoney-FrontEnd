@@ -1,15 +1,15 @@
-// src/api/families.js
-
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
 // 가족 연동 코드 발급
-export async function makeFamilyCode(accessToken) {
+export async function makeFamilyCode(accessToken, idempotencyKey, signal) {
   if (!accessToken) throw new Error('로그인이 필요합니다.')
 
   // Idempotency-Key: 재발급마다 고유한 UUID 생성
-  const idempotencyKey = crypto.randomUUID()
+  if (!idempotencyKey) {
+    idempotencyKey = crypto.randomUUID()
+  }
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/families/make-codes`,
@@ -20,6 +20,7 @@ export async function makeFamilyCode(accessToken) {
         Authorization: `Bearer ${accessToken}`,
         'Idempotency-Key': idempotencyKey,
       },
+      signal,
     }
   )
 
