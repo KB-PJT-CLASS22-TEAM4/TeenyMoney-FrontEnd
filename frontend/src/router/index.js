@@ -27,6 +27,10 @@ import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
 import MyProducts from '@/pages/Child/Finance/MyProducts.vue';
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
+// QR스캔
+import QrScan from '@/pages/Child/Payment/QRscan.vue';
+
+
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
 import ChildList from '@/pages/Parents/ChildList.vue';

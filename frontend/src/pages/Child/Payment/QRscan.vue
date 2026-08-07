@@ -99,11 +99,10 @@ function onError(err) {
   }
 }
 
-// 실제 스캔 없이 다음 페이지로 (배포 전 삭제)
 function devSkip() {
-  const dummyCode = 'TEST_QR_12345'   // 가짜 QR 값
+  const dummyCode = 'TEST_QR_12345'
   console.log('개발용 스킵, 더미 값:', dummyCode)
-  //router.push({ name: 'pay-info', query: { code: dummyCode } })
+  router.push({ name: 'pay-password' })
 }
 </script>
 

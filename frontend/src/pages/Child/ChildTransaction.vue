@@ -81,9 +81,6 @@
       </div>
     </div>
 
-    <!-- 하단 탭바 -->
-    <BottomTabBar active="home" @select="onTabSelect" />
-
     <!-- 조회 필터 바텀시트 (기간,정렬만) -->
     <transition name="sheet">
       <div v-if="showFilter" class="sheet-dim" @click.self="showFilter = false">
@@ -114,7 +111,6 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 
 const router = useRouter();
 
@@ -189,11 +185,7 @@ function goBack() {
   router.push({ name: 'child-home' });
 }
 function goReport() {
-  // [라우터] 소비 리포트 화면 연결
-  // router.push({ name: 'child-report' });
-}
-function onTabSelect(key) {
-  // TODO: 탭 선택 시 해당 페이지로 이동 연결
+  router.push({ name: 'child-report' });
 }
 
 // 스크롤할 때만 스크롤바 보이기
@@ -442,11 +434,6 @@ function onScroll() {
   font-weight: 500;
   font-size: 11.5px;
   color: #b9bec5;
-}
-
-/* 하단 탭바 고정 */
-.history-screen :deep(.tabbar) {
-  margin-top: auto;
 }
 
 /* ===== 조회 필터 바텀시트 ===== */
