@@ -13,6 +13,8 @@
       </button>
     </header>
 
+    <div class="scroll-area">
+
     <!-- 잔액 영역 -->
     <section class="balance">
       <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
@@ -30,7 +32,7 @@
 
     <!-- 티니 점수 -->
     <section class="score">
-      <div class="score-head">
+      <div class="score-head" @click="goScore" style="cursor: pointer;">
         <span class="score-title">티니 점수</span>
         <span class="chev">›</span>
       </div>
@@ -45,7 +47,7 @@
 
 <!-- 내 금융 -->
 <section class="finance">
-  <div class="finance-head">
+  <div class="finance-head" @click="goFinance" style="cursor: pointer;">
     <span class="finance-title">내 금융</span>
     <span class="finance-all">전체보기</span>
   </div>
@@ -66,7 +68,7 @@
 
     <!-- 최근 이용내역 -->
     <section class="history">
-      <div class="history-head">
+      <div class="history-head" @click="goPayment" style="cursor: pointer;">
         <span class="history-title">최근 이용내역</span>
         <span class="chev">›</span>
       </div>
@@ -80,7 +82,7 @@
         </span>
       </div>
     </section>
-
+    </div>
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
   </div>
@@ -113,20 +115,18 @@ function goNotification() {
 
 
 function goPayment() {
-  // TODO: 결제내역 페이지 만들면 연결
-  // router.push({ name: 'child-payment' });
+  router.push({ name: 'child-transaction' })
 }
 
-// 아래 3개는 각 페이지 만들면 살려서 @click 연결 예정
-// function goScore() {
-//   router.push({ name: 'child-score' });
-// }
-// function goFinance() {
-//   router.push({ name: 'child-myfinance' });
-// }
-// function goHistory() {
-//   router.push({ name: 'child-history' });
-// }
+
+function goScore() {
+  router.push({ name: 'child-score' });
+}
+
+function goFinance() {
+  router.push({ name: 'child-finance-myproducts' })
+}
+
 
 // ==== API 연동 필요 (지금은 더미 데이터) ====
 // [API] 사용자 정보 (이름)
@@ -152,8 +152,9 @@ const transactions = [
 function onTabSelect(key) {
   if (key === 'home') router.push({ name: 'child-home' });
   if (key === 'my') router.push({ name: 'child-mypage' });
-  if (key === 'q') router.push({ name: 'qr-scan' });      
-  // finance, report는 페이지 만들면 추가
+  if (key === 'q') router.push({ name: 'qr-scan' });
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
+  if (key === 'report') router.push({ name: 'child-report' })           
 }
 </script>
 
@@ -165,11 +166,12 @@ function onTabSelect(key) {
   display: flex;
   flex-direction: column;
   width: 360px;
-  min-height: 730px;
+  height: 730px;           /* min-height → height */
   margin: 0 auto;
   padding-top: 50px;
   background: #ffffff;
   border: 1px solid #eceef1;
+  overflow: hidden;
 }
 
 /* 상단 헤더 */
@@ -432,5 +434,13 @@ function onTabSelect(key) {
 .dot.active {
   width: 16px;    
   background: #15171b;   
+}
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.scroll-area::-webkit-scrollbar {
+  display: none;
 }
 </style>
