@@ -28,7 +28,7 @@ onMounted(async () => {
   // 임시: 2초 후 완료 페이지로 이동
   setTimeout(() => {
     router.push({
-      path: '/parent/charge/complete',
+      path: '/parents/charge/complete',
       query: { amount: route.query.amount },
     })
   }, 2000)
