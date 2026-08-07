@@ -50,6 +50,9 @@ import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 // 자녀 금융상품 중도해지
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
+// QR스캔
+import QrScan from '@/pages/Child/Payment/QRscan.vue';
+
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -295,6 +298,12 @@ const router = createRouter({
     name: 'product-cancel',
     component: ProductsCancel,
   },
+    // QR스캔
+    {
+      path: '/child/payment/scan',
+      name: 'qr-scan',
+      component: QrScan,
+    },
   ],
 });
 
