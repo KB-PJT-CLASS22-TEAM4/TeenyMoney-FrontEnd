@@ -101,7 +101,7 @@ async function saveAutoCharge() {
   // body: { enabled: autoChargeEnabled.value, threshold: thresholdAmount.value, amount: chargeAmount.value }
   // 성공 시 → ChargingPage 로 이동
   router.push({
-    path: '/parent/charge/charging',
+    path: '/parents/charge/charging',
     query: { amount: chargeAmount.value },
   })
 }
