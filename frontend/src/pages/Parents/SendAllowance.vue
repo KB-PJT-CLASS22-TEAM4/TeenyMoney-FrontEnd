@@ -52,7 +52,7 @@
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="addAmount(quick.value)"
+            @click="amount = quick.value"
           >
             {{ quick.label }}
           </button>
@@ -84,7 +84,7 @@
         <span class="nav-label">홈</span>
       </button>
       <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
+        <img src="@/assets/icons/icon-child-alive.svg" alt="" class="nav-icon" />
         <span class="nav-label">자녀관리</span>
       </button>
       <button class="nav-item" type="button" @click="router.push('/parents/mypage')">

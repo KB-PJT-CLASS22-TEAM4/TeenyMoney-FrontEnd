@@ -67,6 +67,7 @@ import Mypage from '@/pages/Parents/Mypage.vue'
 import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
 import PlaceList from '@/pages/Parents/PlaceList.vue'
 import SendAllowance from '@/pages/Parents/SendAllowance.vue'
+import SendingAllowance from '@/pages/Parents/SendingAllowance.vue'
 
 
 const router = createRouter({
@@ -306,9 +307,14 @@ const router = createRouter({
       name: 'qr-scan',
       component: QrScan,
     },
-    { path: '/parents/send', 
+    { path: '/parents/send-allowance', 
       name: 'send-allowance', 
       component: SendAllowance 
+    },
+    {
+      path: '/parents/sending-allowance',
+      name: 'sending-allowance',
+      component: SendingAllowance,
     }
   ],
 });
