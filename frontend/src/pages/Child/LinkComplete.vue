@@ -38,14 +38,26 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { getMyParent } from '@/api/families'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter();
+const authStore = useAuthStore();
 
-// ===== API 연동 필요 =====
-// 실제로는 연동된 보호자 정보를 이전 화면/서버에서 받아옴
-const guardian = ref({ name: '김부모' });
+const guardian = ref({ name: '' });
+
+onMounted(async () => {
+  try {
+    const res = await getMyParent(authStore.accessToken)
+    if (res.data) {
+      guardian.value.name = res.data.name
+    }
+  } catch (e) {
+    console.error('부모 정보 조회 실패:', e.message)
+  }
+})
 
 function goBack() {
   router.back();
