@@ -92,7 +92,7 @@ const isLoading = ref(false)      // 요청 진행 중 여부
 const rateLimitError = ref(false) // 429 에러 여부
 
 let timerInterval = null
-let pollingInterval = null
+// let pollingInterval = null
 let currentIdempotencyKey = null  // 재시도 시 같은 키 재사용
 let abortController = null        // AbortController로 이전 요청 취소
 
@@ -136,7 +136,7 @@ async function generateCode() {
 
       isExpired.value = false
       startTimer()
-      startPolling()
+      // startPolling()
     }
   } catch (error) {
     if (error.name === 'AbortError') return  // 취소된 요청은 무시
@@ -162,7 +162,7 @@ function startTimer() {
       clearInterval(timerInterval)
       timerInterval = null
       isExpired.value = true
-      stopPolling()
+      // stopPolling()
       return
     }
     timerSeconds.value -= 1
@@ -199,11 +199,12 @@ onMounted(() => {
   generateCode()
 })
 
-onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval)
-  if (abortController) abortController.abort()  // 페이지 벗어날 때 요청 취소
-  stopPolling()
-})
+// onUnmounted(() => {
+//   if (timerInterval) clearInterval(timerInterval)
+//   if (abortController) abortController.abort()  // 페이지 벗어날 때 요청 취소
+//   stopPolling()
+// })
+
 </script>
 
 <style scoped>
