@@ -107,7 +107,7 @@ const donutSegments = computed(() => {
 })
  
 function goBack() {
-  router.back()
+  router.push({ name: 'child-home' })
 }
 </script>
  
