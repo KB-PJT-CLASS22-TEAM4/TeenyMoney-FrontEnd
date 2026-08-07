@@ -34,6 +34,8 @@ import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
 // 자녀 소비 리포트 
 import ChildReport from '@/pages/Child/ChildReport.vue';
+// 자녀 금융상품 가입 확인 페이지
+import ProductConfirm from '@/pages/Child/Finance/ProductsConfirm.vue';
 // 자녀 오늘만 허용 요청
 import Request from '@/pages/Child/TodayAllow/Request.vue';
 // 자녀 마이페이지
@@ -46,6 +48,8 @@ import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
 import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 // 자녀 금융상품 가입 페이지
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
+// 자녀 금융상품 중도해지
+import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -238,6 +242,12 @@ const router = createRouter({
   name: 'child-report',
   component: ChildReport,
   },
+  // 자녀 금융상품 가입 확인 페이지
+  {
+    path: '/child/finance/confirm',
+    name: 'product-confirm',
+    component: ProductConfirm,
+  },
   {
     path: '/parents/harmfulcategory',
     name: 'parents-harmful-category',
@@ -278,6 +288,12 @@ const router = createRouter({
     path: '/child/finance/join',
     name: 'child-finance-join',
     component: ProductsJoin,
+  },
+  // 자녀 금융상품 중도해지
+  {
+    path: '/child/finance/cancel',
+    name: 'product-cancel',
+    component: ProductsCancel,
   },
   ],
 });
