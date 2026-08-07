@@ -30,7 +30,7 @@
 
     <!-- 티니 점수 -->
     <section class="score">
-      <div class="score-head">
+      <div class="score-head" @click="goScore" style="cursor: pointer;">
         <span class="score-title">티니 점수</span>
         <span class="chev">›</span>
       </div>
@@ -45,7 +45,7 @@
 
 <!-- 내 금융 -->
 <section class="finance">
-  <div class="finance-head">
+  <div class="finance-head" @click="goFinance" style="cursor: pointer;">
     <span class="finance-title">내 금융</span>
     <span class="finance-all">전체보기</span>
   </div>
@@ -66,7 +66,7 @@
 
     <!-- 최근 이용내역 -->
     <section class="history">
-      <div class="history-head">
+      <div class="history-head" @click="goPayment" style="cursor: pointer;">
         <span class="history-title">최근 이용내역</span>
         <span class="chev">›</span>
       </div>
@@ -113,20 +113,18 @@ function goNotification() {
 
 
 function goPayment() {
-  // TODO: 결제내역 페이지 만들면 연결
-  // router.push({ name: 'child-payment' });
+  router.push({ name: 'child-transaction' })
 }
 
-// 아래 3개는 각 페이지 만들면 살려서 @click 연결 예정
-// function goScore() {
-//   router.push({ name: 'child-score' });
-// }
-// function goFinance() {
-//   router.push({ name: 'child-myfinance' });
-// }
-// function goHistory() {
-//   router.push({ name: 'child-history' });
-// }
+
+function goScore() {
+  router.push({ name: 'child-score' });
+}
+
+function goFinance() {
+  router.push({ name: 'child-finance-myproducts' })
+}
+
 
 // ==== API 연동 필요 (지금은 더미 데이터) ====
 // [API] 사용자 정보 (이름)
