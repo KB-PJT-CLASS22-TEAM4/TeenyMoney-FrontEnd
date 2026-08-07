@@ -105,7 +105,7 @@
       </div>
     </footer>
 
-    <!-- 🌟 가입 완료 모달 (Modal Overlay) -->
+    <!-- 가입 완료 모달 (Modal Overlay) -->
     <Transition name="modal-fade">
       <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeModalAndNavigate">
         <div class="modal-card">
