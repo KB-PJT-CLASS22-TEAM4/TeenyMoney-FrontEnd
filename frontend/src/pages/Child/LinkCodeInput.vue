@@ -18,7 +18,7 @@
         </div>
       </div>
 
-     <!-- 에러 메시지 (코드 박스 아래) -->
+     <!-- 에러 메시지 -->
   <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
 </div>
 
@@ -77,10 +77,10 @@ function onKeyPress(key) {
 async function verifyCode() {
   try {
     const res = await connectFamilyCode(authStore.accessToken, code.value)
-    console.log('연동 성공:', res)  // 이거 추가
+    console.log('연동 성공:', res)  
     router.push({ name: 'child-link-confirm' })
   } catch (e) {
-    console.log('연동 실패:', e.message)  // 이거 추가
+    console.log('연동 실패:', e.message)  
     errorMsg.value = e.message || '코드가 일치하지 않아요'
     code.value = ''
   }
