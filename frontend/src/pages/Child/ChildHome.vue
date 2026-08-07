@@ -13,6 +13,8 @@
       </button>
     </header>
 
+    <div class="scroll-area">
+
     <!-- 잔액 영역 -->
     <section class="balance">
       <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
@@ -80,7 +82,7 @@
         </span>
       </div>
     </section>
-
+    </div>
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
   </div>
@@ -164,11 +166,12 @@ function onTabSelect(key) {
   display: flex;
   flex-direction: column;
   width: 360px;
-  min-height: 730px;
+  height: 730px;           /* min-height → height */
   margin: 0 auto;
   padding-top: 50px;
   background: #ffffff;
   border: 1px solid #eceef1;
+  overflow: hidden;
 }
 
 /* 상단 헤더 */
@@ -431,5 +434,13 @@ function onTabSelect(key) {
 .dot.active {
   width: 16px;    
   background: #15171b;   
+}
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.scroll-area::-webkit-scrollbar {
+  display: none;
 }
 </style>
