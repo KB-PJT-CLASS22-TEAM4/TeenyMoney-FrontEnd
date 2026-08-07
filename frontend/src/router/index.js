@@ -34,6 +34,20 @@ import PasswordSettingDone from '@/pages/Child/PasswordSettingDone.vue';
 import PasswordChange from '@/pages/Child/PasswordChange.vue';
 // 자녀 소비 리포트 
 import ChildReport from '@/pages/Child/ChildReport.vue';
+// 자녀 금융상품 가입 확인 페이지
+import ProductConfirm from '@/pages/Child/Finance/ProductsConfirm.vue';
+// 자녀 오늘만 허용 요청
+import Request from '@/pages/Child/TodayAllow/Request.vue';
+// 자녀 마이페이지
+import ChildMyPage from '@/pages/Child/ChildMyPage.vue';
+// 자녀 오늘만 허용 요청 확인
+import Confirm from '@/pages/Child/TodayAllow/Confirm.vue';
+// 자녀 신규 금융상품 목록
+import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
+// 자녀 나의 금융상품 페이지
+import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
+// 자녀 금융상품 가입 페이지
+import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 // 자녀 금융상품 중도해지
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
 
@@ -47,7 +61,8 @@ import AutoCharge from '@/pages/Parents/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charging.vue'
 import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
-
+import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
+import PlaceList from '@/pages/Parents/PlaceList.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,7 +77,7 @@ const router = createRouter({
     path: '/login',
     name: 'login',
     component: LoginView
-  },
+    },
     // 회원가입 페이지
     {
       path: '/signup',
@@ -191,6 +206,12 @@ const router = createRouter({
       name: 'pay-done',
       component: PayDone,
     },
+    // 자녀 마이페이지
+    {
+      path: '/child/mypage',
+      name: 'child-mypage',
+      component: ChildMyPage,
+    },
     // 부모 마이페이지
     {
       path: '/parents/mypage',
@@ -216,10 +237,57 @@ const router = createRouter({
   component: PasswordChange,
 },
 // 자녀 소비 리포트
-   {
+  {
   path: '/child/report',
   name: 'child-report',
   component: ChildReport,
+  },
+  // 자녀 금융상품 가입 확인 페이지
+  {
+    path: '/child/finance/confirm',
+    name: 'product-confirm',
+    component: ProductConfirm,
+  },
+  {
+    path: '/parents/harmfulcategory',
+    name: 'parents-harmful-category',
+    component: HarmfulCategory,
+  },
+  {
+    path: '/parents/place-list',
+    name: 'parents-place-list',
+    component: PlaceList,
+  },
+  // 자녀 신규 금융상품 목록
+  {
+  path: '/child/finance/newproducts',
+  name: 'child-finance-newproducts',
+  component: NewProducts,
+  },
+  // 자녀 오늘만 허용 요청
+   {
+    path: '/child/todayallow/request',
+    name: 'child-todayallow-request',
+    component: Request,
+    meta: { requiresAuth: true },   // 로그인 가드 쓰면
+  },
+  // 자녀 오늘만 허용 요청 확인
+  {
+    path: '/child/todayallow/confirm',
+    name: 'child-todayallow-confirm',
+    component: Confirm,
+  },
+  // 자녀 나의 금융상품 페이지
+  {
+    path: '/child/finance/myproducts',
+    name: 'child-finance-myproducts',
+    component: MyProducts,
+  },
+  // 자녀 금융상품 가입 페이지
+  {
+    path: '/child/finance/join',
+    name: 'child-finance-join',
+    component: ProductsJoin,
   },
   // 자녀 금융상품 중도해지
   {
