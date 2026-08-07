@@ -81,13 +81,17 @@ function remove() {
 }
 
 function goBack() {
-  router.push({ name: 'pay-info', query: { code } })
+  router.push({ name: 'qr-scan' })
 }
 
 // 6자리 다 채워지면 결제 실행
 watch(pin, (val) => {
   if (val.length === PIN_LENGTH) {
-    submitPin()
+    if (val === DUMMY_CORRECT) {
+      router.push({ name: 'pay-processing', query: { code } })
+    } else {
+      handleError()
+    }
   }
 })
 

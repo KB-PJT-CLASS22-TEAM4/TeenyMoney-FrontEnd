@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter() 
 import { login } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
+import { getMyParent } from '@/api/families'
 
 const email = ref('')
 const password = ref('')
@@ -25,31 +26,33 @@ const authStore = useAuthStore()
 async function handleLogin() {
   const res = await login(email.value, password.value)
 
-  console.log('로그인 전체 응답:', res)
-  console.log('응답 data:', res.data)
-  console.log('Access Token:', res.data?.accessToken)
-  console.log('Role:', res.data?.role)
-
   if (res.success) {
     authStore.setUser(res.data)
 
     if (res.data.role === 'CHILD') {
-      router.push('/child/home')
+      try {
+        const parentRes = await getMyParent(res.data.accessToken)
+        console.log('부모 조회 응답:', parentRes)
+        if (parentRes.data === null) {
+          router.push({ name: 'child-link' })
+        } else {
+          router.push({ name: 'child-home' })
+        }
+      } catch {
+        router.push({ name: 'child-link' })
+      }
     } else {
-      router.push('/parents/home')
+      router.push({ name: 'parents-home' })
     }
   } else {
     console.log('로그인 실패:', res.message)
   }
 }
- 
+
 function handleGoogleLogin() {
   // TODO: 구글 OAuth 연동
   console.log('google login')
 }
-
-
-
 
 </script>
  
