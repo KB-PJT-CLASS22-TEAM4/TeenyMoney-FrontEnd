@@ -66,6 +66,7 @@ import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
 import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
 import PlaceList from '@/pages/Parents/PlaceList.vue'
+import SendAllowance from '@/pages/Parents/SendAllowance.vue'
 
 
 const router = createRouter({
@@ -305,6 +306,10 @@ const router = createRouter({
       name: 'qr-scan',
       component: QrScan,
     },
+    { path: '/parents/send', 
+      name: 'send-allowance', 
+      component: SendAllowance 
+    }
   ],
 });
 
