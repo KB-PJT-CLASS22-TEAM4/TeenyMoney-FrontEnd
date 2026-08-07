@@ -66,7 +66,14 @@ const filteredProducts = computed(() => {
 })
 
 function handleCancelProduct(product) {
-  alert(`${product.title} 중도해지 신청 화면으로 이동합니다.`)
+  router.push({
+    name: 'product-cancel',
+    query: {
+      id: product.id,
+      title: product.title,
+      category: product.category,
+    },
+  })
 }
 
 function goBack() {
