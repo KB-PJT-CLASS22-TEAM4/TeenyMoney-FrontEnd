@@ -68,6 +68,8 @@ import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
 import PlaceList from '@/pages/Parents/PlaceList.vue'
 import SendAllowance from '@/pages/Parents/SendAllowance.vue'
 import SendingAllowance from '@/pages/Parents/SendingAllowance.vue'
+import SendFail from '@/pages/Parents/SendFail.vue'
+import SendComplete from '@/pages/Parents/SendComplete.vue'
 
 
 const router = createRouter({
@@ -315,6 +317,14 @@ const router = createRouter({
       path: '/parents/sending-allowance',
       name: 'sending-allowance',
       component: SendingAllowance,
+    },
+    { path: '/parents/send/fail', 
+      name: 'send-fail', 
+      component: SendFail 
+    },
+    { path: '/parents/send/complete', 
+      name: 'send-complete', 
+      component: SendComplete 
     }
   ],
 });
