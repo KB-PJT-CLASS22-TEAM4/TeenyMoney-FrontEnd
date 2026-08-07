@@ -17,7 +17,7 @@
         </div>
         <div class="wallet-btns">
             <button class="btn btn-primary" @click ="$router.push('/parents/charge')">충전</button>
-            <button class="btn btn-secondary" @click ="$router.push('/parents/give-allowance')">용돈 지급</button>
+            <button class="btn btn-secondary" @click ="$router.push('/parents/send-allowance')">용돈 지급</button>
         </div>
       </div>
       

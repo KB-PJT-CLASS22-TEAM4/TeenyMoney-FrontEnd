@@ -1419,19 +1419,8 @@ async function doSignup() {
     alert(
       '회원가입이 완료됐어요!',
     )
-
-    if (
-      response.data?.role ===
-      'CHILD'
-    ) {
-      await router.push(
-        '/child/home',
-      )
-    } else {
-      await router.push(
-        '/parents/home',
-      )
-    }
+    await router.push('/login')
+    
   } catch (error) {
     console.error(
       '🔴 회원가입 요청 예외:',
