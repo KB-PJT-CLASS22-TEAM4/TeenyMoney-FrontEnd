@@ -150,8 +150,9 @@ const transactions = [
 function onTabSelect(key) {
   if (key === 'home') router.push({ name: 'child-home' });
   if (key === 'my') router.push({ name: 'child-mypage' });
-  if (key === 'q') router.push({ name: 'qr-scan' });      
-  // finance, report는 페이지 만들면 추가
+  if (key === 'q') router.push({ name: 'qr-scan' });
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
+  if (key === 'report') router.push({ name: 'child-report' })           
 }
 </script>
 
