@@ -48,6 +48,8 @@ import NewProducts from '@/pages/Child/Finance/NewProducts.vue';
 import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 // 자녀 금융상품 가입 페이지
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
+// 자녀 금융상품 중도해지
+import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -286,6 +288,12 @@ const router = createRouter({
     path: '/child/finance/join',
     name: 'child-finance-join',
     component: ProductsJoin,
+  },
+  // 자녀 금융상품 중도해지
+  {
+    path: '/child/finance/cancel',
+    name: 'product-cancel',
+    component: ProductsCancel,
   },
   ],
 });
