@@ -12,7 +12,7 @@
       <div class="section">
         <p class="section-label">현재 결제 수단</p>
         <div class="current-card">
-          <img src="@/assets/icons/icon-card.svg" alt="" class="card-icon" />
+          <img src="@/assets/logo.svg" alt="" class="card-icon" />
           <div class="card-info">
             <p class="card-name">{{ currentPayment.name }}</p>
             <p class="card-number">{{ currentPayment.number }}</p>
@@ -31,7 +31,7 @@
             class="payment-item"
             @click="selectedId = payment.id"
           >
-            <img src="@/assets/icons/icon-card.svg" alt="" class="card-icon" />
+            <img src="@/assets/logo.svg" alt="" class="card-icon" />
             <div class="card-info">
               <p class="card-name">{{ payment.name }}</p>
               <p class="card-number">{{ payment.number }}</p>

@@ -8,19 +8,26 @@
 
     <div class="content">
       <div class="check-circle">
-        <img src="@/assets/logo.svg" alt="" class="check-icon" />
+        <img src="@/assets/icons/icon-check.svg" alt="" class="check-icon" />
       </div>
-      <h2 class="title">결제 수단이 변경됐어요!</h2>
-      <p class="desc">새로운 결제 수단으로 변경이 완료됐어요</p>
+      <h2 class="title">정기 용돈이 설정됐어요!</h2>
+      <p class="desc">설정한 주기에 맞춰 자동으로 용돈이 지급돼요</p>
 
+      <!-- 설정 요약 -->
       <div class="info-card">
         <div class="info-row">
-          <span class="info-label">변경된 결제 수단</span>
-          <span class="info-value">{{ route.query.name }}</span>
+          <span class="info-label">받는 자녀</span>
+          <span class="info-value">{{ route.query.childName }}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">계좌 번호</span>
-          <span class="info-value">{{ route.query.number }}</span>
+          <span class="info-label">지급 주기</span>
+          <span class="info-value">
+            {{ route.query.cycle === 'MONTHLY' ? '매월' : '매주' }} {{ route.query.day }}일
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">지급 금액</span>
+          <span class="info-value">{{ Number(route.query.amount).toLocaleString() }}원</span>
         </div>
       </div>
 

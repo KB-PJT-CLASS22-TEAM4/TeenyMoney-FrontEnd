@@ -25,7 +25,7 @@
     <!-- 정기 용돈 설정 -->
     <div class="section">
       <h2 class="section-title">정기 용돈 설정</h2>
-      <button class="allowance-card" type="button">
+      <button class="allowance-card" type="button" @click="$router.push('/parents/regular-allowance')">
         <div class="allowance-left">
           <img src="@/assets/icons/icon-clock.svg" alt="" class="clock-icon" />
           <div>
