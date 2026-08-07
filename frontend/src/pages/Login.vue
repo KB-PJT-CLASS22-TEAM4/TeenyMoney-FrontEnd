@@ -20,14 +20,26 @@ const showPasswordHint = computed(
   () => password.value.length > 0 && !isPasswordValid.value
 )
  
+const authStore = useAuthStore()
+
 async function handleLogin() {
   const res = await login(email.value, password.value)
 
+  console.log('로그인 전체 응답:', res)
+  console.log('응답 data:', res.data)
+  console.log('Access Token:', res.data?.accessToken)
+  console.log('Role:', res.data?.role)
+
   if (res.success) {
-    // Pinia에 유저 정보 + 토큰 저장
     authStore.setUser(res.data)
 
-    router.push('/home')  // 메인 페이지로 이동
+    if (res.data.role === 'CHILD') {
+      router.push('/child/home')
+    } else {
+      router.push('/parents/home')
+    }
+  } else {
+    console.log('로그인 실패:', res.message)
   }
 }
  
@@ -35,6 +47,10 @@ function handleGoogleLogin() {
   // TODO: 구글 OAuth 연동
   console.log('google login')
 }
+
+
+
+
 </script>
  
 <template>
@@ -44,7 +60,7 @@ function handleGoogleLogin() {
       
       
       <header class="nav">
-            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()"/>
+            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.push('/')"/>
       </header>
 
       <div class="pad">
@@ -129,7 +145,6 @@ function handleGoogleLogin() {
   height: 730px;
   margin: 0 auto;
   background: #ffffff;
-  border: 1px solid #eceef1;
   font-family: 'Inter', -apple-system, sans-serif;
   overflow: hidden;
 }

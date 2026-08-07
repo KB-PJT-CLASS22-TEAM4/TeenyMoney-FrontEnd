@@ -43,7 +43,6 @@ function goToLogin() {
   margin: 0 auto;
   padding: 0 24px 32px;
   background-color: #ffffff;
-  border: 1px solid #eceef1;
 }
 
 .logo {
