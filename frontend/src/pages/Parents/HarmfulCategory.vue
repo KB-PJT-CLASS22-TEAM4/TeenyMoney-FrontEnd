@@ -22,19 +22,14 @@
 
       <!-- 정책 목록 -->
       <div v-else>
-        <!-- 허용 -->
         <div class="policy-card">
           <p class="policy-label allow">✓ 허용</p>
           <p v-for="item in allowList" :key="item" class="policy-item">{{ item }}</p>
         </div>
-
-        <!-- 주의 -->
         <div class="policy-card">
           <p class="policy-label caution">⚠ 주의</p>
           <p v-for="item in cautionList" :key="item" class="policy-item">{{ item }}</p>
         </div>
-
-        <!-- 차단 -->
         <div class="policy-card">
           <p class="policy-label block">🚫 차단</p>
           <p v-for="item in blockList" :key="item" class="policy-item">{{ item }}</p>
@@ -50,16 +45,42 @@
       <!-- 승인 요청 내역 -->
       <div class="request-section">
         <p class="request-title">승인 요청 내역</p>
-        <div v-for="req in pendingRequests" :key="req.id" class="request-card">
-          <div class="request-top">
-            <span class="request-status" :class="req.status">{{ req.statusLabel }}</span>
-            <span class="request-name">{{ req.name }}</span>
-            <span class="request-time">{{ req.time }}</span>
-          </div>
-          <p class="request-desc">{{ req.desc }}</p>
-          <div class="request-btns">
-            <button class="btn btn-secondary" @click="handleReject(req.id)">거절</button>
-            <button class="btn btn-primary" @click="handleAccept(req.id)">승인</button>
+
+        <!-- 요청 로딩 중 -->
+        <div v-if="isPermissionLoading" class="state-box">
+          <p>불러오는 중입니다...</p>
+        </div>
+
+        <!-- 요청 없을 때 -->
+        <div v-else-if="!pendingRequests.length" class="empty-request">
+          <p>오늘만 허용 요청이 없습니다.</p>
+        </div>
+
+        <!-- 요청 목록 -->
+        <div v-else>
+          <div v-for="req in pendingRequests" :key="req.id" class="request-card">
+            <div class="request-top">
+              <span class="request-status block">차단</span>
+              <span class="request-name">{{ req.child.name }}</span>
+              <span class="request-time">{{ formatTime(req.createdAt) }}</span>
+            </div>
+            <p class="request-desc">{{ req.reason }}</p>
+            <div class="request-btns">
+              <button
+                class="btn btn-secondary"
+                :disabled="req.status !== 'PENDING'"
+                @click="handleReject(req.id)"
+              >
+                거절
+              </button>
+              <button
+                class="btn btn-primary"
+                :disabled="req.status !== 'PENDING'"
+                @click="handleAccept(req.id)"
+              >
+                승인
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -88,6 +109,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getCategoryPolicyGroups } from '@/api/categoryPolicy'
+import { getPermissions, approvePermission, rejectPermission } from '@/api/permissions'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -98,19 +120,23 @@ const blockList = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-// 오늘만 허용 요청은 아직 API가 없으므로 임시로 더미 데이터 사용
-const pendingRequests = ref([
-  {
-    id: 1,
-    status: 'block',
-    statusLabel: '차단',
-    name: 'PC방 , 유흥-성인 업소',
-    time: '2분 전',
-    desc: '해당 업종 결제 승인 요청',
-  },
-])
+const pendingRequests = ref([])
+const isPermissionLoading = ref(false)
 
-onMounted(async () => {
+// 시간 포맷
+function formatTime(createdAt) {
+  if (!createdAt) return ''
+  const date = new Date(createdAt)
+  const now = new Date()
+  const diff = Math.floor((now - date) / 1000 / 60)
+  if (diff < 1) return '방금 전'
+  if (diff < 60) return `${diff}분 전`
+  if (diff < 1440) return `${Math.floor(diff / 60)}시간 전`
+  return `${Math.floor(diff / 1440)}일 전`
+}
+
+// 카테고리 정책 불러오기
+async function fetchCategoryPolicies() {
   isLoading.value = true
   try {
     const res = await getCategoryPolicyGroups(authStore.accessToken)
@@ -128,19 +154,57 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
-})
+}
 
+// 오늘만 허용 요청 불러오기
+async function fetchPermissions() {
+  isPermissionLoading.value = true
+  try {
+    const res = await getPermissions(authStore.accessToken)
+    if (res.success && res.data.isExist) {
+      // 단일 요청으로 오는 경우 배열로 처리
+      pendingRequests.value = [res.data.permission]
+    } else {
+      pendingRequests.value = []
+    }
+  } catch (error) {
+    console.error('오늘만 허용 요청 불러오기 실패:', error)
+  } finally {
+    isPermissionLoading.value = false
+  }
+}
+
+// 승인
 async function handleAccept(id) {
-  // TODO: API 연동
-  // POST /requests/:id/accept
-  pendingRequests.value = pendingRequests.value.filter(r => r.id !== id)
+  try {
+    await approvePermission(authStore.accessToken, id)
+    alert('승인되었습니다!')
+    await fetchPermissions()
+    await fetchCategoryPolicies() // 정책 목록 갱신
+  } catch (error) {
+    console.error('승인 실패:', error)
+    alert('승인에 실패했습니다.')
+  }
 }
 
+// 거절
 async function handleReject(id) {
-  // TODO: API 연동
-  // POST /requests/:id/reject
-  pendingRequests.value = pendingRequests.value.filter(r => r.id !== id)
+  try {
+    await rejectPermission(authStore.accessToken, id)
+    alert('거절되었습니다.')
+    await fetchPermissions()
+  } catch (error) {
+    console.error('거절 실패:', error)
+    alert('거절에 실패했습니다.')
+  }
 }
+
+onMounted(async () => {
+  await Promise.all([
+    fetchCategoryPolicies(),
+    fetchPermissions(),
+  ])
+})
 </script>
 
 <style scoped>
@@ -191,7 +255,6 @@ async function handleReject(id) {
   color: #191b1e;
 }
 
-/* 정책 카드 */
 .policy-card {
   background-color: #f4f5f7;
   border-radius: 12px;
@@ -199,6 +262,7 @@ async function handleReject(id) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-bottom: 10px;
 }
 
 .policy-label {
@@ -230,7 +294,6 @@ async function handleReject(id) {
   font-size: 14px;
 }
 
-/* 목록 조회 버튼 */
 .list-btn {
   display: flex;
   align-items: center;
@@ -249,12 +312,18 @@ async function handleReject(id) {
 
 .chevron-icon { width: 18px; height: 18px; }
 
-/* 승인 요청 내역 */
 .request-title {
   margin: 0 0 12px;
   font-size: 14px;
   font-weight: 700;
   color: #8b9097;
+}
+
+.empty-request {
+  padding: 20px 0;
+  text-align: center;
+  color: #b9bec5;
+  font-size: 13px;
 }
 
 .request-card {
@@ -264,6 +333,7 @@ async function handleReject(id) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-bottom: 10px;
 }
 
 .request-top {
@@ -332,7 +402,11 @@ async function handleReject(id) {
   color: #191b1e;
 }
 
-/* 하단 네비게이션 */
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;
