@@ -56,7 +56,10 @@ import QrScan from '@/pages/Child/Payment/QRscan.vue';
 import TeenyScore from '@/pages/Child/TeenyScore.vue';
 // 자녀 티니점수 등급 상세
 import TeenyScoreGrade from '@/pages/Child/TeenyScoreGrade.vue';
-
+// 자녀 퀘스트 목록
+import QuestList from '@/pages/Child/Quest/QuestList.vue';
+// 자녀 퀘스트 인증하기
+import QuestDetail from '@/pages/Child/Quest/QuestDetail.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -325,6 +328,18 @@ const router = createRouter({
     name: 'child-score-grade',
     component: TeenyScoreGrade,
   },
+  // 자녀 퀘스트 목록
+  { 
+    path: '/child/quest', 
+    name: 'child-quest-list', 
+    component: QuestList 
+  },
+  // 자녀 퀘스트 인증하기
+{ 
+  path: '/child/questdetail/:questId',   // :questId 추가
+  name: 'child-quest-detail', 
+  component: QuestDetail
+},
     // QR스캔
     {
       path: '/child/payment/scan',
