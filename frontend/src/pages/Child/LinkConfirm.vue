@@ -35,29 +35,34 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { getMyParent } from '@/api/families'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter();
+const authStore = useAuthStore();
 
-const goToCompletePage = () => {
-  // 백엔드 API 연동 성공 후 이동하도록 설정할 수 있습니다.
-  router.push('/child/linkcomplete')
-};
-// ===== API 연동 필요 =====
-// 이전 화면(코드 검증)에서 받은 보호자 정보를 넘겨받음.
-const guardian = ref({ name: '김부모', relation: '엄마' });
+const guardian = ref({ name: '', relation: '보호자' });
+
+// 페이지 진입 시 연동된 부모 정보 조회
+onMounted(async () => {
+  try {
+    const res = await getMyParent(authStore.accessToken)
+    if (res.data) {
+      guardian.value.name = res.data.name
+    }
+  } catch (e) {
+    console.error('부모 정보 조회 실패:', e.message)
+  }
+})
 
 function goBack() {
   router.back();
 }
 
-function confirmLink() {
-  // ===== API 연동 필요 =====
-  // 실제로 부모-자녀 연동을 확정하는 요청
-  //     성공 → 연동 완료 화면으로 이동
-  console.log('연동 확정');
-  router.push({ name: 'child-linkcomplete' });
+function goToCompletePage() {
+  router.push({ name: 'child-link-complete' })
 }
 </script>
 

@@ -10,8 +10,8 @@ function onTabSelect(key) {
   if (key === 'home') router.push({ name: 'child-home' })
   if (key === 'report') router.push({ name: 'child-report' })
   if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' }) 
-  //finance(금융상품)는 페이지 생기면 추가
+  if (key === 'q') router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
 }
  
 // 스크롤할 때만 스크롤바 보이기
@@ -107,7 +107,7 @@ const donutSegments = computed(() => {
 })
  
 function goBack() {
-  router.back()
+  router.push({ name: 'child-home' })
 }
 </script>
  

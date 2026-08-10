@@ -50,6 +50,9 @@ import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 // 자녀 금융상품 중도해지
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
+// QR스캔
+import QrScan from '@/pages/Child/Payment/QRscan.vue';
+
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -63,6 +66,11 @@ import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
 import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
 import PlaceList from '@/pages/Parents/PlaceList.vue'
+import SendAllowance from '@/pages/Parents/SendAllowance.vue'
+import SendingAllowance from '@/pages/Parents/SendingAllowance.vue'
+import SendFail from '@/pages/Parents/SendFail.vue'
+import SendComplete from '@/pages/Parents/SendComplete.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -295,6 +303,29 @@ const router = createRouter({
     name: 'product-cancel',
     component: ProductsCancel,
   },
+    // QR스캔
+    {
+      path: '/child/payment/scan',
+      name: 'qr-scan',
+      component: QrScan,
+    },
+    { path: '/parents/send-allowance', 
+      name: 'send-allowance', 
+      component: SendAllowance 
+    },
+    {
+      path: '/parents/sending-allowance',
+      name: 'sending-allowance',
+      component: SendingAllowance,
+    },
+    { path: '/parents/send/fail', 
+      name: 'send-fail', 
+      component: SendFail 
+    },
+    { path: '/parents/send/complete', 
+      name: 'send-complete', 
+      component: SendComplete 
+    }
   ],
 });
 
