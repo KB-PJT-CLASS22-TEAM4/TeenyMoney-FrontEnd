@@ -1,157 +1,574 @@
 <template>
-    <div class="page">
-    <!-- 부모 홈 페이지 내용 -->
+  <div class="page">
+
     <!-- 헤더 -->
-   <header class="nav">
-      <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.push('/')" />
-      <h1 class="nav-title">김부모님</h1>
-      <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
+    <header class="nav">
+      <h1 class="nav-title">
+        {{ authStore.name ? `${authStore.name}님` : '티니머니' }}
+      </h1>
+
+      <button
+        class="alarm-btn"
+        type="button"
+        aria-label="알림"
+      >
+        <img
+          src="@/assets/icons/icon-notification.svg"
+          alt=""
+          class="alarm-icon"
+        />
       </button>
     </header>
 
-    <!-- 지갑 카드 -->
+    <main class="content">
+
+      <!-- 지갑 카드 -->
       <div class="wallet-card">
-        <p class="wallet-label">티니머니</p>
+
+        <p class="wallet-label">
+          티니머니
+        </p>
+
         <div class="wallet-row">
-            <img src="@/assets/logo.svg" alt="티니머니 로고" class="wallet-logo" />
-            <p class="wallet-amount">42,500원</p>
-        </div>
-        <div class="wallet-btns">
-            <button class="btn btn-primary" @click ="$router.push('/parents/charge')">충전</button>
-            <button class="btn btn-secondary" @click ="$router.push('/parents/send-allowance')">용돈 지급</button>
-        </div>
-      </div>
-      
 
-    <!-- 정기 용돈 설정 -->
-    <div class="section">
-      <h2 class="section-title">정기 용돈 설정</h2>
-      <button class="allowance-card" type="button" @click="$router.push('/parents/regular-allowance')">
-        <div class="allowance-left">
-          <img src="@/assets/icons/icon-clock.svg" alt="" class="clock-icon" />
-          <div>
-            <p class="allowance-main">매월 1일 지급</p>
-            <p class="allowance-sub">100,000원 자동 충전</p>
-          </div>
-        </div>
-        <img src="@/assets/icons/icon-chevron.svg" alt="" class="chevron-icon" />
-      </button>
-    </div>
+          <img
+            src="@/assets/logo.svg"
+            alt="티니머니 로고"
+            class="wallet-logo"
+          />
 
-    <!-- 최근 이용내역 -->
-    <div class="section">
-      <div class="section-header">
-        <h2 class="section-title">최근 이용내역</h2>
-          <img 
-          src="@/assets/icons/icon-chevron.svg" 
-          alt="" 
-          class="chevron-icon"
-          @click ="$router.push('/parents/transaction')"
-        />
-      </div>
-
-      <div
-        v-for="item in recentTransactions"
-        :key="item.id"
-        class="transaction-item"
-      >
-        <div class="transaction-left">
-          <p class="transaction-date">{{ item.date }}</p>
-          <p class="transaction-name">{{ item.name }}</p>
-        </div>
-        <div class="transaction-right">
-          <p class="transaction-amount" :class="item.amount > 0 ? 'positive' : 'negative'">
-            {{ item.amount > 0 ? '+' : '' }}{{ item.amount.toLocaleString() }} 원
+          <!-- 지갑 로딩 -->
+          <p
+            v-if="isWalletLoading"
+            class="wallet-amount loading-text"
+          >
+            조회 중...
           </p>
-          <p class="transaction-balance">잔액 : {{ item.balance.toLocaleString() }}원</p>
+
+          <!-- 지갑 조회 실패 -->
+          <p
+            v-else-if="walletError"
+            class="wallet-amount error-text"
+          >
+            조회 실패
+          </p>
+
+          <!-- 잔액 -->
+          <p
+            v-else
+            class="wallet-amount"
+          >
+            {{ wallet.balance.toLocaleString() }}원
+          </p>
+
         </div>
+
+        <div class="wallet-btns">
+
+          <button
+            class="btn btn-primary"
+            type="button"
+            @click="router.push('/parents/charge')"
+          >
+            충전
+          </button>
+
+          <button
+            class="btn btn-secondary"
+            type="button"
+            @click="router.push('/parents/send-allowance')"
+          >
+            용돈 지급
+          </button>
+
+        </div>
+
       </div>
-    </div>
+
+
+      <!-- 정기 용돈 설정 -->
+      <div class="section">
+
+        <h2 class="section-title">
+          정기 용돈 설정
+        </h2>
+
+        <button
+          class="allowance-card"
+          type="button"
+          @click="router.push('/parents/regular-allowance')"
+        >
+
+          <div class="allowance-left">
+
+            <img
+              src="@/assets/icons/icon-clock.svg"
+              alt=""
+              class="clock-icon"
+            />
+
+            <div>
+              <p class="allowance-main">
+                매월 1일 지급
+              </p>
+
+              <p class="allowance-sub">
+                100,000원 자동 충전
+              </p>
+            </div>
+
+          </div>
+
+          <img
+            src="@/assets/icons/icon-chevron.svg"
+            alt=""
+            class="chevron-icon"
+          />
+
+        </button>
+
+      </div>
+
+
+      <!-- 최근 이용내역 -->
+      <div class="section">
+
+        <div class="section-header">
+
+          <h2 class="section-title">
+            최근 이용내역
+          </h2>
+
+          <button
+            type="button"
+            class="more-button"
+            aria-label="전체 거래내역 보기"
+            @click="router.push('/parents/transaction')"
+          >
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
+            />
+          </button>
+
+        </div>
+
+
+        <!-- 거래내역 로딩 -->
+        <div
+          v-if="isWalletLoading"
+          class="transaction-state"
+        >
+          거래내역을 불러오는 중입니다.
+        </div>
+
+
+        <!-- 거래내역 에러 -->
+        <div
+          v-else-if="walletError"
+          class="transaction-state error-message"
+        >
+          <p>
+            {{ walletError }}
+          </p>
+
+          <button
+            type="button"
+            class="retry-button"
+            @click="fetchWallet"
+          >
+            다시 시도
+          </button>
+        </div>
+
+
+        <!-- 거래내역 있음 -->
+        <template
+          v-else-if="recentTransactions.length > 0"
+        >
+
+          <div
+            v-for="item in recentTransactions"
+            :key="item.id"
+            class="transaction-item"
+          >
+
+            <div class="transaction-left">
+
+              <p class="transaction-date">
+                {{ formatTransactionDate(item.createdAt) }}
+              </p>
+
+              <p class="transaction-name">
+                {{ item.description || '거래내역' }}
+              </p>
+
+            </div>
+
+
+            <div class="transaction-right">
+
+              <p
+                class="transaction-amount"
+                :class="{
+                  positive: item.direction === 'CREDIT',
+                  negative: item.direction === 'DEBIT'
+                }"
+              >
+                {{ getAmountText(item) }}
+              </p>
+
+              <p class="transaction-balance">
+                잔액 :
+                {{ item.balanceAfter.toLocaleString() }}원
+              </p>
+
+            </div>
+
+          </div>
+
+        </template>
+
+
+        <!-- 거래내역 없음 -->
+        <div
+          v-else
+          class="transaction-state"
+        >
+          최근 이용내역이 없습니다.
+        </div>
+
+      </div>
+
+    </main>
+
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-home-alive.svg" alt="" class="nav-icon" />
-        <span class="nav-label">홈</span>
+
+      <button
+        class="nav-item nav-item-active"
+        type="button"
+      >
+        <img
+          src="@/assets/icons/icon-home-alive.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          홈
+        </span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/childlist')">
-        <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
-        <span class="nav-label">자녀관리</span>
+
+
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/childlist')"
+      >
+        <img
+          src="@/assets/icons/icon-child.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          자녀관리
+        </span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
-        <span class="nav-label">마이페이지</span>
+
+
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/mypage')"
+      >
+        <img
+          src="@/assets/icons/icon-mypage.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          마이페이지
+        </span>
       </button>
+
     </nav>
+
   </div>
 </template>
 
+
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'  // ← 추가
+import {
+  onMounted,
+  reactive,
+  ref,
+} from 'vue'
 
-const router = useRouter()  
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getMyWallet } from '@/api/wallet'
 
 
-// 홈 탭 클릭
-function goHome() {
-  router.push('/parents/home')
+const router = useRouter()
+const authStore = useAuthStore()
+
+
+/* =========================
+   지갑 상태
+========================= */
+
+const isWalletLoading = ref(false)
+const walletError = ref('')
+
+const wallet = reactive({
+  walletId: null,
+  balance: 0,
+  updatedAt: '',
+})
+
+
+/* =========================
+   최근 거래내역
+========================= */
+
+const recentTransactions = ref([])
+
+
+/* =========================
+   지갑 + 최근 거래 조회
+========================= */
+
+async function fetchWallet() {
+
+  isWalletLoading.value = true
+  walletError.value = ''
+
+  try {
+
+    // Pinia Access Token 확인
+    if (!authStore.accessToken) {
+
+      walletError.value =
+        '로그인이 필요합니다.'
+
+      return
+    }
+
+
+    // GET /api/v1/wallet/me
+    const res = await getMyWallet(
+      authStore.accessToken
+    )
+
+
+    if (res.success) {
+
+      wallet.walletId =
+        res.data.walletId
+
+      wallet.balance =
+        res.data.balance ?? 0
+
+      wallet.updatedAt =
+        res.data.updatedAt || ''
+
+
+      /*
+       * Swagger 응답의
+       * recentTransactions 그대로 저장
+       */
+      recentTransactions.value =
+        res.data.recentTransactions || []
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      '지갑 정보 조회 실패:',
+      error
+    )
+
+
+    /*
+     * Access Token 만료/인증 실패
+     */
+    if (error.status === 401) {
+
+      authStore.clearUser()
+
+      router.replace('/login')
+
+      return
+    }
+
+
+    walletError.value =
+      error.message
+      || '지갑 정보를 불러오지 못했습니다.'
+
+  } finally {
+
+    isWalletLoading.value = false
+
+  }
+
 }
 
-// TODO: 하드코딩 데이터 API 연동 후 제거
-const recentTransactions = [
-  { id: 1, date: '07.15  21:17', name: '잔액 충전', amount: 10000, balance: 10000 },
-  { id: 2, date: '07.14  16:07', name: '보상금 지급', amount: -3200, balance: 10000 },
-  { id: 3, date: '07.13  15:50', name: '용돈 지급', amount: -1500, balance: 10000 },
-]
 
-// TODO: API 연동 후 아래 코드로 교체
-// const recentTransactions = ref([])
+/* =========================
+   거래 금액 표시
+========================= */
 
-// onMounted(async () => {
-//   try {
-//     const res = await api.get('/transactions/recent')
-//     // 백엔드에서 최신 3개만 내려주거나, 프론트에서 slice(0, 3) 으로 자르기
-//     recentTransactions.value = res.data.slice(0, 3)
-//   } catch (error) {
-//     console.error('최근 거래내역 불러오기 실패', error)
-//   }
-// })
+function getAmountText(item) {
+
+  const amount =
+    Math.abs(Number(item.amount || 0))
+
+  /*
+   * CREDIT = 입금
+   * DEBIT = 출금
+   */
+
+  if (item.direction === 'CREDIT') {
+
+    return `+${amount.toLocaleString()} 원`
+
+  }
+
+
+  if (item.direction === 'DEBIT') {
+
+    return `-${amount.toLocaleString()} 원`
+
+  }
+
+
+  /*
+   * 혹시 direction 값이 없을 경우
+   */
+  return `${Number(item.amount || 0).toLocaleString()} 원`
+
+}
+
+
+/* =========================
+   거래 날짜 표시
+========================= */
+
+function formatTransactionDate(createdAt) {
+
+  if (!createdAt) {
+    return ''
+  }
+
+
+  const date =
+    new Date(createdAt)
+
+
+  /*
+   * 예:
+   * 2026.08.10 11:29
+   */
+
+  return new Intl.DateTimeFormat(
+    'ko-KR',
+    {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }
+  ).format(date)
+
+}
+
+
+/* =========================
+   화면 최초 진입
+========================= */
+
+onMounted(() => {
+
+  fetchWallet()
+
+})
 </script>
 
-<style scoped>
 
-.page {
-  width: 360px;
-  min-height: 100dvh;
-  margin: 0 auto;
-  background-color: #f4f5f7;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  top: -8px;
-  padding-bottom: 50px;
+<style scoped>
+* {
+  box-sizing: border-box;
 }
 
-/* 헤더 */
+button {
+  font: inherit;
+}
+
+
+/* =========================
+   전체 화면
+========================= */
+
+.page {
+  position: relative;
+
+  width: 360px;
+  min-height: 100dvh;
+
+  margin: 0 auto;
+
+  padding-bottom: 80px;
+
+  color: #191b1e;
+
+  background-color: #f4f5f7;
+}
+
+
+/* =========================
+   헤더
+========================= */
+
 .nav {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px;
+
+  height: 64px;
+
+  padding: 10px 20px 4px;
 }
 
 .nav-title {
   margin: 0;
+
   font-size: 18px;
   font-weight: 700;
+
   color: #191b1e;
 }
 
 .alarm-btn {
-  background: transparent;
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
   border: none;
+
+  background: transparent;
+
   cursor: pointer;
 }
 
@@ -160,196 +577,390 @@ const recentTransactions = [
   height: 24px;
 }
 
-/* 지갑 카드 */
+
+/* =========================
+   콘텐츠
+========================= */
+
+.content {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 20px;
+
+  padding: 14px 16px 30px;
+}
+
+
+/* =========================
+   지갑 카드
+========================= */
+
 .wallet-card {
-  margin: 0 16px 20px;
-  padding: 20px;
-  background-color: #ffffff;
+  padding: 18px 16px;
+
   border-radius: 16px;
+
+  background-color: #ffffff;
 }
 
 .wallet-label {
-  margin: 0 0 8px;
-  font-size: 12px;
+  margin: 0 0 12px;
+
   color: #8b9097;
+
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .wallet-row {
   display: flex;
+
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+
+  gap: 10px;
+
+  margin-bottom: 18px;
 }
 
 .wallet-logo {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
+
+  object-fit: contain;
 }
 
 .wallet-amount {
   margin: 0;
-  font-size: 28px;
-  font-weight: 700;
+
   color: #191b1e;
+
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.loading-text {
+  color: #8b9097;
+
+  font-size: 16px;
+}
+
+.error-text {
+  color: #d14343;
+
+  font-size: 16px;
 }
 
 .wallet-btns {
   display: flex;
-  gap: 10px;
+
+  gap: 8px;
 }
 
 .btn {
   flex: 1;
-  height: 44px;
+
+  height: 42px;
+
   border: none;
-  border-radius: 10px;
-  font-size: 14px;
+
+  border-radius: 8px;
+
+  font-size: 13px;
   font-weight: 700;
+
   cursor: pointer;
 }
 
 .btn-primary {
-  background-color: #ffbc00;
   color: #191b1e;
+
+  background-color: #ffbc00;
 }
 
 .btn-secondary {
-  background-color: #f4f5f7;
   color: #191b1e;
+
+  background-color: #f4f5f7;
 }
 
-/* 섹션 공통 */
+
+/* =========================
+   공통 섹션
+========================= */
+
 .section {
-  margin: 0 16px 24px;
+  width: 100%;
 }
 
 .section-header {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+
+  margin-bottom: 10px;
 }
 
 .section-title {
-  margin: 0 0 12px;
+  margin: 0 0 10px 4px;
+
+  color: #191b1e;
+
   font-size: 15px;
   font-weight: 700;
-  color: #191b1e;
 }
 
-/* 정기 용돈 */
+.section-header .section-title {
+  margin-bottom: 0;
+}
+
+.more-button {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 4px;
+
+  border: none;
+
+  background: transparent;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   정기 용돈
+========================= */
+
 .allowance-card {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
+
   width: 100%;
+
   padding: 16px;
-  background-color: #ffffff;
+
   border: none;
-  border-radius: 12px;
+
+  border-radius: 16px;
+
+  background-color: #ffffff;
+
   cursor: pointer;
 }
 
 .allowance-left {
   display: flex;
+
   align-items: center;
+
   gap: 12px;
+
+  text-align: left;
 }
 
 .clock-icon {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 }
 
 .allowance-main {
   margin: 0 0 4px;
+
+  color: #191b1e;
+
   font-size: 14px;
   font-weight: 700;
-  color: #191b1e;
 }
 
 .allowance-sub {
   margin: 0;
-  font-size: 12px;
+
   color: #8b9097;
+
+  font-size: 12px;
 }
 
 .chevron-icon {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
-/* 거래 내역 */
+
+/* =========================
+   거래내역
+========================= */
+
 .transaction-item {
   display: flex;
+
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 14px 0;
+
+  min-height: 76px;
+
+  padding: 14px 14px;
+
   border-bottom: 1px solid #f0f1f3;
+
+  background-color: #ffffff;
 }
 
-.transaction-item:last-child {
+.transaction-item:first-of-type {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.transaction-item:last-of-type {
   border-bottom: none;
+
+  border-bottom-right-radius: 16px;
+  border-bottom-left-radius: 16px;
+}
+
+.transaction-left {
+  min-width: 0;
 }
 
 .transaction-date {
-  margin: 0 0 4px;
-  font-size: 11px;
+  margin: 0 0 5px;
+
   color: #8b9097;
+
+  font-size: 10px;
 }
 
 .transaction-name {
   margin: 0;
+
+  color: #191b1e;
+
   font-size: 14px;
   font-weight: 700;
-  color: #191b1e;
 }
 
 .transaction-right {
+  flex-shrink: 0;
+
+  margin-left: 10px;
+
   text-align: right;
 }
 
 .transaction-amount {
-  margin: 0 0 4px;
+  margin: 0 0 5px;
+
   font-size: 14px;
   font-weight: 700;
 }
 
-.positive {
-  color: #1a73e8;
+.transaction-amount.positive {
+  color: #3178c6;
 }
 
-.negative {
+.transaction-amount.negative {
   color: #191b1e;
 }
 
 .transaction-balance {
   margin: 0;
-  font-size: 11px;
+
   color: #8b9097;
+
+  font-size: 10px;
 }
 
-/* 하단 네비게이션 */
+.transaction-state {
+  padding: 40px 16px;
+
+  border-radius: 16px;
+
+  color: #8b9097;
+
+  font-size: 13px;
+
+  text-align: center;
+
+  background-color: #ffffff;
+}
+
+.error-message {
+  color: #d14343;
+}
+
+.error-message p {
+  margin: 0;
+}
+
+.retry-button {
+  margin-top: 12px;
+
+  padding: 8px 14px;
+
+  border: none;
+
+  border-radius: 7px;
+
+  color: #191b1e;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  background-color: #ffbc00;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   하단 네비게이션
+========================= */
+
 .bottom-nav {
   position: fixed;
+
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
+
+  z-index: 100;
+
   display: flex;
+
   justify-content: space-around;
+
+  width: 360px;
+
   padding: 10px 0 20px;
-  background-color: #ffffff;
+
   border-top: 1px solid #f0f1f3;
+
+  background-color: #ffffff;
+
+  transform: translateX(-50%);
 }
 
 .nav-item {
   display: flex;
+
+  min-width: 70px;
+
   flex-direction: column;
   align-items: center;
+
   gap: 4px;
-  background: transparent;
+
+  padding: 0;
+
   border: none;
+
+  background: transparent;
+
   cursor: pointer;
 }
 
@@ -359,13 +970,14 @@ const recentTransactions = [
 }
 
 .nav-label {
-  font-size: 11px;
   color: #8b9097;
+
+  font-size: 11px;
 }
 
 .nav-item-active .nav-label {
-  color: black;
+  color: #191b1e;
+
   font-weight: 700;
 }
-
 </style>
