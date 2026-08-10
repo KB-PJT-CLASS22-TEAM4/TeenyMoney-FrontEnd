@@ -56,7 +56,7 @@ import QrScan from '@/pages/Child/Payment/QRscan.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
-import ChildList from '@/pages/Parents/ChildList.vue';
+import ChildList from '@/pages/Parents/Child/ChildList.vue';
 import LinkCode from '@/pages/Parents/Link/LinkCode.vue';
 
 import Charge from '@/pages/Parents/Charge/Charge.vue'
@@ -74,7 +74,7 @@ import PaymentChange from '@/pages/Parents/Payment/PaymentChange.vue'
 import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete.vue'
 import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
-import ChildDetail from '@/pages/Parents/ChildDetail.vue'
+import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
 
 
 const router = createRouter({

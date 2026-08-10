@@ -111,9 +111,9 @@
               티니점수
             </h2>
 
-            <span class="shield-icon">
+            <!-- <span class="shield-icon">
               ♢
-            </span>
+            </span> -->
           </div>
 
           <button
@@ -143,7 +143,6 @@
 
 
           <div class="score-bottom">
-            <span>노력 단계</span>
 
             <strong>
               {{ child.grade }}
@@ -165,9 +164,9 @@
 
         <div class="menu-left">
 
-          <div class="menu-icon danger-icon">
+          <!-- <div class="menu-icon danger-icon">
             !
-          </div>
+          </div> -->
 
           <span class="danger-text">
             유해 업소 시도
@@ -194,9 +193,9 @@
 
         <div class="menu-left">
 
-          <div class="menu-icon report-icon">
+          <!-- <div class="menu-icon report-icon">
             ▥
-          </div>
+          </div> -->
 
           <span>
             리포트 보러가기
@@ -238,9 +237,9 @@
 
           <div class="finance-left">
 
-            <div class="finance-icon saving">
+            <!-- <div class="finance-icon saving">
               ♧
-            </div>
+            </div> -->
 
             <div>
               <p class="finance-title">
@@ -275,9 +274,9 @@
 
           <div class="finance-left">
 
-            <div class="finance-icon loan">
+            <!-- <div class="finance-icon loan">
               ♧
-            </div>
+            </div> -->
 
             <div>
               <p class="finance-title">
@@ -312,9 +311,9 @@
 
           <div class="finance-left">
 
-            <div class="finance-icon investment">
+            <!-- <div class="finance-icon investment">
               ↗
-            </div>
+            </div> -->
 
             <div>
               <p class="finance-title">
@@ -363,10 +362,6 @@
         >
 
           <div class="setting-left">
-
-            <div class="setting-icon">
-              ☷
-            </div>
 
             <span>
               유해 업소 설정 바로가기
@@ -981,12 +976,12 @@ function goToHarmfulCategory() {
   font-weight: 800;
 }
 
-.finance-icon.saving {
+/* .finance-icon.saving {
   background: #ddfbf7;
   color: #00a99d;
-}
+} */
 
-.finance-icon.loan {
+/* .finance-icon.loan {
   background: #fff0ed;
   color: #ff4d42;
 }
@@ -994,7 +989,7 @@ function goToHarmfulCategory() {
 .finance-icon.investment {
   background: #fff6dd;
   color: #ffb800;
-}
+} */
 
 .finance-title {
   margin: 0 0 3px;

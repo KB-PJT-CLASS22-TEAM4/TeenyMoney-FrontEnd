@@ -1,15 +1,15 @@
 <template>
   <div class="page">
+
     <!-- 헤더 -->
-    <header class="nav">
-      <div class="nav-side"></div>
-
+   <header class="nav">
+      <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()" />
       <h1 class="nav-title">마이페이지</h1>
-
       <button class="alarm-btn" type="button" aria-label="알림">
         <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
+
 
     <!-- 로딩 -->
     <div v-if="isLoading" class="state-box">

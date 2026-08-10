@@ -1,11 +1,13 @@
 <template>
     <div class="page">
     <!-- 부모 홈 페이지 내용 -->
-    <header class="nav">
-        <h1 class="nav-title">김철수님</h1>
-        <button class="alarm-btn" aria-label="알림">
-           <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
-        </button>
+    <!-- 헤더 -->
+   <header class="nav">
+      <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.push('/')" />
+      <h1 class="nav-title">김부모님</h1>
+      <button class="alarm-btn" type="button" aria-label="알림">
+        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
+      </button>
     </header>
 
     <!-- 지갑 카드 -->
