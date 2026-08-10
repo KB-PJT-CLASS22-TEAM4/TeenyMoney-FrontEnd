@@ -117,12 +117,13 @@
           </div>
 
           <button
-            class="more-btn"
-            type="button"
-          >
-            기준 보기
-            <span>›</span>
-          </button>
+  class="more-btn"
+  type="button"
+  @click="router.push(`/parents/children/${childId}/teeny-score`)"
+>
+  기준 보기
+  <span>›</span>
+</button>
         </div>
 
 
@@ -224,6 +225,7 @@
           <button
             class="more-btn"
             type="button"
+            @click="router.push(`/parents/children/${childId}/finance`)"
           >
             상세보기
             <span>›</span>
