@@ -1,9 +1,19 @@
 <template>
   <div class="page">
+    <!-- 헤더 -->
     <header class="nav">
-      <button class="back-btn" type="button" @click="router.back()">
-        <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
+      <button
+        class="back-btn"
+        type="button"
+        @click="router.back()"
+      >
+        <img
+          src="@/assets/icons/icon-back.svg"
+          alt=""
+          class="back-icon"
+        />
       </button>
+
       <h1 class="nav-title">용돈 보내기</h1>
     </header>
 
@@ -11,30 +21,62 @@
       <!-- 받는 사람 -->
       <div class="section">
         <p class="section-label">받는 사람</p>
+
         <div class="children-list">
-          <!-- 자녀 목록 -->
           <div
             v-for="child in children"
             :key="child.id"
             class="child-item"
-            :class="{ selected: selectedChild && selectedChild.id === child.id }"
+            :class="{
+              selected:
+                selectedChild &&
+                selectedChild.id === child.id
+            }"
             @click="selectChild(child)"
           >
             <div class="child-avatar">
               <img
-                :src="child.profileImageUrl || '/src/assets/icons/child-profile.svg'"
+                :src="
+                  child.profileImageUrl ||
+                  '/src/assets/icons/child-profile.svg'
+                "
                 alt=""
                 class="avatar-img"
+                @error="
+                  (e) =>
+                    e.target.src =
+                      '/src/assets/icons/child-profile.svg'
+                "
               />
             </div>
-            <p class="child-name">{{ child.name }}</p>
+
+            <p class="child-name">
+              {{ child.name }}
+            </p>
           </div>
         </div>
+
+        <!-- 자녀가 없을 때 -->
+        <p
+          v-if="!isLoading && children.length === 0"
+          class="empty-message"
+        >
+          연결된 자녀가 없습니다.
+        </p>
+
+        <!-- 자녀 로딩 중 -->
+        <p
+          v-if="isLoading"
+          class="empty-message"
+        >
+          자녀 정보를 불러오는 중입니다.
+        </p>
       </div>
 
       <!-- 보낼 금액 -->
       <div class="section">
         <p class="section-label">보낼 금액</p>
+
         <div class="amount-wrap">
           <input
             v-model="amount"
@@ -42,7 +84,9 @@
             class="amount-input"
             placeholder="0"
             inputmode="numeric"
+            min="1"
           />
+
           <span class="won">원</span>
         </div>
 
@@ -52,24 +96,18 @@
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="amount = quick.value"
+            type="button"
+            @click="addAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
         </div>
       </div>
 
-      <!-- 지갑 잔액 -->
-      <div class="balance-row">
-        <img src="@/assets/icons/icon-wallet.svg" alt="" class="wallet-icon" />
-        <span class="balance-label">지갑 잔액</span>
-        <!-- TODO: GET /wallet/balance → walletBalance 로 교체 -->
-        <span class="balance-amount">{{ walletBalance.toLocaleString() }}원</span>
-      </div>
-
       <!-- 보내기 버튼 -->
       <button
         class="submit-btn"
+        type="button"
         :disabled="!canSubmit"
         @click="handleSend"
       >
@@ -79,24 +117,64 @@
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button class="nav-item" type="button" @click="router.push('/parents/home')">
-        <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
-        <span class="nav-label">홈</span>
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/home')"
+      >
+        <img
+          src="@/assets/icons/icon-home.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          홈
+        </span>
       </button>
-      <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child-alive.svg" alt="" class="nav-icon" />
-        <span class="nav-label">자녀관리</span>
+
+      <button
+        class="nav-item nav-item-active"
+        type="button"
+        @click="router.push('/parents/childlist')"
+      >
+        <img
+          src="@/assets/icons/icon-child-alive.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          자녀관리
+        </span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
-        <span class="nav-label">마이페이지</span>
+
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/mypage')"
+      >
+        <img
+          src="@/assets/icons/icon-mypage.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          마이페이지
+        </span>
       </button>
     </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import {
+  computed,
+  onMounted,
+  ref,
+} from 'vue'
+
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
@@ -104,83 +182,171 @@ import { getChildren } from '@/api/children'
 const router = useRouter()
 const authStore = useAuthStore()
 
+/* =========================
+   상태
+========================= */
+
 const children = ref([])
 const selectedChild = ref(null)
 const amount = ref('')
-const walletBalance = ref(150000) // TODO: API 연동 후 교체
+const isLoading = ref(false)
+
+/* =========================
+   빠른 금액
+========================= */
 
 const quickAmounts = [
-  { label: '+1만', value: 10000 },
-  { label: '+3만', value: 30000 },
-  { label: '+5만', value: 50000 },
-  { label: '+10만', value: 100000 },
+  {
+    label: '+1만',
+    value: 10000,
+  },
+  {
+    label: '+3만',
+    value: 30000,
+  },
+  {
+    label: '+5만',
+    value: 50000,
+  },
+  {
+    label: '+10만',
+    value: 100000,
+  },
 ]
 
-const canSubmit = computed(() =>
-  selectedChild.value && amount.value && Number(amount.value) > 0
-)
+/* =========================
+   보내기 버튼 활성화 여부
+========================= */
 
-onMounted(async () => {
+const canSubmit = computed(() => {
+  return (
+    selectedChild.value !== null &&
+    Number(amount.value) > 0
+  )
+})
+
+/* =========================
+   자녀 목록 조회
+========================= */
+
+async function fetchChildren() {
+  isLoading.value = true
+
   try {
-    const res = await getChildren(authStore.accessToken)
+    if (!authStore.accessToken) {
+      router.replace('/login')
+      return
+    }
+
+    const res = await getChildren(
+      authStore.accessToken
+    )
+
     if (res.success) {
-      children.value = res.data.map(child => ({
-        id: child.childId,
-        name: child.name,
-        profileImageUrl: child.profileImageUrl,
-      }))
+      children.value = res.data.map(
+        (child) => ({
+          id: child.childId,
+          name: child.name,
+          profileImageUrl:
+            child.profileImageUrl || '',
+        })
+      )
     }
   } catch (error) {
-    console.error('자녀 목록 불러오기 실패:', error)
+    console.error(
+      '자녀 목록 불러오기 실패:',
+      error
+    )
+
+    if (error.status === 401) {
+      authStore.clearUser()
+      router.replace('/login')
+    }
+  } finally {
+    isLoading.value = false
   }
-})
+}
+
+/* =========================
+   자녀 선택
+========================= */
 
 function selectChild(child) {
   selectedChild.value = child
 }
 
+/* =========================
+   빠른 금액 추가
+========================= */
+
 function addAmount(value) {
-  amount.value = (Number(amount.value) || 0) + value
+  amount.value =
+    (Number(amount.value) || 0) + value
 }
 
-function handleSend() {
-  if (!canSubmit.value) return
+/* =========================
+   보내기
+========================= */
 
-  // 잔액 부족 체크
-  if (Number(amount.value) > walletBalance.value) {
-    router.push({
-      path: '/parents/send/fail',
-      query: {
-        amount: amount.value,
-        balance: walletBalance.value,
-      },
-    })
+function handleSend() {
+  if (!canSubmit.value) {
     return
   }
 
-  // 송금 진행
+  /*
+   * 중복 송금 방지를 위한
+   * Idempotency-Key 생성
+   */
+  const idempotencyKey =
+    crypto.randomUUID()
+
   router.push({
     path: '/parents/sending-allowance',
+
     query: {
-      amount: amount.value,
-      childName: selectedChild.value.name,
-      childId: selectedChild.value.id,
+      childId:
+        selectedChild.value.id,
+
+      childName:
+        selectedChild.value.name,
+
+      amount:
+        Number(amount.value),
+
+      idempotencyKey,
     },
   })
 }
+
+/* =========================
+   화면 진입
+========================= */
+
+onMounted(() => {
+  fetchChildren()
+})
 </script>
 
 <style scoped>
-.page {
-  width: 360px;
-  min-height: 100dvh;
-  margin: 0 auto;
-  background-color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 70px;
+* {
+  box-sizing: border-box;
 }
 
+button {
+  font: inherit;
+}
+
+.page {
+  display: flex;
+  width: 360px;
+  min-height: 100dvh;
+  flex-direction: column;
+  margin: 0 auto;
+  padding-bottom: 70px;
+  background-color: #ffffff;
+}
+
+/* 헤더 */
 .nav {
   display: flex;
   align-items: center;
@@ -190,31 +356,39 @@ function handleSend() {
 }
 
 .back-btn {
-  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: none;
+  background: transparent;
   cursor: pointer;
 }
 
-.back-icon { width: 24px; height: 24px; }
+.back-icon {
+  width: 24px;
+  height: 24px;
+}
 
 .nav-title {
   margin: 0;
+  color: #191b1e;
   font-size: 16px;
   font-weight: 700;
-  color: #191b1e;
 }
 
+/* 콘텐츠 */
 .content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
   padding: 20px 16px;
 }
 
 .section-label {
   margin: 0 0 12px;
-  font-size: 13px;
   color: #8b9097;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -222,10 +396,16 @@ function handleSend() {
 .children-list {
   display: flex;
   gap: 16px;
+  overflow-x: auto;
+}
+
+.children-list::-webkit-scrollbar {
+  display: none;
 }
 
 .child-item {
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
   align-items: center;
   gap: 6px;
@@ -235,9 +415,9 @@ function handleSend() {
 .child-avatar {
   width: 56px;
   height: 56px;
-  border-radius: 50%;
-  border: 2px solid transparent;
   overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 50%;
 }
 
 .child-item.selected .child-avatar {
@@ -252,33 +432,51 @@ function handleSend() {
 
 .child-name {
   margin: 0;
+  color: #191b1e;
   font-size: 12px;
   font-weight: 600;
-  color: #191b1e;
+}
+
+.empty-message {
+  margin: 15px 0 0;
+  color: #a3a8af;
+  font-size: 12px;
 }
 
 /* 금액 입력 */
 .amount-wrap {
   display: flex;
   align-items: center;
-  border-bottom: 2px solid #191b1e;
-  padding-bottom: 8px;
   margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #191b1e;
 }
 
 .amount-input {
+  min-width: 0;
   flex: 1;
   border: none;
+  outline: none;
+  color: #191b1e;
   font-size: 24px;
   font-weight: 700;
-  color: #191b1e;
-  outline: none;
+}
+
+.amount-input::placeholder {
+  color: #c6c9ce;
+}
+
+/* number input 화살표 제거 */
+.amount-input::-webkit-inner-spin-button,
+.amount-input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
 }
 
 .won {
+  color: #191b1e;
   font-size: 18px;
   font-weight: 700;
-  color: #191b1e;
 }
 
 /* 빠른 금액 */
@@ -292,47 +490,28 @@ function handleSend() {
   height: 36px;
   border: 1.5px solid #e0e2e6;
   border-radius: 20px;
+  color: #191b1e;
   background-color: #ffffff;
   font-size: 13px;
   font-weight: 600;
-  color: #191b1e;
   cursor: pointer;
 }
 
-/* 지갑 잔액 */
-.balance-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
+.quick-btn:active {
   background-color: #f4f5f7;
-  border-radius: 10px;
-}
-
-.wallet-icon { width: 20px; height: 20px; }
-
-.balance-label {
-  flex: 1;
-  font-size: 14px;
-  color: #8b9097;
-}
-
-.balance-amount {
-  font-size: 14px;
-  font-weight: 700;
-  color: #191b1e;
 }
 
 /* 보내기 버튼 */
 .submit-btn {
   width: 100%;
   height: 49px;
+  margin-top: 4px;
   border: none;
   border-radius: 10px;
+  color: #191b1e;
   background-color: #ffbc00;
   font-size: 16px;
   font-weight: 700;
-  color: #191b1e;
   cursor: pointer;
 }
 
@@ -346,13 +525,14 @@ function handleSend() {
   position: fixed;
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
+  z-index: 100;
   display: flex;
+  width: 360px;
   justify-content: space-around;
   padding: 10px 0 20px;
-  background-color: #ffffff;
   border-top: 1px solid #f0f1f3;
+  background-color: #ffffff;
+  transform: translateX(-50%);
 }
 
 .nav-item {
@@ -360,16 +540,20 @@ function handleSend() {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background: transparent;
+  padding: 0;
   border: none;
+  background: transparent;
   cursor: pointer;
 }
 
-.nav-icon { width: 24px; height: 24px; }
+.nav-icon {
+  width: 24px;
+  height: 24px;
+}
 
 .nav-label {
-  font-size: 11px;
   color: #8b9097;
+  font-size: 11px;
 }
 
 .nav-item-active .nav-label {

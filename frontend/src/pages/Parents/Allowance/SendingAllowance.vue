@@ -46,26 +46,94 @@
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
+import { useAuthStore } from '@/stores/auth'
+import { sendAllowance } from '@/api/allowance'
+
 const router = useRouter()
 const route = useRoute()
 
-onMounted(async () => {
-  // TODO: API 연동
-  // POST /api/v1/allowance/send
-  // body: { childId: route.query.childId, amount: route.query.amount }
-  // 성공 시 → SendComplete
-  // 실패(잔액부족) 시 → SendFail
+const authStore = useAuthStore()
 
-  // 임시: 2초 후 완료 페이지로
-  setTimeout(() => {
-    router.push({
-      path: '/parents/send/complete',
+onMounted(async () => {
+  const childId =
+    Number(route.query.childId)
+
+  const amount =
+    Number(route.query.amount)
+
+  const childName =
+    route.query.childName
+
+  const idempotencyKey =
+    route.query.idempotencyKey
+
+  if (
+    !childId ||
+    !amount ||
+    !idempotencyKey
+  ) {
+    router.replace({
+      path: '/parents/send/fail',
+
       query: {
-        amount: route.query.amount,
-        childName: route.query.childName,
+        message:
+          '송금 정보가 올바르지 않습니다.',
       },
     })
-  }, 2000)
+
+    return
+  }
+
+  try {
+    const res =
+      await sendAllowance(
+        childId,
+        amount,
+        authStore.accessToken,
+        idempotencyKey
+      )
+
+    router.replace({
+      path: '/parents/send/complete',
+
+      query: {
+        amount,
+        childName,
+
+        createdAt:
+          res?.data?.createdAt || '',
+      },
+    })
+
+  } catch (error) {
+    console.error(
+      '용돈 보내기 실패:',
+      error
+    )
+
+    if (error.status === 401) {
+      authStore.clearUser()
+      router.replace('/login')
+
+      return
+    }
+
+    router.replace({
+      path: '/parents/send/fail',
+
+      query: {
+        amount,
+        childName,
+
+        message:
+          error.message ||
+          '용돈 보내기에 실패했습니다.',
+
+        code:
+          error.code || '',
+      },
+    })
+  }
 })
 </script>
 

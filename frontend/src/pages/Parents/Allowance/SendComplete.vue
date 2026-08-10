@@ -18,7 +18,7 @@
           <span class="info-value">{{ Number(route.query.amount).toLocaleString() }}원</span>
         </div>
         <div class="info-row">
-          <span class="info-label">보내는 분</span>
+          <span class="info-label">받는 분</span>
           <span class="info-value">{{ route.query.childName }}</span>
         </div>
         <div class="info-row">
