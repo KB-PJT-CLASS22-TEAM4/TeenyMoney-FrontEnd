@@ -122,7 +122,7 @@
               <span class="benefit-title">{{ b.title }}</span>
               <span class="benefit-desc">{{ b.desc }}</span>
             </div>
-            <!-- 등급 조건 충족 시에만 초록 dot, 아니면 회색 -->
+            <!-- 등급 조건 충족 시에만 초록, 아니면 회색 -->
             <span class="benefit-dot" :class="{ inactive: !b.active }"></span>
           </div>
         </div>
@@ -172,27 +172,10 @@ const router = useRouter()
 
 // ==================================================================
 // API 연동 필요 (지금은 더미 데이터)
-// GET /api/child/score  같은 엔드포인트에서 아래 구조로 받아온다고 가정:
-// {
-//   score: number,   // 600~1000 범위
-//   weekly: [{ label, score }, ...],   // 최근 4주치, 마지막이 이번 주
-//   activities: [{ title, desc, diff }, ...],
-//   benefits: [{ title, desc, active }, ...]  // active: 현재 등급에서 적용되는지
-// }
-//
-// onMounted(async () => {
-//   const res = await api.get('/child/score')
-//   score.value = res.data.score
-//   weekly.value = res.data.weekly.map((w, i, arr) => ({ ...w, current: i === arr.length - 1 }))
-//   activities.value = res.data.activities
-//   benefits.value = res.data.benefits
-// })
 // ==================================================================
 
 const score = 850
 
-// grade는 API에서 내려주는 값이 아니라 score 기준으로 프론트에서 계산.
-// (백엔드가 grade 문자열을 따로 내려주면 이 함수는 지우고 res.data.grade를 그대로 쓰면 됨)
 // 600~1000점을 5등급으로 80점씩 균등 분할
 function getGradeByScore(s) {
   if (s >= 920) return '우수'
