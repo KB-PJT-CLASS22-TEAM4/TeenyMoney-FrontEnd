@@ -4,7 +4,7 @@
 
       <!-- 상단 네비  -->
       <div class="nav">
-        <button class="back-btn" @click="goBack">
+        <button class="back-btn" @click="goBack" aria-label="뒤로가기">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
             <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
                   stroke-linecap="round" stroke-linejoin="round"/>
@@ -15,7 +15,7 @@
 
       <!-- 점수 도넛 -->
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" @click="goGradeDetail" style="cursor: pointer;">
           <span class="card-title">티니 점수 등급 알아보기</span>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
             <path d="M9 6l6 6-6 6" stroke="#b9bec5" stroke-width="1.8"
@@ -39,11 +39,14 @@
 
         <div class="compare-row">
           <span class="compare-text">지난주 보다</span>
-          <div class="compare-badge">
-            <svg viewBox="0 0 10 10" width="10" height="10" fill="none">
+          <div class="compare-badge" :class="{ negative: scoreDiff < 0 }">
+            <svg v-if="scoreDiff >= 0" viewBox="0 0 10 10" width="10" height="10" fill="none">
               <path d="M5 2l4 6H1z" fill="#62b24a"/>
             </svg>
-            <span>+{{ scoreDiff }}점</span>
+            <svg v-else viewBox="0 0 10 10" width="10" height="10" fill="none">
+              <path d="M5 8L1 2h8z" fill="#e5484d"/>
+            </svg>
+            <span>{{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}점</span>
           </div>
         </div>
 
@@ -119,7 +122,8 @@
               <span class="benefit-title">{{ b.title }}</span>
               <span class="benefit-desc">{{ b.desc }}</span>
             </div>
-            <span class="benefit-dot"></span>
+            <!-- 등급 조건 충족 시에만 초록 dot, 아니면 회색 -->
+            <span class="benefit-dot" :class="{ inactive: !b.active }"></span>
           </div>
         </div>
       </div>
@@ -129,7 +133,7 @@
         <div class="card-header">
           <span class="card-title">최근 점수 변동</span>
           <span class="score-diff-text">
-            <b class="diff-val">+{{ scoreDiff }}</b>
+            <b class="diff-val" :class="{ minus: scoreDiff < 0 }">{{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}</b>
             <span class="diff-sub"> 이번 주</span>
           </span>
         </div>
@@ -142,7 +146,7 @@
               <span class="activity-desc">{{ a.desc }}</span>
             </div>
             <div class="activity-score">
-              <b :class="['score-val', a.diff > 0 ? 'plus' : 'minus']">
+              <b :class="['score-val', a.diff >= 0 ? 'plus' : 'minus']">
                 {{ a.diff > 0 ? '+' : '' }}{{ a.diff }}
               </b>
               <span class="score-unit">점</span>
@@ -150,7 +154,7 @@
           </div>
         </div>
 
-        <button class="more-btn" @click="goScoreHistory">전체 내역 보기 ›</button>
+        <button class="more-btn" @click="goGradeDetail">전체 내역 보기 ›</button>
       </div>
 
     </div>
@@ -166,13 +170,46 @@ import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
 const router = useRouter()
 
-// ==== API 연동 필요 (지금은 더미 데이터) ====
-const score     = 850
-const grade     = '양호'
-const scoreDiff = 15
+// ==================================================================
+// API 연동 필요 (지금은 더미 데이터)
+// GET /api/child/score  같은 엔드포인트에서 아래 구조로 받아온다고 가정:
+// {
+//   score: number,   // 600~1000 범위
+//   weekly: [{ label, score }, ...],   // 최근 4주치, 마지막이 이번 주
+//   activities: [{ title, desc, diff }, ...],
+//   benefits: [{ title, desc, active }, ...]  // active: 현재 등급에서 적용되는지
+// }
+//
+// onMounted(async () => {
+//   const res = await api.get('/child/score')
+//   score.value = res.data.score
+//   weekly.value = res.data.weekly.map((w, i, arr) => ({ ...w, current: i === arr.length - 1 }))
+//   activities.value = res.data.activities
+//   benefits.value = res.data.benefits
+// })
+// ==================================================================
+
+const score = 850
+
+// grade는 API에서 내려주는 값이 아니라 score 기준으로 프론트에서 계산.
+// (백엔드가 grade 문자열을 따로 내려주면 이 함수는 지우고 res.data.grade를 그대로 쓰면 됨)
+// 600~1000점을 5등급으로 80점씩 균등 분할
+function getGradeByScore(s) {
+  if (s >= 920) return '우수'
+  if (s >= 840) return '양호'
+  if (s >= 760) return '보통'
+  if (s >= 680) return '주의'
+  return '회복필요'
+}
+const grade = getGradeByScore(score)
+
+const SCORE_MIN = 600
+const SCORE_MAX = 1000
 
 const donutCircumference = 2 * Math.PI * 62
-const donutFill = computed(() => (score / 1000) * donutCircumference)
+const donutFill = computed(() =>
+  ((score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * donutCircumference
+)
 
 const grades = [
   { label: '회복필요', color: '#f08080' },
@@ -198,16 +235,26 @@ const weekly = [
   { label: getWeekLabel(0), score: 870, current: true  },
 ]
 
+// scoreDiff는 하드코딩하지 않고 weekly 마지막 두 값의 차이로 계산
+// (API 연동 후에도 weekly만 내려주면 이 값은 자동으로 맞음)
+const scoreDiff = computed(() => {
+  if (weekly.length < 2) return 0
+  const last = weekly[weekly.length - 1].score
+  const prev = weekly[weekly.length - 2].score
+  return last - prev
+})
+
 const svgW     = 280
-const svgH     = 190
+const svgH     = 169
 const paddingL = 52
 const paddingR = 16
-const paddingT = 55
+const paddingT = 34
 const paddingB = 22
 
+// 점수는 600점부터 시작. 도넛과 동일한 스케일로 통일.
 const Y_MAX = 1000
 const Y_MIN = 600
-const yLabels = [Y_MAX, 900, 800, 700, Y_MIN]
+const yLabels = [1000, 900, 800, 700, 600]
 
 function scoreToY(s) {
   return paddingT + ((Y_MAX - s) / (Y_MAX - Y_MIN)) * (svgH - paddingT - paddingB)
@@ -225,11 +272,13 @@ const areaPath = computed(() => {
   return `${line} L ${pointX(weekly.length - 1)} ${bottom} L ${pointX(0)} ${bottom} Z`
 })
 
+// benefits의 active는 현재 등급(grade)에 따라 결정되어야 함.
+// 지금은 예시로 '양호' 이상이면 전부 true로 더미 처리.
 const benefits = [
-  { title: '자유로운 결제',        desc: '대부분의 결제를 자유롭게 할 수 있어요' },
-  { title: '적금 우대금리 적용',    desc: '가입하는 적금의 우대금리를 받을 수 있어요' },
-  { title: '대출 금리 인하',        desc: '대출 금리가 0.3%로 내려가요' },
-  { title: '오늘만 허용 주의 해제', desc: '오늘만 허용 주의 해제 범위가 늘어나요' },
+  { title: '자유로운 결제',        desc: '대부분의 결제를 자유롭게 할 수 있어요',        active: true },
+  { title: '적금 우대금리 적용',    desc: '가입하는 적금의 우대금리를 받을 수 있어요',     active: true },
+  { title: '대출 금리 인하',        desc: '대출 금리가 0.3%로 내려가요',                  active: true },
+  { title: '오늘만 허용 주의 해제', desc: '오늘만 허용 주의 해제 범위가 늘어나요',         active: false },
 ]
 
 const activities = [
@@ -238,10 +287,14 @@ const activities = [
   { title: '위험 결제 시도', desc: '심야 편의점 · 3일 전', diff: -3 },
 ]
 
-function goBack() { router.push({ name: 'child-home' }) }
-function goScoreHistory() {
-  // TODO: router.push({ name: 'child-score-history' })
+function goBack() {
+  router.push({ name: 'child-home' })
 }
+
+function goGradeDetail() {
+  router.push({ name: 'child-score-grade' })
+}
+
 function onTabSelect(key) {
   if (key === 'home')    router.push({ name: 'child-home' })
   if (key === 'my')      router.push({ name: 'child-mypage' })
@@ -381,6 +434,11 @@ function onTabSelect(key) {
   color: #62b24a;
 }
 
+.compare-badge.negative {
+  background: #fbe9e9;
+  color: #e5484d;
+}
+
 .progress-wrap {
   padding: 0 0 18px;
 }
@@ -412,7 +470,7 @@ function onTabSelect(key) {
 }
 
 .line-chart-wrap {
-  padding-top: 16px;
+  padding-top: 6px;
   overflow: visible;
 }
 
@@ -467,6 +525,10 @@ function onTabSelect(key) {
   flex-shrink: 0;
 }
 
+.benefit-dot.inactive {
+  background: #d8dbe0;
+}
+
 .score-diff-text {
   display: flex;
   align-items: baseline;
@@ -477,6 +539,10 @@ function onTabSelect(key) {
   font-size: 13px;
   font-weight: 800;
   color: #4585d6;
+}
+
+.diff-val.minus {
+  color: #e5484d;
 }
 
 .diff-sub {
