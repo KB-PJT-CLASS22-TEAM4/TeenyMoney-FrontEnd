@@ -1,14 +1,12 @@
 <script setup>
-import { ref, computed , watch} from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getFinancialProducts } from '@/api/financialProduct'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
 const router = useRouter()
-
-// ============================================================
-//  [API 연동 필요] 금융상품 목록
-// 현재는 더미 데이터. 백엔드 API 나오면 products를 교체.
-// ============================================================
+const authStore = useAuthStore()
 
 // 탭: 신규 상품 / 나의 상품
 const activeTab = ref('신규 상품')
@@ -24,98 +22,106 @@ watch(activeTab, (val) => {
 const activeCategory = ref('전체')
 const categories = ['전체', '적금', '예금', '대출']
 
-// --- [더미] 상품 목록 → API의 products로 교체 ---
-const products = ref([
-  {
-    id: 1,
-    category: '적금',
-    badgeColor: 'blue',
-    title: '티니 꿈나무 적금',
-    desc: '매월 자동으로 모으는 목표 적금',
-    liked: false,
-    details: [
-      { label: '기간', value: '12개월 기준', color: '' },
-      { label: '납입한도', value: '월 최대 30만원', color: '' },
-      { label: '금리', value: '연 3.0~4.5%', color: 'blue' },
-      { label: '티니점수 조건', value: '양호등급 이상', color: 'green' },
-    ],
-  },
-  {
-    id: 2,
-    category: '적금',
-    badgeColor: 'blue',
-    title: '티니 첫걸음 적금',
-    desc: '처음 시작하는 소액 저축',
-    liked: false,
-    details: [
-      { label: '기간', value: '6개월 기준', color: '' },
-      { label: '납입한도', value: '월 최대 10만원', color: '' },
-      { label: '금리', value: '연 1.5~3.0%', color: 'blue' },
-      { label: '티니점수 조건', value: '보통등급 이상', color: 'yellow' },
-    ],
-  },
-  {
-    id: 3,
-    category: '예금',
-    badgeColor: 'blue',
-    title: '티니 스타 예금',
-    desc: '목표까지 안전하게 저축',
-    liked: false,
-    details: [
-      { label: '기간', value: '12개월 기준', color: '' },
-      { label: '예치한도', value: '최대 100만원', color: '' },
-      { label: '금리', value: '연 2.0~4.0%', color: 'blue' },
-      { label: '티니점수 조건', value: '보통등급 이상', color: 'yellow' },
-    ],
-  },
-  {
-    id: 4,
-    category: '대출',
-    badgeColor: 'orange',
-    title: '티니 선물 대출',
-    desc: '친구 생일선물을 미리 대출',
-    liked: false,
-    details: [
-      { label: '기간', value: '최대 3개월', color: '' },
-      { label: '대출한도', value: '최대 5만원', color: '' },
-      { label: '금리', value: '금리 2.0~3.0%', color: 'blue' },
-      { label: '티니점수 조건', value: '우수등급 이상', color: 'blue' },
-    ],
-  },
-])
+// 상품 타입 매핑
+const typeMap       = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
+const badgeColorMap = { DEPOSIT: 'blue', SAVING: 'blue', LOAN: 'orange' }
 
-// 선택한 종류에 맞는 상품만 + 찜한 것 위로 정렬
+// 티니점수 → 등급 변환 (600~1000 5등분, 80점 간격)
+function scoreToGrade(score) {
+  if (score >= 920) return '우수'
+  if (score >= 840) return '양호'
+  if (score >= 760) return '보통'
+  if (score >= 680) return '주의'
+  return '회복필요'
+}
+
+// 등급 → 색상
+const gradeColorMap = {
+  '우수':    'blue',
+  '양호':    'green',
+  '보통':    'yellow',
+  '주의':    'orange',
+  '회복필요': 'red',
+}
+
+// API 데이터 → 기존 구조 변환
+function mapProduct(p) {
+  const terms = p.availableTerms ?? []
+  const periodValue = terms.length === 1
+    ? `${terms[0]}개월`
+    : terms.length > 1
+      ? `${Math.min(...terms)}~${Math.max(...terms)}개월`
+      : '-'
+
+  const minRate = p.rates?.length ? Math.min(...p.rates.map(r => r.baseRate)) : null
+  const maxRate = p.rates?.length ? Math.max(...p.rates.map(r => r.expectedAppliedRate)) : null
+  const rateValue = minRate !== null ? `연 ${minRate}~${maxRate}%` : '-'
+
+  const limitLabel = p.productType === 'LOAN' ? '대출한도'
+    : p.productType === 'DEPOSIT' ? '예치한도' : '납입한도'
+
+  const scoreValue = p.minimumTeenyScore > 0
+    ? `${scoreToGrade(p.minimumTeenyScore)}등급 이상`
+    : '제한 없음'
+
+  const gradeName  = p.minimumTeenyScore > 0 ? scoreToGrade(p.minimumTeenyScore) : '회복필요'
+  const scoreColor = p.eligible ? gradeColorMap[gradeName] : 'red'
+
+  return {
+    id: p.productId,
+    category: typeMap[p.productType] ?? p.productType,
+    badgeColor: badgeColorMap[p.productType] ?? 'blue',
+    title: p.productName,
+    desc: p.financialCompanyName,
+    liked: false,
+    details: [
+      { label: '기간',         value: periodValue, color: '' },
+      { label: limitLabel,     value: '-',         color: '' },  // TODO: API에 한도 필드 없음 → 상세 API의 maximumAmount 활용 예정
+      { label: '금리',          value: rateValue,   color: 'blue' },
+      { label: '티니점수 조건',  value: scoreValue,  color: scoreColor },
+    ],
+  }
+}
+
+// [API] 금융상품 목록 조회
+const products = ref([])
+
+onMounted(async () => {
+  try {
+    const data = await getFinancialProducts(authStore.accessToken)
+console.log('점수 조건들:', data.map(p => ({ name: p.productName, score: p.minimumTeenyScore })))
+    products.value = data.map(mapProduct)
+  } catch (e) {
+    console.error('금융상품 조회 실패:', e.message)
+  }
+})
+
+// 필터 + 찜 정렬
 const filteredProducts = computed(() => {
-  // 1) 종류 필터 (전체면 다)
   const list = activeCategory.value === '전체'
     ? [...products.value]
     : products.value.filter((p) => p.category === activeCategory.value)
-
-  // 2) 찜한 것(liked=true)을 위로 정렬
-  //    liked끼리는 원래 순서 유지 (sort가 안정적)
   return list.sort((a, b) => Number(b.liked) - Number(a.liked))
 })
 
-// 별 찜 토글
+// 찜 토글
 function toggleLike(product) {
   product.liked = !product.liked
-  // TODO: [API] 찜하기/찜해제 요청
+  // TODO: POST /api/v1/financial-products/{id}/like
 }
 
 function goBack() {
-  router.push({ name: 'child-home' })  
+  router.push({ name: 'child-home' })
 }
 
-// 하단 탭 이동
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' })
-  if (key === 'report') router.push({ name: 'child-report' })
-  if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' })
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'report')  router.push({ name: 'child-report' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
 }
 
-// 스크롤할 때만 스크롤바 보이기
 const isScrolling = ref(false)
 let scrollTimer = null
 function onScroll() {
@@ -125,7 +131,7 @@ function onScroll() {
 }
 
 function goToApply(product) {
-  if (product.category === '대출') return  // 대출은 이동 안 함
+  if (product.category === '대출') return
 
   const detail = (label) => product.details.find((d) => d.label === label)
   router.push({
