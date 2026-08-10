@@ -83,6 +83,7 @@ import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
 import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
 import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
+import QuestList from '@/pages/Parents/Quest/QuestList.vue'
 
 
 const router = createRouter({
@@ -392,6 +393,11 @@ const router = createRouter({
   path: '/parents/children/:childId/teeny-score', 
   name: 'teeny-score', 
   component: TeenyScoring 
+},
+{
+  path: '/parents/quest',
+  name: 'parents-quest-list',
+  component: QuestList,
 }
 
   ],
