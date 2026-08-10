@@ -154,7 +154,7 @@ function onTabSelect(key) {
   if (key === 'my') router.push({ name: 'child-mypage' });
   if (key === 'q') router.push({ name: 'qr-scan' });
   if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
-  if (key === 'report') router.push({ name: 'child-report' })           
+  if (key === 'quest') router.push({ name: 'child-quest-list' })           
 }
 </script>
 
