@@ -74,21 +74,6 @@
               티니머니
             </span>
           </div>
-
-
-          <button
-            class="transaction-btn"
-            type="button"
-          >
-            <img
-              src="@/assets/icons/icon-clock.svg"
-              alt=""
-              class="transaction-icon"
-            />
-
-            <span>결제내역</span>
-          </button>
-
         </div>
 
 
@@ -117,12 +102,13 @@
           </div>
 
           <button
-            class="more-btn"
-            type="button"
-          >
-            기준 보기
-            <span>›</span>
-          </button>
+  class="more-btn"
+  type="button"
+  @click="router.push(`/parents/children/${childId}/teeny-score`)"
+>
+  기준 보기
+  <span>›</span>
+</button>
         </div>
 
 
@@ -224,6 +210,7 @@
           <button
             class="more-btn"
             type="button"
+            @click="router.push(`/parents/children/${childId}/finance`)"
           >
             상세보기
             <span>›</span>
