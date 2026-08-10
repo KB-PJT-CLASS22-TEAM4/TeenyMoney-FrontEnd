@@ -79,7 +79,7 @@ import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete
 import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
 import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
-import TeenyScore from '@/pages/Parents/TeenyScore.vue'
+import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
 
 
 const router = createRouter({
@@ -376,7 +376,7 @@ const router = createRouter({
 { 
   path: '/parents/children/:childId/teeny-score', 
   name: 'teeny-score', 
-  component: TeenyScore 
+  component: TeenyScoring 
 }
 
   ],

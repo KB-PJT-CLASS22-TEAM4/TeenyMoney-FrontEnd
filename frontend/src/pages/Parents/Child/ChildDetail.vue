@@ -74,21 +74,6 @@
               티니머니
             </span>
           </div>
-
-
-          <button
-            class="transaction-btn"
-            type="button"
-          >
-            <img
-              src="@/assets/icons/icon-clock.svg"
-              alt=""
-              class="transaction-icon"
-            />
-
-            <span>결제내역</span>
-          </button>
-
         </div>
 
 
