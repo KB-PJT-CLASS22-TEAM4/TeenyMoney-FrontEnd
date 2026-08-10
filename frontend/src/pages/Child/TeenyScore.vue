@@ -60,6 +60,13 @@
                   :style="{ color: i <= gradeIndex ? g.color : '#c6cbd2' }">{{ g.label }}</span>
           </div>
         </div>
+
+        <div v-if="nextGradeGap !== null" class="encourage-text">
+          다음 등급까지 <b>{{ nextGradeGap }}점</b> 남았어요! 조금만 더 힘내요 💪
+        </div>
+        <div v-else class="encourage-text">
+          최고 등급이에요! 지금처럼만 잘 관리해봐요 🎉
+        </div>
       </div>
 
       <!-- 주간 점수 변동  -->
@@ -111,8 +118,8 @@
       <!-- 등급 혜택 -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">우수 등급 혜택</span>
-          <div class="active-badge">{{ grade }}등급 적용 중</div>
+          <span class="card-title">{{ grade }} 등급 혜택</span>
+          <div class="active-badge">{{ gradeEmoji[grade] }} {{ grade }}등급 적용 중</div>
         </div>
 
         <div class="benefit-list">
@@ -122,7 +129,7 @@
               <span class="benefit-title">{{ b.title }}</span>
               <span class="benefit-desc">{{ b.desc }}</span>
             </div>
-            <!-- 등급 조건 충족 시에만 초록, 아니면 회색 -->
+            <!-- 등급 조건 충족 시에만 초록 dot, 아니면 회색 -->
             <span class="benefit-dot" :class="{ inactive: !b.active }"></span>
           </div>
         </div>
@@ -176,15 +183,18 @@ const router = useRouter()
 
 const score = 850
 
-// 600~1000점을 5등급으로 80점씩 균등 분할
+// grade는 API에서 내려주는 값이 아니라 score 기준으로 프론트에서 계산.
+// 600~1000점을 5등급으로 80점씩 균등 분할.
 function getGradeByScore(s) {
   if (s >= 920) return '우수'
   if (s >= 840) return '양호'
   if (s >= 760) return '보통'
   if (s >= 680) return '주의'
-  return '회복필요'
+  return '회복'
 }
 const grade = getGradeByScore(score)
+
+const gradeEmoji = { '회복': '🌱', '주의': '🍀', '보통': '🌳', '양호': '🍎', '우수': '⭐' }
 
 const SCORE_MIN = 600
 const SCORE_MAX = 1000
@@ -195,13 +205,21 @@ const donutFill = computed(() =>
 )
 
 const grades = [
-  { label: '회복필요', color: '#f08080' },
-  { label: '주의',    color: '#f4a86a' },
-  { label: '보통',    color: '#f0cc6a' },
-  { label: '양호',    color: '#72c472' },
-  { label: '우수',    color: '#7ab8f5' },
+  { label: '회복',   color: '#f08080' },
+  { label: '주의', color: '#f4a86a' },
+  { label: '보통',   color: '#f0cc6a' },
+  { label: '양호',   color: '#72c472' },
+  { label: '우수',     color: '#7ab8f5' },
 ]
 const gradeIndex = computed(() => grades.findIndex(g => g.label === grade))
+
+// 다음 등급까지 남은 점수 (격려 문구용). 이미 최고 등급이면 null.
+const GRADE_STEP = 80 // (SCORE_MAX - SCORE_MIN) / grades.length
+const nextGradeGap = computed(() => {
+  if (gradeIndex.value >= grades.length - 1) return null
+  const nextThreshold = 680 + gradeIndex.value * GRADE_STEP
+  return nextThreshold - score
+})
 
 function getWeekLabel(weeksAgo) {
   const date = new Date()
@@ -256,12 +274,13 @@ const areaPath = computed(() => {
 })
 
 // benefits의 active는 현재 등급(grade)에 따라 결정되어야 함.
-// 지금은 예시로 '양호' 이상이면 전부 true로 더미 처리.
+// 지금은 예시로 '열매' 등급 이상이면 앞 3개가 적용된다고 가정한 더미 데이터.
+// 성인 은행앱 문구(적금 우대금리/대출 금리 인하) 대신 아이가 체감할 수 있는 혜택으로 교체함.
 const benefits = [
-  { title: '자유로운 결제',        desc: '대부분의 결제를 자유롭게 할 수 있어요',        active: true },
-  { title: '적금 우대금리 적용',    desc: '가입하는 적금의 우대금리를 받을 수 있어요',     active: true },
-  { title: '대출 금리 인하',        desc: '대출 금리가 0.3%로 내려가요',                  active: true },
-  { title: '오늘만 허용 주의 해제', desc: '오늘만 허용 주의 해제 범위가 늘어나요',         active: false },
+  { title: '🛍️ 자유로운 결제',          desc: '대부분의 결제를 자유롭게 할 수 있어요',           active: true },
+  { title: '🐷 용돈 저금 보너스',         desc: '저금 목표를 달성하면 보너스 용돈을 받아요',        active: true },
+  { title: '🎁 특별 아이템 교환',         desc: '티니 포인트로 특별 아이템을 교환할 수 있어요',      active: true },
+  { title: '🔓 오늘만 허용 범위 확대',    desc: '오늘만 허용 요청 범위가 더 넓어져요',              active: false },
 ]
 
 const activities = [
@@ -330,16 +349,21 @@ function onTabSelect(key) {
 
 .back-btn {
   display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 0;
+  padding: 10px;
+  margin: -10px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .nav-title {
   margin: 0;
   font-weight: 700;
-  font-size: 15.4px;
+  font-size: 17px;
   color: #15171b;
 }
 
@@ -360,7 +384,7 @@ function onTabSelect(key) {
 
 .card-title {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14.5px;
   color: #191b1e;
 }
 
@@ -380,13 +404,13 @@ function onTabSelect(key) {
 }
 
 .donut-label {
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #b9bec5;
 }
 
 .donut-score {
-  font-size: 31px;
+  font-size: 34px;
   font-weight: 800;
   color: #15171b;
   letter-spacing: -0.62px;
@@ -401,7 +425,7 @@ function onTabSelect(key) {
 }
 
 .compare-text {
-  font-size: 11px;
+  font-size: 12px;
   color: #8b9097;
 }
 
@@ -413,7 +437,7 @@ function onTabSelect(key) {
   background: #e8f4e2;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
   color: #62b24a;
 }
 
@@ -446,10 +470,24 @@ function onTabSelect(key) {
 
 .grade-label {
   flex: 1;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 700;
   text-align: center;
   transition: color 0.3s ease;
+}
+
+.encourage-text {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7078;
+  padding-top: 14px;
+  border-top: 1.3px solid #f2f4f6;
+}
+
+.encourage-text b {
+  color: #ffbc00;
+  font-weight: 800;
 }
 
 .line-chart-wrap {
@@ -458,11 +496,11 @@ function onTabSelect(key) {
 }
 
 .active-badge {
-  padding: 2px 7px;
+  padding: 3px 8px;
   background: #e8f4e2;
   border-radius: 999px;
   font-weight: 700;
-  font-size: 9.5px;
+  font-size: 11px;
   color: #62b24a;
 }
 
@@ -490,13 +528,13 @@ function onTabSelect(key) {
 
 .benefit-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14.5px;
   color: #191b1e;
 }
 
 .benefit-desc {
   font-weight: 500;
-  font-size: 11px;
+  font-size: 12.5px;
   color: #b9bec5;
 }
 
@@ -519,7 +557,7 @@ function onTabSelect(key) {
 }
 
 .diff-val {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   color: #4585d6;
 }
@@ -529,7 +567,7 @@ function onTabSelect(key) {
 }
 
 .diff-sub {
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: #8b9097;
 }
 
@@ -557,13 +595,13 @@ function onTabSelect(key) {
 
 .activity-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14.5px;
   color: #15171b;
 }
 
 .activity-desc {
   font-weight: 500;
-  font-size: 10.5px;
+  font-size: 12px;
   color: #b9bec5;
 }
 
@@ -575,7 +613,7 @@ function onTabSelect(key) {
 }
 
 .score-val {
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 800;
   letter-spacing: -0.3px;
 }
@@ -589,21 +627,22 @@ function onTabSelect(key) {
 }
 
 .score-unit {
-  font-size: 9.5px;
+  font-size: 11px;
   color: #c6cbd2;
 }
 
 .more-btn {
   width: 100%;
-  padding: 12px 0 0;
+  padding: 14px 0 0;
   border: none;
   border-top: 1.3px solid #f2f4f6;
   background: transparent;
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #8b9097;
   cursor: pointer;
   text-align: center;
   margin-top: 4px;
+  min-height: 44px;
 }
 </style>
