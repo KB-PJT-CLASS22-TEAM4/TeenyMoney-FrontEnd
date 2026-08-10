@@ -160,7 +160,7 @@ function handleSend() {
 
   // 송금 진행
   router.push({
-    path: '/parents/send/processing',
+    path: '/parents/sending-allowance',
     query: {
       amount: amount.value,
       childName: selectedChild.value.name,

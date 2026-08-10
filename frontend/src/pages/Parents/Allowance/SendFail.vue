@@ -27,7 +27,7 @@
       </div>
 
       <!-- 버튼 -->
-      <button class="btn btn-secondary" @click="router.back()">결제수단 변경하기</button>
+      <button class="btn btn-secondary" @click="router.push('/parents/payment/change')">결제수단 변경하기</button>
       <button class="btn btn-primary" @click="router.push('/parents/charge')">금액 충전하기</button>
     </div>
   </div>

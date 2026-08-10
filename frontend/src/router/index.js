@@ -56,20 +56,25 @@ import QrScan from '@/pages/Child/Payment/QRscan.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
-import ChildList from '@/pages/Parents/ChildList.vue';
-import LinkCode from '@/pages/Parents/LinkCode.vue';
+import ChildList from '@/pages/Parents/Child/ChildList.vue';
+import LinkCode from '@/pages/Parents/Link/LinkCode.vue';
 
-import Charge from '@/pages/Parents/Charge.vue'
-import AutoCharge from '@/pages/Parents/AutoCharge.vue'
-import Charging from '@/pages/Parents/Charging.vue'
-import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
+import Charge from '@/pages/Parents/Charge/Charge.vue'
+import AutoCharge from '@/pages/Parents/Charge/AutoCharge.vue'
+import Charging from '@/pages/Parents/Charge/Charging.vue'
+import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
-import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
-import PlaceList from '@/pages/Parents/PlaceList.vue'
-import SendAllowance from '@/pages/Parents/SendAllowance.vue'
-import SendingAllowance from '@/pages/Parents/SendingAllowance.vue'
-import SendFail from '@/pages/Parents/SendFail.vue'
-import SendComplete from '@/pages/Parents/SendComplete.vue'
+import HarmfulCategory from '@/pages/Parents/Harmful/HarmfulCategory.vue'
+import PlaceList from '@/pages/Parents/Harmful/PlaceList.vue'
+import SendAllowance from '@/pages/Parents/Allowance/SendAllowance.vue'
+import SendingAllowance from '@/pages/Parents/Allowance/SendingAllowance.vue'
+import SendFail from '@/pages/Parents/Allowance/SendFail.vue'
+import SendComplete from '@/pages/Parents/Allowance/SendComplete.vue'
+import PaymentChange from '@/pages/Parents/Payment/PaymentChange.vue'
+import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete.vue'
+import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
+import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
+import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
 
 
 const router = createRouter({
@@ -325,7 +330,33 @@ const router = createRouter({
     { path: '/parents/send/complete', 
       name: 'send-complete', 
       component: SendComplete 
-    }
+    },
+    { 
+      path: '/parents/payment/change',
+     name: 'payment-change', 
+     component: PaymentChange 
+    },
+{ 
+  path: '/parents/payment/change-complete', 
+  name: 'payment-change-complete', 
+  component: PaymentChangeComplete 
+},
+{ 
+  path: '/parents/regular-allowance', 
+  name: 'regular-allowance', 
+  component: RegularAllowance 
+},
+{ 
+  path: '/parents/regular-allowance/complete', 
+  name: 'regular-allowance-complete', 
+  component: RegularAllowanceComplete 
+},
+{
+  path: '/parents/children/:childId',
+  name: 'parents-child-detail',
+  component: ChildDetail,
+}
+
   ],
 });
 

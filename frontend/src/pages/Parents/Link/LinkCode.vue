@@ -64,7 +64,7 @@
           <!-- 만료 전이거나 요청 중이면 재발급 버튼 비활성화 -->
           <button
             class="btn btn-primary"
-            :disabled="!isExpired || isLoading"
+            :disabled="isLoading"
             @click="generateCode"
           >
             {{ isLoading ? '발급 중...' : '새 코드 발급' }}
