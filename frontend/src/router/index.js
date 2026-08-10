@@ -54,6 +54,8 @@ import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
 import QrScan from '@/pages/Child/Payment/QRscan.vue';
 // 자녀 티니점수
 import TeenyScore from '@/pages/Child/TeenyScore.vue';
+// 자녀 티니점수 등급 상세
+import TeenyScoreGrade from '@/pages/Child/TeenyScoreGrade.vue';
 
 
 import ParentsHome from '@/pages/Parents/Home.vue';
@@ -310,6 +312,12 @@ const router = createRouter({
     path: '/child/score',
     name: 'child-score',
     component: TeenyScore,
+  },
+  // 자녀 티니점수 등급 상세
+  {
+    path: '/child/score/grade',
+    name: 'child-score-grade',
+    component: TeenyScoreGrade,
   },
     // QR스캔
     {
