@@ -20,7 +20,8 @@
       <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
       <div class="balance-text">
         <p class="balance-label">티니머니</p>
-        <p class="balance-amount">{{ balance }}원</p>
+        <!-- 잔액 -->
+<p class="balance-amount">{{ balance.toLocaleString() }}원</p>
       </div>
     </section>
 
@@ -91,70 +92,83 @@
 
 
 <script setup>
-import FinanceCard from '@/components/Child/FinanceCard.vue';
-import BottomTabBar from '@/components/Child/BottomTabBar.vue';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-const router = useRouter();
+import FinanceCard from '@/components/Child/FinanceCard.vue'
+import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useAllowRequestStore } from '@/stores/allowRequest'
+import { getMyWallet } from '@/api/wallet'
 
-const activeCard = ref(0);
-const scrollRef = ref(null);
-const hasUnread = ref(true); 
+const router     = useRouter()
+const authStore  = useAuthStore()
+const allowStore = useAllowRequestStore()
+
+const activeCard = ref(0)
+const scrollRef  = ref(null)
+const hasUnread  = ref(true)
 
 function onScroll() {
-  const el = scrollRef.value;
-  if (!el) return;
-  const maxScroll = el.scrollWidth - el.clientWidth;
-  const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-  activeCard.value = Math.round(ratio * (finances.length - 1));
+  const el = scrollRef.value
+  if (!el) return
+  const maxScroll = el.scrollWidth - el.clientWidth
+  const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0
+  activeCard.value = Math.round(ratio * (finances.value.length - 1))
 }
 
-function goNotification() {
-  router.push({ name: 'child-notification' });
-}
+function goNotification() { router.push({ name: 'child-notification' }) }
+function goPayment()      { router.push({ name: 'child-transaction' }) }
+function goScore()        { router.push({ name: 'child-score' }) }
+function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
 
+// 오늘만 허용 요청 상태 텍스트
+const statusText = computed(() => {
+  if (allowStore.status === 'PENDING')  return '승인 대기 중'
+  if (allowStore.status === 'APPROVED') return '승인 완료'
+  if (allowStore.status === 'REJECTED') return '승인 거부'
+  return ''
+})
 
-function goPayment() {
-  router.push({ name: 'child-transaction' })
-}
+// ==== API 연동 ====
+const userName     = ref('')
+const balance      = ref(0)
+const transactions = ref([])
 
+// TODO: 티니 점수 조회 API 연동 필요
+const score        = 850
+const grade        = '우수'
+const scorePercent = 70
 
-function goScore() {
-  router.push({ name: 'child-score' });
-}
-
-function goFinance() {
-  router.push({ name: 'child-finance-myproducts' })
-}
-
-
-// ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API] 사용자 정보 (이름)
-const userName = '김첫째';
-// [API] 잔액 조회
-const balance = '42,500';
-// [API] 티니 점수 조회 (점수 + 등급 + 진척도)
-const score = 850;
-const grade = '우수';
-const scorePercent = 70;
-// [API] 내 금융 상품 목록 (적금/예금/대출)
-const finances = [
+// TODO: 나의 금융 상품 API 연동 필요
+const finances = ref([
   { id: 1, type: '적금', rate: '연 4.5%', name: '티니 꿈나무 적금', amount: '90,000원', sub: '3 / 24개월', progress: 13, amountColor: '#15171b' },
   { id: 2, type: '예금', rate: '연 2.8%', name: '용돈 모으기 예금', amount: '35,000원', sub: '자유 입출금', progress: 60, amountColor: '#15171b' },
-];
-// [API] 최근 이용내역 (최근 3건)
-const transactions = [
-  { id: 1, date: '07.15  21:17', name: 'GS25 강남점', amount: -3200 },
-  { id: 2, date: '07.14  16:07', name: '교통카드 충전', amount: -10000 },
-  { id: 3, date: '07.13  15:50', name: '정기 용돈', amount: 15000 },
-];
+])
+
+onMounted(async () => {
+  try {
+    userName.value = authStore.name ?? ''
+
+    const res = await getMyWallet(authStore.accessToken)
+    balance.value = res.data.balance
+
+    transactions.value = res.data.recentTransactions.map(t => ({
+      id:     t.id,
+      date:   t.createdAt.slice(5, 16).replace('T', '  '),
+      name:   t.description,
+      amount: t.direction === 'CREDIT' ? t.amount : -t.amount,
+    }))
+  } catch (e) {
+    console.error('홈 데이터 조회 실패:', e.message)
+  }
+})
 
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' });
-  if (key === 'my') router.push({ name: 'child-mypage' });
-  if (key === 'q') router.push({ name: 'qr-scan' });
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
-  if (key === 'quest') router.push({ name: 'child-quest-list' })           
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
+  if (key === 'quest')   router.push({ name: 'child-quest-list' })
 }
 </script>
 
