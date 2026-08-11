@@ -13,38 +13,6 @@
         <h1 class="nav-title">{{ isViewOnly ? '제출한 인증' : '퀘스트 인증하기' }}</h1>
       </div>
 
-      <!-- 티니 코치 -->
-      <div class="coach-block">
-        <svg class="coach-avatar" viewBox="0 0 40 42" width="38" height="40">
-          <!-- 발 -->
-          <path d="M15 38l-2.5 3M15 38l1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M25 38l2.5 3M25 38l-1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
-          <!-- 몸통 -->
-          <ellipse cx="20" cy="27" rx="12.5" ry="10.5" fill="#ffcf3d"/>
-          <!-- 날개 -->
-          <ellipse cx="9.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(-18 9.5 27)"/>
-          <ellipse cx="30.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(18 30.5 27)"/>
-          <!-- 머리 -->
-          <circle cx="20" cy="13" r="9.5" fill="#ffdd5c"/>
-          <!-- 정수리 깃털 -->
-          <path d="M18.5 3.5c-.6-1.6.4-3 1.8-3.3-.2 1.5-.7 2.6-1.8 3.3z" fill="#f2b400"/>
-          <!-- 볼터치 -->
-          <circle cx="13.3" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
-          <circle cx="26.7" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
-          <!-- 눈 -->
-          <circle cx="16.3" cy="12" r="1.5" fill="#3a2b00"/>
-          <circle cx="23.7" cy="12" r="1.5" fill="#3a2b00"/>
-          <circle cx="16.8" cy="11.5" r=".4" fill="#fff"/>
-          <circle cx="24.2" cy="11.5" r=".4" fill="#fff"/>
-          <!-- 부리 -->
-          <path d="M17.8 15.3h4.4c.3 0 .5.35.3.6l-2 2.3c-.25.3-.75.3-1 0l-2-2.3c-.2-.25 0-.6.3-.6z" fill="#f2971f"/>
-        </svg>
-        <div class="coach-bubble">
-          <span class="coach-name">티니 코치</span>
-          <p class="coach-text">{{ coachMessage }}</p>
-        </div>
-      </div>
-
       <!-- 퀘스트 요약 카드 -->
       <div class="card summary-card">
         <div class="summary-head">
@@ -159,6 +127,39 @@
                   placeholder="어떻게 수행했는지 알려주세요"></textarea>
       </div>
 
+      <!-- 티니 코치 (하단 제출 버튼 바로 위로 이동) -->
+      <div class="coach-block">
+        <svg class="coach-avatar" viewBox="0 0 40 42" width="38" height="40">
+          <!-- 발 -->
+          <path d="M15 38l-2.5 3M15 38l1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M25 38l2.5 3M25 38l-1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
+          <!-- 몸통 -->
+          <ellipse cx="20" cy="27" rx="12.5" ry="10.5" fill="#ffcf3d"/>
+          <!-- 날개 -->
+          <ellipse cx="9.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(-18 9.5 27)"/>
+          <ellipse cx="30.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(18 30.5 27)"/>
+          <!-- 머리 -->
+          <circle cx="20" cy="13" r="9.5" fill="#ffdd5c"/>
+          <!-- 정수리 깃털 -->
+          <path d="M18.5 3.5c-.6-1.6.4-3 1.8-3.3-.2 1.5-.7 2.6-1.8 3.3z" fill="#f2b400"/>
+          <!-- 볼터치 -->
+          <circle cx="13.3" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
+          <circle cx="26.7" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
+          <!-- 눈 -->
+          <circle cx="16.3" cy="12" r="1.5" fill="#3a2b00"/>
+          <circle cx="23.7" cy="12" r="1.5" fill="#3a2b00"/>
+          <circle cx="16.8" cy="11.5" r=".4" fill="#fff"/>
+          <circle cx="24.2" cy="11.5" r=".4" fill="#fff"/>
+          <!-- 부리 -->
+          <path d="M17.8 15.3h4.4c.3 0 .5.35.3.6l-2 2.3c-.25.3-.75.3-1 0l-2-2.3c-.2-.25 0-.6.3-.6z" fill="#f2971f"/>
+        </svg>
+        <div class="coach-bubble">
+          <span class="coach-name">티니 코치</span>
+          <p class="coach-text">{{ coachMessage }}</p>
+        </div>
+      </div>
+
+      <!-- 제출 버튼 또는 대기 안내 -->
       <button v-if="!isViewOnly" class="btn-submit" :disabled="!canSubmit" @click="submit">
         {{ quest.subStatus === 'REJECTED' ? '다시 인증하기' : '퀘스트 인증하기' }}
       </button>
@@ -232,9 +233,9 @@ const iconColor = computed(() => STATUS_ICON_COLORS[quest.value.subStatus] ?? ST
 // 티니 코치 - 상태별 격려/안내 메시지
 const coachMessage = computed(() => {
   const s = quest.value.subStatus
-  if (s === 'REJECTED') return '반려 사유를 확인하고 다시 찍어서 올리면 돼요. 이번엔 성공할 수 있어요!'
-  if (isViewOnly.value) return '부모님이 확인하고 있어요. 조금만 기다려요!'
-  return '사진이랑 인증 내용을 올리면 부모님이 확인하고 승인해주실 거예요.'
+  if (s === 'REJECTED') return '반려 사유를 확인하고 다시 찍어서 올리면 돼요! 이번엔 성공할 수 있어요!'
+  if (isViewOnly.value) return '부모님이 확인하고 있어요! 조금만 기다려요!'
+  return '지금 보내면 바꾸거나 취소할 수 없어요! \n 이대로 부모님께 인증을 보낼까요?'
 })
 
 const photoRequired = computed(() => true)
@@ -443,6 +444,7 @@ onBeforeUnmount(() => {
   line-height: 16.5px;
   word-break: keep-all;
   overflow-wrap: break-word;
+  white-space: pre-line;
 }
 
 .card {
