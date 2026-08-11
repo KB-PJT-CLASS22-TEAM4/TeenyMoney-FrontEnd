@@ -65,7 +65,7 @@
           >
             <div class="quest-item-left">
               <div class="quest-icon-wrap">
-                <img src="@/assets/icons/icon-quest-item.svg" alt="" class="quest-icon" />
+                <img src="@/assets/logo.svg" alt="" class="quest-icon" />
               </div>
               <div>
                 <div class="quest-meta">
