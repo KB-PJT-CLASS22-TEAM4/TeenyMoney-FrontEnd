@@ -281,17 +281,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getQuests } from '@/api/quest'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
-const router = useRouter()
-
-// ==================================================================
-// API 연동 필요 (지금은 더미 데이터)
-// GET /quests?tab=AVAILABLE|ONGOING|COMPLETED (QUEST_FEATURE_DESIGN.md 15.1 API 후보 기준)
-// 15장 API/트랜잭션 설계가 아직 최종 승인 전이라 경로/파라미터는 바뀔 수 있음.
-// ==================================================================
+const router    = useRouter()
+const authStore = useAuthStore()
 
 const tabs = [
   { key: 'available', label: '시작 가능' },
@@ -300,35 +297,70 @@ const tabs = [
 ]
 const activeTab = ref('available')
 
-const availableQuests = ref([
-  {
-    id: 1, title: '방 청소하기',
-    content: '침대 정리하고 바닥에 있는 물건들을 제자리에 정리해주세요. 청소 후 사진으로 인증해주세요!',
-    dDay: 3, rewardAmount: 2000, teenyScoreTarget: true, favorited: false,
-  },
-  {
-    id: 2, title: '숙제 끝내기',
-    content: '오늘 학교 숙제를 다 끝내고 완료한 모습을 사진으로 남겨주세요.',
-    dDay: 1, rewardAmount: 1000, teenyScoreTarget: true, favorited: true,
-  },
-  {
-    id: 3, title: '강아지 산책시키기',
-    content: '초코랑 30분 정도 동네 산책 다녀와주세요.',
-    dDay: 5, rewardAmount: 0, teenyScoreTarget: true, favorited: false,
-  },
-  {
-    id: 11, title: '설거지 돕기',
-    content: '저녁 먹고 나서 설거지를 도와주세요.',
-    dDay: 2, rewardAmount: 800, teenyScoreTarget: false, favorited: false,
-  },
-  {
-    id: 12, title: '책상 정리하기',
-    content: '책상 위 물건들을 제자리에 정리해주세요.',
-    dDay: 6, rewardAmount: 700, teenyScoreTarget: true, favorited: false,
-  },
-])
+// API 탭 키 매핑
+const tabKeyMap = { available: 'AVAILABLE', ongoing: 'ONGOING', completed: 'COMPLETED' }
 
-// TODO: PATCH /quests/{q.id}/favorite 연동 (즐겨찾기 토글). 지금은 로컬 상태만 바뀜.
+// API 응답 → 기존 구조 변환
+function mapAvailable(q) {
+  return {
+    id:               q.questId,
+    title:            q.title,
+    content:          q.title,  // TODO: 상세 API에 content 필드 있으면 교체
+    dDay:             q.deadline
+      ? Math.ceil((new Date(q.deadline) - new Date()) / (1000 * 60 * 60 * 24))
+      : 0,
+    rewardAmount:     q.rewardAmount,
+    teenyScoreTarget: q.teenyScoreEnabled,
+    favorited:        false,
+  }
+}
+
+function mapOngoing(q) {
+  return {
+    id:             q.questId,
+    title:          q.title,
+    subStatus:      q.status,
+    score:          0,
+    dDay:           q.deadline
+      ? Math.ceil((new Date(q.deadline) - new Date()) / (1000 * 60 * 60 * 24))
+      : 0,
+    rewardAmount:   q.rewardAmount,
+    remainingCount: q.remainingCount,
+  }
+}
+
+function mapCompleted(q) {
+  return {
+    id:           q.questId,
+    title:        q.title,
+    endedAt:      q.endedAt ? q.endedAt.slice(0, 10).replace(/-/g, '.') : '',
+    resultStatus: q.status,
+    scoreDelta:   0,
+    rewardAmount: q.rewardAmount,
+  }
+}
+
+// [API] 퀘스트 목록
+const availableQuests = ref([])
+const ongoingQuests   = ref([])
+const completedQuests = ref([])
+
+async function fetchQuests(tab) {
+  try {
+    const data = await getQuests(authStore.accessToken, { tab: tabKeyMap[tab] })
+    console.log('퀘스트 응답:', data)
+    if (tab === 'available') availableQuests.value = data.items.map(mapAvailable)
+    if (tab === 'ongoing')   ongoingQuests.value   = data.items.map(mapOngoing)
+    if (tab === 'completed') completedQuests.value  = data.items.map(mapCompleted)
+  } catch (e) {
+    console.error('퀘스트 조회 실패:', e.message)
+  }
+}
+
+onMounted(() => fetchQuests('available'))
+watch(activeTab, (tab) => fetchQuests(tab))
+
+// TODO: PATCH /quests/{q.id}/favorite 연동 후 서버 상태 반영
 function toggleFavorite(q) {
   q.favorited = !q.favorited
 }
@@ -339,20 +371,8 @@ const filteredAvailable = computed(() => {
   const list = !searchText.value.trim()
     ? [...availableQuests.value]
     : availableQuests.value.filter(q => q.title.includes(searchText.value.trim()))
-
-  // 찜한 것(favorited=true)을 위로 정렬. 안정 정렬이라 찜한 것끼리는 원래 순서 유지.
   return list.sort((a, b) => Number(b.favorited) - Number(a.favorited))
 })
-
-const ongoingQuests = ref([
-  { id: 4, title: '화분 물 주기', subStatus: 'IN_PROGRESS', score: 2, dDay: 2, rewardAmount: 500 },
-  { id: 5, title: '강아지 산책시키기', subStatus: 'PENDING', score: 4, dDay: 1, submittedAt: '08.09', rewardAmount: 1200 },
-  {
-    id: 6, title: '영어 단어 20개 외우기',
-    subStatus: 'REJECTED', score: 5, dDay: 3, rewardAmount: 1500,
-    lastRejectionReason: '인증하기 어려워요', remainingCount: 2,
-  },
-])
 
 const ONGOING_ORDER = ['IN_PROGRESS', 'PENDING', 'REJECTED']
 const ongoingGroups = computed(() => {
@@ -365,13 +385,6 @@ const ongoingGroups = computed(() => {
     .filter(g => g.items.length > 0)
 })
 
-const completedQuests = ref([
-  { id: 7, title: '방 청소하기',   endedAt: '2026.08.09', resultStatus: 'COMPLETED', scoreDelta: 3,  rewardAmount: 2000 },
-  { id: 8, title: '독서 30분',      endedAt: '2026.08.09', resultStatus: 'DECLINED',  scoreDelta: 0,  rewardAmount: 0 },
-  { id: 9, title: '손 씻기 실천',    endedAt: '2026.08.07', resultStatus: 'FAILED',    scoreDelta: -2, rewardAmount: 0 },
-  { id: 10, title: '분리수거 하기',  endedAt: '2026.08.05', resultStatus: 'EXPIRED',   scoreDelta: 0,  rewardAmount: 0 },
-])
-
 const completedGroups = computed(() => {
   const map = new Map()
   for (const q of completedQuests.value) {
@@ -383,7 +396,7 @@ const completedGroups = computed(() => {
 
 const tabCounts = computed(() => ({
   available: availableQuests.value.length,
-  ongoing: ongoingQuests.value.length,
+  ongoing:   ongoingQuests.value.length,
   completed: completedQuests.value.length,
 }))
 
@@ -397,10 +410,9 @@ function resultBadge(status) {
   if (status === 'COMPLETED') return { label: '성공',      class: 'status-success' }
   if (status === 'FAILED')    return { label: '실패',      class: 'status-failed' }
   if (status === 'EXPIRED')   return { label: '기한 만료', class: 'status-neutral' }
-  return { label: '거절함', class: 'status-neutral' } // DECLINED
+  return { label: '거절함', class: 'status-neutral' }
 }
 
-// 상태 뱃지 class를 그대로 받아 아이콘 배경/선 색으로 매핑 (은행앱처럼 아이콘 색으로도 상태가 읽히게)
 const STATUS_ICON_COLORS = {
   'status-progress': { bg: '#e8f0fb', stroke: '#4585d6' },
   'status-pending':  { bg: '#fff6dd', stroke: '#d99a00' },
@@ -413,20 +425,19 @@ function statusIconColor(statusClass) {
   return STATUS_ICON_COLORS[statusClass] ?? STATUS_ICON_COLORS['status-neutral']
 }
 
-// 거절 사유 코드는 QUEST_FEATURE_DESIGN.md 7장 확정 사항 그대로 사용
 const declineReasons = [
-  { code: 'NOT_ENOUGH_TIME',    label: '시간이 부족해요' },
-  { code: 'TOO_DIFFICULT',      label: '너무 어려워요' },
-  { code: 'REWARD_NOT_ENOUGH',  label: '보상이 부족해요' },
-  { code: 'HARD_TO_VERIFY',     label: '인증하기 어려워요' },
-  { code: 'CANNOT_DO_NOW',      label: '지금은 할 수 없어요' },
-  { code: 'OTHER',              label: '기타' },
+  { code: 'NOT_ENOUGH_TIME',   label: '시간이 부족해요' },
+  { code: 'TOO_DIFFICULT',     label: '너무 어려워요' },
+  { code: 'REWARD_NOT_ENOUGH', label: '보상이 부족해요' },
+  { code: 'HARD_TO_VERIFY',    label: '인증하기 어려워요' },
+  { code: 'CANNOT_DO_NOW',     label: '지금은 할 수 없어요' },
+  { code: 'OTHER',             label: '기타' },
 ]
 
-const expandedId = ref(null)
-const decliningId = ref(null)
+const expandedId      = ref(null)
+const decliningId     = ref(null)
 const declineReasonCode = ref('')
-const declineDetail = ref('')
+const declineDetail   = ref('')
 
 function toggleExpand(id) {
   expandedId.value = expandedId.value === id ? null : id
@@ -434,15 +445,15 @@ function toggleExpand(id) {
 }
 
 function startDecline(id) {
-  decliningId.value = id
+  decliningId.value     = id
   declineReasonCode.value = ''
-  declineDetail.value = ''
+  declineDetail.value   = ''
 }
 
 function cancelDecline() {
-  decliningId.value = null
+  decliningId.value     = null
   declineReasonCode.value = ''
-  declineDetail.value = ''
+  declineDetail.value   = ''
 }
 
 const canConfirmDecline = computed(() => {
@@ -452,14 +463,14 @@ const canConfirmDecline = computed(() => {
 })
 
 function acceptQuest(q) {
-  // TODO: PATCH /quests/{q.id}/accept 연동 후, 성공하면 availableQuests에서 제거하고
-  // ongoingQuests에 subStatus: 'IN_PROGRESS'로 추가
+  // TODO: PATCH /api/v1/quests/{q.id}/accept 연동
   console.log('accept', q.id)
   expandedId.value = null
 }
 
 function confirmDecline(q) {
-  // TODO: PATCH /quests/{q.id}/decline 연동 { reasonCode: declineReasonCode, detail: declineDetail }
+  // TODO: PATCH /api/v1/quests/{q.id}/decline 연동
+  // body: { reasonCode: declineReasonCode, detail: declineDetail }
   console.log('decline', q.id, declineReasonCode.value, declineDetail.value)
   cancelDecline()
   expandedId.value = null
