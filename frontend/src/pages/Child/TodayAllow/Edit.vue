@@ -1,9 +1,9 @@
 <template>
   <div class="allow-screen">
-    <!-- 본문 (스크롤) -->
+    <!-- 본문 (상단 네비 및 하단 버튼을 스크롤 내부로 포함하여 고정 해제) -->
     <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
       
-      <!-- 상단 네비 -->
+      <!-- 상단 네비 (고정 해제됨) -->
       <nav class="nav">
         <button class="back-btn" aria-label="뒤로" @click="goBack">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -11,17 +11,15 @@
                   stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-        <h1 class="nav-title">오늘만 허용 요청</h1>
+        <h1 class="nav-title">오늘만 허용 수정하기</h1>
       </nav>
 
-      <!-- 🐥 티니 코치 말풍선 카드 (요청하기 전용 문구) -->
+      <!-- 🐥 티니 코치 말풍선 카드 -->
       <section class="teeny-coach-card">
         <img :src="teenyCoachImg" class="coach-mascot" alt="티니 코치" />
         <div class="speech-bubble">
           <div class="coach-title">티니 코치</div>
-          <p class="coach-msg">
-            부모님이 <span class="hl hl--watch">주의</span> 또는 <span class="hl hl--block">차단</span>으로 설정한 업종을 <br/> 오늘만 허용 요청해보세요!
-          </p>
+          <p class="coach-msg">부모님이 확인하시기 전에 요청 내용이나 사유를 수정할 수 있어요!</p>
         </div>
       </section>
 
@@ -72,7 +70,7 @@
       </div>
       <p class="helper">사유를 자세히 적을수록 승인될 확률이 높아요</p>
 
-      <!-- 하단 선택 바 & 요청 보내기 버튼 (단일 버튼) -->
+      <!-- 하단 선택 바 & 버튼 영역 -->
       <div class="footer-area">
         <div class="selected-bar">
           <span class="selected-title">선택한 업종</span>
@@ -91,11 +89,15 @@
           </div>
         </div>
         
-        <button class="submit" :disabled="!canSubmit" @click="onSubmit">요청 보내기</button>
+        <!-- 수정하기 / 취소하기 버튼 영역 -->
+        <div class="action-buttons">
+          <button class="submit" :disabled="!canSubmit" @click="onSubmitEdit">수정 완료</button>
+          <button class="btn-delete" @click="showDeleteModal = true">요청 취소하기</button>
+        </div>
       </div>
     </main>
 
-    <!-- 어린이 친화적 차단 업종 경고 모달 -->
+    <!-- 1. 차단 업종 경고 모달 -->
     <Transition name="bounce">
       <div v-if="showBlockWarningModal" class="modal-overlay" @click.self="showBlockWarningModal = false">
         <div class="modal-card">
@@ -108,15 +110,40 @@
               부모님이 <span class="highlight-block">차단</span>해둔 업종이 들어있어요!
             </p>
             <div class="warning-box">
-              <span>이대로 요청하면 <strong class="highlight-score">티니점수가 차감</strong>될 수 있어요</span>
+              <span>이대로 수정하면 <strong class="highlight-score">티니점수가 차감</strong>될 수 있어요</span>
             </div>
           </div>
           <div class="modal-actions">
             <button class="btn-kids btn-kids--cancel" @click="showBlockWarningModal = false">
               다시 골라볼래요
             </button>
-            <button class="btn-kids btn-kids--confirm" @click="processSubmit">
-              그래도 요청할래요
+            <button class="btn-kids btn-kids--confirm" @click="processEdit">
+              그래도 수정할래요
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 2. 요청 삭제/취소 확인 모달 -->
+    <Transition name="bounce">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
+        <div class="modal-card">
+          <div class="modal-badge">
+            <span class="badge-icon">🚨</span>
+          </div>
+          <h3 class="modal-title">요청을 취소할까요?</h3>
+          <div class="modal-body">
+            <p class="modal-text">
+              취소하면 부모님께 보낸 요청이 사라져요!
+            </p>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-kids btn-kids--cancel" @click="showDeleteModal = false">
+              아니요
+            </button>
+            <button class="btn-kids btn-kids--confirm" @click="processDelete">
+              취소할래요
             </button>
           </div>
         </div>
@@ -126,13 +153,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 
 const router = useRouter()
+const route = useRoute()
 const allowStore = useAllowRequestStore()
 
+// 3D 학사모 티니 코치 이미지 연결
 const teenyCoachImg = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
 const watchCategories = ref([
@@ -161,7 +190,9 @@ const selectedBlockIds = ref([])
 const reason = ref('')
 const MAX_LEN = 100
 
+// 모달 제어 상태
 const showBlockWarningModal = ref(false)
+const showDeleteModal = ref(false)
 
 const isWatchSelected = (id) => selectedWatchIds.value.includes(id)
 const isBlockSelected = (id) => selectedBlockIds.value.includes(id)
@@ -194,6 +225,7 @@ const allSelectedCategories = computed(() => [
 const hasBlockSelected = computed(() => selectedBlockIds.value.length > 0)
 const canSubmit = computed(() => allSelectedCategories.value.length > 0)
 
+// 스크롤 표시 제어
 const scrolling = ref(false)
 let scrollTimer = null
 function onScroll() {
@@ -202,11 +234,20 @@ function onScroll() {
   scrollTimer = setTimeout(() => (scrolling.value = false), 600)
 }
 
+// 수정 데이터 초기화
+onMounted(() => {
+  if (route.query.id) {
+    selectedWatchIds.value = ['pc']
+    reason.value = '친구들과 숙제 끝내고 1시간만 이용하고 싶어요!'
+  }
+})
+
 function goBack() {
   router.push({ name: 'child-home' })
 }
 
-function onSubmit() {
+// 수정 완료 클릭 시 처리
+function onSubmitEdit() {
   if (!canSubmit.value) return
 
   if (hasBlockSelected.value) {
@@ -214,10 +255,11 @@ function onSubmit() {
     return
   }
 
-  processSubmit()
+  processEdit()
 }
 
-function processSubmit() {
+// 수정 프로세스 진행
+function processEdit() {
   showBlockWarningModal.value = false
 
   allowStore.set(
@@ -226,7 +268,13 @@ function processSubmit() {
     reason.value.trim(),
   )
 
-  router.push({ name: 'child-todayallow-confirm' })
+  router.push({ name: 'child-home' })
+}
+
+// 요청 취소(삭제) 프로세스 진행
+function processDelete() {
+  showDeleteModal.value = false
+  router.push({ name: 'child-home' })
 }
 </script>
 
@@ -244,11 +292,12 @@ function processSubmit() {
   overflow: hidden;
 }
 
+/* 상단 네비 (스크롤 내부로 포함되어 고정 해제) */
 .nav {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 55px 0 12px;
+  padding: 50px 0 12px;
 }
 
 .back-btn {
@@ -269,7 +318,7 @@ function processSubmit() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px;
+  padding: 10px 20px 20px;
 }
 
 .scroll::-webkit-scrollbar { width: 3px; }
@@ -350,15 +399,6 @@ function processSubmit() {
   color: #4a4d52; /* #33363b에서 눈이 편안한 #4a4d52로 수정 */
   line-height: 1.35;
   word-break: keep-all;
-}
-
-.hl--watch {
-  color: #e0a500;
-  font-weight: 800;
-}
-.hl--block {
-  color: #e5484d;
-  font-weight: 800;
 }
 
 .section-title {
@@ -510,9 +550,15 @@ function processSubmit() {
   color: #ffffff;
 }
 
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .submit {
   width: 100%;
-  padding: 15px 0;
+  padding: 14px 0;
   border: none;
   border-radius: 14px;
   background: #ffbc00;
@@ -528,6 +574,25 @@ function processSubmit() {
   cursor: not-allowed;
 }
 
+.btn-delete {
+  width: 100%;
+  padding: 13px 0;
+  border: none;
+  border-radius: 14px;
+  background: #f1f3f5;
+  color: #5c626a;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-delete:active {
+  background: #e2e6ea;
+}
+
+/* 모달 스타일 */
 .modal-overlay {
   position: absolute;
   top: 0;
