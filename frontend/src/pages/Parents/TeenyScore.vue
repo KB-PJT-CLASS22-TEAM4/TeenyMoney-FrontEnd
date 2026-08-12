@@ -98,7 +98,6 @@
       <!-- 신뢰도 점수란? -->
       <div class="info-card">
         <div class="info-header">
-          <span class="info-icon">?</span>
           <p class="info-title">신뢰도 점수란?</p>
         </div>
         <p class="info-text">

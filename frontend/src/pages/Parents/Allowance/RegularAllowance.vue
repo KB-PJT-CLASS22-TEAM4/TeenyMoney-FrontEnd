@@ -573,7 +573,7 @@ button {
   flex-direction: column;
   margin: 0 auto;
   padding-bottom: 70px;
-  background-color: #f4f5f7;
+  background-color: white;
 }
 
 /* 헤더 */
@@ -690,7 +690,7 @@ button {
   border: none;
   border-radius: 12px;
   color: #8b9097;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -709,7 +709,7 @@ button {
   gap: 8px;
   padding: 16px;
   border-radius: 12px;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
 }
 
 .day-input {
@@ -738,7 +738,7 @@ button {
   margin-bottom: 12px;
   padding: 16px;
   border-radius: 12px;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
 }
 
 .amount-input {
@@ -805,7 +805,7 @@ button {
   gap: 8px;
   padding: 16px;
   border-radius: 12px;
-  background-color: white;
+  background-color: #f4f5f7;
 }
 
 .notice-header {

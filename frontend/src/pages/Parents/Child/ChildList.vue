@@ -129,7 +129,7 @@ function goToDetail(id) {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #f4f5f7;
+  background-color: white;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -189,8 +189,9 @@ function goToDetail(id) {
 }
 
 .child-card {
-  background-color: #ffffff;
+  background-color: white;
   border-radius: 16px;
+  border: 1px solid #f0f1f3;
   padding: 16px;
   display: flex;
   flex-direction: column;

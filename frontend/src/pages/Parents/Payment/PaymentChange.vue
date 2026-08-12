@@ -130,7 +130,7 @@ async function handleChange() {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #f4f5f7;
+  background-color: white;
   display: flex;
   flex-direction: column;
   padding-bottom: 140px;

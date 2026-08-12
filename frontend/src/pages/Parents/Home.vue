@@ -318,10 +318,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 
-/* =========================
-   지갑 상태
-========================= */
 
+// 지갑 상태
 const isWalletLoading = ref(false)
 const walletError = ref('')
 
@@ -332,17 +330,13 @@ const wallet = reactive({
 })
 
 
-/* =========================
-   최근 거래내역
-========================= */
 
+// 최근 거래 내역
 const recentTransactions = ref([])
 
 
-/* =========================
-   지갑 + 최근 거래 조회
-========================= */
 
+// 최근 거래 조회
 async function fetchWallet() {
 
   isWalletLoading.value = true
@@ -378,10 +372,7 @@ async function fetchWallet() {
         res.data.updatedAt || ''
 
 
-      /*
-       * Swagger 응답의
-       * recentTransactions 그대로 저장
-       */
+      /* Swagger 응답의 recentTransactions 그대로 저장 */
       recentTransactions.value =
         res.data.recentTransactions || []
 
@@ -395,9 +386,7 @@ async function fetchWallet() {
     )
 
 
-    /*
-     * Access Token 만료/인증 실패
-     */
+    // Access Token 만료 시
     if (error.status === 401) {
 
       authStore.clearUser()
@@ -421,20 +410,15 @@ async function fetchWallet() {
 }
 
 
-/* =========================
-   거래 금액 표시
-========================= */
 
+// 거래 금액 표시
 function getAmountText(item) {
 
   const amount =
     Math.abs(Number(item.amount || 0))
 
-  /*
-   * CREDIT = 입금
-   * DEBIT = 출금
-   */
-
+  
+  // CREDIT(+) / DEBIT(-) 표시
   if (item.direction === 'CREDIT') {
 
     return `+${amount.toLocaleString()} 원`
@@ -449,18 +433,14 @@ function getAmountText(item) {
   }
 
 
-  /*
-   * 혹시 direction 값이 없을 경우
-   */
+  /* 혹시 direction 값이 없을 경우 */
   return `${Number(item.amount || 0).toLocaleString()} 원`
 
 }
 
 
-/* =========================
-   거래 날짜 표시
-========================= */
 
+// 거래 시간 표시
 function formatTransactionDate(createdAt) {
 
   if (!createdAt) {
@@ -471,12 +451,7 @@ function formatTransactionDate(createdAt) {
   const date =
     new Date(createdAt)
 
-
-  /*
-   * 예:
-   * 2026.08.10 11:29
-   */
-
+  // Intl.DateTimeFormat을 사용하여 한국 시간대에 맞게 포맷팅
   return new Intl.DateTimeFormat(
     'ko-KR',
     {
@@ -491,10 +466,8 @@ function formatTransactionDate(createdAt) {
 }
 
 
-/* =========================
-   화면 최초 진입
-========================= */
 
+// 화면 최초 진입 시
 onMounted(() => {
 
   fetchWallet()
@@ -513,30 +486,20 @@ button {
 }
 
 
-/* =========================
-   전체 화면
-========================= */
 
+/* 전체 화면 */
 .page {
   position: relative;
-
   width: 360px;
   min-height: 100dvh;
-
   margin: 0 auto;
-
   padding-bottom: 80px;
-
   color: #191b1e;
-
-  background-color: #f4f5f7;
+  background-color : white;
 }
 
 
-/* =========================
-   헤더
-========================= */
-
+/* 헤더 */
 .nav {
   display: flex;
 
@@ -578,10 +541,8 @@ button {
 }
 
 
-/* =========================
-   콘텐츠
-========================= */
 
+/* 콘텐츠 */
 .content {
   display: flex;
 
@@ -593,10 +554,8 @@ button {
 }
 
 
-/* =========================
-   지갑 카드
-========================= */
 
+/* 지갑 카드 */
 .wallet-card {
   padding: 18px 16px;
 
@@ -686,10 +645,8 @@ button {
 }
 
 
-/* =========================
-   공통 섹션
-========================= */
 
+/* 공통 섹션 */
 .section {
   width: 100%;
 }
@@ -732,10 +689,8 @@ button {
 }
 
 
-/* =========================
-   정기 용돈
-========================= */
 
+/* 정기 용돈 */
 .allowance-card {
   display: flex;
 
@@ -793,10 +748,8 @@ button {
 }
 
 
-/* =========================
-   거래내역
-========================= */
 
+/* 거래 내역 */
 .transaction-item {
   display: flex;
 
@@ -918,10 +871,7 @@ button {
 }
 
 
-/* =========================
-   하단 네비게이션
-========================= */
-
+/* 하단 네비게이션 */
 .bottom-nav {
   position: fixed;
 

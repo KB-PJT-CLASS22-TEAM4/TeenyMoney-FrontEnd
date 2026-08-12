@@ -330,10 +330,8 @@ import { getChildren } from '@/api/children'
 const router = useRouter()
 const authStore = useAuthStore()
 
-/* =========================
-   상태
-========================= */
 
+// 상태
 const children = ref([])
 
 const selectedChildId = ref(null)
@@ -346,10 +344,8 @@ const childrenError = ref('')
 
 const isChildModalOpen = ref(false)
 
-/* =========================
-   선택된 자녀
-========================= */
 
+// 선택된 자녀
 const selectedChild = computed(() => {
   if (!selectedChildId.value) {
     return null
@@ -363,10 +359,8 @@ const selectedChild = computed(() => {
   )
 })
 
-/* =========================
-   빠른 금액
-========================= */
 
+// 빠른 금액
 const quickAmounts = [
   {
     label: '+1만',
@@ -386,10 +380,8 @@ const quickAmounts = [
   },
 ]
 
-/* =========================
-   보내기 활성화
-========================= */
 
+// 보내기 활성화
 const canSubmit = computed(() => {
   return (
     selectedChildId.value !== null &&
@@ -397,10 +389,8 @@ const canSubmit = computed(() => {
   )
 })
 
-/* =========================
-   자녀 목록 조회
-========================= */
 
+// 자녀 목록 조회
 async function fetchChildren() {
   isLoading.value = true
   childrenError.value = ''
@@ -446,10 +436,8 @@ async function fetchChildren() {
   }
 }
 
-/* =========================
-   모달
-========================= */
 
+// 모달
 function openChildModal() {
   isChildModalOpen.value = true
 }
@@ -458,18 +446,13 @@ function closeChildModal() {
   isChildModalOpen.value = false
 }
 
-/* =========================
-   자녀 선택
-========================= */
 
+// 자녀 선택
 function selectChild(child) {
   selectedChildId.value = child.id
 }
 
-/* =========================
-   이미지 오류
-========================= */
-
+// 이미지 오류
 function handleChildImageError(event) {
   event.target.src =
     '/src/assets/icons/child-profile.svg'
@@ -480,27 +463,20 @@ function handleModalImageError(event) {
     '/src/assets/icons/child-profile.svg'
 }
 
-/* =========================
-   빠른 금액
-========================= */
 
+// 빠른 금액
 function addAmount(value) {
   amount.value =
     (Number(amount.value) || 0) + value
 }
 
-/* =========================
-   용돈 보내기
-========================= */
-
+// 용돈 보내기
 function handleSend() {
   if (!canSubmit.value) {
     return
   }
 
-  /*
-   * 중복 송금 방지용 키
-   */
+  // 중복 송금 방지용 키
   const idempotencyKey =
     crypto.randomUUID()
 
@@ -522,10 +498,7 @@ function handleSend() {
   })
 }
 
-/* =========================
-   화면 진입
-========================= */
-
+// 화면 진입
 onMounted(() => {
   fetchChildren()
 })
@@ -547,13 +520,11 @@ button {
   flex-direction: column;
   margin: 0 auto;
   padding-bottom: 70px;
-  background-color: #f4f5f7;
+  background-color: white;
 }
 
-/* =========================
-   헤더
-========================= */
 
+/* 헤더 */
 .nav {
   position: relative;
   display: flex;
@@ -591,10 +562,7 @@ button {
   transform: translateX(-50%);
 }
 
-/* =========================
-   콘텐츠
-========================= */
-
+/* 콘텐츠 */
 .content {
   display: flex;
   flex-direction: column;
@@ -609,10 +577,8 @@ button {
   font-weight: 700;
 }
 
-/* =========================
-   자녀 선택
-========================= */
 
+/* 자녀 선택 */
 .child-select-box {
   display: flex;
   width: 100%;
@@ -668,10 +634,8 @@ button {
   font-size: 11px;
 }
 
-/* =========================
-   금액 입력
-========================= */
 
+/* 금액 입력 */
 .amount-wrap {
   display: flex;
   align-items: center;
@@ -679,7 +643,7 @@ button {
   margin-bottom: 12px;
   padding: 16px;
   border-radius: 12px;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
 }
 
 .amount-input {
@@ -710,10 +674,7 @@ button {
   font-weight: 600;
 }
 
-/* =========================
-   빠른 금액
-========================= */
-
+/* 빠른 금액 */
 .quick-btns {
   display: flex;
   gap: 8px;
@@ -743,10 +704,8 @@ button {
   text-align: center;
 }
 
-/* =========================
-   보내기 버튼
-========================= */
 
+/* 보내기 버튼 */
 .submit-btn {
   width: 100%;
   height: 52px;
@@ -764,10 +723,7 @@ button {
   cursor: not-allowed;
 }
 
-/* =========================
-   하단 네비게이션
-========================= */
-
+/* 하단 네비게이션 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -808,10 +764,8 @@ button {
   font-weight: 700;
 }
 
-/* =========================
-   Bottom Sheet
-========================= */
 
+/* 모달 오버레이 */
 :global(.modal-overlay) {
   position: fixed;
   inset: 0;
