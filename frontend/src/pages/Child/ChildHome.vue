@@ -44,50 +44,63 @@
       <section class="allow-section">
         <div class="allow-head">
           <span class="allow-title">오늘만 허용</span>
-          <span class="allow-expire">오늘 23:59 초기화</span>
+          <span class="allow-expire">오늘 밤 11:59까지</span>
         </div>
 
         <div class="allow-slide">
           <!-- 요청한 업종 카드 -->
           <div
             v-for="item in allowRequests" :key="item.id"
-            class="allow-card" :class="`allow-card--${item.status.toLowerCase()}`"
+            class="allow-card"
+            :class="{ 'clickable': item.status === 'PENDING' }"
+            @click="onClickAllowCard(item)"
           >
-            <div class="allow-card-top">
-              <div>
-                <div class="allow-card-status-text" :class="`status-text--${item.status.toLowerCase()}`">
-                  {{ getAllowStatusText(item.status) }}
-                </div>
-                <div class="allow-card-name">{{ item.label }}</div>
+            <!-- 텍스트 세로 그룹 -->
+            <div class="allow-card-content">
+              <div class="allow-card-badge" :class="`status-badge--${item.status.toLowerCase()}`">
+                {{ getAllowStatusText(item.status) }}
               </div>
-              <img :src="getMascotImage(item.status)" class="allow-mascot" alt="티니" />
+
+              <div class="allow-card-name">{{ item.label }}</div>
+              
+              <!-- 안내 메시지 및 하단 영역 -->
+              <div class="allow-card-sub">
+                <template v-if="item.status === 'APPROVED'">
+                  <div class="allow-time-box">
+                    <div class="allow-time-bar">
+                      <div class="allow-time-fill" :style="{ width: '62%' }"></div>
+                    </div>
+                    <span class="allow-card-remain">{{ getRemainingTime() }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="item.status === 'PENDING'">
+                  <div class="allow-card-msg">부모님이 확인 중이에요</div>
+                </template>
+
+                <template v-else-if="item.status === 'REJECTED'">
+                  <div class="allow-card-msg msg--rejected">오늘은 이용할 수 없어요</div>
+                </template>
+              </div>
             </div>
-            <div class="allow-card-bottom">
-              <!-- 승인 완료만 남은 시간 표시 -->
-              <template v-if="item.status === 'APPROVED'">
-                <div class="allow-time-bar">
-                  <div class="allow-time-fill" :style="{ background: '#62b24a', width: '62%' }"></div>
-                </div>
-                <div class="allow-card-remain">{{ getRemainingTime() }}</div>
-              </template>
-              <!-- 승인 대기 -->
-              <template v-else-if="item.status === 'PENDING'">
-                <div class="allow-card-msg">부모님이 확인 중이에요</div>
-              </template>
-              <!-- 승인 거부 -->
-              <template v-else-if="item.status === 'REJECTED'">
-                <div class="allow-card-msg" style="color: #e5484d;">오늘은 이용할 수 없어요</div>
-              </template>
-            </div>
+
+            <!-- 승인 대기 카드만 캐릭터 노출 -->
+            <img 
+              v-if="item.status === 'PENDING'"
+              :src="getMascotImage(item.status)" 
+              class="allow-mascot" 
+              alt="티니" 
+            />
           </div>
 
-          <!-- 요청하기 카드 (항상 맨 끝) -->
+          <!-- 요청하기 카드 -->
           <div class="allow-card allow-card--new" @click="goAllowRequest">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="#c6cbd2" stroke-width="1.8"/>
-              <path d="M12 8v8M8 12h8" stroke="#c6cbd2" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            <span class="allow-card-label">요청하기</span>
+            <div class="plus-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="#8b9097" stroke-width="2.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="allow-card-label">허용 요청하기</span>
           </div>
         </div>
       </section>
@@ -157,18 +170,22 @@ function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
 function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
 
 // ==== 오늘만 허용 ====
-// [API] 오늘만 허용 요청 목록 (추후 API 연동)
 const allowRequests = ref([
   { id: 1, label: 'PC방·노래방',    status: 'PENDING' },
   { id: 2, label: '오락실·인형뽑기', status: 'APPROVED' },
   { id: 3, label: '심야 식당',       status: 'REJECTED' },
 ])
 
-// 상태별 티니 마스코트 이미지
-// 파일을 src/assets/mascot/ 폴더에 저장해줘:
-// - teeny-pending.png  → 10번 이미지 (식은땀 걱정 표정)
-// - teeny-approved.png → 2번 이미지 (엄지 척 윙크)
-// - teeny-rejected.png → 7번 이미지 (펑펑 우는 표정)
+// 승인 대기중 카드 클릭 시 수정 페이지로 이동
+function onClickAllowCard(item) {
+  if (item.status === 'PENDING') {
+    router.push({ 
+      name: 'child-todayallow-edit', 
+      query: { id: item.id, label: item.label } 
+    })
+  }
+}
+
 function getMascotImage(status) {
   if (status === 'PENDING')  return new URL('@/assets/mascot/teeny-pending.png', import.meta.url).href
   if (status === 'APPROVED') return new URL('@/assets/mascot/teeny-approved.png', import.meta.url).href
@@ -383,7 +400,7 @@ function onTabSelect(key) {
   border-radius: 999px;
 }
 
-/* 오늘만 허용 */
+/* 오늘만 허용 섹션 */
 .allow-section {
   padding: 20px 0 0;
 }
@@ -393,25 +410,27 @@ function onTabSelect(key) {
   justify-content: space-between;
   align-items: center;
   padding: 0 20px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .allow-title {
   font-weight: 700;
   font-size: 13.5px;
   color: #15171b;
+  line-height: 1;
 }
 
 .allow-expire {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 11px;
-  color: #b9bec5;
+  color: #a0a5b1;
+  line-height: 1;
 }
 
 .allow-slide {
   display: flex;
   gap: 10px;
-  padding: 0 20px;
+  padding: 2px 20px 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -422,100 +441,162 @@ function onTabSelect(key) {
 
 .allow-card {
   flex-shrink: 0;
-  width: 150px;
-  height: 120px;
-  border-radius: 18px;
-  border: 2px solid #eaedf1;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  width: 175px;
+  height: 124px;
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
   padding: 12px 14px;
   box-sizing: border-box;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease;
+  overflow: hidden;
 }
 
-.allow-card--pending  { border-color: #ffcd3c; }
-.allow-card--approved { border-color: #72c472; }
-.allow-card--rejected { border-color: #f08080; }
-
-.allow-card--new {
-  width: 90px;
-  background: #f7f8fa;
-  border-color: #d8dbdf;
-  border-style: dashed;
+.allow-card.clickable {
   cursor: pointer;
-  justify-content: center;
-  align-items: center;
+}
+
+.allow-card:active {
+  transform: scale(0.97);
+}
+
+.allow-card-content {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+.allow-card-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 8px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.status-badge--pending {
+  background: #fff8e6;
+  color: #d98200;
+}
+
+.status-badge--approved {
+  background: #eef9eb;
+  color: #3b8e27;
+}
+
+.status-badge--rejected {
+  background: #fff0f0;
+  color: #e5484d;
+}
+
+.allow-card-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #22252a;
+  line-height: 1.1;
+  white-space: nowrap;
+  margin-bottom: 12px;
+}
+
+.allow-card-sub {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 6px;
 }
 
-.allow-card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.allow-card-status-text {
-  font-size: 9.5px;
+.allow-card-msg {
+  font-size: 10.5px;
   font-weight: 700;
-  margin-bottom: 3px;
+  color: #d98200;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.status-text--pending  { color: #e0a500; }
-.status-text--approved { color: #62b24a; }
-.status-text--rejected { color: #e5484d; }
-
-.allow-card-name {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #15171b;
-  line-height: 1.3;
-  word-break: keep-all;
-  white-space: normal;
+.allow-card-msg.msg--rejected {
+  color: #d94b4f;
 }
 
-.allow-mascot {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.allow-card-bottom {
+.allow-time-box {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  width: 100px;
 }
 
 .allow-time-bar {
-  height: 4px;
-  background: #f0f1f3;
+  width: 100%;
+  height: 5px;
+  background: #f0f2f5;
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 2px;
 }
 
 .allow-time-fill {
   height: 100%;
+  background: #62b24a;
   border-radius: 999px;
 }
 
 .allow-card-remain {
   font-size: 9.5px;
-  font-weight: 600;
-  color: #b9bec5;
+  font-weight: 700;
+  color: #43962d;
+  line-height: 1;
 }
 
-.allow-card-msg {
-  font-size: 9.5px;
-  font-weight: 600;
-  color: #e0a500;
+.allow-mascot {
+  position: absolute;
+  right: -6px;
+  bottom: -10px;
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+}
+
+.allow-card--new {
+  width: 100px;
+  height: 124px;
+  background: #f7f8fa;
+  border: 1.5px dashed #d8dbdf;
+  border-radius: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.allow-card--new:active {
+  background: #eeeeee;
+}
+
+.plus-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .allow-card-label {
   font-weight: 700;
   font-size: 11px;
   color: #8b9097;
+  line-height: 1;
 }
 
 /* 내 금융 */
