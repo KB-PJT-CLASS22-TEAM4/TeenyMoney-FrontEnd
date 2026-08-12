@@ -12,7 +12,6 @@
 
     <div class="content">
       <!-- 연결된 계좌 카드 -->
-      <!-- TODO: GET /wallet/account → accountInfo 로 교체 -->
       <div class="account-card">
         <p class="account-label">연결된 계좌</p>
         <p class="account-number">{{ accountInfo.bank }} {{ accountInfo.number }}</p>
@@ -49,9 +48,6 @@
       <!-- 자동 충전 설정 배너 -->
       <button class="auto-charge-banner" @click="goToAutoCharge">
         <div class="banner-left">
-          <div class="banner-icon-wrap">
-            <!-- <img src="@/assets/icons/icon-refresh.svg" alt="" class="banner-icon" /> -->
-          </div>
           <div>
             <p class="banner-title">자동 충전 설정</p>
             <p class="banner-desc">잔액 부족 시 자동으로 충전</p>
@@ -59,10 +55,8 @@
         </div>
         <img src="@/assets/icons/icon-chevron.svg" alt="" class="chevron-icon" />
       </button>
-    </div>
 
-    <!-- 하단 충전하기 버튼 -->
-    <div class="footer">
+      <!-- 충전하기 버튼 -->
       <button
         class="submit-btn"
         :disabled="!chargeAmount || chargeAmount <= 0"
@@ -78,7 +72,7 @@
         <img src="@/assets/icons/icon-home-alive.svg" alt="" class="nav-icon" />
         <span class="nav-label">홈</span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/Childlist')">
+      <button class="nav-item" type="button" @click="router.push('/parents/childlist')">
         <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
         <span class="nav-label">자녀관리</span>
       </button>
@@ -96,8 +90,6 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// TODO: API 연동 후 하드코딩 제거
-// GET /wallet/account → accountInfo 로 교체
 const accountInfo = ref({
   bank: '국민은행',
   number: '123-456-7890',
@@ -112,10 +104,6 @@ const quickAmounts = [
   { label: '+5만', value: 50000 },
   { label: '+10만', value: 100000 },
 ]
-
-function addAmount(value) {
-  chargeAmount.value = (Number(chargeAmount.value) || 0) + value
-}
 
 function goToAutoCharge() {
   router.push('/parents/charge/auto')
@@ -134,10 +122,11 @@ function goToCharging() {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #f4f5f7;
+  background-color: white;
   display: flex;
   flex-direction: column;
-  padding-bottom: 140px;
+  padding-bottom: 70px;
+  box-sizing: border-box;
 }
 
 .nav {
@@ -174,13 +163,17 @@ function goToCharging() {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* 계좌 카드 */
 .account-card {
+  width: 100%;
   background-color: #ffffff;
   border-radius: 16px;
   padding: 20px;
+  box-sizing: border-box;
 }
 
 .account-label {
@@ -193,7 +186,7 @@ function goToCharging() {
   margin: 0 0 16px;
   font-size: 15px;
   font-weight: 700;
-  color: #ffbc00;
+  color: black;
 }
 
 .balance-label {
@@ -206,7 +199,7 @@ function goToCharging() {
   margin: 0;
   font-size: 32px;
   font-weight: 700;
-  color: #ffbc00;
+  color: #191b1e;
 }
 
 .won {
@@ -216,12 +209,14 @@ function goToCharging() {
 
 /* 충전 금액 */
 .charge-section {
-  background-color: #ffffff;
+  width: 100%;
+  background-color: transperent;
   border-radius: 16px;
-  padding: 20px;
+  padding: 0px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  box-sizing: border-box;
 }
 
 .section-label {
@@ -239,6 +234,8 @@ function goToCharging() {
   background-color: #f4f5f7;
   border-radius: 10px;
   padding: 14px 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .amount-input {
@@ -250,6 +247,7 @@ function goToCharging() {
   color: #191b1e;
   text-align: right;
   outline: none;
+  width: 100%;
 }
 
 .amount-input::placeholder {
@@ -265,6 +263,7 @@ function goToCharging() {
 .quick-btns {
   display: flex;
   gap: 8px;
+  width: 100%;
 }
 
 .quick-btn {
@@ -290,6 +289,9 @@ function goToCharging() {
   border: none;
   cursor: pointer;
   width: 100%;
+  box-sizing: border-box;
+  text-align: left;  
+
 }
 
 .banner-left {
@@ -298,25 +300,10 @@ function goToCharging() {
   gap: 12px;
 }
 
-.banner-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #ffbc00;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.banner-icon {
-  width: 20px;
-  height: 20px;
-}
-
 .banner-title {
   margin: 0 0 4px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 700;  /* ← 볼드 */
   color: #191b1e;
 }
 
@@ -324,25 +311,16 @@ function goToCharging() {
   margin: 0;
   font-size: 12px;
   color: #8b9097;
+  font-weight: 400;
 }
 
 .chevron-icon {
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
 }
 
-/* 하단 버튼 */
-.footer {
-  position: fixed;
-  bottom: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  padding: 10px 16px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
+/* 충전하기 버튼 */
 .submit-btn {
   width: 100%;
   height: 49px;
@@ -353,6 +331,7 @@ function goToCharging() {
   font-weight: 700;
   color: #191b1e;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .submit-btn:disabled {
