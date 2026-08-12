@@ -72,6 +72,9 @@
       </div>
       <p class="helper">사유를 자세히 적을수록 승인될 확률이 높아요</p>
 
+      <!-- 제출 실패 시 에러 메시지 -->
+      <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+
       <!-- 하단 선택 바 & 요청 보내기 버튼 (단일 버튼) -->
       <div class="footer-area">
         <div class="selected-bar">
@@ -91,7 +94,9 @@
           </div>
         </div>
         
-        <button class="submit" :disabled="!canSubmit" @click="onSubmit">요청 보내기</button>
+        <button class="submit" :disabled="!canSubmit || submitting" @click="onSubmit">
+          {{ submitting ? '요청 보내는 중...' : '요청 보내기' }}
+        </button>
       </div>
     </main>
 
@@ -128,32 +133,31 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const allowStore = useAllowRequestStore()
 
 const teenyCoachImg = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
+// mcc_seed_data.sql 기준 확정된 카테고리 ID (T_MCC_CTGR_C, id 1~21)
+// 백엔드에 없는 카테고리(오락실·인형뽑기 / 심야 식당 / 성인용품점)는 제외
 const watchCategories = ref([
-  { id: 'pc', label: 'PC방·노래방' },
-  { id: 'arcade', label: '오락실·인형뽑기' },
-  { id: 'latenight', label: '심야 식당' },
-  { id: 'game', label: '게임' },
-  { id: 'culture', label: '영화·공연·테마파크' },
-  { id: 'shopping', label: '온라인쇼핑' },
-  { id: 'lodging', label: '일반숙박업' },
-  { id: 'leisure', label: '문화·여가' },
-  { id: 'life', label: '생활서비스' },
+  { id: 5,  label: 'PC방·노래방' },
+  { id: 4,  label: '게임' },
+  { id: 9,  label: '영화·공연·테마파크' },
+  { id: 10, label: '온라인쇼핑' },
+  { id: 15, label: '일반숙박업' },
+  { id: 19, label: '문화·여가' },
+  { id: 20, label: '생활서비스' },
 ])
 
 const blockCategories = ref([
-  { id: 'nightlife', label: '유흥·단란주점' },
-  { id: 'adult_shop', label: '성인용품점' },
-  { id: 'gambling_game', label: '사행성 게임' },
-  { id: 'adult_entertainment', label: '유흥·성인업소' },
-  { id: 'gambling', label: '사행성·도박' },
-  { id: 'adult_lodging', label: '성인숙박업' },
+  { id: 12, label: '유흥·성인업소' },
+  { id: 13, label: '사행성·도박' },
+  { id: 14, label: '성인숙박업' },
 ])
 
 const selectedWatchIds = ref([])
@@ -162,6 +166,8 @@ const reason = ref('')
 const MAX_LEN = 100
 
 const showBlockWarningModal = ref(false)
+const submitting = ref(false)
+const submitError = ref('')
 
 const isWatchSelected = (id) => selectedWatchIds.value.includes(id)
 const isBlockSelected = (id) => selectedBlockIds.value.includes(id)
@@ -217,16 +223,32 @@ function onSubmit() {
   processSubmit()
 }
 
-function processSubmit() {
+async function processSubmit() {
   showBlockWarningModal.value = false
+  submitError.value = ''
+  submitting.value = true
 
-  allowStore.set(
-    allSelectedCategories.value.map((c) => c.id),
-    allSelectedCategories.value.map((c) => c.label),
-    reason.value.trim(),
-  )
+  try {
+  await allowStore.submitPermissionRequest(
+  authStore.accessToken,
+  allSelectedCategories.value.map((c) => c.id),   // .label → 다시 .id로
+  reason.value.trim(),
+)
 
-  router.push({ name: 'child-todayallow-confirm' })
+    allowStore.set(
+      allSelectedCategories.value.map((c) => c.id),
+      allSelectedCategories.value.map((c) => c.label),
+      reason.value.trim(),
+    )
+
+    router.push({ name: 'child-todayallow-confirm' })
+} catch (e) {
+  console.error('❗SUBMIT ERROR:', e)
+  alert('에러 발생: ' + (e.message || '알 수 없음'))
+  submitError.value = e.message || '요청을 보내지 못했어요. 다시 시도해주세요.'
+} finally {
+  submitting.value = false
+}
 }
 </script>
 
@@ -342,12 +364,11 @@ function processSubmit() {
   line-height: 1.1;
 }
 
-/* 말풍선 메시지 텍스트 - 진한 다크 그레이로 완화 */
 .coach-msg {
   margin: 0;
   font-size: 11.5px;
   font-weight: 600;
-  color: #4a4d52; /* #33363b에서 눈이 편안한 #4a4d52로 수정 */
+  color: #4a4d52;
   line-height: 1.35;
   word-break: keep-all;
 }
@@ -460,6 +481,13 @@ function processSubmit() {
   font-weight: 500;
   font-size: 11px;
   color: #b9bec5;
+}
+
+.submit-error {
+  margin: 10px 2px 0;
+  font-weight: 600;
+  font-size: 12px;
+  color: #e5484d;
 }
 
 .footer-area {

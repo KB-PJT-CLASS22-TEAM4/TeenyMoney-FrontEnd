@@ -79,7 +79,7 @@
                 </template>
 
                 <template v-else-if="item.status === 'REJECTED'">
-                  <div class="allow-card-msg msg--rejected">오늘은 이용할 수 없어요</div>
+                  <div class="allow-card-msg msg--rejected">부모님이 허락하지 않았어요! <br/> 오늘은 이용할 수 없어요</div>
                 </template>
               </div>
             </div>
@@ -172,18 +172,49 @@ function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
 function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
 
 // ==== 오늘만 허용 ====
-const allowRequests = ref([
-  { id: 1, label: 'PC방·노래방',    status: 'PENDING' },
-  { id: 2, label: '오락실·인형뽑기', status: 'APPROVED' },
-  { id: 3, label: '심야 식당',       status: 'REJECTED' },
-])
+// mcc_seed_data.sql 기준 확정된 카테고리 ID (T_MCC_CTGR_C, AUTO_INCREMENT 1~21)
+const CATEGORY_LABELS = {
+  1: '편의점',
+  2: '카페·디저트',
+  3: '문구·도서·완구',
+  4: '게임',
+  5: 'PC방·노래방',
+  6: '패션·뷰티',
+  7: '대중교통',
+  8: '통신',
+  9: '영화·공연·테마파크',
+  10: '온라인쇼핑',
+  11: '학원·교육',
+  12: '유흥·성인업소',
+  13: '사행성·도박',
+  14: '성인숙박업',
+  15: '일반숙박업',
+  16: '생활용품·잡화',
+  17: '외식·숙박',
+  18: '의료·건강',
+  19: '문화·여가',
+  20: '생활서비스',
+  21: '기타',
+}
+
+// GET /api/v1/permissions 응답(permission 하나, categories 여러 개)을
+// 기존 카드 UI(카테고리별로 한 장씩)에 맞게 펼쳐서 보여줌
+const allowRequests = computed(() => {
+  const permission = allowStore.todayPermission
+  if (!permission) return []
+  return permission.categories.map(categoryId => ({
+    id: categoryId,
+    label: CATEGORY_LABELS[categoryId] ?? `${categoryId}`,
+    status: permission.status,
+  }))
+})
 
 // 승인 대기중 카드 클릭 시 수정 페이지로 이동
 function onClickAllowCard(item) {
   if (item.status === 'PENDING') {
-    router.push({ 
-      name: 'child-todayallow-edit', 
-      query: { id: item.id, label: item.label } 
+    router.push({
+      name: 'child-todayallow-edit',
+      query: { id: allowStore.todayPermission?.id, label: item.label },
     })
   }
 }
@@ -240,6 +271,8 @@ onMounted(async () => {
       name:   t.description,
       amount: t.direction === 'CREDIT' ? t.amount : -t.amount,
     }))
+
+    await allowStore.fetchTodayPermission(authStore.accessToken)
   } catch (e) {
     console.error('홈 데이터 조회 실패:', e.message)
   }

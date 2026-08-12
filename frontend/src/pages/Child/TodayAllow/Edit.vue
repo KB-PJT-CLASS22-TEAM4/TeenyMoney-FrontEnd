@@ -1,9 +1,7 @@
 <template>
   <div class="allow-screen">
-    <!-- 본문 (상단 네비 및 하단 버튼을 스크롤 내부로 포함하여 고정 해제) -->
     <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
-      
-      <!-- 상단 네비 (고정 해제됨) -->
+
       <nav class="nav">
         <button class="back-btn" aria-label="뒤로" @click="goBack">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -14,7 +12,6 @@
         <h1 class="nav-title">오늘만 허용 수정하기</h1>
       </nav>
 
-      <!-- 🐥 티니 코치 말풍선 카드 -->
       <section class="teeny-coach-card">
         <img :src="teenyCoachImg" class="coach-mascot" alt="티니 코치" />
         <div class="speech-bubble">
@@ -25,7 +22,6 @@
 
       <p class="section-title">업종 선택</p>
 
-      <!-- 주의 -->
       <div class="legend">
         <span class="dot dot--watch"></span>
         <span class="legend-label">주의</span>
@@ -41,7 +37,6 @@
         >{{ c.label }}</button>
       </div>
 
-      <!-- 차단 -->
       <div class="legend legend--block">
         <span class="dot dot--block"></span>
         <span class="legend-label">차단</span>
@@ -57,7 +52,6 @@
         >{{ b.label }}</button>
       </div>
 
-      <!-- 요청 사유 -->
       <p class="section-title">요청 사유</p>
       <div class="textarea-wrap">
         <textarea
@@ -70,29 +64,35 @@
       </div>
       <p class="helper">사유를 자세히 적을수록 승인될 확률이 높아요</p>
 
-      <!-- 하단 선택 바 & 버튼 영역 -->
+      <p v-if="loadError" class="submit-error">{{ loadError }}</p>
+      <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+      <p v-if="deleteError" class="submit-error">{{ deleteError }}</p>
+
       <div class="footer-area">
         <div class="selected-bar">
           <span class="selected-title">선택한 업종</span>
           <div class="selected-chips">
             <span v-if="!allSelectedCategories.length" class="selected-empty">없음</span>
-            <span 
-              v-for="c in selectedWatchCategories" 
-              :key="c.id" 
+            <span
+              v-for="c in selectedWatchCategories"
+              :key="c.id"
               class="mini-chip mini-chip--watch"
             >{{ c.label }}</span>
-            <span 
-              v-for="c in selectedBlockCategories" 
-              :key="c.id" 
+            <span
+              v-for="c in selectedBlockCategories"
+              :key="c.id"
               class="mini-chip mini-chip--block"
             >{{ c.label }}</span>
           </div>
         </div>
-        
-        <!-- 수정하기 / 취소하기 버튼 영역 -->
+
         <div class="action-buttons">
-          <button class="submit" :disabled="!canSubmit" @click="onSubmitEdit">수정 완료</button>
-          <button class="btn-delete" @click="showDeleteModal = true">요청 취소하기</button>
+          <button class="submit" :disabled="!canSubmit || submitting" @click="onSubmitEdit">
+            {{ submitting ? '수정 중...' : '수정 완료' }}
+          </button>
+          <button class="btn-delete" :disabled="deleting" @click="showDeleteModal = true">
+            요청 취소하기
+          </button>
         </div>
       </div>
     </main>
@@ -117,15 +117,15 @@
             <button class="btn-kids btn-kids--cancel" @click="showBlockWarningModal = false">
               다시 골라볼래요
             </button>
-            <button class="btn-kids btn-kids--confirm" @click="processEdit">
-              그래도 수정할래요
+            <button class="btn-kids btn-kids--confirm" :disabled="submitting" @click="processEdit">
+              {{ submitting ? '수정하는 중...' : '그래도 수정할래요' }}
             </button>
           </div>
         </div>
       </div>
     </Transition>
 
-    <!-- 2. 요청 삭제/취소 확인 모달 -->
+    <!-- 2. 요청 취소 확인 모달 -->
     <Transition name="bounce">
       <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
         <div class="modal-card">
@@ -139,11 +139,11 @@
             </p>
           </div>
           <div class="modal-actions">
-            <button class="btn-kids btn-kids--cancel" @click="showDeleteModal = false">
+            <button class="btn-kids btn-kids--cancel" :disabled="deleting" @click="showDeleteModal = false">
               아니요
             </button>
-            <button class="btn-kids btn-kids--confirm" @click="processDelete">
-              취소할래요
+            <button class="btn-kids btn-kids--confirm" :disabled="deleting" @click="processDelete">
+              {{ deleting ? '취소하는 중...' : '취소할래요' }}
             </button>
           </div>
         </div>
@@ -155,34 +155,31 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 const allowStore = useAllowRequestStore()
 
-// 3D 학사모 티니 코치 이미지 연결
 const teenyCoachImg = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
+// mcc_seed_data.sql 기준 확정된 카테고리 ID (신청 화면과 동일)
 const watchCategories = ref([
-  { id: 'pc', label: 'PC방·노래방' },
-  { id: 'arcade', label: '오락실·인형뽑기' },
-  { id: 'latenight', label: '심야 식당' },
-  { id: 'game', label: '게임' },
-  { id: 'culture', label: '영화·공연·테마파크' },
-  { id: 'shopping', label: '온라인쇼핑' },
-  { id: 'lodging', label: '일반숙박업' },
-  { id: 'leisure', label: '문화·여가' },
-  { id: 'life', label: '생활서비스' },
+  { id: 5,  label: 'PC방·노래방' },
+  { id: 4,  label: '게임' },
+  { id: 9,  label: '영화·공연·테마파크' },
+  { id: 10, label: '온라인쇼핑' },
+  { id: 15, label: '일반숙박업' },
+  { id: 19, label: '문화·여가' },
+  { id: 20, label: '생활서비스' },
 ])
 
 const blockCategories = ref([
-  { id: 'nightlife', label: '유흥·단란주점' },
-  { id: 'adult_shop', label: '성인용품점' },
-  { id: 'gambling_game', label: '사행성 게임' },
-  { id: 'adult_entertainment', label: '유흥·성인업소' },
-  { id: 'gambling', label: '사행성·도박' },
-  { id: 'adult_lodging', label: '성인숙박업' },
+  { id: 12, label: '유흥·성인업소' },
+  { id: 13, label: '사행성·도박' },
+  { id: 14, label: '성인숙박업' },
 ])
 
 const selectedWatchIds = ref([])
@@ -190,9 +187,13 @@ const selectedBlockIds = ref([])
 const reason = ref('')
 const MAX_LEN = 100
 
-// 모달 제어 상태
 const showBlockWarningModal = ref(false)
 const showDeleteModal = ref(false)
+const submitting = ref(false)
+const submitError = ref('')
+const deleting = ref(false)
+const deleteError = ref('')
+const loadError = ref('')
 
 const isWatchSelected = (id) => selectedWatchIds.value.includes(id)
 const isBlockSelected = (id) => selectedBlockIds.value.includes(id)
@@ -225,7 +226,6 @@ const allSelectedCategories = computed(() => [
 const hasBlockSelected = computed(() => selectedBlockIds.value.length > 0)
 const canSubmit = computed(() => allSelectedCategories.value.length > 0)
 
-// 스크롤 표시 제어
 const scrolling = ref(false)
 let scrollTimer = null
 function onScroll() {
@@ -234,19 +234,41 @@ function onScroll() {
   scrollTimer = setTimeout(() => (scrolling.value = false), 600)
 }
 
-// 수정 데이터 초기화
-onMounted(() => {
-  if (route.query.id) {
-    selectedWatchIds.value = ['pc']
-    reason.value = '친구들과 숙제 끝내고 1시간만 이용하고 싶어요!'
+// 현재 신청 내용으로 폼 초기화 - 스토어에 없으면 다시 조회해서 채움
+// (카드 목록 중 어떤 카테고리 카드를 눌렀든, 오늘 permission은 하나뿐이라
+//  항상 그 permission 전체 categories/reason을 불러와서 채움)
+onMounted(async () => {
+  let permission = allowStore.todayPermission
+
+  if (!permission) {
+    try {
+      permission = await allowStore.fetchTodayPermission(authStore.accessToken)
+    } catch (e) {
+      loadError.value = '요청 내용을 불러오지 못했어요.'
+      return
+    }
   }
+
+  if (!permission) return
+
+  // categories는 카테고리 "이름" 문자열 배열로 옴 (예: ["게임", "생활서비스"])
+  const categoryNames = permission.categories
+
+  selectedWatchIds.value = watchCategories.value
+    .filter((c) => categoryNames.includes(c.label))
+    .map((c) => c.id)
+
+  selectedBlockIds.value = blockCategories.value
+    .filter((c) => categoryNames.includes(c.label))
+    .map((c) => c.id)
+
+  reason.value = permission.reason ?? ''
 })
 
 function goBack() {
   router.push({ name: 'child-home' })
 }
 
-// 수정 완료 클릭 시 처리
 function onSubmitEdit() {
   if (!canSubmit.value) return
 
@@ -258,30 +280,52 @@ function onSubmitEdit() {
   processEdit()
 }
 
-// 수정 프로세스 진행
-function processEdit() {
-  showBlockWarningModal.value = false
+async function processEdit() {
+  submitError.value = ''
+  submitting.value = true
 
-  allowStore.set(
-    allSelectedCategories.value.map((c) => c.id),
-    allSelectedCategories.value.map((c) => c.label),
-    reason.value.trim(),
-  )
+  const permissionId = allowStore.todayPermission?.id ?? route.query.id
 
-  router.push({ name: 'child-home' })
+  try {
+    await allowStore.editPermissionRequest(
+      authStore.accessToken,
+      permissionId,
+      allSelectedCategories.value.map((c) => c.id),
+      reason.value.trim(),
+    )
+
+    showBlockWarningModal.value = false
+    router.push({ name: 'child-home' })
+  } catch (e) {
+    submitError.value = e.message || '수정하지 못했어요. 다시 시도해주세요.'
+  } finally {
+    submitting.value = false
+  }
 }
 
-// 요청 취소(삭제) 프로세스 진행
-function processDelete() {
-  showDeleteModal.value = false
-  router.push({ name: 'child-home' })
+async function processDelete() {
+  deleteError.value = ''
+  deleting.value = true
+
+  const permissionId = allowStore.todayPermission?.id ?? route.query.id
+
+  try {
+    await allowStore.cancelPermissionRequest(authStore.accessToken, permissionId)
+    showDeleteModal.value = false
+    router.push({ name: 'child-home' })
+  } catch (e) {
+    deleteError.value = e.message || '취소하지 못했어요. 다시 시도해주세요.'
+    showDeleteModal.value = false
+  } finally {
+    deleting.value = false
+  }
 }
 </script>
 
 <style scoped>
 .allow-screen {
   box-sizing: border-box;
-  position: relative;         
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
@@ -292,7 +336,6 @@ function processDelete() {
   overflow: hidden;
 }
 
-/* 상단 네비 (스크롤 내부로 포함되어 고정 해제) */
 .nav {
   display: flex;
   align-items: center;
@@ -329,7 +372,6 @@ function processDelete() {
 }
 .scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
-/* 🐥 티니 코치 말풍선 카드 */
 .teeny-coach-card {
   display: flex;
   align-items: center;
@@ -391,12 +433,11 @@ function processDelete() {
   line-height: 1.1;
 }
 
-/* 말풍선 메시지 텍스트 - 진한 다크 그레이로 완화 */
 .coach-msg {
   margin: 0;
   font-size: 11.5px;
   font-weight: 600;
-  color: #4a4d52; /* #33363b에서 눈이 편안한 #4a4d52로 수정 */
+  color: #4a4d52;
   line-height: 1.35;
   word-break: keep-all;
 }
@@ -502,6 +543,13 @@ function processDelete() {
   color: #b9bec5;
 }
 
+.submit-error {
+  margin: 10px 2px 0;
+  font-weight: 600;
+  font-size: 12px;
+  color: #e5484d;
+}
+
 .footer-area {
   margin-top: 24px;
   padding-top: 16px;
@@ -592,7 +640,11 @@ function processDelete() {
   background: #e2e6ea;
 }
 
-/* 모달 스타일 */
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .modal-overlay {
   position: absolute;
   top: 0;
@@ -704,6 +756,11 @@ function processDelete() {
 
 .btn-kids:active {
   transform: scale(0.98);
+}
+
+.btn-kids:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-kids--cancel {
