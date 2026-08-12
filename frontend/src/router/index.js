@@ -87,6 +87,7 @@ import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
 import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
 import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
+import QuestDetails from '@/pages/Parents/Quest/QuestDetail.vue'
 
 
 const router = createRouter({
@@ -412,6 +413,11 @@ const router = createRouter({
     path : '/parents/quest/create',
     name : 'parents-quest-create',
     component : QuestCreate
+  },
+  { 
+    path: '/parents/quest/:questId', 
+    name: 'quest-detail', 
+    component: QuestDetails 
   }
   ],
 });
