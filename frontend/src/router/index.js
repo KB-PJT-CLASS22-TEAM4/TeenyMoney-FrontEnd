@@ -398,7 +398,6 @@ const router = createRouter({
     path: '/parents/quest',
     name: 'parents-quest-list',
     component: QuestLists,
-  }
   },
   // 자녀 퀘스트 목록
   { 
