@@ -24,7 +24,42 @@ export async function getQuests(accessToken, params = {}) {
   return result
 }
 
+// 퀘스트 생성
+export async function createQuest(accessToken, questData) {
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+
+  const creationKey = crypto.randomUUID()
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/quests`,
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'X-Creation-Request-Key': creationKey,
+      },
+      body: JSON.stringify(questData),
+    }
+  )
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '퀘스트 생성에 실패했습니다.')
+  }
+
+  return result
+}
+
 // 퀘스트 상세 조회
+// GET /api/v1/quests/{questId}
 export async function getQuestDetail(accessToken, questId) {
   if (!accessToken) throw new Error('로그인이 필요합니다.')
 
@@ -40,44 +75,6 @@ export async function getQuestDetail(accessToken, questId) {
   )
 
   let result
-  try { result = await response.json() } catch { throw new Error('서버 응답을 읽을 수 없습니다.') }
-  if (!response.ok || result.success === false) throw new Error(result.message || '퀘스트 상세를 불러오지 못했습니다.')
-  return result
-}
-
-// 퀘스트 생성
-<<<<<<< HEAD
-export async function createQuest(accessToken, questData) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
-
-  const creationKey = crypto.randomUUID()
-
-=======
-export async function createQuest(accessToken, data) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
-
->>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/quests`,
-    {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-<<<<<<< HEAD
-        'X-Creation-Request-Key': creationKey,
-      },
-      body: JSON.stringify(questData),
-=======
-      },
-      body: JSON.stringify(data),
->>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
-    }
-  )
-
-  let result
-<<<<<<< HEAD
   try {
     result = await response.json()
   } catch {
@@ -85,18 +82,15 @@ export async function createQuest(accessToken, data) {
   }
 
   if (!response.ok || result.success === false) {
-    throw new Error(result.message || '퀘스트 생성에 실패했습니다.')
+    throw new Error(result.message || '퀘스트를 불러오지 못했습니다.')
   }
 
-=======
-  try { result = await response.json() } catch { throw new Error('서버 응답을 읽을 수 없습니다.') }
-  if (!response.ok || result.success === false) throw new Error(result.message || '퀘스트 생성에 실패했습니다.')
->>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
   return result
 }
 
 // 퀘스트 수정
-export async function updateQuest(accessToken, questId, data) {
+// PATCH /api/v1/quests/{questId}
+export async function updateQuest(accessToken, questId, questData) {
   if (!accessToken) throw new Error('로그인이 필요합니다.')
 
   const response = await fetch(
@@ -108,17 +102,26 @@ export async function updateQuest(accessToken, questId, data) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(questData),
     }
   )
 
   let result
-  try { result = await response.json() } catch { throw new Error('서버 응답을 읽을 수 없습니다.') }
-  if (!response.ok || result.success === false) throw new Error(result.message || '퀘스트 수정에 실패했습니다.')
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '퀘스트 수정에 실패했습니다.')
+  }
+
   return result
 }
 
 // 퀘스트 삭제
+// DELETE /api/v1/quests/{questId}
 export async function deleteQuest(accessToken, questId) {
   if (!accessToken) throw new Error('로그인이 필요합니다.')
 
@@ -133,8 +136,18 @@ export async function deleteQuest(accessToken, questId) {
     }
   )
 
+  if (response.status === 204) return { success: true }
+
   let result
-  try { result = await response.json() } catch { throw new Error('서버 응답을 읽을 수 없습니다.') }
-  if (!response.ok || result.success === false) throw new Error(result.message || '퀘스트 삭제에 실패했습니다.')
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '퀘스트 삭제에 실패했습니다.')
+  }
+
   return result
 }
