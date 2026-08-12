@@ -46,8 +46,10 @@ export async function getQuestDetail(accessToken, questId) {
 }
 
 // 퀘스트 생성
-export async function createQuest(accessToken, data) {
+export async function createQuest(accessToken, questData) {
   if (!accessToken) throw new Error('로그인이 필요합니다.')
+
+  const creationKey = crypto.randomUUID()
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/quests`,
@@ -57,14 +59,23 @@ export async function createQuest(accessToken, data) {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
+        'X-Creation-Request-Key': creationKey,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(questData),
     }
   )
 
   let result
-  try { result = await response.json() } catch { throw new Error('서버 응답을 읽을 수 없습니다.') }
-  if (!response.ok || result.success === false) throw new Error(result.message || '퀘스트 생성에 실패했습니다.')
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '퀘스트 생성에 실패했습니다.')
+  }
+
   return result
 }
 

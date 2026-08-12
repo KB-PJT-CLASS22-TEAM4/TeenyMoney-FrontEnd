@@ -1,39 +1,85 @@
 <template>
   <div class="page">
+    <!-- 헤더 -->
     <header class="nav">
-      <button class="close-btn" type="button" @click="router.back()">✕</button>
+      <button
+        class="close-btn"
+        type="button"
+        @click="router.back()"
+      >
+        ✕
+      </button>
+
       <h1 class="nav-title">퀘스트 생성</h1>
-      <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
+
+      <button
+        class="alarm-btn"
+        type="button"
+        aria-label="알림"
+      >
+        <img
+          src="@/assets/icons/icon-notification.svg"
+          alt=""
+          class="alarm-icon"
+        />
       </button>
     </header>
 
     <div class="content">
 
-      <!-- 자녀 선택 -->
+      <!-- =========================
+           자녀 선택
+      ========================== -->
       <div class="section">
         <p class="section-label">자녀 선택</p>
-        <div class="children-list">
-          <div
-            v-for="child in children"
-            :key="child.id"
-            class="child-chip"
-            :class="{ selected: selectedChildIds.includes(child.id) }"
-            @click="toggleChild(child.id)"
+
+        <button
+          type="button"
+          class="child-select-box"
+          @click="openChildModal"
+        >
+          <!-- 선택된 자녀가 없는 경우 -->
+          <span
+            v-if="selectedChildren.length === 0"
+            class="child-select-placeholder"
           >
-            <img
-              :src="child.profileImageUrl || '/src/assets/icons/child-profile.svg'"
-              alt=""
-              class="child-avatar"
-            />
-            <span class="child-name">{{ child.name }}</span>
+            퀘스트를 받을 자녀를 선택해주세요.
+          </span>
+
+          <!-- 선택된 자녀 -->
+          <div
+            v-else
+            class="selected-child-list"
+          >
+            <div
+              v-for="child in selectedChildren"
+              :key="child.id"
+              class="selected-child"
+            >
+              <img
+                :src="
+                  child.profileImageUrl ||
+                  '/src/assets/icons/child-profile.svg'
+                "
+                alt=""
+                class="selected-child-avatar"
+                @error="handleImageError"
+              />
+
+              <span class="selected-child-name">
+                {{ child.name }}
+              </span>
+            </div>
           </div>
-        </div>
+
+          <span class="select-arrow">›</span>
+        </button>
       </div>
 
       <!-- 제목 -->
       <div class="section">
         <p class="section-label">제목</p>
+
         <input
           v-model="form.title"
           type="text"
@@ -45,6 +91,7 @@
       <!-- 내용 -->
       <div class="section">
         <p class="section-label">내용</p>
+
         <textarea
           v-model="form.content"
           class="textarea"
@@ -56,6 +103,7 @@
       <!-- 기한 -->
       <div class="section">
         <p class="section-label">기한</p>
+
         <div class="date-input-wrap">
           <input
             v-model="form.deadline"
@@ -68,6 +116,7 @@
       <!-- 현금 보상 -->
       <div class="section">
         <p class="section-label">현금 보상</p>
+
         <div class="amount-wrap">
           <input
             v-model="form.rewardAmount"
@@ -76,77 +125,298 @@
             placeholder="0"
             inputmode="numeric"
           />
+
           <span class="won">원</span>
         </div>
+
         <div class="quick-btns">
           <button
             v-for="quick in quickAmounts"
             :key="quick.label"
+            type="button"
             class="quick-btn"
             @click="addAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
-          <button class="quick-btn reset-btn" @click="form.rewardAmount = 0">지움</button>
+
+          <button
+            type="button"
+            class="quick-btn reset-btn"
+            @click="form.rewardAmount = 0"
+          >
+            지움
+          </button>
         </div>
       </div>
 
-      <!-- 신뢰도 점수 부여 -->
+      <!-- 신뢰도 점수 -->
       <div class="section">
-        <button class="teeny-score-row" type="button" @click="form.teenyScoreEnabled = !form.teenyScoreEnabled">
-          <div class="checkbox" :class="{ checked: form.teenyScoreEnabled }">
-            <img v-if="form.teenyScoreEnabled" src="@/assets/icons/icon-check.svg" alt="" class="check-icon" />
+        <button
+          class="teeny-score-row"
+          type="button"
+          @click="
+            form.teenyScoreEnabled =
+              !form.teenyScoreEnabled
+          "
+        >
+          <div
+            class="checkbox"
+            :class="{
+              checked: form.teenyScoreEnabled
+            }"
+          >
+            <img
+              v-if="form.teenyScoreEnabled"
+              src="@/assets/icons/icon-check.svg"
+              alt=""
+              class="check-icon"
+            />
           </div>
+
           <div class="teeny-score-text">
-            <p class="teeny-score-title">신뢰도 점수 부여</p>
-            <p class="teeny-score-desc">수행 완료 시 신뢰도 점수가 상승합니다.</p>
+            <p class="teeny-score-title">
+              신뢰도 점수 부여
+            </p>
+
+            <p class="teeny-score-desc">
+              수행 완료 시 신뢰도 점수가 상승합니다.
+            </p>
           </div>
-          <img src="@/assets/icons/icon-shield.svg" alt="" class="shield-icon" />
+
+          <img
+            src="@/assets/icons/icon-shield.svg"
+            alt=""
+            class="shield-icon"
+          />
         </button>
       </div>
 
-      <!-- 생성하기 버튼 -->
+      <!-- 생성 버튼 -->
       <button
         class="submit-btn"
-        :disabled="!canSubmit || isLoading"
+        :disabled="!canSubmit || isCreating"
         @click="handleCreate"
       >
-        {{ isLoading ? '생성 중...' : '생성하기' }}
+        {{ isCreating ? '생성 중...' : '생성하기' }}
       </button>
-      <p class="submit-notice">생성된 퀘스트는 자녀의 대시보드에 즉시 노출됩니다.</p>
+
+      <p class="submit-notice">
+        생성된 퀘스트는 자녀의 대시보드에 즉시 노출됩니다.
+      </p>
     </div>
+
+
+    <!-- =========================
+         자녀 선택 Bottom Sheet
+    ========================== -->
+    <Teleport to="body">
+      <div
+        v-if="isChildModalOpen"
+        class="modal-overlay"
+        @click.self="closeChildModal"
+      >
+        <div class="bottom-sheet">
+
+          <div class="sheet-handle"></div>
+
+          <div class="sheet-header">
+            <div>
+              <h2 class="sheet-title">
+                자녀 선택
+              </h2>
+
+              <p class="sheet-description">
+                퀘스트를 받을 자녀를 선택해주세요.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="sheet-close-btn"
+              aria-label="닫기"
+              @click="closeChildModal"
+            >
+              ×
+            </button>
+          </div>
+
+          <!-- 로딩 -->
+          <div
+            v-if="isChildrenLoading"
+            class="modal-state"
+          >
+            자녀 정보를 불러오는 중입니다.
+          </div>
+
+          <!-- 오류 -->
+          <div
+            v-else-if="childrenError"
+            class="modal-state modal-error"
+          >
+            {{ childrenError }}
+          </div>
+
+          <!-- 자녀 없음 -->
+          <div
+            v-else-if="children.length === 0"
+            class="modal-state"
+          >
+            연결된 자녀가 없습니다.
+          </div>
+
+          <!-- 자녀 목록 -->
+          <div
+            v-else
+            class="modal-child-list"
+          >
+            <button
+              v-for="child in children"
+              :key="child.id"
+              type="button"
+              class="modal-child-item"
+              :class="{
+                selected:
+                  selectedChildIds.includes(child.id)
+              }"
+              @click="toggleChild(child.id)"
+            >
+              <div class="modal-child-left">
+
+                <div class="modal-avatar">
+                  <img
+                    :src="
+                      child.profileImageUrl ||
+                      '/src/assets/icons/child-profile.svg'
+                    "
+                    alt=""
+                    class="modal-avatar-img"
+                    @error="handleImageError"
+                  />
+                </div>
+
+                <span class="modal-child-name">
+                  {{ child.name }}
+                </span>
+              </div>
+
+              <!-- 체크 -->
+              <div
+                class="check-circle"
+                :class="{
+                  checked:
+                    selectedChildIds.includes(child.id)
+                }"
+              >
+                <span
+                  v-if="
+                    selectedChildIds.includes(child.id)
+                  "
+                  class="check-mark"
+                >
+                  ✓
+                </span>
+              </div>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="modal-confirm-btn"
+            :disabled="selectedChildIds.length === 0"
+            @click="closeChildModal"
+          >
+            선택 완료
+          </button>
+        </div>
+      </div>
+    </Teleport>
+
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button class="nav-item" type="button" @click="router.push('/parents/home')">
-        <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
+
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/home')"
+      >
+        <img
+          src="@/assets/icons/icon-home.svg"
+          alt=""
+          class="nav-icon"
+        />
         <span class="nav-label">홈</span>
       </button>
-      <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child-alive.svg" alt="" class="nav-icon" />
+
+      <button
+        class="nav-item nav-item-active"
+        type="button"
+      >
+        <img
+          src="@/assets/icons/icon-child-alive.svg"
+          alt=""
+          class="nav-icon"
+        />
         <span class="nav-label">자녀관리</span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
+
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/mypage')"
+      >
+        <img
+          src="@/assets/icons/icon-mypage.svg"
+          alt=""
+          class="nav-icon"
+        />
         <span class="nav-label">마이페이지</span>
       </button>
+
     </nav>
   </div>
 </template>
 
+
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import {
+  ref,
+  computed,
+  onMounted
+} from 'vue'
+
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+
 import { getChildren } from '@/api/children'
 import { createQuest } from '@/api/quest'
+
 
 const router = useRouter()
 const authStore = useAuthStore()
 
+
+// =========================
+// 상태
+// =========================
+
 const children = ref([])
+
 const selectedChildIds = ref([])
-const isLoading = ref(false)
+
+const isChildModalOpen = ref(false)
+
+const isChildrenLoading = ref(false)
+
+const isCreating = ref(false)
+
+const childrenError = ref('')
+
+
+// =========================
+// Form
+// =========================
 
 const form = ref({
   title: '',
@@ -157,74 +427,278 @@ const form = ref({
   verificationRequirement: 'PHOTO_REQUIRED',
 })
 
+
+// =========================
+// 빠른 금액 선택
+// =========================
+
 const quickAmounts = [
-  { label: '+1,000', value: 1000 },
-  { label: '+5,000', value: 5000 },
-  { label: '+10,000', value: 10000 },
+  {
+    label: '+1,000',
+    value: 1000,
+  },
+  {
+    label: '+5,000',
+    value: 5000,
+  },
+  {
+    label: '+10,000',
+    value: 10000,
+  },
 ]
 
-const canSubmit = computed(() =>
-  selectedChildIds.value.length > 0 &&
-  form.value.title.trim() &&
-  form.value.content.trim() &&
-  form.value.deadline &&
-  form.value.rewardAmount >= 0
-)
 
-onMounted(async () => {
-  try {
-    const res = await getChildren(authStore.accessToken)
-    if (res.success) {
-      children.value = res.data.map(child => ({
-        id: child.childId,
-        name: child.name,
-        profileImageUrl: child.profileImageUrl,
-      }))
-    }
-  } catch (error) {
-    console.error('자녀 목록 불러오기 실패:', error)
-  }
+// =========================
+// 선택된 자녀 정보
+// =========================
+
+const selectedChildren = computed(() => {
+  return children.value.filter(child =>
+    selectedChildIds.value.includes(child.id)
+  )
 })
 
+
+// =========================
+// 생성 버튼 활성화 조건
+// =========================
+
+const canSubmit = computed(() => {
+  return (
+    selectedChildIds.value.length > 0 &&
+    form.value.title.trim() &&
+    form.value.content.trim() &&
+    form.value.deadline &&
+    Number(form.value.rewardAmount) >= 0
+  )
+})
+
+
+// =========================
+// 자녀 목록 조회
+// =========================
+
+async function loadChildren() {
+
+  if (!authStore.accessToken) {
+    childrenError.value = '로그인이 필요합니다.'
+    return
+  }
+
+  isChildrenLoading.value = true
+  childrenError.value = ''
+
+  try {
+
+    const res = await getChildren(
+      authStore.accessToken
+    )
+
+    console.log('자녀 목록 응답:', res)
+
+    if (res.success) {
+
+      const childList =
+        Array.isArray(res.data)
+          ? res.data
+          : res.data?.children || []
+
+      children.value = childList.map(child => ({
+        id:
+          child.childId ??
+          child.id,
+
+        name: child.name,
+
+        profileImageUrl:
+          child.profileImageUrl || null,
+      }))
+
+      console.log(
+        '변환된 자녀 목록:',
+        children.value
+      )
+    }
+
+  } catch (error) {
+
+    console.error(
+      '자녀 목록 불러오기 실패:',
+      error
+    )
+
+    childrenError.value =
+      error.message ||
+      '자녀 정보를 불러오지 못했습니다.'
+
+  } finally {
+
+    isChildrenLoading.value = false
+  }
+}
+
+
+// =========================
+// 페이지 진입
+// =========================
+
+onMounted(() => {
+  loadChildren()
+})
+
+
+// =========================
+// 모달
+// =========================
+
+function openChildModal() {
+
+  childrenError.value = ''
+
+  isChildModalOpen.value = true
+
+  // 혹시 처음 조회 실패했거나
+  // 자녀 정보가 없는 상태라면 다시 조회
+  if (children.value.length === 0) {
+    loadChildren()
+  }
+}
+
+
+function closeChildModal() {
+  isChildModalOpen.value = false
+}
+
+
+// =========================
+// 자녀 선택 / 해제
+// =========================
+
 function toggleChild(id) {
-  if (selectedChildIds.value.includes(id)) {
-    selectedChildIds.value = selectedChildIds.value.filter(c => c !== id)
+
+  if (
+    selectedChildIds.value.includes(id)
+  ) {
+
+    selectedChildIds.value =
+      selectedChildIds.value.filter(
+        childId => childId !== id
+      )
+
   } else {
+
     selectedChildIds.value.push(id)
   }
 }
 
+
+// =========================
+// 금액 추가
+// =========================
+
 function addAmount(value) {
-  form.value.rewardAmount = (Number(form.value.rewardAmount) || 0) + value
+
+  form.value.rewardAmount =
+    (Number(form.value.rewardAmount) || 0) +
+    value
 }
 
-async function handleCreate() {
-  if (!canSubmit.value || isLoading.value) return
 
-  isLoading.value = true
+// =========================
+// 이미지 오류
+// =========================
+
+function handleImageError(event) {
+
+  event.target.src =
+    '/src/assets/icons/child-profile.svg'
+}
+
+
+// =========================
+// 퀘스트 생성
+// =========================
+
+async function handleCreate() {
+
+  if (
+    !canSubmit.value ||
+    isCreating.value
+  ) {
+    return
+  }
+
+  isCreating.value = true
+
   try {
-    const res = await createQuest(authStore.accessToken, {
-      childIds: selectedChildIds.value,
-      title: form.value.title.trim(),
-      content: form.value.content.trim(),
-      deadline: new Date(form.value.deadline).toISOString(),
-      rewardAmount: Number(form.value.rewardAmount),
-      teenyScoreEnabled: form.value.teenyScoreEnabled,
-      verificationRequirement: form.value.verificationRequirement,
-    })
+
+    const questData = {
+
+      childIds:
+        selectedChildIds.value,
+
+      title:
+        form.value.title.trim(),
+
+      content:
+        form.value.content.trim(),
+
+      deadline:
+        new Date(
+          form.value.deadline
+        ).toISOString(),
+
+      rewardAmount:
+        Number(form.value.rewardAmount),
+
+      teenyScoreEnabled:
+        form.value.teenyScoreEnabled,
+
+      verificationRequirement:
+        form.value.verificationRequirement,
+    }
+
+    console.log(
+      '퀘스트 생성 요청:',
+      questData
+    )
+
+    const res = await createQuest(
+      authStore.accessToken,
+      questData
+    )
+
+    console.log(
+      '퀘스트 생성 응답:',
+      res
+    )
 
     if (res.success) {
+
       alert('퀘스트가 생성됐어요!')
+
       router.back()
     }
+
   } catch (error) {
-    console.error('퀘스트 생성 실패:', error)
-    alert('퀘스트 생성에 실패했습니다.')
+
+    console.error(
+      '퀘스트 생성 실패:',
+      error
+    )
+
+    alert(
+      error.message ||
+      '퀘스트 생성에 실패했습니다.'
+    )
+
   } finally {
-    isLoading.value = false
+
+    isCreating.value = false
   }
 }
 </script>
+
 
 <style scoped>
 .page {
@@ -234,8 +708,13 @@ async function handleCreate() {
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  padding-bottom: 70px;
+  padding-bottom: 80px;
 }
+
+
+/* =========================
+   헤더
+========================= */
 
 .nav {
   display: flex;
@@ -259,7 +738,10 @@ async function handleCreate() {
   cursor: pointer;
 }
 
-.alarm-icon { width: 24px; height: 24px; }
+.alarm-icon {
+  width: 24px;
+  height: 24px;
+}
 
 .nav-title {
   margin: 0;
@@ -267,6 +749,11 @@ async function handleCreate() {
   font-weight: 700;
   color: #191b1e;
 }
+
+
+/* =========================
+   컨텐츠
+========================= */
 
 .content {
   display: flex;
@@ -282,73 +769,138 @@ async function handleCreate() {
   color: #8b9097;
 }
 
-/* 자녀 선택 */
-.children-list {
+
+/* =========================
+   자녀 선택
+========================= */
+
+.child-select-box {
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+
   display: flex;
-  gap: 10px;
+  align-items: center;
+
+  border: 1.5px solid #f0f1f3;
+  border-radius: 10px;
+
+  background-color: #f4f5f7;
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+}
+
+.child-select-placeholder {
+  flex: 1;
+
+  text-align: left;
+
+  font-size: 14px;
+  color: #b9bec5;
+}
+
+.selected-child-list {
+  flex: 1;
+
+  display: flex;
+  gap: 7px;
   flex-wrap: wrap;
 }
 
-.child-chip {
+.selected-child {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px 8px 8px;
-  border-radius: 30px;
-  background-color: #f4f5f7;
-  cursor: pointer;
-  border: 2px solid transparent;
+  gap: 5px;
+
+  background-color: #ffffff;
+
+  border-radius: 20px;
+
+  padding: 4px 8px 4px 4px;
 }
 
-.child-chip.selected {
-  border-color: #ffbc00;
-  background-color: #fff8e1;
-}
+.selected-child-avatar {
+  width: 26px;
+  height: 26px;
 
-.child-avatar {
-  width: 28px;
-  height: 28px;
   border-radius: 50%;
+
   object-fit: cover;
 }
 
-.child-name {
-  font-size: 13px;
+.selected-child-name {
+  font-size: 12px;
   font-weight: 600;
+
   color: #191b1e;
 }
 
-/* 입력 필드 */
+.select-arrow {
+  margin-left: 10px;
+
+  font-size: 25px;
+
+  color: #8b9097;
+}
+
+
+/* =========================
+   기본 input
+========================= */
+
 .input {
   width: 100%;
+
   padding: 14px 16px;
+
   border: 1.5px solid #f0f1f3;
   border-radius: 10px;
+
   font-size: 14px;
+
   color: #191b1e;
+
   outline: none;
+
   box-sizing: border-box;
+
   background-color: #f4f5f7;
 }
 
-.input::placeholder { color: #b9bec5; }
+.input::placeholder {
+  color: #b9bec5;
+}
 
 .textarea {
   width: 100%;
+
   padding: 14px 16px;
+
   border: 1.5px solid #f0f1f3;
   border-radius: 10px;
+
   font-size: 14px;
+
   color: #191b1e;
+
   outline: none;
+
   box-sizing: border-box;
+
   background-color: #f4f5f7;
+
   resize: none;
+
   font-family: inherit;
+
   line-height: 1.6;
 }
 
-.textarea::placeholder { color: #b9bec5; }
+.textarea::placeholder {
+  color: #b9bec5;
+}
 
 .date-input-wrap {
   position: relative;
@@ -358,32 +910,48 @@ async function handleCreate() {
   cursor: pointer;
 }
 
-/* 현금 보상 */
+
+/* =========================
+   금액
+========================= */
+
 .amount-wrap {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+
   gap: 8px;
+
   background-color: #f4f5f7;
+
   border-radius: 10px;
+
   padding: 14px 16px;
+
   margin-bottom: 12px;
 }
 
 .amount-input {
   flex: 1;
+
   border: none;
+
   background: transparent;
+
   font-size: 20px;
   font-weight: 700;
+
   color: #191b1e;
+
   text-align: right;
+
   outline: none;
 }
 
 .won {
   font-size: 16px;
   font-weight: 600;
+
   color: #191b1e;
 }
 
@@ -394,13 +962,20 @@ async function handleCreate() {
 
 .quick-btn {
   flex: 1;
+
   height: 36px;
+
   border: 1.5px solid #e0e2e6;
+
   border-radius: 20px;
+
   background-color: #ffffff;
+
   font-size: 12px;
   font-weight: 600;
+
   color: #191b1e;
+
   cursor: pointer;
 }
 
@@ -408,17 +983,29 @@ async function handleCreate() {
   color: #8b9097;
 }
 
-/* 신뢰도 점수 */
+
+/* =========================
+   신뢰도
+========================= */
+
 .teeny-score-row {
   display: flex;
   align-items: center;
+
   gap: 12px;
+
   width: 100%;
+
   padding: 14px 16px;
+
   background-color: #fff8e1;
+
   border: none;
+
   border-radius: 12px;
+
   cursor: pointer;
+
   text-align: left;
 }
 
@@ -426,10 +1013,14 @@ async function handleCreate() {
   display: flex;
   align-items: center;
   justify-content: center;
+
   flex-shrink: 0;
+
   width: 22px;
   height: 22px;
+
   border-radius: 6px;
+
   background-color: #f0f1f3;
 }
 
@@ -437,7 +1028,10 @@ async function handleCreate() {
   background-color: #ffbc00;
 }
 
-.check-icon { width: 14px; height: 14px; }
+.check-icon {
+  width: 14px;
+  height: 14px;
+}
 
 .teeny-score-text {
   flex: 1;
@@ -445,77 +1039,358 @@ async function handleCreate() {
 
 .teeny-score-title {
   margin: 0 0 2px;
+
   font-size: 14px;
   font-weight: 700;
+
   color: #191b1e;
 }
 
 .teeny-score-desc {
   margin: 0;
+
   font-size: 12px;
+
   color: #8b9097;
 }
 
-.shield-icon { width: 20px; height: 20px; }
+.shield-icon {
+  width: 20px;
+  height: 20px;
+}
 
-/* 생성하기 버튼 */
+
+/* =========================
+   생성 버튼
+========================= */
+
 .submit-btn {
   width: 100%;
+
   height: 49px;
+
   border: none;
+
   border-radius: 10px;
+
   background-color: #ffbc00;
+
   font-size: 16px;
   font-weight: 700;
+
   color: #191b1e;
+
   cursor: pointer;
 }
 
 .submit-btn:disabled {
   opacity: 0.4;
+
   cursor: not-allowed;
 }
 
 .submit-notice {
   margin: 0;
+
   font-size: 12px;
+
   color: #8b9097;
+
   text-align: center;
 }
 
-/* 하단 네비게이션 */
+
+/* =========================
+   Bottom Sheet
+========================= */
+
+.modal-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 1000;
+
+  display: flex;
+
+  align-items: flex-end;
+
+  justify-content: center;
+
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+.bottom-sheet {
+  width: 100%;
+  max-width: 360px;
+
+  background-color: #ffffff;
+
+  border-radius: 20px 20px 0 0;
+
+  padding: 10px 20px 28px;
+
+  box-sizing: border-box;
+
+  max-height: 70vh;
+
+  overflow-y: auto;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+
+  margin: 0 auto 20px;
+
+  border-radius: 20px;
+
+  background-color: #d7d9dd;
+}
+
+.sheet-header {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  margin-bottom: 20px;
+}
+
+.sheet-title {
+  margin: 0 0 5px;
+
+  font-size: 19px;
+
+  font-weight: 700;
+
+  color: #191b1e;
+}
+
+.sheet-description {
+  margin: 0;
+
+  font-size: 13px;
+
+  color: #8b9097;
+}
+
+.sheet-close-btn {
+  border: none;
+
+  background: transparent;
+
+  font-size: 26px;
+
+  color: #8b9097;
+
+  cursor: pointer;
+}
+
+.modal-state {
+  padding: 30px 10px;
+
+  text-align: center;
+
+  font-size: 14px;
+
+  color: #8b9097;
+}
+
+.modal-error {
+  color: #e34b4b;
+}
+
+
+/* =========================
+   모달 자녀 목록
+========================= */
+
+.modal-child-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 8px;
+
+  margin-bottom: 20px;
+}
+
+.modal-child-item {
+  width: 100%;
+
+  min-height: 62px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  padding: 10px 12px;
+
+  background-color: #f7f7f8;
+
+  border: 2px solid transparent;
+
+  border-radius: 12px;
+
+  cursor: pointer;
+}
+
+.modal-child-item.selected {
+  background-color: #fff9e7;
+
+  border-color: #ffbc00;
+}
+
+.modal-child-left {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+}
+
+.modal-avatar {
+  width: 40px;
+  height: 40px;
+
+  border-radius: 50%;
+
+  overflow: hidden;
+
+  background-color: #eeeeee;
+}
+
+.modal-avatar-img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.modal-child-name {
+  font-size: 15px;
+
+  font-weight: 600;
+
+  color: #191b1e;
+}
+
+.check-circle {
+  width: 22px;
+  height: 22px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: 2px solid #d7d9dd;
+
+  border-radius: 50%;
+}
+
+.check-circle.checked {
+  background-color: #ffbc00;
+
+  border-color: #ffbc00;
+}
+
+.check-mark {
+  font-size: 13px;
+
+  font-weight: 700;
+
+  color: #ffffff;
+}
+
+.modal-confirm-btn {
+  width: 100%;
+
+  height: 50px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background-color: #ffbc00;
+
+  font-size: 16px;
+
+  font-weight: 700;
+
+  color: #191b1e;
+
+  cursor: pointer;
+}
+
+.modal-confirm-btn:disabled {
+  opacity: 0.4;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================
+   하단 nav
+========================= */
+
 .bottom-nav {
   position: fixed;
+
   bottom: 0;
+
   left: 50%;
+
   transform: translateX(-50%);
+
   width: 360px;
+
   display: flex;
+
   justify-content: space-around;
+
   padding: 10px 0 20px;
+
   background-color: #ffffff;
+
   border-top: 1px solid #f0f1f3;
 }
 
 .nav-item {
   display: flex;
+
   flex-direction: column;
+
   align-items: center;
+
   gap: 4px;
+
   background: transparent;
+
   border: none;
+
   cursor: pointer;
 }
 
-.nav-icon { width: 24px; height: 24px; }
+.nav-icon {
+  width: 24px;
+  height: 24px;
+}
 
 .nav-label {
   font-size: 11px;
+
   color: #8b9097;
 }
 
 .nav-item-active .nav-label {
   color: #191b1e;
+
   font-weight: 700;
 }
 </style>
