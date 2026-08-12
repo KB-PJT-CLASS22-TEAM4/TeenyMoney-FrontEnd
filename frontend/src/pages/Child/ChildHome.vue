@@ -1,164 +1,236 @@
 <template>
   <div class="child-home">
-    <!-- 상단 헤더 -->
     <header class="header">
       <span class="username">{{ userName }}님</span>
-      <button class="bell-btn"  @click="goNotification">
+      <button class="bell-btn" @click="goNotification">
         <svg viewBox="0 0 24 24" width="23" height="23" fill="none">
           <path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#4a4e55" stroke-width="1.7" stroke-linejoin="round"/>
           <path d="M10 20a2 2 0 0 0 4 0" stroke="#4a4e55" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
-        <!-- 안 읽은 알림 있으면 빨간 점 -->
         <span v-if="hasUnread" class="bell-dot"></span>
       </button>
     </header>
 
     <div class="scroll-area">
 
-    <!-- 잔액 영역 -->
-    <section class="balance">
-      <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
-      <div class="balance-text">
-        <p class="balance-label">티니머니</p>
-        <p class="balance-amount">{{ balance }}원</p>
-      </div>
-    </section>
-
-    <!-- 송금 / 결제내역 버튼 -->
-    <div class="actions">
-      <button class="pill primary">송금</button>
-      <button class="pill" @click="goPayment">결제내역</button>
-    </div>
-
-    <!-- 티니 점수 -->
-    <section class="score">
-      <div class="score-head" @click="goScore" style="cursor: pointer;">
-        <span class="score-title">티니 점수</span>
-        <span class="chev">›</span>
-      </div>
-      <div class="score-row">
-        <b class="score-value">{{ score }}점</b>
-        <span class="score-grade">{{ grade }} 등급</span>
-      </div>
-      <div class="score-bar">
-        <div class="score-fill" :style="{ width: scorePercent + '%' }"></div>
-      </div>
-    </section>
-
-<!-- 내 금융 -->
-<section class="finance">
-  <div class="finance-head" @click="goFinance" style="cursor: pointer;">
-    <span class="finance-title">내 금융</span>
-    <span class="finance-all">전체보기</span>
-  </div>
-  <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
-  <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
-</div>
-
-<!-- 페이지 인디케이터 -->
-<div class="indicator">
-  <span
-    v-for="(f, i) in finances"
-    :key="f.id"
-    class="dot"
-    :class="{ active: i === activeCard }"
-  ></span>
-</div>
-</section>
-
-    <!-- 최근 이용내역 -->
-    <section class="history">
-      <div class="history-head" @click="goPayment" style="cursor: pointer;">
-        <span class="history-title">최근 이용내역</span>
-        <span class="chev">›</span>
-      </div>
-      <div v-for="t in transactions" :key="t.id" class="tx-item">
-        <div class="tx-info">
-          <span class="tx-date">{{ t.date }}</span>
-          <span class="tx-name">{{ t.name }}</span>
+      <section class="balance">
+        <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
+        <div class="balance-text">
+          <p class="balance-label">티니머니</p>
+          <p class="balance-amount">{{ balance.toLocaleString() }}원</p>
         </div>
-        <span class="tx-amount" :class="{ plus: t.amount > 0 }">
-          {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}
-        </span>
+      </section>
+
+      <div class="actions">
+        <button class="pill primary">송금</button>
+        <button class="pill" @click="goPayment">결제내역</button>
       </div>
-    </section>
+
+      <section class="score">
+        <div class="score-head" @click="goScore" style="cursor: pointer;">
+          <span class="score-title">티니 점수</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="score-row">
+          <b class="score-value">{{ score }}점</b>
+          <span class="score-grade">{{ grade }} 등급</span>
+        </div>
+        <div class="score-bar">
+          <div class="score-fill" :style="{ width: scorePercent + '%' }"></div>
+        </div>
+      </section>
+
+      <!-- 오늘만 허용 섹션 -->
+      <section class="allow-section">
+        <div class="allow-head">
+          <span class="allow-title">오늘만 허용</span>
+          <span class="allow-expire">오늘 23:59 초기화</span>
+        </div>
+
+        <div class="allow-slide">
+          <!-- 요청한 업종 카드 -->
+          <div
+            v-for="item in allowRequests" :key="item.id"
+            class="allow-card" :class="`allow-card--${item.status.toLowerCase()}`"
+          >
+            <div class="allow-card-top">
+              <div>
+                <div class="allow-card-status-text" :class="`status-text--${item.status.toLowerCase()}`">
+                  {{ getAllowStatusText(item.status) }}
+                </div>
+                <div class="allow-card-name">{{ item.label }}</div>
+              </div>
+              <img :src="getMascotImage(item.status)" class="allow-mascot" alt="티니" />
+            </div>
+            <div class="allow-card-bottom">
+              <!-- 승인 완료만 남은 시간 표시 -->
+              <template v-if="item.status === 'APPROVED'">
+                <div class="allow-time-bar">
+                  <div class="allow-time-fill" :style="{ background: '#62b24a', width: '62%' }"></div>
+                </div>
+                <div class="allow-card-remain">{{ getRemainingTime() }}</div>
+              </template>
+              <!-- 승인 대기 -->
+              <template v-else-if="item.status === 'PENDING'">
+                <div class="allow-card-msg">부모님이 확인 중이에요</div>
+              </template>
+              <!-- 승인 거부 -->
+              <template v-else-if="item.status === 'REJECTED'">
+                <div class="allow-card-msg" style="color: #e5484d;">오늘은 이용할 수 없어요</div>
+              </template>
+            </div>
+          </div>
+
+          <!-- 요청하기 카드 (항상 맨 끝) -->
+          <div class="allow-card allow-card--new" @click="goAllowRequest">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="#c6cbd2" stroke-width="1.8"/>
+              <path d="M12 8v8M8 12h8" stroke="#c6cbd2" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <span class="allow-card-label">요청하기</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="finance">
+        <div class="finance-head" @click="goFinance" style="cursor: pointer;">
+          <span class="finance-title">내 금융</span>
+          <span class="finance-all">전체보기</span>
+        </div>
+        <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
+          <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
+        </div>
+        <div class="indicator">
+          <span v-for="(f, i) in finances" :key="f.id" class="dot" :class="{ active: i === activeCard }"></span>
+        </div>
+      </section>
+
+      <section class="history">
+        <div class="history-head" @click="goPayment" style="cursor: pointer;">
+          <span class="history-title">최근 이용내역</span>
+          <span class="chev">›</span>
+        </div>
+        <div v-for="t in transactions" :key="t.id" class="tx-item">
+          <div class="tx-info">
+            <span class="tx-date">{{ t.date }}</span>
+            <span class="tx-name">{{ t.name }}</span>
+          </div>
+          <span class="tx-amount" :class="{ plus: t.amount > 0 }">
+            {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}
+          </span>
+        </div>
+      </section>
+
     </div>
-    <!-- 하단 탭바 -->
+
     <BottomTabBar active="home" @select="onTabSelect" />
   </div>
 </template>
 
-
-
 <script setup>
-import FinanceCard from '@/components/Child/FinanceCard.vue';
-import BottomTabBar from '@/components/Child/BottomTabBar.vue';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-const router = useRouter();
+import FinanceCard from '@/components/Child/FinanceCard.vue'
+import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getMyWallet } from '@/api/wallet'
 
-const activeCard = ref(0);
-const scrollRef = ref(null);
-const hasUnread = ref(true); 
+const router    = useRouter()
+const authStore = useAuthStore()
+
+const activeCard = ref(0)
+const scrollRef  = ref(null)
+const hasUnread  = ref(true)
 
 function onScroll() {
-  const el = scrollRef.value;
-  if (!el) return;
-  const maxScroll = el.scrollWidth - el.clientWidth;
-  const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-  activeCard.value = Math.round(ratio * (finances.length - 1));
+  const el = scrollRef.value
+  if (!el) return
+  const maxScroll = el.scrollWidth - el.clientWidth
+  const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0
+  activeCard.value = Math.round(ratio * (finances.value.length - 1))
 }
 
-function goNotification() {
-  router.push({ name: 'child-notification' });
+function goNotification() { router.push({ name: 'child-notification' }) }
+function goPayment()      { router.push({ name: 'child-transaction' }) }
+function goScore()        { router.push({ name: 'child-score' }) }
+function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
+function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
+
+// ==== 오늘만 허용 ====
+// [API] 오늘만 허용 요청 목록 (추후 API 연동)
+const allowRequests = ref([
+  { id: 1, label: 'PC방·노래방',    status: 'PENDING' },
+  { id: 2, label: '오락실·인형뽑기', status: 'APPROVED' },
+  { id: 3, label: '심야 식당',       status: 'REJECTED' },
+])
+
+// 상태별 티니 마스코트 이미지
+// 파일을 src/assets/mascot/ 폴더에 저장해줘:
+// - teeny-pending.png  → 10번 이미지 (식은땀 걱정 표정)
+// - teeny-approved.png → 2번 이미지 (엄지 척 윙크)
+// - teeny-rejected.png → 7번 이미지 (펑펑 우는 표정)
+function getMascotImage(status) {
+  if (status === 'PENDING')  return new URL('@/assets/mascot/teeny-pending.png', import.meta.url).href
+  if (status === 'APPROVED') return new URL('@/assets/mascot/teeny-approved.png', import.meta.url).href
+  if (status === 'REJECTED') return new URL('@/assets/mascot/teeny-rejected.png', import.meta.url).href
+  return ''
 }
 
-
-function goPayment() {
-  router.push({ name: 'child-transaction' })
+function getAllowStatusText(status) {
+  if (status === 'PENDING')  return '승인 대기 중'
+  if (status === 'APPROVED') return '승인 완료'
+  if (status === 'REJECTED') return '승인 거부'
+  return ''
 }
 
-
-function goScore() {
-  router.push({ name: 'child-score' });
+function getRemainingTime() {
+  const now      = new Date()
+  const midnight = new Date()
+  midnight.setHours(23, 59, 0, 0)
+  const diff = midnight - now
+  const h = Math.floor(diff / (1000 * 60 * 60))
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  return `${h}시간 ${m}분 남음`
 }
 
-function goFinance() {
-  router.push({ name: 'child-finance-myproducts' })
-}
+// ==== API 연동 ====
+const userName     = ref('')
+const balance      = ref(0)
+const transactions = ref([])
 
+const score        = 850
+const grade        = '우수'
+const scorePercent = 70
 
-// ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API] 사용자 정보 (이름)
-const userName = '김첫째';
-// [API] 잔액 조회
-const balance = '42,500';
-// [API] 티니 점수 조회 (점수 + 등급 + 진척도)
-const score = 850;
-const grade = '우수';
-const scorePercent = 70;
-// [API] 내 금융 상품 목록 (적금/예금/대출)
-const finances = [
+const finances = ref([
   { id: 1, type: '적금', rate: '연 4.5%', name: '티니 꿈나무 적금', amount: '90,000원', sub: '3 / 24개월', progress: 13, amountColor: '#15171b' },
   { id: 2, type: '예금', rate: '연 2.8%', name: '용돈 모으기 예금', amount: '35,000원', sub: '자유 입출금', progress: 60, amountColor: '#15171b' },
-];
-// [API] 최근 이용내역 (최근 3건)
-const transactions = [
-  { id: 1, date: '07.15  21:17', name: 'GS25 강남점', amount: -3200 },
-  { id: 2, date: '07.14  16:07', name: '교통카드 충전', amount: -10000 },
-  { id: 3, date: '07.13  15:50', name: '정기 용돈', amount: 15000 },
-];
+])
+
+onMounted(async () => {
+  try {
+    userName.value = authStore.name ?? ''
+    const res = await getMyWallet(authStore.accessToken)
+    balance.value = res.data.balance
+    transactions.value = res.data.recentTransactions.map(t => ({
+      id:     t.id,
+      date:   t.createdAt.slice(5, 16).replace('T', '  '),
+      name:   t.description,
+      amount: t.direction === 'CREDIT' ? t.amount : -t.amount,
+    }))
+  } catch (e) {
+    console.error('홈 데이터 조회 실패:', e.message)
+  }
+})
 
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' });
-  if (key === 'my') router.push({ name: 'child-mypage' });
-  if (key === 'q') router.push({ name: 'qr-scan' });
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
-  if (key === 'quest') router.push({ name: 'child-quest-list' })           
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
+  if (key === 'quest')   router.push({ name: 'child-quest-list' })
 }
 </script>
-
-
 
 <style scoped>
 .child-home {
@@ -166,7 +238,7 @@ function onTabSelect(key) {
   display: flex;
   flex-direction: column;
   width: 360px;
-  height: 730px;           /* min-height → height */
+  height: 730px;
   margin: 0 auto;
   padding-top: 50px;
   background: #ffffff;
@@ -174,7 +246,6 @@ function onTabSelect(key) {
   overflow: hidden;
 }
 
-/* 상단 헤더 */
 .header {
   display: flex;
   justify-content: space-between;
@@ -189,25 +260,25 @@ function onTabSelect(key) {
 }
 
 .bell-btn {
-  position: relative;  
+  position: relative;
   border: none;
   background: transparent;
   cursor: pointer;
   padding: 0;
   display: flex;
 }
+
 .bell-dot {
   position: absolute;
   top: -2px;
   right: 1px;
   width: 7px;
   height: 7px;
-  background: #ff4d4f;  
+  background: #ff4d4f;
   border-radius: 50%;
-  border: 1.5px solid #fff;  
+  border: 1.5px solid #fff;
 }
 
-/* 잔액 */
 .balance {
   display: flex;
   align-items: center;
@@ -236,7 +307,6 @@ function onTabSelect(key) {
   color: #191b1e;
 }
 
-/* 송금/결제 버튼 */
 .actions {
   display: flex;
   gap: 14px;
@@ -259,7 +329,6 @@ function onTabSelect(key) {
   background: #ffbc00;
 }
 
-/* 티니 점수 */
 .score {
   padding: 20px 20px 0;
 }
@@ -314,6 +383,141 @@ function onTabSelect(key) {
   border-radius: 999px;
 }
 
+/* 오늘만 허용 */
+.allow-section {
+  padding: 20px 0 0;
+}
+
+.allow-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  margin-bottom: 12px;
+}
+
+.allow-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #15171b;
+}
+
+.allow-expire {
+  font-weight: 500;
+  font-size: 11px;
+  color: #b9bec5;
+}
+
+.allow-slide {
+  display: flex;
+  gap: 10px;
+  padding: 0 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.allow-slide::-webkit-scrollbar {
+  display: none;
+}
+
+.allow-card {
+  flex-shrink: 0;
+  width: 150px;
+  height: 120px;
+  border-radius: 18px;
+  border: 2px solid #eaedf1;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 14px;
+  box-sizing: border-box;
+}
+
+.allow-card--pending  { border-color: #ffcd3c; }
+.allow-card--approved { border-color: #72c472; }
+.allow-card--rejected { border-color: #f08080; }
+
+.allow-card--new {
+  width: 90px;
+  background: #f7f8fa;
+  border-color: #d8dbdf;
+  border-style: dashed;
+  cursor: pointer;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.allow-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.allow-card-status-text {
+  font-size: 9.5px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.status-text--pending  { color: #e0a500; }
+.status-text--approved { color: #62b24a; }
+.status-text--rejected { color: #e5484d; }
+
+.allow-card-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #15171b;
+  line-height: 1.3;
+  word-break: keep-all;
+  white-space: normal;
+}
+
+.allow-mascot {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.allow-card-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.allow-time-bar {
+  height: 4px;
+  background: #f0f1f3;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.allow-time-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.allow-card-remain {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #b9bec5;
+}
+
+.allow-card-msg {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #e0a500;
+}
+
+.allow-card-label {
+  font-weight: 700;
+  font-size: 11px;
+  color: #8b9097;
+}
+
 /* 내 금융 */
 .finance {
   padding: 24px 0 0;
@@ -343,11 +547,10 @@ function onTabSelect(key) {
   gap: 12px;
   padding: 12px 20px;
   overflow-x: auto;
-  scrollbar-width: none;       
-  -ms-overflow-style: none;   
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-/* Chrome/Safari 스크롤바 숨김 */
 .finance-scroll::-webkit-scrollbar {
   display: none;
 }
@@ -361,7 +564,7 @@ function onTabSelect(key) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px; 
+  margin-bottom: 12px;
 }
 
 .history-title {
@@ -407,10 +610,9 @@ function onTabSelect(key) {
 }
 
 .tx-amount.plus {
-  color: #4d8ad6; 
+  color: #4d8ad6;
 }
 
-/* 하단 탭바 하단 고정 */
 .child-home :deep(.tabbar) {
   margin-top: auto;
 }
@@ -426,20 +628,22 @@ function onTabSelect(key) {
 .dot {
   width: 6px;
   height: 6px;
-  background: #d8dbdf;  
+  background: #d8dbdf;
   border-radius: 3px;
   transition: all 0.2s;
 }
 
 .dot.active {
-  width: 16px;    
-  background: #15171b;   
+  width: 16px;
+  background: #15171b;
 }
+
 .scroll-area {
   flex: 1;
   overflow-y: auto;
   scrollbar-width: none;
 }
+
 .scroll-area::-webkit-scrollbar {
   display: none;
 }
