@@ -13,11 +13,76 @@
 
     <div class="scroll-area">
 
+<<<<<<< HEAD
       <section class="balance">
         <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
         <div class="balance-text">
           <p class="balance-label">티니머니</p>
           <p class="balance-amount">{{ balance.toLocaleString() }}원</p>
+=======
+    <!-- 잔액 영역 -->
+    <section class="balance">
+      <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
+      <div class="balance-text">
+        <p class="balance-label">티니머니</p>
+        <!-- 잔액 -->
+<p class="balance-amount">{{ balance.toLocaleString() }}원</p>
+      </div>
+    </section>
+
+    <!-- 송금 / 결제내역 버튼 -->
+    <div class="actions">
+      <button class="pill primary">송금</button>
+      <button class="pill" @click="goPayment">결제내역</button>
+    </div>
+
+    <!-- 티니 점수 -->
+    <section class="score">
+      <div class="score-head" @click="goScore" style="cursor: pointer;">
+        <span class="score-title">티니 점수</span>
+        <span class="chev">›</span>
+      </div>
+      <div class="score-row">
+        <b class="score-value">{{ score }}점</b>
+        <span class="score-grade">{{ grade }} 등급</span>
+      </div>
+      <div class="score-bar">
+        <div class="score-fill" :style="{ width: scorePercent + '%' }"></div>
+      </div>
+    </section>
+
+<!-- 내 금융 -->
+<section class="finance">
+  <div class="finance-head" @click="goFinance" style="cursor: pointer;">
+    <span class="finance-title">내 금융</span>
+    <span class="finance-all">전체보기</span>
+  </div>
+  <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
+  <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
+</div>
+
+<!-- 페이지 인디케이터 -->
+<div class="indicator">
+  <span
+    v-for="(f, i) in finances"
+    :key="f.id"
+    class="dot"
+    :class="{ active: i === activeCard }"
+  ></span>
+</div>
+</section>
+
+    <!-- 최근 이용내역 -->
+    <section class="history">
+      <div class="history-head" @click="goPayment" style="cursor: pointer;">
+        <span class="history-title">최근 이용내역</span>
+        <span class="chev">›</span>
+      </div>
+      <div v-for="t in transactions" :key="t.id" class="tx-item">
+        <div class="tx-info">
+          <span class="tx-date">{{ t.date }}</span>
+          <span class="tx-name">{{ t.name }}</span>
+>>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
         </div>
       </section>
 
@@ -143,6 +208,7 @@
 <script setup>
 import FinanceCard from '@/components/Child/FinanceCard.vue'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+<<<<<<< HEAD
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -150,6 +216,17 @@ import { getMyWallet } from '@/api/wallet'
 
 const router    = useRouter()
 const authStore = useAuthStore()
+=======
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useAllowRequestStore } from '@/stores/allowRequest'
+import { getMyWallet } from '@/api/wallet'
+
+const router     = useRouter()
+const authStore  = useAuthStore()
+const allowStore = useAllowRequestStore()
+>>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
 
 const activeCard = ref(0)
 const scrollRef  = ref(null)
@@ -167,6 +244,7 @@ function goNotification() { router.push({ name: 'child-notification' }) }
 function goPayment()      { router.push({ name: 'child-transaction' }) }
 function goScore()        { router.push({ name: 'child-score' }) }
 function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
+<<<<<<< HEAD
 function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
 
 // ==== 오늘만 허용 ====
@@ -215,10 +293,31 @@ const userName     = ref('')
 const balance      = ref(0)
 const transactions = ref([])
 
+=======
+
+// 오늘만 허용 요청 상태 텍스트
+const statusText = computed(() => {
+  if (allowStore.status === 'PENDING')  return '승인 대기 중'
+  if (allowStore.status === 'APPROVED') return '승인 완료'
+  if (allowStore.status === 'REJECTED') return '승인 거부'
+  return ''
+})
+
+// ==== API 연동 ====
+const userName     = ref('')
+const balance      = ref(0)
+const transactions = ref([])
+
+// TODO: 티니 점수 조회 API 연동 필요
+>>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
 const score        = 850
 const grade        = '우수'
 const scorePercent = 70
 
+<<<<<<< HEAD
+=======
+// TODO: 나의 금융 상품 API 연동 필요
+>>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
 const finances = ref([
   { id: 1, type: '적금', rate: '연 4.5%', name: '티니 꿈나무 적금', amount: '90,000원', sub: '3 / 24개월', progress: 13, amountColor: '#15171b' },
   { id: 2, type: '예금', rate: '연 2.8%', name: '용돈 모으기 예금', amount: '35,000원', sub: '자유 입출금', progress: 60, amountColor: '#15171b' },
@@ -227,8 +326,15 @@ const finances = ref([
 onMounted(async () => {
   try {
     userName.value = authStore.name ?? ''
+<<<<<<< HEAD
     const res = await getMyWallet(authStore.accessToken)
     balance.value = res.data.balance
+=======
+
+    const res = await getMyWallet(authStore.accessToken)
+    balance.value = res.data.balance
+
+>>>>>>> bb520763f21ccf7f4e28fcb3ac8ec574a26e6620
     transactions.value = res.data.recentTransactions.map(t => ({
       id:     t.id,
       date:   t.createdAt.slice(5, 16).replace('T', '  '),
