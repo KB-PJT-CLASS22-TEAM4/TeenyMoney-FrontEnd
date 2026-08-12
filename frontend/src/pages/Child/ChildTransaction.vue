@@ -109,95 +109,130 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getMyWallet, getMyTransactions } from '@/api/wallet'
 
-const router = useRouter();
+const router    = useRouter()
+const authStore = useAuthStore()
 
 // 거래유형
-const activeFilter = ref('전체');
-const filters = ['전체', '입금', '출금'];
+const activeFilter = ref('전체')
+const filters = ['전체', '입금', '출금']
 
 // 기간·정렬
-const activePeriod = ref('최근 1개월');
-const activeSort = ref('최신순');
+const activePeriod = ref('최근 1개월')
+const activeSort   = ref('최신순')
 
-const periods = ['최근 1주일', '최근 1개월', '최근 3개월', '최근 6개월'];
-const sorts = ['최신순', '과거순'];
+const periods = ['최근 1주일', '최근 1개월', '최근 3개월', '최근 6개월']
+const sorts   = ['최신순', '과거순']
 
-// 바텀시트 상태 + 시트 안에서 고르는 임시값
-const showFilter = ref(false);
-const tempPeriod = ref(activePeriod.value);
-const tempSort = ref(activeSort.value);
+// 바텀시트
+const showFilter = ref(false)
+const tempPeriod = ref(activePeriod.value)
+const tempSort   = ref(activeSort.value)
+
+// UI값 → API값 매핑
+const periodMap = { '최근 1주일': 'WEEK', '최근 1개월': 'MONTH', '최근 3개월': 'THREE_MONTHS', '최근 6개월': 'SIX_MONTHS' }
+const sortMap   = { '최신순': 'DESC', '과거순': 'ASC' }
+const typeMap   = { '전체': 'ALL', '입금': 'CREDIT', '출금': 'DEBIT' }
+
+// createdAt → 날짜 그룹 문자열 ("07.13 월" 형태)
+const dayNames = ['일', '월', '화', '수', '목', '금', '토']
+function toGroup(createdAt) {
+  const d = new Date(createdAt)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const day = dayNames[d.getDay()]
+  return `${mm}.${dd} ${day}`
+}
+
+// createdAt → 시간 문자열 ("14:30" 형태)
+function toTime(createdAt) {
+  return createdAt.slice(11, 16)
+}
+
+// API 응답 → 기존 구조 변환
+function mapTransaction(t) {
+  return {
+    id:      t.id,
+    group:   toGroup(t.createdAt),
+    time:    toTime(t.createdAt),
+    name:    t.description,
+    amount:  t.direction === 'CREDIT' ? t.amount : -t.amount,
+    balance: t.balanceAfter,
+    type:    t.direction === 'CREDIT' ? '입금' : '출금',
+  }
+}
+
+// [API] 지갑 잔액
+const balance = ref(0)
+
+// [API] 거래내역 목록
+const transactions = ref([])
+
+async function fetchTransactions() {
+  try {
+    const res = await getMyTransactions(authStore.accessToken, {
+      period: periodMap[activePeriod.value],
+      sort:   sortMap[activeSort.value],
+      type:   typeMap[activeFilter.value],
+    })
+    transactions.value = res.data.map(mapTransaction)
+    console.log('거래내역:', res.data)
+  } catch (e) {
+    console.error('거래내역 조회 실패:', e.message)
+  }
+}
+
+onMounted(async () => {
+  try {
+    const res = await getMyWallet(authStore.accessToken)
+    balance.value = res.data.balance
+  } catch (e) {
+    console.error('잔액 조회 실패:', e.message)
+  }
+  await fetchTransactions()
+})
+
+// 거래유형 필터 변경 시 재조회
+watch(activeFilter, fetchTransactions)
 
 function openFilter() {
-  // 시트 열 때 현재 적용값을 임시값으로 동기화
-  tempPeriod.value = activePeriod.value;
-  tempSort.value = activeSort.value;
-  showFilter.value = true;
-}
-function applyFilter() {
-  activePeriod.value = tempPeriod.value;
-  activeSort.value = tempSort.value;
-  showFilter.value = false;
-  // ==== API 연동 필요 ====
-  // [API] 선택한 기간,정렬로 거래내역 다시 조회
+  tempPeriod.value = activePeriod.value
+  tempSort.value   = activeSort.value
+  showFilter.value = true
 }
 
-// ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API] 지갑 잔액 조회
-const balance = ref('342,000');
+async function applyFilter() {
+  activePeriod.value = tempPeriod.value
+  activeSort.value   = tempSort.value
+  showFilter.value   = false
+  await fetchTransactions()
+}
 
-// ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API] 거래 내역 목록 조회 (기간·필터,유형 조건 포함)
-const transactions = ref([
-  { id: 1, group: '오늘 07.13 월', time: '14:30', name: '용돈 입금', amount: 50000, balance: 342000, type: '입금' },
-  { id: 2, group: '오늘 07.13 월', time: '13:10', name: 'GS25 강남점', amount: -3200, balance: 292000, type: '출금' },
-  { id: 3, group: '어제 07.12 일', time: '08:20', name: '교통카드 충전', amount: -1250, balance: 295200, type: '출금' },
-  { id: 4, group: '07.11 토', time: '09:00', name: '적금 자동이체', amount: -30000, balance: 296450, type: '출금' },
-  { id: 5, group: '07.11 토', time: '18:40', name: '퀘스트 보상금', amount: 2000, balance: 326450, type: '입금' },
-  { id: 6, group: '07.10 금', time: '12:30', name: '분식집 결제', amount: -6500, balance: 356450, type: '출금' },
-  { id: 7, group: '07.10 금', time: '09:15', name: '용돈 입금', amount: 20000, balance: 362950, type: '입금' },
-  { id: 8, group: '07.09 목', time: '16:40', name: '문구점 결제', amount: -4200, balance: 342950, type: '출금' },
-  { id: 9, group: '07.08 수', time: '19:20', name: '심부름 보상금', amount: 3000, balance: 347150, type: '입금' },
-  { id: 10, group: '07.08 수', time: '13:05', name: '편의점 결제', amount: -2800, balance: 344150, type: '출금' },
-]);
-
-// 거래유형 필터 + 날짜 그룹핑 + 정렬
-// 실제 API 붙이면 서버가 조건 맞춰 내려주므로 아래 필터·정렬 로직은 걷어내고 그룹핑만 남겨도 됨.
+// 날짜 그룹핑
 const groupedList = computed(() => {
-  const filtered = activeFilter.value === '전체'
-    ? transactions.value
-    : transactions.value.filter(t => t.type === activeFilter.value);
+  const groups = {}
+  transactions.value.forEach(t => {
+    if (!groups[t.group]) groups[t.group] = []
+    groups[t.group].push(t)
+  })
+  return Object.keys(groups).map(date => ({ date, items: groups[date] }))
+})
 
-  const groups = {};
-  filtered.forEach(t => {
-    if (!groups[t.group]) groups[t.group] = [];
-    groups[t.group].push(t);
-  });
+function goBack()   { router.push({ name: 'child-home' }) }
+function goReport() { router.push({ name: 'child-report' }) }
 
-  const list = Object.keys(groups).map(date => ({ date, items: groups[date] }));
-  // 더미는 이미 최신순 → 과거순이면 뒤집기
-  return activeSort.value === '과거순' ? list.reverse() : list;
-});
-
-function goBack() {
-  router.push({ name: 'child-home' });
-}
-function goReport() {
-  router.push({ name: 'child-report' });
-}
-
-// 스크롤할 때만 스크롤바 보이기
-const isScrolling = ref(false);
-let scrollTimer = null;
+const isScrolling = ref(false)
+let scrollTimer = null
 function onScroll() {
-  isScrolling.value = true;
-  clearTimeout(scrollTimer);
-  scrollTimer = setTimeout(() => { isScrolling.value = false; }, 800);
+  isScrolling.value = true
+  clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
 }
 </script>
-
 <style scoped>
 .history-screen {
   box-sizing: border-box;

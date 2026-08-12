@@ -79,7 +79,6 @@
       <!-- 제목 -->
       <div class="section">
         <p class="section-label">제목</p>
-
         <input
           v-model="form.title"
           type="text"
@@ -91,7 +90,6 @@
       <!-- 내용 -->
       <div class="section">
         <p class="section-label">내용</p>
-
         <textarea
           v-model="form.content"
           class="textarea"
@@ -103,7 +101,6 @@
       <!-- 기한 -->
       <div class="section">
         <p class="section-label">기한</p>
-
         <div class="date-input-wrap">
           <input
             v-model="form.deadline"
@@ -116,7 +113,6 @@
       <!-- 현금 보상 -->
       <div class="section">
         <p class="section-label">현금 보상</p>
-
         <div class="amount-wrap">
           <input
             v-model="form.rewardAmount"
@@ -699,7 +695,6 @@ async function handleCreate() {
 }
 </script>
 
-
 <style scoped>
 .page {
   width: 360px;
@@ -951,7 +946,6 @@ async function handleCreate() {
 .won {
   font-size: 16px;
   font-weight: 600;
-
   color: #191b1e;
 }
 
@@ -1085,7 +1079,6 @@ async function handleCreate() {
 
 .submit-btn:disabled {
   opacity: 0.4;
-
   cursor: not-allowed;
 }
 
@@ -1390,7 +1383,6 @@ async function handleCreate() {
 
 .nav-item-active .nav-label {
   color: #191b1e;
-
   font-weight: 700;
 }
 </style>
