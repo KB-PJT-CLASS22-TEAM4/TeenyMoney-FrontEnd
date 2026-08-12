@@ -86,7 +86,6 @@
 
             <!-- 승인 대기 카드만 캐릭터 노출 -->
             <img 
-              v-if="item.status === 'PENDING'"
               :src="getMascotImage(item.status)" 
               class="allow-mascot" 
               alt="티니" 

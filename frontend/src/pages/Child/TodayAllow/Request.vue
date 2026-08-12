@@ -14,7 +14,7 @@
         <h1 class="nav-title">오늘만 허용 요청</h1>
       </nav>
 
-      <!-- 🐥 티니 코치 말풍선 카드 (요청하기 전용 문구) -->
+      <!-- 🐥 티니 코치 말풍선 카드 -->
       <section class="teeny-coach-card">
         <img :src="teenyCoachImg" class="coach-mascot" alt="티니 코치" />
         <div class="speech-bubble">
@@ -75,7 +75,7 @@
       <!-- 제출 실패 시 에러 메시지 -->
       <p v-if="submitError" class="submit-error">{{ submitError }}</p>
 
-      <!-- 하단 선택 바 & 요청 보내기 버튼 (단일 버튼) -->
+      <!-- 하단 선택 바 & 요청 보내기 버튼 -->
       <div class="footer-area">
         <div class="selected-bar">
           <span class="selected-title">선택한 업종</span>
@@ -100,7 +100,7 @@
       </div>
     </main>
 
-    <!-- 어린이 친화적 차단 업종 경고 모달 -->
+    <!-- 1. 차단 업종 경고 모달 -->
     <Transition name="bounce">
       <div v-if="showBlockWarningModal" class="modal-overlay" @click.self="showBlockWarningModal = false">
         <div class="modal-card">
@@ -127,6 +127,28 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 2. 오늘 이미 요청을 보낸 경우 모달 (안내 박스 제거 완료) -->
+    <Transition name="bounce">
+      <div v-if="showAlreadyRequestedModal" class="modal-overlay" @click.self="showAlreadyRequestedModal = false">
+        <div class="modal-card">
+          <div class="modal-badge">
+            <span class="badge-icon">🚨</span>
+          </div>
+          <h3 class="modal-title">잠깐만요!</h3>
+          <div class="modal-body">
+            <p class="modal-text">
+              오늘만 허용은 <strong class="highlight-block">하루에 1번만</strong> 보낼 수 있어요!
+            </p>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-kids btn-kids--confirm" @click="showAlreadyRequestedModal = false">
+              닫기
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -142,8 +164,7 @@ const allowStore = useAllowRequestStore()
 
 const teenyCoachImg = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
-// mcc_seed_data.sql 기준 확정된 카테고리 ID (T_MCC_CTGR_C, id 1~21)
-// 백엔드에 없는 카테고리(오락실·인형뽑기 / 심야 식당 / 성인용품점)는 제외
+// 카테고리 데이터 (DB mcc_seed_data.sql 확정 기준)
 const watchCategories = ref([
   { id: 5,  label: 'PC방·노래방' },
   { id: 4,  label: '게임' },
@@ -165,7 +186,9 @@ const selectedBlockIds = ref([])
 const reason = ref('')
 const MAX_LEN = 100
 
+// 모달 및 제출 상태
 const showBlockWarningModal = ref(false)
+const showAlreadyRequestedModal = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
 
@@ -213,8 +236,9 @@ function goBack() {
 }
 
 function onSubmit() {
-  if (!canSubmit.value) return
+  if (!canSubmit.value || submitting.value) return
 
+  // 차단 업종이 있는 경우 경고 모달 표시
   if (hasBlockSelected.value) {
     showBlockWarningModal.value = true
     return
@@ -229,11 +253,11 @@ async function processSubmit() {
   submitting.value = true
 
   try {
-  await allowStore.submitPermissionRequest(
-  authStore.accessToken,
-  allSelectedCategories.value.map((c) => c.id),   // .label → 다시 .id로
-  reason.value.trim(),
-)
+    await allowStore.submitPermissionRequest(
+      authStore.accessToken,
+      allSelectedCategories.value.map((c) => c.id),
+      reason.value.trim(),
+    )
 
     allowStore.set(
       allSelectedCategories.value.map((c) => c.id),
@@ -242,13 +266,18 @@ async function processSubmit() {
     )
 
     router.push({ name: 'child-todayallow-confirm' })
-} catch (e) {
-  console.error('❗SUBMIT ERROR:', e)
-  alert('에러 발생: ' + (e.message || '알 수 없음'))
-  submitError.value = e.message || '요청을 보내지 못했어요. 다시 시도해주세요.'
-} finally {
-  submitting.value = false
-}
+  } catch (e) {
+    console.error('❗SUBMIT ERROR:', e)
+
+    const errorMsg = e.response?.data?.message || e.message || ''
+    if (e.response?.status === 400 || errorMsg.includes('이미') || errorMsg.includes('ALREADY')) {
+      showAlreadyRequestedModal.value = true
+    } else {
+      submitError.value = '요청을 보내지 못했어요. 다시 시도해 주세요.'
+    }
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -556,6 +585,7 @@ async function processSubmit() {
   cursor: not-allowed;
 }
 
+/* 모달 스타일 */
 .modal-overlay {
   position: absolute;
   top: 0;
@@ -618,7 +648,7 @@ async function processSubmit() {
 }
 
 .modal-text {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 13.5px;
   font-weight: 600;
   color: #4a4d52;
