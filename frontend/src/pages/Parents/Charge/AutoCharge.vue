@@ -1,6 +1,5 @@
 <template>
   <div class="page">
-    <!-- 헤더 -->
     <header class="nav">
       <button
         class="back-btn"
@@ -15,24 +14,24 @@
         />
       </button>
 
-      <h1 class="nav-title">자동 충전 설정</h1>
+      <h1 class="nav-title">
+        자동 충전 설정
+      </h1>
     </header>
 
     <div class="content">
-      <!-- =========================
-           내 지갑 잔액
-      ========================== -->
+      <!-- 지갑 -->
       <div class="wallet-card">
-        <p class="wallet-label">내 지갑 잔액</p>
+        <p class="wallet-label">
+          내 지갑 잔액
+        </p>
 
         <p class="wallet-amount">
           {{ walletBalance.toLocaleString() }}원
         </p>
       </div>
 
-      <!-- =========================
-           자동 충전 활성화
-      ========================== -->
+      <!-- 자동 충전 -->
       <div class="setting-row">
         <div>
           <p class="setting-title">
@@ -56,9 +55,7 @@
 
       <div class="divider"></div>
 
-      <!-- =========================
-           잔액 기준
-      ========================== -->
+      <!-- 기준 금액 -->
       <div class="threshold-section">
         <p class="setting-label">
           잔액이
@@ -69,7 +66,6 @@
             v-model.number="thresholdAmount"
             type="number"
             class="threshold-input"
-            inputmode="numeric"
           />
 
           <span class="threshold-unit">
@@ -80,9 +76,7 @@
 
       <div class="divider"></div>
 
-      <!-- =========================
-           자동 충전 금액
-      ========================== -->
+      <!-- 충전 금액 -->
       <div class="charge-amount-section">
         <p class="setting-label">
           충전 금액
@@ -105,7 +99,8 @@
             type="button"
             class="quick-btn"
             :class="{
-              selected: chargeAmount === quick.value
+              selected:
+                chargeAmount === quick.value
             }"
             @click="chargeAmount = quick.value"
           >
@@ -116,35 +111,33 @@
 
       <div class="divider"></div>
 
-      <!-- =========================
-           결제수단
-      ========================== -->
+      <!-- 카드 -->
       <div class="payment-section">
         <div class="payment-title-area">
           <p class="setting-title">
-            자동충전 결제수단
+            자동충전 카드
           </p>
 
           <p class="setting-desc">
-            자동 충전에 사용할 결제수단을 선택해주세요
+            자동 충전에 사용할 카드를 선택해주세요
           </p>
         </div>
 
-        <!-- 로딩 -->
         <div
           v-if="isPaymentLoading"
           class="payment-state"
         >
-          결제수단을 불러오는 중...
+          카드를 불러오는 중...
         </div>
 
-        <!-- 결제수단 없음 -->
         <div
-          v-else-if="paymentMethods.length === 0"
+          v-else-if="
+            paymentMethods.length === 0
+          "
           class="payment-empty"
         >
           <p class="empty-title">
-            등록된 결제수단이 없습니다.
+            등록된 카드가 없습니다.
           </p>
 
           <p class="empty-desc">
@@ -152,9 +145,6 @@
           </p>
         </div>
 
-        <!-- =========================
-             결제수단 목록
-        ========================== -->
         <div
           v-else
           class="payment-list"
@@ -165,11 +155,13 @@
             class="payment-item"
             :class="{
               selected:
-                selectedPaymentMethodId === payment.id
+                selectedPaymentMethodId ===
+                payment.id
             }"
-            @click="selectPaymentMethod(payment.id)"
+            @click="
+              selectPaymentMethod(payment.id)
+            "
           >
-            <!-- 왼쪽 카드 정보 -->
             <div class="payment-left">
               <div class="card-icon-wrap">
                 <img
@@ -199,14 +191,16 @@
               </div>
             </div>
 
-            <!-- 오른쪽 -->
             <div class="payment-right">
-              <!-- 삭제 버튼 -->
               <button
                 type="button"
                 class="delete-btn"
-                :disabled="deletingId === payment.id"
-                @click.stop="handleDeletePayment(payment)"
+                :disabled="
+                  deletingId === payment.id
+                "
+                @click.stop="
+                  handleDeletePayment(payment)
+                "
               >
                 {{
                   deletingId === payment.id
@@ -215,17 +209,18 @@
                 }}
               </button>
 
-              <!-- 라디오 버튼 -->
               <div
                 class="radio"
                 :class="{
                   active:
-                    selectedPaymentMethodId === payment.id
+                    selectedPaymentMethodId ===
+                    payment.id
                 }"
               >
                 <div
                   v-if="
-                    selectedPaymentMethodId === payment.id
+                    selectedPaymentMethodId ===
+                    payment.id
                   "
                   class="radio-dot"
                 ></div>
@@ -234,9 +229,7 @@
           </div>
         </div>
 
-        <!-- =========================
-             결제수단 추가 버튼
-        ========================== -->
+        <!-- 카드 추가 -->
         <button
           type="button"
           class="add-payment-btn"
@@ -247,20 +240,20 @@
           </span>
 
           <span class="add-payment-text">
-            새로운 결제수단 추가
+            새로운 카드 추가
           </span>
 
           <span
             class="add-chevron"
-            :class="{ opened: showAddPaymentForm }"
+            :class="{
+              opened: showAddPaymentForm
+            }"
           >
             ›
           </span>
         </button>
 
-        <!-- =========================
-             카드 등록 폼
-        ========================== -->
+        <!-- 카드 등록 -->
         <div
           v-if="showAddPaymentForm"
           class="card-form"
@@ -273,13 +266,14 @@
             <button
               type="button"
               class="form-close"
-              @click="showAddPaymentForm = false"
+              @click="
+                showAddPaymentForm = false
+              "
             >
               ✕
             </button>
           </div>
 
-          <!-- 카드번호 -->
           <div class="form-group">
             <label class="form-label">
               카드번호
@@ -294,7 +288,6 @@
             />
           </div>
 
-          <!-- 유효기간 -->
           <div class="expiration-row">
             <div class="form-group">
               <label class="form-label">
@@ -302,11 +295,12 @@
               </label>
 
               <input
-                v-model="cardForm.cardExpirationMonth"
+                v-model="
+                  cardForm.cardExpirationMonth
+                "
                 type="text"
                 class="form-input"
                 maxlength="2"
-                inputmode="numeric"
                 placeholder="MM"
               />
             </div>
@@ -317,17 +311,17 @@
               </label>
 
               <input
-                v-model="cardForm.cardExpirationYear"
+                v-model="
+                  cardForm.cardExpirationYear
+                "
                 type="text"
                 class="form-input"
                 maxlength="2"
-                inputmode="numeric"
                 placeholder="YY"
               />
             </div>
           </div>
 
-          <!-- 카드 비밀번호 -->
           <div class="form-group">
             <label class="form-label">
               카드 비밀번호
@@ -342,14 +336,15 @@
             />
           </div>
 
-          <!-- 본인 확인 번호 -->
           <div class="form-group">
             <label class="form-label">
               본인 확인 번호
             </label>
 
             <input
-              v-model="cardForm.customerIdentityNumber"
+              v-model="
+                cardForm.customerIdentityNumber
+              "
               type="password"
               class="form-input"
               inputmode="numeric"
@@ -357,7 +352,6 @@
             />
           </div>
 
-          <!-- 카드 등록 -->
           <button
             type="button"
             class="register-card-btn"
@@ -376,21 +370,11 @@
         </div>
       </div>
 
-      <!-- =========================
-           자동 충전 설정 저장
-           fixed 아님 / 화면 안에 위치
-      ========================== -->
       <div class="submit-area">
         <button
           class="submit-btn"
           type="button"
-          :disabled="
-            isSaving ||
-            (
-              autoChargeEnabled &&
-              !selectedPaymentMethodId
-            )
-          "
+          :disabled="isSaveDisabled"
           @click="saveAutoCharge"
         >
           {{
@@ -425,10 +409,6 @@ import {
 const router = useRouter()
 const authStore = useAuthStore()
 
-/* =========================
-   자동충전
-========================= */
-
 const walletBalance = ref(0)
 
 const autoChargeEnabled = ref(true)
@@ -439,23 +419,17 @@ const chargeAmount = ref(30000)
 
 const isSaving = ref(false)
 
-/* =========================
-   결제수단
-========================= */
-
 const paymentMethods = ref([])
 
-const selectedPaymentMethodId = ref(null)
+const selectedPaymentMethodId =
+  ref(null)
 
 const isPaymentLoading = ref(false)
 
 const deletingId = ref(null)
 
-/* =========================
-   카드 추가
-========================= */
-
-const showAddPaymentForm = ref(false)
+const showAddPaymentForm =
+  ref(false)
 
 const isRegistering = ref(false)
 
@@ -466,10 +440,6 @@ const cardForm = ref({
   cardPassword: '',
   customerIdentityNumber: '',
 })
-
-/* =========================
-   빠른 금액
-========================= */
 
 const quickAmounts = [
   {
@@ -490,10 +460,6 @@ const quickAmounts = [
   },
 ]
 
-/* =========================
-   카드 등록 가능 여부
-========================= */
-
 const canRegisterCard = computed(() => {
   return Boolean(
     cardForm.value.cardNumber &&
@@ -504,9 +470,28 @@ const canRegisterCard = computed(() => {
   )
 })
 
-/* =========================
-   페이지 진입
-========================= */
+const selectedPaymentMethod =
+  computed(() => {
+    return (
+      paymentMethods.value.find(
+        (payment) =>
+          payment.id ===
+          selectedPaymentMethodId.value
+      ) ?? null
+    )
+  })
+
+const isSaveDisabled = computed(() => {
+  if (isSaving.value) {
+    return true
+  }
+
+  if (!autoChargeEnabled.value) {
+    return false
+  }
+
+  return !selectedPaymentMethod.value
+})
 
 onMounted(async () => {
   await Promise.all([
@@ -514,10 +499,6 @@ onMounted(async () => {
     loadPaymentMethods(),
   ])
 })
-
-/* =========================
-   지갑 조회
-========================= */
 
 async function loadWallet() {
   try {
@@ -537,10 +518,6 @@ async function loadWallet() {
   }
 }
 
-/* =========================
-   결제수단 목록 조회
-========================= */
-
 async function loadPaymentMethods() {
   isPaymentLoading.value = true
 
@@ -550,8 +527,18 @@ async function loadPaymentMethods() {
     )
 
     if (res.success) {
-      paymentMethods.value =
+      /*
+       * 카드만 지원
+       * ACCOUNT 완전히 제외
+       * INACTIVE 완전히 제외
+       */
+      paymentMethods.value = (
         res.data ?? []
+      ).filter(
+        (payment) =>
+          payment.type === 'CARD' &&
+          payment.status === 'ACTIVE'
+      )
 
       const primary =
         paymentMethods.value.find(
@@ -573,67 +560,56 @@ async function loadPaymentMethods() {
     }
   } catch (error) {
     console.error(
-      '결제수단 조회 실패:',
+      '카드 목록 조회 실패:',
       error
     )
 
+    paymentMethods.value = []
+
+    selectedPaymentMethodId.value =
+      null
+
     alert(
       error.message ||
-        '결제수단을 불러오지 못했습니다.'
+        '카드를 불러오지 못했습니다.'
     )
   } finally {
     isPaymentLoading.value = false
   }
 }
 
-/* =========================
-   결제수단 선택
-========================= */
-
 function selectPaymentMethod(id) {
+  const payment =
+    paymentMethods.value.find(
+      (item) => item.id === id
+    )
+
+  if (!payment) {
+    alert(
+      '사용할 수 없는 카드입니다.'
+    )
+    return
+  }
+
   selectedPaymentMethodId.value = id
 }
-
-/* =========================
-   이름
-========================= */
 
 function getPaymentName(payment) {
   if (!payment) return ''
 
-  return (
-    payment.cardCompany ||
-    payment.accountBankName ||
-    '결제수단'
-  )
+  return payment.cardCompany || '카드'
 }
-
-/* =========================
-   번호
-========================= */
 
 function getPaymentNumber(payment) {
   if (!payment) return ''
 
-  return (
-    payment.maskedCardNumber ||
-    payment.accountNumber ||
-    ''
-  )
+  return payment.maskedCardNumber || ''
 }
-
-/* =========================
-   카드 추가 폼 토글
-========================= */
 
 function toggleAddPaymentForm() {
   showAddPaymentForm.value =
     !showAddPaymentForm.value
 }
-
-/* =========================
-   카드 추가
-========================= */
 
 async function handleAddPayment() {
   if (
@@ -657,10 +633,12 @@ async function handleAddPayment() {
             ),
 
           cardExpirationMonth:
-            cardForm.value.cardExpirationMonth,
+            cardForm.value
+              .cardExpirationMonth,
 
           cardExpirationYear:
-            cardForm.value.cardExpirationYear,
+            cardForm.value
+              .cardExpirationYear,
 
           cardPassword:
             Number(
@@ -669,38 +647,38 @@ async function handleAddPayment() {
 
           customerIdentityNumber:
             Number(
-              cardForm.value.customerIdentityNumber
+              cardForm.value
+                .customerIdentityNumber
             ),
         }
       )
 
     if (res.success) {
-      alert('결제수단이 등록되었습니다.')
+      alert(
+        '카드가 등록되었습니다.'
+      )
 
       resetCardForm()
 
-      showAddPaymentForm.value = false
+      showAddPaymentForm.value =
+        false
 
       await loadPaymentMethods()
     }
   } catch (error) {
     console.error(
-      '결제수단 등록 실패:',
+      '카드 등록 실패:',
       error
     )
 
     alert(
       error.message ||
-        '결제수단 등록에 실패했습니다.'
+        '카드 등록에 실패했습니다.'
     )
   } finally {
     isRegistering.value = false
   }
 }
-
-/* =========================
-   카드 폼 초기화
-========================= */
 
 function resetCardForm() {
   cardForm.value = {
@@ -712,23 +690,28 @@ function resetCardForm() {
   }
 }
 
-/* =========================
-   결제수단 삭제
-========================= */
-
-async function handleDeletePayment(payment) {
-  if (!payment) return
-
-  if (deletingId.value !== null) {
+async function handleDeletePayment(
+  payment
+) {
+  if (
+    !payment ||
+    deletingId.value !== null
+  ) {
     return
   }
 
-  const paymentName =
-    getPaymentName(payment)
+  /*
+   * 카드가 아닌 데이터는
+   * 이 화면에서 삭제 요청하지 않음
+   */
+  if (payment.type !== 'CARD') {
+    return
+  }
 
-  const confirmed = window.confirm(
-    `${paymentName} 결제수단을 삭제하시겠습니까?`
-  )
+  const confirmed =
+    window.confirm(
+      `${getPaymentName(payment)} 카드를 삭제하시겠습니까?`
+    )
 
   if (!confirmed) {
     return
@@ -744,90 +727,86 @@ async function handleDeletePayment(payment) {
       )
 
     if (res.success) {
-      alert('결제수단이 삭제되었습니다.')
+      paymentMethods.value =
+        paymentMethods.value.filter(
+          (item) =>
+            item.id !== payment.id
+        )
 
-      // 현재 선택된 결제수단을 삭제했다면 초기화
       if (
         selectedPaymentMethodId.value ===
         payment.id
       ) {
-        selectedPaymentMethodId.value =
-          null
+        const primary =
+          paymentMethods.value.find(
+            (item) => item.primary
+          )
+
+        if (primary) {
+          selectedPaymentMethodId.value =
+            primary.id
+        } else if (
+          paymentMethods.value.length > 0
+        ) {
+          selectedPaymentMethodId.value =
+            paymentMethods.value[0].id
+        } else {
+          selectedPaymentMethodId.value =
+            null
+        }
       }
 
-      // 서버 기준 목록 다시 받아오기
+      alert(
+        '카드가 삭제되었습니다.'
+      )
+
       await loadPaymentMethods()
     }
   } catch (error) {
     console.error(
-      '결제수단 삭제 실패:',
+      '카드 삭제 실패:',
       error
     )
 
     alert(
       error.message ||
-        '결제수단 삭제에 실패했습니다.'
+        '카드 삭제에 실패했습니다.'
     )
   } finally {
     deletingId.value = null
   }
 }
 
-/* =========================
-   자동충전 ON/OFF
-========================= */
-
 function toggleAutoCharge() {
   autoChargeEnabled.value =
     !autoChargeEnabled.value
 }
 
-/* =========================
-   자동충전 설정 저장
-========================= */
-
 async function saveAutoCharge() {
-  if (isSaving.value) return
+  if (isSaving.value) {
+    return
+  }
 
   if (
     autoChargeEnabled.value &&
-    !selectedPaymentMethodId.value
+    !selectedPaymentMethod.value
   ) {
     alert(
-      '자동충전에 사용할 결제수단을 선택해주세요.'
+      '자동충전에 사용할 카드를 선택해주세요.'
     )
-
     return
   }
 
   isSaving.value = true
 
   try {
-    /*
-     * TODO:
-     * 자동충전 설정 API 연결
-     *
-     * 예:
-     *
-     * await saveAutoChargeSetting(
-     *   authStore.accessToken,
-     *   {
-     *     enabled: autoChargeEnabled.value,
-     *     thresholdAmount:
-     *       thresholdAmount.value,
-     *     chargeAmount:
-     *       chargeAmount.value,
-     *     paymentMethodId:
-     *       selectedPaymentMethodId.value,
-     *   }
-     * )
-     */
-
     router.push({
-      path: '/parents/charge/charging',
+      path:
+        '/parents/charge/charging',
 
       query: {
-        amount: chargeAmount.value,
+        amount:
+          chargeAmount.value,
 
         paymentMethodId:
           selectedPaymentMethodId.value,
@@ -853,39 +832,25 @@ async function saveAutoCharge() {
 .page {
   width: 360px;
   min-height: 100dvh;
-
   margin: 0 auto;
-
   background-color: #ffffff;
-
   display: flex;
   flex-direction: column;
-
   box-sizing: border-box;
 }
-
-/* =========================
-   헤더
-========================= */
 
 .nav {
   display: flex;
   align-items: center;
-
   gap: 10px;
-
   padding: 18px 20px;
-
   border-bottom: 1px solid #f0f1f3;
 }
 
 .back-btn {
   padding: 0;
-
   background: transparent;
-
   border: none;
-
   cursor: pointer;
 }
 
@@ -896,138 +861,93 @@ async function saveAutoCharge() {
 
 .nav-title {
   margin: 0;
-
   font-size: 16px;
   font-weight: 700;
-
   color: #191b1e;
 }
-
-/* =========================
-   콘텐츠
-========================= */
 
 .content {
   display: flex;
   flex-direction: column;
-
   padding: 16px 16px 40px;
-
   box-sizing: border-box;
 }
 
-/* =========================
-   지갑
-========================= */
-
 .wallet-card {
   padding: 20px;
-
   margin-bottom: 24px;
-
   background-color: #f4f5f7;
-
   border-radius: 16px;
 }
 
 .wallet-label {
   margin: 0 0 8px;
-
   font-size: 12px;
-
   color: #8b9097;
 }
 
 .wallet-amount {
   margin: 0;
-
   font-size: 28px;
   font-weight: 700;
-
   color: #191b1e;
 }
-
-/* =========================
-   공통 설정
-========================= */
 
 .setting-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   padding: 16px 0;
 }
 
 .setting-title {
   margin: 0 0 4px;
-
   font-size: 15px;
   font-weight: 700;
-
   color: #191b1e;
 }
 
 .setting-desc {
   margin: 0;
-
   font-size: 12px;
-
   color: #8b9097;
 }
 
 .setting-label {
   margin: 0;
-
   font-size: 14px;
-
   color: #8b9097;
 }
 
 .divider {
   width: 100%;
   height: 1px;
-
   background-color: #f0f1f3;
 }
-
-/* =========================
-   잔액 기준
-========================= */
 
 .threshold-section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   padding: 16px 0;
 }
 
 .threshold-input-wrap {
   display: flex;
   align-items: center;
-
   gap: 5px;
 }
 
 .threshold-input {
   width: 80px;
-
   padding: 8px;
-
   border: 1px solid #e0e2e6;
-
   border-radius: 8px;
-
   outline: none;
-
   text-align: right;
-
   font-size: 14px;
   font-weight: 700;
-
   color: #191b1e;
-
   box-sizing: border-box;
 }
 
@@ -1038,30 +958,18 @@ async function saveAutoCharge() {
 .threshold-unit {
   font-size: 14px;
   font-weight: 600;
-
   color: #191b1e;
 }
 
-/* =========================
-   토글
-========================= */
-
 .toggle {
   position: relative;
-
   width: 48px;
   height: 28px;
-
   padding: 0;
-
   border: none;
-
   border-radius: 14px;
-
   background-color: #e0e2e6;
-
   cursor: pointer;
-
   transition: background-color 0.2s;
 }
 
@@ -1071,17 +979,12 @@ async function saveAutoCharge() {
 
 .toggle-thumb {
   position: absolute;
-
   top: 3px;
   left: 3px;
-
   width: 22px;
   height: 22px;
-
   background-color: #ffffff;
-
   border-radius: 50%;
-
   transition: transform 0.2s;
 }
 
@@ -1089,16 +992,10 @@ async function saveAutoCharge() {
   transform: translateX(20px);
 }
 
-/* =========================
-   충전 금액
-========================= */
-
 .charge-amount-section {
   display: flex;
   flex-direction: column;
-
   gap: 12px;
-
   padding: 16px 0;
 }
 
@@ -1110,60 +1007,42 @@ async function saveAutoCharge() {
 
 .setting-value-large {
   margin: 0;
-
   font-size: 22px;
   font-weight: 700;
-
   color: #191b1e;
 }
 
 .auto-label {
   font-size: 12px;
-
   color: #8b9097;
 }
 
 .quick-btns {
   display: flex;
-
   gap: 8px;
 }
 
 .quick-btn {
   flex: 1;
-
   height: 36px;
-
   border: 1.5px solid #e0e2e6;
-
   border-radius: 20px;
-
   background-color: #ffffff;
-
   font-size: 13px;
   font-weight: 600;
-
   color: #191b1e;
-
   cursor: pointer;
 }
 
 .quick-btn.selected {
   border-color: #ffbc00;
-
   background-color: #fff8e1;
 }
-
-/* =========================
-   결제수단
-========================= */
 
 .payment-section {
   display: flex;
   flex-direction: column;
-
   gap: 12px;
-
   padding: 20px 0;
 }
 
@@ -1174,67 +1053,43 @@ async function saveAutoCharge() {
 .payment-state,
 .payment-empty {
   padding: 20px;
-
   background-color: #f7f8fa;
-
   border-radius: 14px;
-
   text-align: center;
-
   font-size: 13px;
-
   color: #8b9097;
 }
 
 .empty-title {
   margin: 0 0 5px;
-
   font-size: 13px;
   font-weight: 700;
-
   color: #555b63;
 }
 
 .empty-desc {
   margin: 0;
-
   font-size: 11px;
-
   color: #8b9097;
 }
 
-/* =========================
-   결제수단 목록
-========================= */
-
 .payment-list {
   overflow: hidden;
-
   border: 1px solid #e7e9ec;
-
   border-radius: 16px;
-
   background-color: #ffffff;
 }
 
 .payment-item {
   width: 100%;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 8px;
-
   padding: 14px;
-
   border-bottom: 1px solid #f0f1f3;
-
   cursor: pointer;
-
   box-sizing: border-box;
-
-  transition: background-color 0.15s ease;
 }
 
 .payment-item:last-child {
@@ -1247,27 +1102,20 @@ async function saveAutoCharge() {
 
 .payment-left {
   flex: 1;
-
   min-width: 0;
-
   display: flex;
   align-items: center;
-
   gap: 10px;
 }
 
 .card-icon-wrap {
   width: 38px;
   height: 38px;
-
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   background-color: #f4f5f7;
-
   border-radius: 9px;
 }
 
@@ -1283,114 +1131,67 @@ async function saveAutoCharge() {
 .payment-name-row {
   display: flex;
   align-items: center;
-
   gap: 5px;
-
   margin-bottom: 4px;
 }
 
 .payment-name {
   margin: 0;
-
   font-size: 14px;
   font-weight: 700;
-
   color: #191b1e;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .payment-number {
   margin: 0;
-
   font-size: 12px;
-
   color: #8b9097;
 }
 
 .primary-badge {
   flex-shrink: 0;
-
   padding: 2px 5px;
-
   background-color: #fff3c4;
-
   border-radius: 8px;
-
   font-size: 9px;
   font-weight: 700;
-
   color: #a86f00;
 }
 
 .payment-right {
   display: flex;
   align-items: center;
-
   gap: 9px;
-
   flex-shrink: 0;
 }
 
-/* =========================
-   삭제 버튼
-========================= */
-
 .delete-btn {
   min-width: 42px;
-
   height: 28px;
-
   padding: 0 9px;
-
   border: 1px solid #eceef1;
-
   border-radius: 7px;
-
   background-color: #ffffff;
-
   font-size: 11px;
   font-weight: 600;
-
   color: #e15252;
-
   cursor: pointer;
-
-  box-sizing: border-box;
-}
-
-.delete-btn:hover {
-  background-color: #fff4f4;
-
-  border-color: #ffdede;
 }
 
 .delete-btn:disabled {
   opacity: 0.45;
-
   cursor: not-allowed;
 }
-
-/* =========================
-   라디오
-========================= */
 
 .radio {
   width: 20px;
   height: 20px;
-
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   border: 2px solid #e0e2e6;
-
   border-radius: 50%;
-
   box-sizing: border-box;
 }
 
@@ -1401,72 +1202,47 @@ async function saveAutoCharge() {
 .radio-dot {
   width: 10px;
   height: 10px;
-
   background-color: #ffbc00;
-
   border-radius: 50%;
 }
 
-/* =========================
-   결제수단 추가 버튼
-========================= */
-
 .add-payment-btn {
   width: 100%;
-
   display: flex;
   align-items: center;
-
   gap: 9px;
-
   padding: 14px 15px;
-
   border: 1px solid #e7e9ec;
-
   border-radius: 14px;
-
   background-color: #ffffff;
-
   cursor: pointer;
-
   box-sizing: border-box;
 }
 
 .add-circle {
   width: 24px;
   height: 24px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   flex-shrink: 0;
-
   background-color: #f4f5f7;
-
   border-radius: 50%;
-
   font-size: 17px;
-
   color: #555b63;
 }
 
 .add-payment-text {
   flex: 1;
-
   text-align: left;
-
   font-size: 13px;
   font-weight: 600;
-
   color: #555b63;
 }
 
 .add-chevron {
   font-size: 20px;
-
   color: #b0b4ba;
-
   transition: transform 0.2s;
 }
 
@@ -1474,22 +1250,13 @@ async function saveAutoCharge() {
   transform: rotate(90deg);
 }
 
-/* =========================
-   카드 등록
-========================= */
-
 .card-form {
   display: flex;
   flex-direction: column;
-
   gap: 14px;
-
   padding: 16px;
-
   background-color: #f7f8fa;
-
   border-radius: 16px;
-
   box-sizing: border-box;
 }
 
@@ -1501,59 +1268,42 @@ async function saveAutoCharge() {
 
 .form-title {
   margin: 0;
-
   font-size: 15px;
   font-weight: 700;
-
   color: #191b1e;
 }
 
 .form-close {
   padding: 4px;
-
   border: none;
-
   background: transparent;
-
   color: #8b9097;
-
   cursor: pointer;
 }
 
 .form-group {
   flex: 1;
-
   display: flex;
   flex-direction: column;
-
   gap: 6px;
 }
 
 .form-label {
   font-size: 12px;
   font-weight: 600;
-
   color: #555b63;
 }
 
 .form-input {
   width: 100%;
   height: 44px;
-
   padding: 0 12px;
-
   border: 1px solid #e0e2e6;
-
   border-radius: 10px;
-
   background-color: #ffffff;
-
   outline: none;
-
   font-size: 14px;
-
   color: #191b1e;
-
   box-sizing: border-box;
 }
 
@@ -1563,42 +1313,28 @@ async function saveAutoCharge() {
 
 .expiration-row {
   display: flex;
-
   gap: 10px;
 }
 
 .register-card-btn {
   width: 100%;
   height: 46px;
-
   border: none;
-
   border-radius: 10px;
-
   background-color: #191b1e;
-
   color: #ffffff;
-
   font-size: 14px;
   font-weight: 700;
-
   cursor: pointer;
 }
 
 .register-card-btn:disabled {
   opacity: 0.4;
-
   cursor: not-allowed;
 }
 
-/* =========================
-   설정 저장
-   화면 내부
-========================= */
-
 .submit-area {
   width: 100%;
-
   margin-top: 4px;
   margin-bottom: 10px;
 }
@@ -1606,26 +1342,17 @@ async function saveAutoCharge() {
 .submit-btn {
   width: 100%;
   height: 49px;
-
   border: none;
-
   border-radius: 10px;
-
   background-color: #ffbc00;
-
   font-size: 16px;
   font-weight: 700;
-
   color: #191b1e;
-
   cursor: pointer;
-
-  box-sizing: border-box;
 }
 
 .submit-btn:disabled {
   opacity: 0.4;
-
   cursor: not-allowed;
 }
 </style>
