@@ -418,7 +418,6 @@ const router = createRouter({
     path: '/parents/quest/:questId', 
     name: 'quest-detail', 
     component: QuestDetails 
-  }
   },
   // 자녀 퀘스트 목록
   { 
@@ -485,7 +484,6 @@ const router = createRouter({
   name: 'teeny-score', 
   component: TeenyScoring 
 }
-
   ],
 });
 
