@@ -86,7 +86,7 @@ import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
 import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
 import QuestDetails from '@/pages/Parents/Quest/QuestDetail.vue'
-
+import QuestApproval from '@/pages/Parents/Quest/QuestApproval.vue';'@/pages/Parents/QuestApproval.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -410,6 +410,11 @@ const router = createRouter({
     path: '/parents/quest/:questId', 
     name: 'quest-detail', 
     component: QuestDetails 
+  },
+  {
+  path: '/parents/quest/:questId/verifications/:verificationId',
+  name: 'ParentQuestApproval',
+  component: QuestApproval,
   }
   ],
 });
