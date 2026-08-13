@@ -11,188 +11,236 @@
           </svg>
         </button>
         <h1 class="nav-title">티니 점수 등급</h1>
+        <span class="nav-spacer"></span>
       </div>
 
-      <!-- 현재 등급 -->
-      <div class="current-block">
-        <span class="eyebrow">현재 등급</span>
+      <div v-if="loading" class="state-text">불러오는 중...</div>
+      <div v-else-if="errorMsg" class="state-text error">{{ errorMsg }}</div>
 
-        <div class="gauge-wrap">
-          <svg viewBox="0 0 280 190" width="100%" height="190" overflow="visible">
-            <path v-for="(seg, i) in arcSegments" :key="i" :d="seg.d" :stroke="seg.color"
-                  stroke-width="14" fill="none" stroke-linecap="round"/>
+      <template v-else>
+        <!-- 현재 등급 -->
+        <div class="current-section">
+          <span class="eyebrow">현재 등급</span>
 
-            <!-- 현재 점수 포인터 -->
-            <circle :cx="pointerPos.x" :cy="pointerPos.y" r="7" fill="#fff"
-                    :stroke="currentGradeInfo.color" stroke-width="3"/>
+          <div class="score-row">
+            <div class="score-num-wrap">
+              <span class="score-num" :style="{ color: currentGradeInfo.color }">{{ score }}</span>
+              <span class="score-unit">점</span>
+            </div>
 
-            <!-- 점수 말풍선 -->
-            <rect :x="bubbleX" :y="bubbleY" width="44" height="20" rx="6" :fill="currentGradeInfo.color"/>
-            <text :x="bubbleX + 22" :y="bubbleY + 14" text-anchor="middle"
-                  font-size="10" font-weight="700" fill="#fff">{{ score }}점</text>
-
-            <!-- 최소/최대 라벨 -->
-            <text x="44" y="168" font-size="10" fill="#c6cbd2">{{ SCORE_MIN }}점</text>
-            <text x="236" y="168" text-anchor="end" font-size="10" fill="#c6cbd2">{{ SCORE_MAX.toLocaleString() }}점</text>
-          </svg>
-        </div>
-
-        <div class="grade-row">
-          <span class="grade-emoji">{{ currentGradeInfo.emoji }}</span>
-          <b class="grade-adjective" :style="{ color: currentGradeInfo.color }">{{ grade }}</b>
-          <span class="score-val">{{ score }}점</span>
-        </div>
-
-        <div class="compare-row">
-          <span class="compare-text">지난주 보다</span>
-          <div class="compare-badge" :class="{ negative: scoreDiff < 0 }">
-            <span>{{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}점</span>
+            <div class="grade-pill" :style="{ backgroundColor: currentGradeInfo.color + '18', color: currentGradeInfo.color }">
+              <span class="grade-pill-dot" :style="{ backgroundColor: currentGradeInfo.color }"></span>
+              {{ grade }}
+            </div>
           </div>
-        </div>
 
-        <div v-if="nextGradeGap !== null" class="encourage-text">
-          다음 등급까지 <b>{{ nextGradeGap }}점</b> 남았어요! 조금만 더 힘내요 💪
-        </div>
-        <div v-else class="encourage-text">
-          최고 등급이에요! 지금처럼만 잘 관리해봐요 🎉
-        </div>
-      </div>
+          <div class="sub-row">
+            <span class="sub-text">지난 달 보다</span>
+            <span class="sub-diff" :class="{ negative: scoreDiff < 0 }">
+              {{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}점
+            </span>
+            <span class="sub-dot">·</span>
+            <span v-if="nextGradeGap !== null" class="sub-text">
+              다음 등급까지 <b class="hl">{{ nextGradeGap }}점</b>
+            </span>
+            <span v-else class="sub-text">최고 등급이에요</span>
+          </div>
 
-      <!-- 등급 안내 -->
-      <div class="guide-block">
-        <span class="eyebrow">등급 안내</span>
-
-        <div class="guide-list">
-          <div v-for="g in grades" :key="g.label" class="guide-row"
-               :class="{ current: g.label === grade }">
-            <span class="guide-emoji">{{ g.emoji }}</span>
-            <div class="guide-text">
-              <div class="guide-title-row">
-                <b class="guide-label">{{ g.label }}</b>
-                <span class="guide-range faint">{{ g.min }}~{{ g.max === SCORE_MAX ? g.max.toLocaleString() : g.max }}점</span>
-                <span v-if="g.label === grade" class="current-badge">현재</span>
+          <!-- 등급 세그먼트 트랙 -->
+          <div class="segment-wrap">
+            <div class="segment-track">
+              <div class="segment-track-bg">
+                <div
+                  v-for="(g, i) in gradesAsc"
+                  :key="g.gradeId"
+                  class="segment-fill"
+                  :style="{ backgroundColor: g.color, width: segmentWidths[i] + '%' }"
+                ></div>
               </div>
-              <span class="guide-headline">{{ g.headline }}</span>
-              <ul class="guide-perks">
-                <li v-for="(p, i) in g.perks" :key="i">{{ p }}</li>
-              </ul>
+              <div class="segment-pointer" :style="{ left: thumbPercent + '%' }">
+                <span class="segment-pointer-dot" :style="{ borderColor: currentGradeInfo.color }"></span>
+              </div>
+            </div>
+
+            <div class="segment-labels">
+              <span
+                v-for="(g, i) in gradesAsc"
+                :key="g.gradeId"
+                class="segment-label"
+                :class="{ active: g.label === grade }"
+                :style="[{ width: segmentWidths[i] + '%' }, g.label === grade ? { color: g.color } : {}]"
+              >
+                {{ g.label }}
+              </span>
+            </div>
+
+            <div class="segment-minmax">
+              <span>{{ SCORE_MIN }}점</span>
+              <span>{{ SCORE_MAX.toLocaleString() }}점</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 팁 박스 -->
-      <div class="tips-box">
-        <span class="tips-label">💡 등급은 어떻게 오르나요?</span>
-        <p class="tips-content faint">
-          결제 습관·목표 달성·퀘스트 완료로 점수가 오르면 등급이 올라갑니다.
-          등급이 높을수록 이용할 수 있는 범위가 넓어집니다.
-        </p>
-      </div>
+        <div class="divider"></div>
+
+        <!-- 등급 안내 -->
+        <div class="guide-block">
+          <span class="eyebrow">등급 안내</span>
+
+          <div class="guide-list">
+            <div v-for="g in gradesDesc" :key="g.gradeId" class="guide-row"
+                 :class="{ current: g.label === grade }">
+              <span class="guide-dot" :style="{ backgroundColor: g.color }"></span>
+              <div class="guide-text">
+                <div class="guide-title-row">
+                  <b class="guide-label">{{ g.label }}</b>
+                  <span class="guide-range faint">{{ g.min }}~{{ g.max === SCORE_MAX ? g.max.toLocaleString() : g.max }}점</span>
+                  <span v-if="g.label === grade" class="current-badge" :style="{ backgroundColor: g.color }">현재</span>
+                </div>
+                <span class="guide-headline">{{ g.headline }}</span>
+                <ul class="guide-perks">
+                  <li v-for="(p, i) in g.perks" :key="i">{{ p }}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </template>
 
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getTeenyScore, getTeenyScoreGrades, getMyHistories } from '@/api/teenyScore'
+import { useAuthStore } from '@/stores/auth'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const { accessToken, memberId } = storeToRefs(authStore)
+const childId = memberId
 
 // ==================================================================
-// API 연동 필요 (지금은 더미 데이터)
+// 실제 DB 등급 (2026-08 확인):
+//   gradeId 1: 새싹   0~449   #FF4D4D
+//   gradeId 2: 스타터 450~649 #FF9F40
+//   gradeId 3: 플러스 650~749 #FFD400
+//   gradeId 4: 프로   750~899 #4CAF50
+//   gradeId 5: 마스터 900~1000 #2196F3
 // ==================================================================
-
-const score = 850
-const scoreDiff = 15
-
-const SCORE_MIN = 600
-const SCORE_MAX = 1000
-
-// 각 등급의 안내 -> 수정 필요
-const grades = [
-  {
-    label: '우수', min: 920, max: SCORE_MAX, color: '#4D8AD6', emoji: '⭐',
-    headline: '최고예요! 🎉',
-    perks: ['모든 결제를 자유롭게 할 수 있어요', '오늘만 허용 요청이 거의 바로 승인돼요', '특별 아이템을 교환할 수 있어요'],
-  },
-  {
-    label: '양호', min: 840, max: 919, color: '#62B24A', emoji: '🍎',
-    headline: '아주 잘하고 있어요!',
-    perks: ['대부분의 결제를 자유롭게 할 수 있어요', '저금 목표를 달성하면 보너스를 받아요', '특별 아이템을 교환할 수 있어요'],
-  },
-  {
-    label: '보통', min: 760, max: 839, color: '#F4B400', emoji: '🌳',
-    headline: '꾸준히 잘 자라고 있어요',
-    perks: ['일반 결제를 자유롭게 할 수 있어요', '저금 목표를 달성하면 보너스를 받아요'],
-  },
-  {
-    label: '주의', min: 680, max: 759, color: '#EF8A3C', emoji: '🍀',
-    headline: '조금씩 성장하고 있어요',
-    perks: ['기본적인 결제를 할 수 있어요', '오늘만 허용 요청은 보호자 승인이 필요해요'],
-  },
-  {
-    label: '회복', min: SCORE_MIN, max: 679, color: '#E5484D', emoji: '🌱',
-    headline: '이제 막 시작하는 단계예요',
-    perks: ['결제할 때 보호자 승인이 필요해요', '조금씩 점수를 올려봐요'],
-  },
-]
-
-function getGradeByScore(s) {
-  const found = grades.find(g => s >= g.min && s <= g.max)
-  return found ? found.label : grades[grades.length - 1].label
+const GRADE_ID_META = {
+  1: { headline: '이제 막 시작하는 단계예요',
+    perks: ['결제할 때 보호자 승인이 필요해요', '조금씩 점수를 올려봐요'] },
+  2: { headline: '조금씩 성장하고 있어요',
+    perks: ['기본적인 결제를 할 수 있어요', '오늘만 허용 요청은 보호자 승인이 필요해요'] },
+  3: { headline: '꾸준히 잘 자라고 있어요',
+    perks: ['일반 결제를 자유롭게 할 수 있어요', '저금 목표를 달성하면 보너스를 받아요'] },
+  4: { headline: '아주 잘하고 있어요!',
+    perks: ['대부분의 결제를 자유롭게 할 수 있어요', '저금 목표를 달성하면 보너스를 받아요', '특별 아이템을 교환할 수 있어요'] },
+  5: { headline: '최고예요!',
+    perks: ['모든 결제를 자유롭게 할 수 있어요', '오늘만 허용 요청이 거의 바로 승인돼요', '특별 아이템을 교환할 수 있어요'] },
 }
-const grade = getGradeByScore(score)
-const currentGradeInfo = computed(() => grades.find(g => g.label === grade))
+const FALLBACK_META = { color: '#999999', headline: '', perks: [] }
 
-// 다음 등급까지 남은 점수
-const currentGradeIdx = computed(() => grades.findIndex(g => g.label === grade))
+const score = ref(0)
+const grade = ref('') 
+const scoreDiff = ref(0)
+const gradesAsc = ref([]) 
+const loading = ref(true)
+const errorMsg = ref('')
+
+function parseCreatedAt(dateVal) {
+  if (!dateVal) return null
+  if (Array.isArray(dateVal)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = dateVal
+    return new Date(year, month - 1, day, hour, minute, second)
+  }
+  const d = new Date(dateVal)
+  return isNaN(d.getTime()) ? null : d
+}
+
+async function loadData() {
+  loading.value = true
+  errorMsg.value = ''
+  try {
+    const [scoreRes, gradesRes, historyRes] = await Promise.all([
+      getTeenyScore(accessToken.value, childId.value),
+      getTeenyScoreGrades(accessToken.value),
+      getMyHistories(accessToken.value),
+    ])
+
+    score.value = scoreRes.data.teenyScore
+    grade.value = scoreRes.data.gradeName 
+
+    gradesAsc.value = [...gradesRes.data]
+      .sort((a, b) => a.minScore - b.minScore)
+      .map((g) => {
+        const meta = GRADE_ID_META[g.gradeId] ?? FALLBACK_META
+        return {
+          gradeId: g.gradeId,
+          label: g.gradeName,
+          min: g.minScore,
+          max: g.maxScore,
+          color: g.color, 
+          headline: meta.headline,
+          perks: meta.perks,
+        }
+      })
+
+    const histories = [...historyRes.data]
+      .map((h) => ({ ...h, parsedDate: parseCreatedAt(h.createdAt) }))
+      .filter((h) => h.parsedDate !== null)
+      .sort((a, b) => b.parsedDate - a.parsedDate)
+
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    const weekAgoEntry = histories.find((h) => h.parsedDate.getTime() <= weekAgo)
+    scoreDiff.value = weekAgoEntry ? score.value - weekAgoEntry.scoreAfter : 0
+  } catch (e) {
+    errorMsg.value = e.message || '등급 정보를 불러오지 못했어요.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(loadData)
+
+// 화면 표시(등급 안내 리스트)는 높은 점수 -> 낮은 점수 순으로 보여줘야 하므로 역순
+const gradesDesc = computed(() => [...gradesAsc.value].reverse())
+
+const SCORE_MIN = computed(() => gradesAsc.value[0]?.min ?? 0)
+const SCORE_MAX = computed(() => gradesAsc.value[gradesAsc.value.length - 1]?.max ?? 0)
+
+const currentGradeInfo = computed(
+  () => gradesAsc.value.find((g) => g.label === grade.value) ?? FALLBACK_META
+)
+const currentGradeIdxAsc = computed(() => gradesAsc.value.findIndex((g) => g.label === grade.value))
+
+// 다음 등급까지 남은 점수 (gradesAsc가 오름차순이므로 다음 등급은 idx+1)
 const nextGradeGap = computed(() => {
-  if (currentGradeIdx.value <= 0) return null // 이미 최고 등급
-  const nextGrade = grades[currentGradeIdx.value - 1]
-  return nextGrade.min - score
+  const idx = currentGradeIdxAsc.value
+  if (idx < 0 || idx >= gradesAsc.value.length - 1) return null // 최고 등급
+  const nextGrade = gradesAsc.value[idx + 1]
+  return nextGrade.min - score.value
 })
 
+// 트랙 위 포인터 위치 (0~100%, 점수 비율 기준)
 const thumbPercent = computed(() => {
-  const ratio = (score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)
-  return Math.min(100, Math.max(0, ratio * 100))
+  const total = SCORE_MAX.value - SCORE_MIN.value
+  if (total <= 0) return 0
+  return Math.min(100, Math.max(0, ((score.value - SCORE_MIN.value) / total) * 100))
 })
 
-// ==== 반원 게이지 좌표 계산 ====
-const GAUGE_CX = 140
-const GAUGE_CY = 150
-const GAUGE_R = 96
-const GAUGE_STROKE = 14
-
-function polarToCartesian(cx, cy, r, angleDeg) {
-  const rad = (angleDeg * Math.PI) / 180
-  return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) }
-}
-
-function describeArc(cx, cy, r, startAngle, endAngle) {
-  const start = polarToCartesian(cx, cy, r, startAngle)
-  const end = polarToCartesian(cx, cy, r, endAngle)
-  const largeArcFlag = Math.abs(startAngle - endAngle) <= 180 ? '0' : '1'
-  const sweepFlag = startAngle > endAngle ? '1' : '0'
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`
-}
-
-// 등급 5개를 낮은 점수 -> 높은 점수 순으로 반원 36도씩 배치
-const arcSegments = computed(() => {
-  const ordered = [...grades].reverse()
-  return ordered.map((g, i) => {
-    const startAngle = 180 - i * 36
-    const endAngle = startAngle - 36
-    return { color: g.color, d: describeArc(GAUGE_CX, GAUGE_CY, GAUGE_R, startAngle, endAngle) }
-  })
+// 등급별 트랙 배경 너비 (실제 점수 범위 비율 기준 — 균등분할 아님)
+// 라벨도 같은 너비로 맞춰서 트랙 세그먼트와 정확히 정렬되도록 함
+const segmentWidths = computed(() => {
+  const total = SCORE_MAX.value - SCORE_MIN.value
+  if (total <= 0) return []
+  return gradesAsc.value.map((g) => ((g.max - g.min + 1) / total) * 100)
 })
-
-const pointerAngle = computed(() => 180 - thumbPercent.value * 1.8)
-const pointerPos = computed(() => polarToCartesian(GAUGE_CX, GAUGE_CY, GAUGE_R, pointerAngle.value))
-
-const bubbleX = computed(() => Math.min(Math.max(pointerPos.value.x - 22, 6), 280 - 44 - 6))
-const bubbleY = computed(() => pointerPos.value.y - GAUGE_STROKE / 2 - 28)
 
 function goBack() {
   router.push({ name: 'child-score' })
@@ -218,10 +266,10 @@ function goBack() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 20px 20px;
+  padding: 10px 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 18px;
 }
 
 .scroll::-webkit-scrollbar {
@@ -233,10 +281,21 @@ function goBack() {
   border-radius: 999px;
 }
 
+.state-text {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #8a9099;
+}
+.state-text.error {
+  color: #e5484d;
+}
+
+/* 상단 네비 */
 .nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
   padding: 4px 0 8px;
 }
 
@@ -249,120 +308,209 @@ function goBack() {
   cursor: pointer;
   padding: 10px;
   margin: -10px;
-  min-width: 44px;
-  min-height: 44px;
+  width: 44px;
+  height: 44px;
 }
 
 .nav-title {
   margin: 0;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 17px;
   color: #15171b;
   letter-spacing: -0.32px;
 }
 
+.nav-spacer {
+  width: 44px;
+}
+
 .eyebrow {
+  display: block;
   font-weight: 700;
   font-size: 12.5px;
   letter-spacing: 0.36px;
   color: #8a9099;
+  margin-bottom: 10px;
 }
 
 .faint {
   color: #b9bec5;
 }
 
-/* 현재 등급 */
-.current-block {
+/* 현재 등급 섹션 (카드 없이 자연스럽게) */
+.current-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-.grade-row {
+.score-row {
   display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: 8px;
-  margin-top: -6px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.grade-emoji {
-  font-size: 22px;
+.score-num-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.score-num {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -1px;
   line-height: 1;
 }
 
-.compare-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-}
-
-.compare-text {
-  font-size: 12px;
+.score-unit {
+  font-size: 15px;
+  font-weight: 700;
   color: #8b9097;
 }
 
-.grade-adjective {
-  font-weight: 800;
-  font-size: 25px;
-  letter-spacing: -0.72px;
-}
-
-.score-val {
-  font-weight: 700;
-  font-size: 16px;
-  letter-spacing: -0.3px;
-  color: #4a4e55;
-}
-
-.compare-badge {
-  padding: 3px 9px;
-  background: #e8f4e2;
+.grade-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
   border-radius: 999px;
-  font-weight: 700;
-  font-size: 12px;
-  color: #62b24a;
+  font-weight: 800;
+  font-size: 14px;
 }
 
-.compare-badge.negative {
-  background: #fbe9e9;
+.grade-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sub-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.sub-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #8b9097;
+}
+
+.sub-diff {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #4a8f3c;
+}
+
+.sub-diff.negative {
   color: #e5484d;
 }
 
-.encourage-text {
-  text-align: center;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: #6b7078;
-  margin-top: 4px;
+.sub-dot {
+  color: #d0d3d8;
+  font-size: 12px;
 }
 
-.encourage-text b {
-  color: #ffbc00;
+.hl {
+  color: #f5a623;
   font-weight: 800;
 }
 
-.gauge-wrap {
-  margin-top: 4px;
+/* 세그먼트 트랙 */
+.segment-wrap {
+  margin-top: 20px;
+}
+
+.segment-track {
+  position: relative;
+  padding-top: 14px;
+}
+
+.segment-track-bg {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.segment-fill {
+  height: 100%;
+}
+
+/* 트랙 배경(padding-top 14px 이후 높이 10px)의 정중앙에 오도록
+   top: 14px(패딩) + 5px(트랙 높이 절반) = 19px 지점에 두고
+   translate(-50%, -50%)로 가로/세로 모두 그 지점 중심에 맞춤 */
+.segment-pointer {
+  position: absolute;
+  top: 19px;
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.segment-pointer-dot {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #999;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+}
+
+.segment-labels {
+  display: flex;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.segment-label {
+  box-sizing: border-box;
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #c6cbd2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.segment-label.active {
+  font-weight: 800;
+}
+
+.segment-minmax {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #c6cbd2;
+}
+
+.divider {
+  height: 8px;
+  margin: 0 -20px;
+  background: #f7f7f8;
 }
 
 /* 등급 안내 */
 .guide-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .guide-list {
-  margin-top: 10px;
+  margin-top: 4px;
 }
 
 .guide-row {
   display: flex;
   align-items: flex-start;
-  gap: 11px;
+  gap: 12px;
   padding: 14px 4px;
   border-bottom: 1px solid #f0f1f3;
 }
@@ -372,15 +520,17 @@ function goBack() {
 }
 
 .guide-row.current {
-  background: #f6fbf7;
-  border-radius: 10px;
+  background: #fafcf8;
+  border-radius: 14px;
   border-bottom: none;
+  padding: 14px 10px;
 }
 
-.guide-emoji {
-  font-size: 20px;
-  line-height: 1;
-  margin-top: 1px;
+.guide-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-top: 4px;
   flex-shrink: 0;
 }
 
@@ -389,6 +539,7 @@ function goBack() {
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  min-width: 0;
 }
 
 .guide-title-row {
@@ -398,7 +549,7 @@ function goBack() {
 }
 
 .guide-label {
-  font-weight: 700;
+  font-weight: 800;
   font-size: 15px;
   color: #15171b;
 }
@@ -410,12 +561,12 @@ function goBack() {
 
 .current-badge {
   margin-left: auto;
-  padding: 3px 9px;
-  background: #ffbc00;
-  border-radius: 6px;
-  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-weight: 800;
   font-size: 11px;
   color: #ffffff;
+  flex-shrink: 0;
 }
 
 .guide-headline {
@@ -425,11 +576,11 @@ function goBack() {
 }
 
 .guide-perks {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   padding-left: 16px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .guide-perks li {
@@ -439,27 +590,4 @@ function goBack() {
   color: #b9bec5;
 }
 
-/* 팁 박스 */
-.tips-box {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 17px 16px 15px;
-  border: 1px solid #f0f1f3;
-  border-radius: 12px;
-}
-
-.tips-label {
-  font-weight: 700;
-  font-size: 14px;
-  color: #15171b;
-}
-
-.tips-content {
-  margin: 0;
-  font-weight: 500;
-  font-size: 12.5px;
-  line-height: 19px;
-}
 </style>
