@@ -47,12 +47,15 @@
                 <span class="score-unit">점</span>
               </div>
             </div>
-            
-            <!-- 등급 배지 -->
+
+            <!-- 등급 배지: 현재 등급 색상(API) 반영 -->
             <div class="score-card-right">
-              <div class="grade-badge">
+              <div
+                class="grade-badge"
+                :style="{ backgroundColor: gradeColor + '18', borderColor: gradeColor + '55' }"
+              >
                 <span class="badge-icon">🎖️</span>
-                <span class="badge-text">{{ grade }} 티니</span>
+                <span class="badge-text" :style="{ color: gradeColor }">{{ grade }} 티니</span>
               </div>
             </div>
           </div>
@@ -60,11 +63,11 @@
           <!-- 티니 점수 프로그레스 게이지 -->
           <div class="score-progress-wrap">
             <div class="progress-text-row">
-              <span class="progress-label">다음 등급까지 <strong class="hl-blue">{{ remainingScore }}점</strong></span>
-              <span class="progress-target">{{ maxScore }}점</span>
+              <span class="progress-label">다음 등급까지 <strong class="hl-blue" :style="{ color: gradeColor }">{{ remainingScore }}점</strong></span>
+              <span class="progress-target">{{ nextGradeMinScore ?? maxScore }}점</span>
             </div>
             <div class="progress-bar-bg">
-              <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }"></div>
+              <div class="progress-bar-fill" :style="{ width: progressPercent + '%', background: gradeColor }"></div>
             </div>
           </div>
         </div>
@@ -135,6 +138,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 import { getMyWallet } from '@/api/wallet'
+import { getTeenyScore, getTeenyScoreGrades } from '@/api/teenyScore'
 
 const router    = useRouter()
 const authStore  = useAuthStore()
@@ -163,14 +167,25 @@ const userName     = ref('')
 const balance      = ref(0)
 const transactions = ref([])
 
-const score    = ref(725)
-const grade    = ref('우수')
-const minScore = ref(700)
-const maxScore = ref(800)
+// 티니점수 관련 값 — getTeenyScore API로 채워짐 (onMounted 참고)
+const score    = ref(0)
+const grade    = ref('')
+const minScore = ref(0)     // 현재 등급 구간 최소값 (진행바용)
+const maxScore = ref(0)     // 현재 등급 구간 최대값 (표시 폴백용)
+const gradeColor = ref('#facc15') // 현재 등급 색상 (API의 color 값)
+const nextGradeMinScore = ref(null) // 다음 등급 시작 점수. 최고 등급이면 null
 
-const remainingScore = computed(() => Math.max(0, maxScore.value - score.value))
+// "다음 등급까지 몇 점"은 다음 등급의 시작 점수를 목표로 계산한다.
+// 현재 등급의 maxScore를 목표로 삼으면 등급 상세 화면(다음 등급 minScore 기준)과
+// 1점 차이가 나므로, 계산 기준을 nextGradeMinScore로 통일했다.
+const remainingScore = computed(() => {
+  if (nextGradeMinScore.value === null) return 0 // 최고 등급
+  return Math.max(0, nextGradeMinScore.value - score.value)
+})
 const progressPercent = computed(() => {
-  const total = maxScore.value - minScore.value
+  const target = nextGradeMinScore.value ?? maxScore.value
+  const total = target - minScore.value
+  if (total <= 0) return 0
   const current = score.value - minScore.value
   return Math.min(100, Math.max(0, (current / total) * 100))
 })
@@ -180,19 +195,62 @@ const finances = ref([
   { id: 2, type: '예금', rate: '연 2.8%', name: '용돈 모으기 예금', amount: '35,000원', sub: '자유 입출금', progress: 60, amountColor: '#15171b' },
 ])
 
+// 백엔드 createdAt이 문자열 또는 [년,월,일,시,분,초] 배열(LocalDateTime 직렬화)로
+// 올 수 있어 둘 다 지원. 기존 표시 형식("MM-DD  HH:mm")을 그대로 유지한다.
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+
+function formatTxDate(dateVal) {
+  if (!dateVal) return '-'
+
+  if (Array.isArray(dateVal)) {
+    const [, month, day, hour = 0, minute = 0] = dateVal
+    return `${pad2(month)}-${pad2(day)}  ${pad2(hour)}:${pad2(minute)}`
+  }
+
+  // 문자열(ISO)인 경우 기존 방식 유지: "2026-08-13T16:49:00" → "08-13  16:49"
+  if (typeof dateVal === 'string' && dateVal.length >= 16) {
+    return dateVal.slice(5, 16).replace('T', '  ')
+  }
+
+  const d = new Date(dateVal)
+  if (isNaN(d.getTime())) return '-'
+  return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}  ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
 onMounted(async () => {
   try {
     userName.value = authStore.name ?? ''
 
-    const res = await getMyWallet(authStore.accessToken)
-    balance.value = res.data.balance
+    const [walletRes, scoreRes, gradesRes] = await Promise.all([
+      getMyWallet(authStore.accessToken),
+      getTeenyScore(authStore.accessToken, authStore.memberId),
+      getTeenyScoreGrades(authStore.accessToken),
+    ])
 
-    transactions.value = res.data.recentTransactions.map(t => ({
+    balance.value = walletRes.data.balance
+    transactions.value = walletRes.data.recentTransactions.map(t => ({
       id:     t.id,
-      date:   t.createdAt.slice(5, 16).replace('T', '  '),
+      date:   formatTxDate(t.createdAt),
       name:   t.description,
       amount: t.direction === 'CREDIT' ? t.amount : -t.amount,
     }))
+
+    const d = scoreRes.data
+    score.value      = d.teenyScore
+    grade.value       = d.gradeName
+    minScore.value    = d.minScore
+    maxScore.value     = d.maxScore
+    gradeColor.value  = d.color
+
+    // 다음 등급의 시작 점수 계산 (등급 상세 화면과 기준 통일)
+    const gradesAsc = [...gradesRes.data].sort((a, b) => a.minScore - b.minScore)
+    const currentIdx = gradesAsc.findIndex((g) => g.gradeId === d.gradeId)
+    const next = currentIdx >= 0 && currentIdx < gradesAsc.length - 1
+      ? gradesAsc[currentIdx + 1]
+      : null
+    nextGradeMinScore.value = next ? next.minScore : null
   } catch (e) {
     console.error('홈 데이터 조회 실패:', e.message)
   }
@@ -387,7 +445,7 @@ function onTabSelect(key) {
   color: #0f172a;
 }
 
-/* 우수티니 등급 배지 */
+/* 등급 배지 */
 .score-card-right {
   display: flex;
   align-items: center;
@@ -398,10 +456,9 @@ function onTabSelect(key) {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  background: #eff6ff;
-  border: 1px solid #dbeafe;
   border-radius: 999px;
   padding: 2px 6px;
+  border: 1px solid transparent;
 }
 
 .badge-icon { font-size: 9px; }
@@ -409,7 +466,6 @@ function onTabSelect(key) {
 .badge-text {
   font-size: 9.5px;
   font-weight: 800;
-  color: #2563eb;
   white-space: nowrap;
 }
 
@@ -437,7 +493,6 @@ function onTabSelect(key) {
 }
 
 .hl-blue {
-  color: #2563eb;
   font-weight: 800;
 }
 
@@ -451,7 +506,6 @@ function onTabSelect(key) {
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #facc15 0%, #eab308 100%);
   border-radius: 999px;
   transition: width 0.4s ease-out;
 }

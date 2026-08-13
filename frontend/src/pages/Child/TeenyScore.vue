@@ -2,6 +2,10 @@
   <div class="score-view">
     <div class="scroll-area">
 
+      <div v-if="loading" class="state-text">불러오는 중...</div>
+      <div v-else-if="errorMsg" class="state-text error">{{ errorMsg }}</div>
+
+      <template v-else>
       <!-- 상단 히어로 점수 카드 섹션 -->
       <section class="hero-section">
         <!-- 상단 네비바 -->
@@ -12,13 +16,6 @@
             </svg>
           </button>
           <h1 class="nav-title">티니점수</h1>
-          <button class="q-btn" aria-label="도움말">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="#15171b" stroke-width="2"/>
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#15171b" stroke-width="2" stroke-linecap="round"/>
-              <line x1="12" y1="17" x2="12.01" y2="17" stroke="#15171b" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
-          </button>
         </header>
 
         <!-- 히어로 점수 카드 -->
@@ -28,7 +25,7 @@
             <div class="donut-wrap">
               <svg width="130" height="130" viewBox="0 0 130 130">
                 <circle cx="65" cy="65" r="52" fill="none" stroke="#f1f5f9" stroke-width="12"/>
-                <circle cx="65" cy="65" r="52" fill="none" stroke="#facc15" stroke-width="12"
+                <circle cx="65" cy="65" r="52" fill="none" :stroke="gradeColor" stroke-width="12"
                         :stroke-dasharray="`${donutFill} ${donutCircumference}`"
                         stroke-dashoffset="0" stroke-linecap="round"
                         transform="rotate(-90 65 65)"/>
@@ -36,24 +33,19 @@
               <div class="donut-center">
                 <span class="donut-label">티니점수</span>
                 <b class="donut-score">{{ score }}</b>
-                <span class="donut-max">/ 1000</span>
+                <span class="donut-max">/ {{ SCORE_MAX }}</span>
               </div>
             </div>
 
-            <!-- 현재 등급 + 티니 캐릭터 -->
+            <!-- 현재 등급 -->
             <div class="grade-info-col">
               <div class="grade-header-row">
                 <span class="sub-label">현재 등급</span>
-                
-              <!-- 티니 캐릭터 -->
-                <div class="current-chick-img-wrap">
-                  <img :src="currentChickImage" alt="현재 등급 마스코트" class="chick-avatar-img" />
-                </div>
               </div>
 
               <!-- 등급 명칭 -->
               <div class="grade-badge-row">
-                <span class="badge-gold-text">{{ grade }}</span>
+                <span class="badge-gold-text" :style="{ color: gradeColor }">{{ grade }}</span>
               </div>
 
               <!-- 안내 멘트 -->
@@ -67,10 +59,10 @@
           <div class="hero-progress-box">
             <div class="progress-info-row">
               <span class="gap-text">다음 등급까지 <strong>{{ remainingScore }}점</strong> 남았어요</span>
-              <span class="next-target">{{ maxScore }}점 (우수)</span>
+              <span class="next-target">{{ nextGradeMinScore ?? maxScore }}점 ({{ nextGradeName }})</span>
             </div>
             <div class="progress-bar-bg">
-              <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }"></div>
+              <div class="progress-bar-fill" :style="{ width: progressPercent + '%', background: gradeColor }"></div>
             </div>
           </div>
 
@@ -82,28 +74,28 @@
         </div>
       </section>
 
-      <!-- 지난주 대비 주간 점수 변동 -->
+      <!-- 지난달 대비 점수 변동 -->
       <section class="section-container">
         <div class="card weekly-diff-card">
           <div class="card-head-sm">
-            <span class="title">지난주 대비 점수 변동</span>
-            <span class="blue-pill" :class="{ minus: weeklyDiff < 0 }">
-              {{ weeklyDiff >= 0 ? '▲ +' : '▼ ' }}{{ weeklyDiff }}점
+            <span class="title">지난달 대비 점수 변동</span>
+            <span class="blue-pill" :class="{ minus: monthlyDiff < 0 }">
+              {{ monthlyDiff >= 0 ? '▲ +' : '▼ ' }}{{ monthlyDiff }}점
             </span>
           </div>
 
           <p class="diff-sub-text">
-            지난주({{ prevWeekScore }}점)보다 <strong class="hl-text">{{ Math.abs(weeklyDiff) }}점 {{ weeklyDiff >= 0 ? '상승' : '하락' }}</strong>했어요!
+            지난달({{ prevMonthScore }}점)보다 <strong class="hl-text">{{ Math.abs(monthlyDiff) }}점 {{ monthlyDiff >= 0 ? '상승' : '하락' }}</strong>했어요!
           </p>
 
           <div class="diff-compare-box">
             <div class="compare-item">
-              <span class="comp-label">지난주</span>
-              <b class="comp-val gray">{{ prevWeekScore }}점</b>
+              <span class="comp-label">지난달</span>
+              <b class="comp-val gray">{{ prevMonthScore }}점</b>
             </div>
             <div class="diff-arrow">→</div>
             <div class="compare-item">
-              <span class="comp-label">이번 주</span>
+              <span class="comp-label">이번 달</span>
               <b class="comp-val main">{{ score }}점</b>
             </div>
           </div>
@@ -136,7 +128,7 @@
         <div class="card">
           <div class="history-head">
             <span class="title">최근 점수 변동 내역</span>
-            <button class="all-link" @click="goGradeDetail">전체 보기 ›</button>
+            <span class="all-link">전체 보기</span>
           </div>
 
           <div class="history-list">
@@ -167,23 +159,49 @@
             </div>
 
             <div class="coach-speech-box">
-              <div class="speech-header">
-                <span class="coach-tag">티니 코치의 꿀팁!</span>
-              </div>
+              <span class="coach-name">티니 코치</span>
               <p class="speech-text">
-                티니점수를 더 올려볼까?<br />
-                아래 미션을 꾸준히 해봐!
+                오늘도 티니점수 올려볼까?<br />
+                아래 미션을 꾸준히 하면 금방 오를 거야!
               </p>
             </div>
           </div>
 
-          <div class="tip-buttons-row">
-            <div class="tip-pill pill-yellow">소비 기록하기</div>
-            <div class="tip-pill pill-blue">저축 목표 달성하기</div>
-            <div class="tip-pill pill-green">용돈 계획 세우기</div>
+          <div class="mission-card-row">
+            <div class="mission-card">
+              <div class="mission-icon-wrap">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                  <path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z" stroke="#C98A00" stroke-width="1.6" stroke-linejoin="round"/>
+                  <path d="M13 7l4 4" stroke="#C98A00" stroke-width="1.6"/>
+                </svg>
+              </div>
+              <span class="mission-title">소비 기록하기</span>
+            </div>
+
+            <div class="mission-card">
+              <div class="mission-icon-wrap">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                  <circle cx="12" cy="12" r="8" stroke="#C98A00" stroke-width="1.6"/>
+                  <circle cx="12" cy="12" r="4" stroke="#C98A00" stroke-width="1.6"/>
+                  <circle cx="12" cy="12" r="1" fill="#C98A00"/>
+                </svg>
+              </div>
+              <span class="mission-title">저축 목표 달성하기</span>
+            </div>
+
+            <div class="mission-card">
+              <div class="mission-icon-wrap">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                  <rect x="4" y="4" width="16" height="16" rx="5" stroke="#C98A00" stroke-width="1.6"/>
+                  <path d="M8.5 12.5l2.3 2.3L16 9.5" stroke="#C98A00" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="mission-title">퀘스트 완료하기</span>
+            </div>
           </div>
         </div>
       </section>
+      </template>
 
     </div>
 
@@ -193,45 +211,188 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import {
+  getTeenyScore,
+  getTeenyScoreGrades,
+  getTeenyScoreMonthlyHistory,
+  getMyHistories,
+} from '@/api/teenyScore'
+import { useAuthStore } from '@/stores/auth'
+import { storeToRefs } from 'pinia'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const { accessToken, memberId } = storeToRefs(authStore)
+const childId = memberId
 
 // 티니 캐릭터
 const teenyScoreMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
-// 상단 티니 캐릭터
-const currentChickImage = computed(() => {
-  return new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
+// ==================================================================
+// 상태
+// ==================================================================
+const loading = ref(true)
+const errorMsg = ref('')
+
+const score = ref(0)
+const grade = ref('')       // 백엔드 gradeName 그대로 (새싹/스타터/플러스/프로/마스터)
+const minScore = ref(0)     // 현재 등급 구간의 최소값 (진행바용)
+const maxScore = ref(0)     // 현재 등급 구간의 최대값 (진행바용)
+const nextGradeName = ref('')
+const nextGradeMinScore = ref(null) // 다음 등급의 시작 점수. 최고 등급이면 null
+const gradeColor = ref('#facc15') // 현재 등급 색상 (API의 color 값, 도넛/진행바/등급명에 사용)
+
+// 도넛 차트는 "전체 점수 체계(모든 등급 통틀어 0~1000)" 기준으로 그려야 하므로
+// 현재 등급의 min/max(minScore/maxScore)와는 별도로 전체 범위를 보관한다.
+const overallMinScore = ref(0)
+const overallMaxScore = ref(1000)
+
+const prevMonthScore = ref(0)
+const monthlyDiff = computed(() => score.value - prevMonthScore.value)
+
+const bonusRate = ref(0)
+const activities = ref([])
+
+// ==================================================================
+// 데이터 로드
+// ==================================================================
+async function loadScoreData() {
+  loading.value = true
+  errorMsg.value = ''
+  try {
+    const [scoreRes, gradesRes, monthlyRes, historyRes] = await Promise.all([
+      getTeenyScore(accessToken.value, childId.value),
+      getTeenyScoreGrades(accessToken.value),
+      getTeenyScoreMonthlyHistory(accessToken.value, childId.value),
+      getMyHistories(accessToken.value),
+    ])
+
+    // 현재 점수/등급
+    const d = scoreRes.data
+    score.value = d.teenyScore
+    grade.value = d.gradeName
+    minScore.value = d.minScore   // 현재 등급 구간 최소값 (진행바용)
+    maxScore.value = d.maxScore   // 현재 등급 구간 최대값 (진행바용)
+    bonusRate.value = d.bonusRate
+    gradeColor.value = d.color    // 현재 등급 색상
+
+    // 등급 목록: 점수 오름차순 정렬 후 다음 등급 이름 찾기 + 전체 점수 범위 계산
+    const gradesAsc = [...gradesRes.data].sort((a, b) => a.minScore - b.minScore)
+    const currentIdx = gradesAsc.findIndex((g) => g.gradeId === d.gradeId)
+    const next = currentIdx >= 0 && currentIdx < gradesAsc.length - 1
+      ? gradesAsc[currentIdx + 1]
+      : null
+    nextGradeName.value = next ? next.gradeName : d.gradeName // 최고 등급이면 자기 자신
+    nextGradeMinScore.value = next ? next.minScore : null // 다음 등급 시작점 (등급 상세 화면과 계산 기준 통일)
+
+    // 도넛 차트용 전체 범위: 등급 목록 전체의 최소/최대 (예: 0~1000)
+    if (gradesAsc.length > 0) {
+      overallMinScore.value = gradesAsc[0].minScore
+      overallMaxScore.value = gradesAsc[gradesAsc.length - 1].maxScore
+    }
+
+    // 지난달 대비: 이번 달 이전 데이터 중 "가장 최근 것"을 사용
+    // (정확히 지난달 데이터가 없으면 그 전달 데이터로 대체됨)
+    // yearMonth 포맷: "2026-06" 형태 (YYYY-MM) — 문자열 비교로 날짜 순서 비교 가능
+    const now = new Date()
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+    const monthlyList = monthlyRes.data // [{ yearMonth, teenyScore }, ...]
+    const pastMonths = monthlyList
+      .filter((m) => m.yearMonth < currentYearMonth) // 이번 달 이전 데이터만
+      .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth)) // 최신순 정렬
+
+    const prevMonthEntry = pastMonths[0] ?? null
+    prevMonthScore.value = prevMonthEntry ? prevMonthEntry.teenyScore : score.value
+
+    // 최근 내역 (최신순)
+    // createdAt이 배열 형식일 수 있어 정렬도 formatRelativeDate와 동일한 파싱을 거쳐야 함
+    const histories = [...historyRes.data].sort((a, b) => {
+      const parse = (v) => {
+        if (Array.isArray(v)) {
+          const [y, mo, d, h = 0, mi = 0, s = 0] = v
+          return new Date(y, mo - 1, d, h, mi, s).getTime()
+        }
+        const t = new Date(v).getTime()
+        return isNaN(t) ? 0 : t
+      }
+      return parse(b.createdAt) - parse(a.createdAt)
+    })
+    activities.value = histories.map((h) => ({
+      title: h.description,
+      date: formatRelativeDate(h.createdAt),
+      diff: h.amount,
+      resultScore: h.scoreAfter,
+    }))
+  } catch (e) {
+    errorMsg.value = e.message || '점수 정보를 불러오지 못했어요.'
+  } finally {
+    loading.value = false
+  }
+}
+
+// 백엔드 createdAt이 문자열 또는 [년,월,일,시,분,초] 배열(LocalDateTime 직렬화)로
+// 올 수 있어 둘 다 지원. 배열의 월은 1-based라서 Date 생성자용으로 -1 보정.
+function formatRelativeDate(dateVal) {
+  if (!dateVal) return '-'
+
+  let date
+  if (Array.isArray(dateVal)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = dateVal
+    date = new Date(year, month - 1, day, hour, minute, second)
+  } else {
+    date = new Date(dateVal)
+  }
+
+  if (isNaN(date.getTime())) return '-'
+
+  const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000)
+  if (diffDays <= 0) return '오늘'
+  if (diffDays === 1) return '어제'
+  return `${diffDays}일 전`
+}
+
+onMounted(loadScoreData)
+
+// ==================================================================
+// 계산값
+// ==================================================================
+// 도넛(전체 게이지)에 표시할 값 — 전체 점수 체계 기준
+const SCORE_MAX = computed(() => overallMaxScore.value || 1000)
+const SCORE_MIN = computed(() => overallMinScore.value || 0)
+
+// 진행바(다음 등급까지 몇 점)는 "다음 등급의 시작 점수"를 목표로 계산한다.
+// 현재 등급의 maxScore(예: 649)를 목표로 삼으면 등급 상세 화면(다음 등급 minScore 기준,
+// 예: 650)과 1점 차이가 나므로, 두 화면 계산 기준을 nextGradeMinScore로 통일했다.
+const remainingScore = computed(() => {
+  if (nextGradeMinScore.value === null) return 0 // 최고 등급
+  return Math.max(0, nextGradeMinScore.value - score.value)
 })
-
-// 점수 및 등급 기본 데이터
-const score = ref(850)
-const grade = ref('양호')
-const minScore = ref(840)
-const maxScore = ref(920)
-
-const prevWeekScore = ref(730)
-const weeklyDiff = computed(() => score.value - prevWeekScore.value)
-
-const remainingScore = computed(() => Math.max(0, maxScore.value - score.value))
 const progressPercent = computed(() => {
-  const total = maxScore.value - minScore.value
+  const target = nextGradeMinScore.value ?? maxScore.value
+  const total = target - minScore.value
+  if (total <= 0) return 0
   const current = score.value - minScore.value
   return Math.min(100, Math.max(0, (current / total) * 100))
 })
 
-// 도넛 차트 SVG 계산
+// 도넛 차트 SVG 계산 (전체 점수 범위 SCORE_MIN~SCORE_MAX 기준)
 const donutCircumference = 2 * Math.PI * 52
-const donutFill = computed(() => ((score.value - 600) / (1000 - 600)) * donutCircumference)
+const donutFill = computed(() => {
+  const total = SCORE_MAX.value - SCORE_MIN.value
+  if (total <= 0) return 0
+  const ratio = (score.value - SCORE_MIN.value) / total
+  return Math.min(1, Math.max(0, ratio)) * donutCircumference
+})
 
-// 혜택 데이터
-const benefits = ref([
-  { tag: '금리 혜택', title: '저축 기본 이자 우대', desc: '연 +0.2%p 우대 금리 자동 적용' },
-  { tag: '퀘스트', title: '양호 전용 퀘스트', desc: '더 많은 포인트를 받는 퀘스트 오픈' },
-  { tag: '배지', title: '양호 전용 프로필 배지', desc: '마이페이지 전용 양호 배지 부여' },
+// 혜택 데이터 — bonusRate만 API 값, 나머지 문구는 고정
+const benefits = computed(() => [
+  { tag: '금리 혜택', title: '저축 기본 이자 우대', desc: `연 +${bonusRate.value}%p 우대 금리 자동 적용` },
+  { tag: '퀘스트', title: `${grade.value} 전용 퀘스트`, desc: '더 많은 포인트를 받는 퀘스트 오픈' },
+  { tag: '배지', title: `${grade.value} 전용 프로필 배지`, desc: '마이페이지 전용 배지 부여' },
   { tag: '수수료', title: '송금 수수료 무제한 면제', desc: '어디로 보내든 송금 수수료 0원' },
 ])
 
@@ -244,15 +405,6 @@ function onCarouselScroll() {
   const cardWidth = 210 + 10
   activeBenefitCard.value = Math.round(el.scrollLeft / cardWidth)
 }
-
-// 최근 내역
-const activities = ref([
-  { title: '매일 소비 기록 완료', date: '오늘', diff: 10, resultScore: 850 },
-  { title: '목표저축 성공', date: '어제', diff: 5, resultScore: 840 },
-  { title: '예산 초과 소비', date: '2일 전', diff: -3, resultScore: 835 },
-  { title: '퀘스트 완료', date: '3일 전', diff: 8, resultScore: 838 },
-  { title: '가계부 3일 연속 작성', date: '4일 전', diff: 7, resultScore: 830 },
-])
 
 const summaryActivities = computed(() => activities.value.slice(0, 3))
 
@@ -289,6 +441,16 @@ function onTabSelect(key) {
 }
 .scroll-area::-webkit-scrollbar { display: none; }
 
+.state-text {
+  padding: 60px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #8a9099;
+}
+.state-text.error {
+  color: #e5484d;
+}
+
 .section-container {
   padding: 0 16px 12px;
 }
@@ -298,17 +460,17 @@ function onTabSelect(key) {
 
 /* 메인 섹션 */
 .hero-section {
-  padding: 12px 16px 12px;
+  padding: 36px 18px 12px;
 }
 
 .top-nav {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  gap: 20px;
+  margin-bottom: 14px;
 }
 
-.back-btn, .q-btn {
+.back-btn {
   background: none;
   border: none;
   cursor: pointer;
@@ -383,34 +545,15 @@ function onTabSelect(key) {
   flex: 1;
 }
 
-/* '현재 등급' 문구와 우측 여백의 이미지 마스코트 정돈 */
 .grade-header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-right: 2px;
 }
 
 .sub-label {
   font-size: 12px;
   font-weight: 700;
   color: #94a3b8;
-}
-
-.current-chick-img-wrap {
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: -6px;
-}
-
-.chick-avatar-img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.08));
 }
 
 .badge-gold-text {
@@ -428,7 +571,6 @@ function onTabSelect(key) {
   line-height: 1.4;
 }
 
-/* 게이지 바 */
 .hero-progress-box {
   background: #f8fafc;
   border-radius: 12px;
@@ -492,7 +634,6 @@ function onTabSelect(key) {
   color: #94a3b8;
 }
 
-/* 카드 공통 스타일 */
 .card {
   background: #ffffff;
   border: 1px solid #f1f5f9;
@@ -576,7 +717,6 @@ function onTabSelect(key) {
   color: #cbd5e1;
 }
 
-/* 혜택 카드 */
 .benefit-slide-header {
   display: flex;
   justify-content: space-between;
@@ -666,7 +806,6 @@ function onTabSelect(key) {
   background: #0f172a;
 }
 
-/* 최근 내역 */
 .history-head {
   display: flex;
   justify-content: space-between;
@@ -681,12 +820,9 @@ function onTabSelect(key) {
 }
 
 .all-link {
-  background: none;
-  border: none;
   font-size: 11.5px;
   font-weight: 700;
   color: #64748b;
-  cursor: pointer;
 }
 
 .history-list {
@@ -709,7 +845,7 @@ function onTabSelect(key) {
 .diff-val {
   font-size: 13px;
   font-weight: 900;
-  color: #16a34a;
+  color: #2563eb;
 }
 
 .diff-val.minus { color: #ef4444; }
@@ -735,22 +871,17 @@ function onTabSelect(key) {
 .item-result-score {
   font-size: 12.5px;
   font-weight: 800;
-  color: #16a34a;
+  color: #2563eb;
 }
 
-/* 티니코치 캐릭터 팁 배너 */
 .coach-tip-banner {
-  background: linear-gradient(135deg, #fffdf0 0%, #fff9d6 100%);
-  border: 1.5px solid #fef08a;
-  border-radius: 22px;
   padding: 16px 14px 14px;
-  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.08);
 }
 
 .coach-tip-top {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
@@ -771,74 +902,89 @@ function onTabSelect(key) {
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
 }
 
+.coach-name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #b98a00;
+  margin-bottom: 4px;
+}
+
 .coach-speech-box {
   position: relative;
-  background: #ffffff;
-  border: 1.5px solid #fde047;
-  border-radius: 16px;
-  border-bottom-left-radius: 4px;
-  padding: 10px 12px;
   flex: 1;
-  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.12);
+  background: #fff6dc;
+  border-radius: 20px;
+  padding: 12px 16px;
 }
 
-.speech-header {
-  margin-bottom: 2px;
-}
-
-.coach-tag {
-  font-size: 10.5px;
-  font-weight: 800;
-  color: #d97706;
+.coach-speech-box::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  bottom: 16px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 8px 10px 8px 0;
+  border-color: transparent #fff6dc transparent transparent;
 }
 
 .speech-text {
   margin: 0;
-  font-size: 12px;
-  font-weight: 800;
-  color: #1e293b;
-  line-height: 1.35;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #3d2b00;
+  line-height: 1.5;
   letter-spacing: -0.2px;
-}
-
-.tip-buttons-row {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.tip-buttons-row::-webkit-scrollbar { display: none; }
-
-.tip-pill {
-  padding: 8px 12px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 800;
   white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.mission-card-row {
+  display: flex;
+  gap: 10px;
+}
+
+.mission-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #f1f1f2;
+  border-radius: 18px;
+  padding: 18px 8px 18px;
   cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   transition: transform 0.1s ease;
 }
 
-.tip-pill:active {
-  transform: scale(0.96);
+.mission-card:active {
+  transform: scale(0.97);
 }
 
-.pill-yellow {
-  background: #ffffff;
-  border: 1.5px solid #fde047;
-  color: #854d0e;
+.mission-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff3d2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.pill-blue {
-  background: #ffffff;
-  border: 1.5px solid #93c5fd;
-  color: #1e40af;
+.mission-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e1e1e;
+  text-align: center;
+  line-height: 1.35;
+  word-break: keep-all;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
 }
 
-.pill-green {
-  background: #ffffff;
-  border: 1.5px solid #86efac;
-  color: #166534;
-}
 </style>
