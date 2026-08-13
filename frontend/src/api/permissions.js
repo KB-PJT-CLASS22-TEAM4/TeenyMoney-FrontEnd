@@ -88,3 +88,99 @@ export async function rejectPermission(accessToken, permissionId) {
 
   return result
 }
+
+// 오늘만 허용 요청 (자녀)
+export async function requestPermission(accessToken, { categories, reason }) {
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/permissions`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ categories, reason }),
+    }
+  )
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '오늘만 허용 요청에 실패했습니다.')
+  }
+
+  return result
+}
+
+// 오늘만 허용 요청 수정
+export async function updatePermission(accessToken, permissionId, { categories, reason }) {
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/permissions/${permissionId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ categories, reason }),
+    }
+  )
+
+  // 204 No Content면 body가 없을 수 있음
+  if (response.status === 204) return { success: true, data: null }
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '수정에 실패했습니다.')
+  }
+
+  return result
+}
+
+// 오늘만 허용 요청 취소
+export async function cancelPermission(accessToken, permissionId) {
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/permissions/${permissionId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  if (response.status === 204) return { success: true }
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '취소에 실패했습니다.')
+  }
+
+  return result
+}
