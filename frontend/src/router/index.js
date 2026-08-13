@@ -60,6 +60,8 @@ import TeenyScoreGrade from '@/pages/Child/TeenyScoreGrade.vue';
 import QuestList from '@/pages/Child/Quest/QuestList.vue';
 // 자녀 퀘스트 인증하기
 import QuestDetail from '@/pages/Child/Quest/QuestDetail.vue';
+// 자녀 오늘만 허용 수정 페이지
+import Edit from '@/pages/Child/TodayAllow/Edit.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -342,6 +344,12 @@ const router = createRouter({
   path: '/child/questdetail/:questId',   // :questId 추가
   name: 'child-quest-detail', 
   component: QuestDetail
+  },
+  // 자녀 오늘만 허용 수정 페이지 
+  {
+    path: '/child/todayallow/edit',
+    name: 'child-todayallow-edit',
+    component: Edit
   },
   // QR스캔
   {
