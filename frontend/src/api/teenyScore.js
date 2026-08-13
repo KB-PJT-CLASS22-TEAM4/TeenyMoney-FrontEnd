@@ -91,3 +91,33 @@ export async function getTeenyScoreGrades(accessToken) {
 
   return result
 }
+
+// 내(자녀 본인) 티니 점수 변동 내역 조회
+// GET /api/v1/teeny-score/me/history
+export async function getMyHistories(accessToken) {
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/teeny-score/me/history`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '점수 변동 내역을 불러오지 못했습니다.')
+  }
+
+  return result
+}

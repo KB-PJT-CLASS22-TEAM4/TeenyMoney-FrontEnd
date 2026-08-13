@@ -1,9 +1,7 @@
 <template>
   <div class="allow-screen">
-    <!-- 본문 (스크롤) -->
     <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
-      
-      <!-- 상단 네비 -->
+
       <nav class="nav">
         <button class="back-btn" aria-label="뒤로" @click="goBack">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -11,23 +9,19 @@
                   stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
-        <h1 class="nav-title">오늘만 허용 요청</h1>
+        <h1 class="nav-title">오늘만 허용 수정하기</h1>
       </nav>
 
-      <!-- 🐥 티니 코치 말풍선 카드 -->
       <section class="teeny-coach-card">
         <img :src="teenyCoachImg" class="coach-mascot" alt="티니 코치" />
         <div class="speech-bubble">
           <div class="coach-title">티니 코치</div>
-          <p class="coach-msg">
-            부모님이 <span class="hl hl--watch">주의</span> 또는 <span class="hl hl--block">차단</span>으로 설정한 업종을 <br/> 오늘만 허용 요청해보세요!
-          </p>
+          <p class="coach-msg">부모님이 확인하시기 전에 요청 내용이나 사유를 수정할 수 있어요!</p>
         </div>
       </section>
 
       <p class="section-title">업종 선택</p>
 
-      <!-- 주의 -->
       <div class="legend">
         <span class="dot dot--watch"></span>
         <span class="legend-label">주의</span>
@@ -43,7 +37,6 @@
         >{{ c.label }}</button>
       </div>
 
-      <!-- 차단 -->
       <div class="legend legend--block">
         <span class="dot dot--block"></span>
         <span class="legend-label">차단</span>
@@ -59,7 +52,6 @@
         >{{ b.label }}</button>
       </div>
 
-      <!-- 요청 사유 -->
       <p class="section-title">요청 사유</p>
       <div class="textarea-wrap">
         <textarea
@@ -72,31 +64,36 @@
       </div>
       <p class="helper">사유를 자세히 적을수록 승인될 확률이 높아요</p>
 
-      <!-- 제출 실패 시 에러 메시지 -->
+      <p v-if="loadError" class="submit-error">{{ loadError }}</p>
       <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+      <p v-if="deleteError" class="submit-error">{{ deleteError }}</p>
 
-      <!-- 하단 선택 바 & 요청 보내기 버튼 -->
       <div class="footer-area">
         <div class="selected-bar">
           <span class="selected-title">선택한 업종</span>
           <div class="selected-chips">
             <span v-if="!allSelectedCategories.length" class="selected-empty">없음</span>
-            <span 
-              v-for="c in selectedWatchCategories" 
-              :key="c.id" 
+            <span
+              v-for="c in selectedWatchCategories"
+              :key="c.id"
               class="mini-chip mini-chip--watch"
             >{{ c.label }}</span>
-            <span 
-              v-for="c in selectedBlockCategories" 
-              :key="c.id" 
+            <span
+              v-for="c in selectedBlockCategories"
+              :key="c.id"
               class="mini-chip mini-chip--block"
             >{{ c.label }}</span>
           </div>
         </div>
-        
-        <button class="submit" :disabled="!canSubmit || submitting" @click="onSubmit">
-          {{ submitting ? '요청 보내는 중...' : '요청 보내기' }}
-        </button>
+
+        <div class="action-buttons">
+          <button class="submit" :disabled="!canSubmit || submitting" @click="onSubmitEdit">
+            {{ submitting ? '수정 중...' : '수정 완료' }}
+          </button>
+          <button class="btn-delete" :disabled="deleting" @click="showDeleteModal = true">
+            요청 취소하기
+          </button>
+        </div>
       </div>
     </main>
 
@@ -113,37 +110,40 @@
               부모님이 <span class="highlight-block">차단</span>해둔 업종이 들어있어요!
             </p>
             <div class="warning-box">
-              <span>이대로 요청하면 <strong class="highlight-score">티니점수가 차감</strong>될 수 있어요</span>
+              <span>이대로 수정하면 <strong class="highlight-score">티니점수가 차감</strong>될 수 있어요</span>
             </div>
           </div>
           <div class="modal-actions">
             <button class="btn-kids btn-kids--cancel" @click="showBlockWarningModal = false">
               다시 골라볼래요
             </button>
-            <button class="btn-kids btn-kids--confirm" @click="processSubmit">
-              그래도 요청할래요
+            <button class="btn-kids btn-kids--confirm" :disabled="submitting" @click="processEdit">
+              {{ submitting ? '수정하는 중...' : '그래도 수정할래요' }}
             </button>
           </div>
         </div>
       </div>
     </Transition>
 
-    <!-- 2. 오늘 이미 요청을 보낸 경우 모달 (안내 박스 제거 완료) -->
+    <!-- 2. 요청 취소 확인 모달 -->
     <Transition name="bounce">
-      <div v-if="showAlreadyRequestedModal" class="modal-overlay" @click.self="showAlreadyRequestedModal = false">
+      <div v-if="showDeleteModal" class="modal-overlay" @click.self="showDeleteModal = false">
         <div class="modal-card">
           <div class="modal-badge">
             <span class="badge-icon">🚨</span>
           </div>
-          <h3 class="modal-title">잠깐만요!</h3>
+          <h3 class="modal-title">요청을 취소할까요?</h3>
           <div class="modal-body">
             <p class="modal-text">
-              오늘만 허용은 <strong class="highlight-block">하루에 1번만</strong> 보낼 수 있어요!
+              취소하면 부모님께 보낸 요청이 사라져요!
             </p>
           </div>
           <div class="modal-actions">
-            <button class="btn-kids btn-kids--confirm" @click="showAlreadyRequestedModal = false">
-              닫기
+            <button class="btn-kids btn-kids--cancel" :disabled="deleting" @click="showDeleteModal = false">
+              아니요
+            </button>
+            <button class="btn-kids btn-kids--confirm" :disabled="deleting" @click="processDelete">
+              {{ deleting ? '취소하는 중...' : '취소할래요' }}
             </button>
           </div>
         </div>
@@ -153,18 +153,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const allowStore = useAllowRequestStore()
 
 const teenyCoachImg = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
-// 카테고리 데이터 (DB mcc_seed_data.sql 확정 기준)
+// mcc_seed_data.sql 기준 확정된 카테고리 ID (신청 화면과 동일)
 const watchCategories = ref([
   { id: 5,  label: 'PC방·노래방' },
   { id: 4,  label: '게임' },
@@ -186,11 +187,13 @@ const selectedBlockIds = ref([])
 const reason = ref('')
 const MAX_LEN = 100
 
-// 모달 및 제출 상태
 const showBlockWarningModal = ref(false)
-const showAlreadyRequestedModal = ref(false)
+const showDeleteModal = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+const deleting = ref(false)
+const deleteError = ref('')
+const loadError = ref('')
 
 const isWatchSelected = (id) => selectedWatchIds.value.includes(id)
 const isBlockSelected = (id) => selectedBlockIds.value.includes(id)
@@ -231,52 +234,90 @@ function onScroll() {
   scrollTimer = setTimeout(() => (scrolling.value = false), 600)
 }
 
+// 현재 신청 내용으로 폼 초기화 - 스토어에 없으면 다시 조회해서 채움
+// (카드 목록 중 어떤 카테고리 카드를 눌렀든, 오늘 permission은 하나뿐이라
+//  항상 그 permission 전체 categories/reason을 불러와서 채움)
+onMounted(async () => {
+  let permission = allowStore.todayPermission
+
+  if (!permission) {
+    try {
+      permission = await allowStore.fetchTodayPermission(authStore.accessToken)
+    } catch (e) {
+      loadError.value = '요청 내용을 불러오지 못했어요.'
+      return
+    }
+  }
+
+  if (!permission) return
+
+  // categories는 카테고리 "이름" 문자열 배열로 옴 (예: ["게임", "생활서비스"])
+  const categoryNames = permission.categories
+
+  selectedWatchIds.value = watchCategories.value
+    .filter((c) => categoryNames.includes(c.label))
+    .map((c) => c.id)
+
+  selectedBlockIds.value = blockCategories.value
+    .filter((c) => categoryNames.includes(c.label))
+    .map((c) => c.id)
+
+  reason.value = permission.reason ?? ''
+})
+
 function goBack() {
   router.push({ name: 'child-home' })
 }
 
-function onSubmit() {
-  if (!canSubmit.value || submitting.value) return
+function onSubmitEdit() {
+  if (!canSubmit.value) return
 
-  // 차단 업종이 있는 경우 경고 모달 표시
   if (hasBlockSelected.value) {
     showBlockWarningModal.value = true
     return
   }
 
-  processSubmit()
+  processEdit()
 }
 
-async function processSubmit() {
-  showBlockWarningModal.value = false
+async function processEdit() {
   submitError.value = ''
   submitting.value = true
 
+  const permissionId = allowStore.todayPermission?.id ?? route.query.id
+
   try {
-    await allowStore.submitPermissionRequest(
+    await allowStore.editPermissionRequest(
       authStore.accessToken,
+      permissionId,
       allSelectedCategories.value.map((c) => c.id),
       reason.value.trim(),
     )
 
-    allowStore.set(
-      allSelectedCategories.value.map((c) => c.id),
-      allSelectedCategories.value.map((c) => c.label),
-      reason.value.trim(),
-    )
-
-    router.push({ name: 'child-todayallow-confirm' })
+    showBlockWarningModal.value = false
+    router.push({ name: 'child-home' })
   } catch (e) {
-    console.error('❗SUBMIT ERROR:', e)
-
-    const errorMsg = e.response?.data?.message || e.message || ''
-    if (e.response?.status === 400 || errorMsg.includes('이미') || errorMsg.includes('ALREADY')) {
-      showAlreadyRequestedModal.value = true
-    } else {
-      submitError.value = '요청을 보내지 못했어요. 다시 시도해 주세요.'
-    }
+    submitError.value = e.message || '수정하지 못했어요. 다시 시도해주세요.'
   } finally {
     submitting.value = false
+  }
+}
+
+async function processDelete() {
+  deleteError.value = ''
+  deleting.value = true
+
+  const permissionId = allowStore.todayPermission?.id ?? route.query.id
+
+  try {
+    await allowStore.cancelPermissionRequest(authStore.accessToken, permissionId)
+    showDeleteModal.value = false
+    router.push({ name: 'child-home' })
+  } catch (e) {
+    deleteError.value = e.message || '취소하지 못했어요. 다시 시도해주세요.'
+    showDeleteModal.value = false
+  } finally {
+    deleting.value = false
   }
 }
 </script>
@@ -284,7 +325,7 @@ async function processSubmit() {
 <style scoped>
 .allow-screen {
   box-sizing: border-box;
-  position: relative;         
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
@@ -299,7 +340,7 @@ async function processSubmit() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 55px 0 12px;
+  padding: 50px 0 12px;
 }
 
 .back-btn {
@@ -320,7 +361,7 @@ async function processSubmit() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px;
+  padding: 10px 20px 20px;
 }
 
 .scroll::-webkit-scrollbar { width: 3px; }
@@ -331,7 +372,6 @@ async function processSubmit() {
 }
 .scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
-/* 🐥 티니 코치 말풍선 카드 */
 .teeny-coach-card {
   display: flex;
   align-items: center;
@@ -400,15 +440,6 @@ async function processSubmit() {
   color: #4a4d52;
   line-height: 1.35;
   word-break: keep-all;
-}
-
-.hl--watch {
-  color: #e0a500;
-  font-weight: 800;
-}
-.hl--block {
-  color: #e5484d;
-  font-weight: 800;
 }
 
 .section-title {
@@ -567,9 +598,15 @@ async function processSubmit() {
   color: #ffffff;
 }
 
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .submit {
   width: 100%;
-  padding: 15px 0;
+  padding: 14px 0;
   border: none;
   border-radius: 14px;
   background: #ffbc00;
@@ -585,7 +622,29 @@ async function processSubmit() {
   cursor: not-allowed;
 }
 
-/* 모달 스타일 */
+.btn-delete {
+  width: 100%;
+  padding: 13px 0;
+  border: none;
+  border-radius: 14px;
+  background: #f1f3f5;
+  color: #5c626a;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-delete:active {
+  background: #e2e6ea;
+}
+
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .modal-overlay {
   position: absolute;
   top: 0;
@@ -648,7 +707,7 @@ async function processSubmit() {
 }
 
 .modal-text {
-  margin: 0;
+  margin: 0 0 12px;
   font-size: 13.5px;
   font-weight: 600;
   color: #4a4d52;
@@ -697,6 +756,11 @@ async function processSubmit() {
 
 .btn-kids:active {
   transform: scale(0.98);
+}
+
+.btn-kids:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-kids--cancel {
