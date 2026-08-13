@@ -155,6 +155,7 @@ onMounted(async () => {
 function goToDetail(id) { router.push(`/parents/quest/${id}`) }
 function goToCreate() { router.push('/parents/quest/create') }
 function goToApproval(id) { router.push(`/parents/quest/${id}/approval`) }
+
 </script>
 
 <style scoped>
