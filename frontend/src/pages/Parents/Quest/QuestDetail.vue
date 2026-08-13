@@ -5,7 +5,6 @@
       <button
         class="back-btn"
         type="button"
-        aria-label="뒤로가기"
         @click="router.back()"
       >
         <img
@@ -15,11 +14,15 @@
         />
       </button>
 
-      <h1 class="nav-title">퀘스트 상세</h1>
+      <h1 class="nav-title">
+        퀘스트 상세
+      </h1>
 
-      <!-- AVAILABLE 상태일 때만 수정/삭제 -->
       <div
-        v-if="quest && quest.status === 'AVAILABLE'"
+        v-if="
+          quest &&
+          quest.status === 'AVAILABLE'
+        "
         class="nav-actions"
       >
         <button
@@ -50,40 +53,36 @@
       v-if="isLoading"
       class="state-box"
     >
-      <p>불러오는 중입니다...</p>
+      불러오는 중입니다...
     </div>
 
     <!-- 에러 -->
     <div
       v-else-if="errorMessage"
-      class="state-box"
+      class="state-box error-text"
     >
-      <p class="error-text">
-        {{ errorMessage }}
-      </p>
+      {{ errorMessage }}
     </div>
 
-    <!-- 데이터 없음 -->
+    <!-- 없음 -->
     <div
       v-else-if="!quest"
       class="state-box"
     >
-      <p>퀘스트 정보를 찾을 수 없습니다.</p>
+      퀘스트 정보가 없습니다.
     </div>
 
-    <!-- =========================
-         상세 보기
-    ========================== -->
+    <!-- 상세 -->
     <div
       v-else-if="!isEditMode"
       class="content"
     >
-      <!-- 자녀 정보 -->
+      <!-- 자녀 -->
       <div class="info-card">
         <div class="child-row">
           <img
             :src="
-              quest.child?.profileImageUrl ||
+              quest.child.profileImageUrl ||
               defaultProfileImage
             "
             alt="자녀 프로필"
@@ -97,12 +96,14 @@
             </p>
 
             <p class="child-name">
-              {{ quest.child?.name || '자녀' }}
+              {{
+                quest.child.name ||
+                '자녀'
+              }}
             </p>
           </div>
 
           <span
-            v-if="quest.status"
             class="status-badge"
             :class="statusClass"
           >
@@ -111,7 +112,7 @@
         </div>
       </div>
 
-      <!-- 퀘스트 정보 -->
+      <!-- 정보 -->
       <div class="info-card">
         <div class="info-row">
           <p class="info-label">
@@ -155,7 +156,11 @@
           </p>
 
           <p class="info-value reward">
-            {{ formatReward(quest.rewardAmount) }}
+            {{
+              formatReward(
+                quest.rewardAmount
+              )
+            }}
           </p>
         </div>
 
@@ -175,65 +180,73 @@
           </p>
         </div>
 
-        <template v-if="quest.verificationRequirement">
-          <div class="divider"></div>
-
-          <div class="info-row">
-            <p class="info-label">
-              인증 방식
-            </p>
-
-            <p class="info-value">
-              {{
-                getVerificationRequirementLabel(
-                  quest.verificationRequirement
-                )
-              }}
-            </p>
-          </div>
-        </template>
-      </div>
-
-      <!-- =========================
-           인증 정보
-      ========================== -->
-      <div
-        v-if="quest.latestVerification"
-        class="info-card"
-      >
-        <p class="card-title">
-          인증 내역
-        </p>
+        <div class="divider"></div>
 
         <div class="info-row">
           <p class="info-label">
-            상태
+            인증 방식
           </p>
 
           <p class="info-value">
             {{
-              getVerificationStatusLabel(
-                quest.latestVerification?.status
+              getRequirementLabel(
+                quest.verificationRequirement
               )
             }}
           </p>
         </div>
+      </div>
 
-        <!-- 인증 사진 -->
+      <!-- 인증 -->
+      <div
+        v-if="quest.latestVerification"
+        class="info-card"
+      >
+        <div class="verification-title-row">
+          <p class="card-title">
+            인증 내역
+          </p>
+
+          <span class="verification-status">
+            {{
+              getVerificationStatusLabel(
+                quest.latestVerification.status
+              )
+            }}
+          </span>
+        </div>
+
+        <!-- 사진 -->
         <div
-          v-if="quest.latestVerification?.imageUrl"
+          v-if="
+            quest.latestVerification.imageUrl &&
+            !quest.latestVerification.imageExpired
+          "
           class="verify-image-wrap"
         >
           <img
-            :src="quest.latestVerification.imageUrl"
+            :src="
+              quest.latestVerification.imageUrl
+            "
             alt="인증 이미지"
             class="verify-image"
           />
         </div>
 
-        <!-- 인증 내용 -->
+        <div
+          v-else-if="
+            quest.latestVerification.imageExpired
+          "
+          class="image-expired"
+        >
+          인증 이미지가 만료되었습니다.
+        </div>
+
+        <!-- 내용 -->
         <template
-          v-if="quest.latestVerification?.content"
+          v-if="
+            quest.latestVerification.content
+          "
         >
           <div class="divider"></div>
 
@@ -243,14 +256,34 @@
             </p>
 
             <p class="info-value">
-              {{ quest.latestVerification.content }}
+              {{
+                quest.latestVerification.content
+              }}
             </p>
           </div>
         </template>
 
-        <!-- 인증 제출 일시 -->
+        <!-- 시도 횟수 -->
+        <div class="divider"></div>
+
+        <div class="info-row">
+          <p class="info-label">
+            인증 시도
+          </p>
+
+          <p class="info-value">
+            {{
+              quest.latestVerification.attemptNo !== null &&
+              '-'
+            }}회
+          </p>
+        </div>
+
+        <!-- 제출 -->
         <template
-          v-if="quest.latestVerification?.createdAt"
+          v-if="
+            quest.latestVerification.submittedAt
+          "
         >
           <div class="divider"></div>
 
@@ -262,23 +295,137 @@
             <p class="info-value">
               {{
                 formatDate(
-                  quest.latestVerification.createdAt
+                  quest.latestVerification.submittedAt
                 )
               }}
             </p>
           </div>
         </template>
+
+        <!-- 검토 -->
+        <template
+          v-if="
+            quest.latestVerification.reviewedAt
+          "
+        >
+          <div class="divider"></div>
+
+          <div class="info-row">
+            <p class="info-label">
+              검토 일시
+            </p>
+
+            <p class="info-value">
+              {{
+                formatDate(
+                  quest.latestVerification.reviewedAt
+                )
+              }}
+            </p>
+          </div>
+        </template>
+
+        <!-- 거절 사유 -->
+        <template
+          v-if="
+            quest.latestVerification.rejectionReason
+          "
+        >
+          <div class="divider"></div>
+
+          <div class="info-row">
+            <p class="info-label">
+              거절 사유
+            </p>
+
+            <p class="info-value rejection">
+              {{
+                quest.latestVerification.rejectionReason
+              }}
+            </p>
+          </div>
+        </template>
+
+        <!-- 승인/거절 -->
+        <div
+          v-if="canReviewVerification"
+          class="verification-actions"
+        >
+          <button
+            type="button"
+            class="verification-reject-btn"
+            :disabled="
+              isProcessingVerification
+            "
+            @click="openRejectModal"
+          >
+            거절
+          </button>
+
+          <button
+            type="button"
+            class="verification-approve-btn"
+            :disabled="
+              isProcessingVerification
+            "
+            @click="
+              handleVerificationApprove
+            "
+          >
+            {{
+              isProcessingVerification
+                ? '처리 중...'
+                : '승인'
+            }}
+          </button>
+        </div>
+      </div>
+
+      <!-- 퀘스트 거절 정보 -->
+      <div
+        v-if="
+          quest.declineReasonCode ||
+          quest.declineReasonDetail
+        "
+        class="info-card"
+      >
+        <p class="card-title">
+          거절 정보
+        </p>
+
+        <div
+          v-if="quest.declineReasonCode"
+          class="info-row"
+        >
+          <p class="info-label">
+            거절 코드
+          </p>
+
+          <p class="info-value">
+            {{ quest.declineReasonCode }}
+          </p>
+        </div>
+
+        <div
+          v-if="quest.declineReasonDetail"
+          class="info-row"
+        >
+          <p class="info-label">
+            상세 사유
+          </p>
+
+          <p class="info-value">
+            {{ quest.declineReasonDetail }}
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- =========================
-         수정 모드
-    ========================== -->
+    <!-- 수정 -->
     <div
       v-else
       class="content"
     >
-      <!-- 제목 -->
       <div class="section">
         <p class="section-label">
           제목
@@ -292,7 +439,6 @@
         />
       </div>
 
-      <!-- 내용 -->
       <div class="section">
         <p class="section-label">
           내용
@@ -306,7 +452,6 @@
         ></textarea>
       </div>
 
-      <!-- 기한 -->
       <div class="section">
         <p class="section-label">
           기한
@@ -319,7 +464,6 @@
         />
       </div>
 
-      <!-- 현금 보상 -->
       <div class="section">
         <p class="section-label">
           현금 보상
@@ -330,8 +474,6 @@
             v-model="editForm.rewardAmount"
             type="number"
             class="amount-input"
-            placeholder="0"
-            inputmode="numeric"
             min="0"
           />
 
@@ -344,24 +486,29 @@
           <button
             v-for="quick in quickAmounts"
             :key="quick.label"
-            class="quick-btn"
             type="button"
-            @click="addQuickAmount(quick.value)"
+            class="quick-btn"
+            @click="
+              addQuickAmount(
+                quick.value
+              )
+            "
           >
             {{ quick.label }}
           </button>
 
           <button
-            class="quick-btn reset-btn"
             type="button"
-            @click="editForm.rewardAmount = 0"
+            class="quick-btn reset-btn"
+            @click="
+              editForm.rewardAmount = 0
+            "
           >
             지움
           </button>
         </div>
       </div>
 
-      <!-- 신뢰도 점수 -->
       <button
         class="teeny-score-row"
         type="button"
@@ -373,11 +520,14 @@
         <div
           class="checkbox"
           :class="{
-            checked: editForm.teenyScoreEnabled
+            checked:
+              editForm.teenyScoreEnabled
           }"
         >
           <img
-            v-if="editForm.teenyScoreEnabled"
+            v-if="
+              editForm.teenyScoreEnabled
+            "
             src="@/assets/icons/icon-check.svg"
             alt=""
             class="check-icon"
@@ -401,12 +551,10 @@
         />
       </button>
 
-      <!-- 수정 버튼 -->
       <div class="edit-btns">
         <button
           class="cancel-btn"
           type="button"
-          :disabled="isSaving"
           @click="cancelEdit"
         >
           취소
@@ -427,12 +575,16 @@
       </div>
     </div>
 
-    <!-- 하단 네비게이션 -->
+    <!-- 하단 -->
     <nav class="bottom-nav">
       <button
         class="nav-item"
         type="button"
-        @click="router.push('/parents/home')"
+        @click="
+          router.push(
+            '/parents/home'
+          )
+        "
       >
         <img
           src="@/assets/icons/icon-home.svg"
@@ -446,7 +598,10 @@
       </button>
 
       <button
-        class="nav-item nav-item-active"
+        class="
+          nav-item
+          nav-item-active
+        "
         type="button"
       >
         <img
@@ -463,7 +618,11 @@
       <button
         class="nav-item"
         type="button"
-        @click="router.push('/parents/mypage')"
+        @click="
+          router.push(
+            '/parents/mypage'
+          )
+        "
       >
         <img
           src="@/assets/icons/icon-mypage.svg"
@@ -476,6 +635,82 @@
         </span>
       </button>
     </nav>
+
+    <!-- =========================
+         거절 모달
+    ========================== -->
+    <div
+      v-if="isRejectModalOpen"
+      class="modal-overlay"
+      @click.self="closeRejectModal"
+    >
+      <div class="reject-modal">
+        <div class="reject-modal-header">
+          <h2 class="reject-modal-title">
+            인증 거절 사유
+          </h2>
+
+          <button
+            type="button"
+            class="modal-close-btn"
+            :disabled="
+              isProcessingVerification
+            "
+            @click="closeRejectModal"
+          >
+            ×
+          </button>
+        </div>
+
+        <p class="reject-modal-description">
+          {{
+            quest.child.name ||
+            '자녀'
+          }}에게 전달할 거절 사유를 입력해주세요.
+        </p>
+
+        <textarea
+          v-model="rejectionReason"
+          class="reject-textarea"
+          maxlength="200"
+          rows="5"
+          placeholder="예) 인증 사진에서 수행 여부를 확인하기 어려워요."
+        ></textarea>
+
+        <p class="reject-count">
+          {{ rejectionReason.length }}/200
+        </p>
+
+        <div class="reject-modal-actions">
+          <button
+            type="button"
+            class="reject-cancel-btn"
+            :disabled="
+              isProcessingVerification
+            "
+            @click="closeRejectModal"
+          >
+            취소
+          </button>
+
+          <button
+            type="button"
+            class="reject-confirm-btn"
+            :disabled="
+              !rejectionReason.trim() ||
+              isProcessingVerification
+            "
+            @click="submitReject"
+          >
+            {{
+              isProcessingVerification
+                ? '처리 중...'
+                : '거절하기'
+            }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -487,65 +722,72 @@ import {
 } from 'vue'
 
 import {
-  useRouter,
   useRoute,
+  useRouter,
 } from 'vue-router'
 
-import { useAuthStore } from '@/stores/auth'
+import {
+  useAuthStore,
+} from '@/stores/auth'
 
 import {
   getQuestDetail,
   updateQuest,
   deleteQuest,
+  approveQuestVerification,
+  rejectQuestVerification,
 } from '@/api/quest'
 
-const router = useRouter()
-const route = useRoute()
+import defaultProfileImage
+  from '@/assets/icons/child-profile.svg'
 
-const authStore = useAuthStore()
+const router =
+  useRouter()
 
-/* =========================
-   기본값
-========================= */
+const route =
+  useRoute()
+
+const authStore =
+  useAuthStore()
 
 const questId =
   route.params.questId
 
-const defaultProfileImage =
-  '/src/assets/icons/child-profile.svg'
+const quest =
+  ref(null)
 
-const isLoading = ref(false)
-const isSaving = ref(false)
+const isLoading =
+  ref(false)
 
-const errorMessage = ref('')
+const isSaving =
+  ref(false)
 
-const isEditMode = ref(false)
+const isProcessingVerification =
+  ref(false)
 
-/**
- * 기존 {}
- *
- * ↓
- *
- * null로 변경
- *
- * API 응답이 오기 전에는
- * quest 내부 필드를 렌더링하지 않음.
- */
-const quest = ref(null)
+const errorMessage =
+  ref('')
 
-/* =========================
-   수정 Form
-========================= */
+const isEditMode =
+  ref(false)
 
-const editForm = ref({
-  title: '',
-  content: '',
-  deadline: '',
-  rewardAmount: 0,
-  teenyScoreEnabled: true,
-  verificationRequirement:
-    'PHOTO_REQUIRED',
-})
+/* 거절 모달 */
+const isRejectModalOpen =
+  ref(false)
+
+const rejectionReason =
+  ref('')
+
+const editForm =
+  ref({
+    title: '',
+    content: '',
+    deadline: '',
+    rewardAmount: 0,
+    teenyScoreEnabled: true,
+    verificationRequirement:
+      'PHOTO_REQUIRED',
+  })
 
 const quickAmounts = [
   {
@@ -562,99 +804,79 @@ const quickAmounts = [
   },
 ]
 
-/* =========================
-   상태 Label
-========================= */
+const statusLabel =
+  computed(() => {
+    const map = {
+      AVAILABLE: '시작 가능',
+      IN_PROGRESS: '진행 중',
+      PENDING: '인증 대기',
+      COMPLETED: '완료',
+      FAILED: '실패',
+      EXPIRED: '기간 만료',
+      DECLINED: '거절',
+    }
 
-const statusLabel = computed(() => {
-  if (!quest.value?.status) {
-    return ''
-  }
+    return (
+      map[
+        quest.value?.status
+      ] ||
+      quest.value?.status ||
+      ''
+    )
+  })
 
-  const map = {
-    AVAILABLE: '시작 가능',
-    IN_PROGRESS: '진행 중',
-    PENDING: '인증 대기',
-    COMPLETED: '완료',
-    FAILED: '실패',
-    EXPIRED: '기간 만료',
-    DECLINED: '반려',
-  }
+const statusClass =
+  computed(() => {
+    const map = {
+      AVAILABLE:
+        'status-available',
 
-  return (
-    map[quest.value.status] ||
-    quest.value.status
-  )
-})
+      IN_PROGRESS:
+        'status-progress',
 
-/* =========================
-   상태 CSS
-========================= */
+      PENDING:
+        'status-pending',
 
-const statusClass = computed(() => {
-  if (!quest.value?.status) {
-    return ''
-  }
+      COMPLETED:
+        'status-completed',
 
-  const map = {
-    AVAILABLE:
-      'status-available',
+      FAILED:
+        'status-failed',
 
-    IN_PROGRESS:
-      'status-progress',
+      EXPIRED:
+        'status-expired',
 
-    PENDING:
-      'status-pending',
+      DECLINED:
+        'status-declined',
+    }
 
-    COMPLETED:
-      'status-completed',
+    return (
+      map[
+        quest.value?.status
+      ] || ''
+    )
+  })
 
-    FAILED:
-      'status-failed',
+const canReviewVerification =
+  computed(() => {
+    const verificationId =
+      quest.value
+        ?.latestVerification
+        ?.verificationId
 
-    EXPIRED:
-      'status-expired',
-
-    DECLINED:
-      'status-declined',
-  }
-
-  return (
-    map[quest.value.status] ||
-    ''
-  )
-})
-
-/* =========================
-   퀘스트 조회
-========================= */
+    return (
+      quest.value?.status ===
+        'PENDING' &&
+      verificationId !== null &&
+      verificationId !== undefined
+    )
+  })
 
 async function loadQuestDetail() {
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    if (!questId) {
-      throw new Error(
-        'questId가 없습니다.'
-      )
-    }
-
-    console.log(
-      '상세 조회 questId:',
-      questId
-    )
-
-    /**
-     * quest.js:
-     *
-     * getQuestDetail(
-     *   questId,
-     *   accessToken
-     * )
-     *
-     * 순서 주의
-     */
     const res =
       await getQuestDetail(
         questId,
@@ -666,46 +888,213 @@ async function loadQuestDetail() {
       res
     )
 
-    if (!res.success) {
+    if (
+      !res.success ||
+      !res.data
+    ) {
       throw new Error(
         res.message ||
         '퀘스트 상세 조회에 실패했습니다.'
       )
     }
 
-    if (!res.data) {
-      throw new Error(
-        '퀘스트 상세 정보가 없습니다.'
-      )
-    }
-
     quest.value =
       res.data
 
-    console.log(
-      '저장된 quest:',
-      quest.value
-    )
   } catch (error) {
     console.error(
-      '퀘스트 조회 실패:',
+      '퀘스트 상세 조회 실패:',
       error
     )
 
-    quest.value = null
+    quest.value =
+      null
 
     errorMessage.value =
       error.message ||
       '퀘스트를 불러오지 못했습니다.'
+
   } finally {
-    isLoading.value = false
+    isLoading.value =
+      false
+  }
+}
+
+function getVerificationId() {
+  const verificationId =
+    quest.value
+      ?.latestVerification
+      ?.verificationId
+
+  if (
+    verificationId === null ||
+    verificationId === undefined
+  ) {
+    throw new Error(
+      '인증 ID를 찾을 수 없습니다.'
+    )
+  }
+
+  return verificationId
+}
+
+/* 승인 */
+async function handleVerificationApprove() {
+  if (
+    isProcessingVerification.value
+  ) {
+    return
+  }
+
+  if (
+    !window.confirm(
+      '이 퀘스트 인증을 승인하시겠습니까?'
+    )
+  ) {
+    return
+  }
+
+  isProcessingVerification.value =
+    true
+
+  try {
+    const verificationId =
+      getVerificationId()
+
+    await approveQuestVerification(
+      questId,
+      verificationId,
+      authStore.accessToken
+    )
+
+    alert(
+      '퀘스트 인증이 승인되었습니다.'
+    )
+
+    await loadQuestDetail()
+
+  } catch (error) {
+    console.error(
+      '승인 실패:',
+      error
+    )
+
+    alert(
+      error.message ||
+      '퀘스트 인증 승인에 실패했습니다.'
+    )
+
+  } finally {
+    isProcessingVerification.value =
+      false
   }
 }
 
 /* =========================
-   수정 모드 시작
+   거절 모달
 ========================= */
 
+function openRejectModal() {
+  if (
+    isProcessingVerification.value
+  ) {
+    return
+  }
+
+  rejectionReason.value =
+    ''
+
+  isRejectModalOpen.value =
+    true
+}
+
+function closeRejectModal() {
+  if (
+    isProcessingVerification.value
+  ) {
+    return
+  }
+
+  isRejectModalOpen.value =
+    false
+
+  rejectionReason.value =
+    ''
+}
+
+async function submitReject() {
+  if (
+    isProcessingVerification.value
+  ) {
+    return
+  }
+
+  const reason =
+    rejectionReason.value.trim()
+
+  if (!reason) {
+    return
+  }
+
+  isProcessingVerification.value =
+    true
+
+  try {
+    const verificationId =
+      getVerificationId()
+
+    console.log(
+      '거절 questId:',
+      questId
+    )
+
+    console.log(
+      '거절 verificationId:',
+      verificationId
+    )
+
+    console.log(
+      '거절 rejectionReason:',
+      reason
+    )
+
+    await rejectQuestVerification(
+      questId,
+      verificationId,
+      reason,
+      authStore.accessToken
+    )
+
+    isRejectModalOpen.value =
+      false
+
+    rejectionReason.value =
+      ''
+
+    alert(
+      '퀘스트 인증이 거절되었습니다.'
+    )
+
+    await loadQuestDetail()
+
+  } catch (error) {
+    console.error(
+      '거절 실패:',
+      error
+    )
+
+    alert(
+      error.message ||
+      '퀘스트 인증 거절에 실패했습니다.'
+    )
+
+  } finally {
+    isProcessingVerification.value =
+      false
+  }
+}
+
+/* 수정 */
 function enterEditMode() {
   if (!quest.value) {
     return
@@ -725,7 +1114,8 @@ function enterEditMode() {
 
     rewardAmount:
       Number(
-        quest.value.rewardAmount || 0
+        quest.value.rewardAmount ??
+        0
       ),
 
     teenyScoreEnabled:
@@ -738,81 +1128,60 @@ function enterEditMode() {
       'PHOTO_REQUIRED',
   }
 
-  isEditMode.value = true
+  isEditMode.value =
+    true
 }
-
-/* =========================
-   수정 취소
-========================= */
 
 function cancelEdit() {
-  if (isSaving.value) {
-    return
-  }
-
-  isEditMode.value = false
+  isEditMode.value =
+    false
 }
 
-/* =========================
-   빠른 금액
-========================= */
-
-function addQuickAmount(amount) {
+function addQuickAmount(
+  amount
+) {
   editForm.value.rewardAmount =
     Number(
-      editForm.value.rewardAmount || 0
+      editForm.value.rewardAmount ||
+      0
     ) + amount
 }
 
-/* =========================
-   퀘스트 수정
-========================= */
-
 async function handleUpdate() {
-  if (isSaving.value) {
+  if (
+    isSaving.value
+  ) {
     return
   }
 
-  if (!quest.value) {
+  if (
+    !editForm.value.title.trim()
+  ) {
     alert(
-      '퀘스트 정보가 없습니다.'
+      '제목을 입력해주세요.'
     )
     return
   }
 
-  const title =
-    editForm.value.title.trim()
-
-  const content =
-    editForm.value.content.trim()
-
-  if (!title) {
+  if (
+    !editForm.value.deadline
+  ) {
     alert(
-      '퀘스트 제목을 입력해주세요.'
+      '기한을 입력해주세요.'
     )
     return
   }
 
-  if (!content) {
-    alert(
-      '퀘스트 내용을 입력해주세요.'
-    )
-    return
-  }
-
-  if (!editForm.value.deadline) {
-    alert(
-      '퀘스트 기한을 입력해주세요.'
-    )
-    return
-  }
-
-  isSaving.value = true
+  isSaving.value =
+    true
 
   try {
-    const requestData = {
-      title,
-      content,
+    const data = {
+      title:
+        editForm.value.title.trim(),
+
+      content:
+        editForm.value.content.trim(),
 
       deadline:
         new Date(
@@ -821,7 +1190,8 @@ async function handleUpdate() {
 
       rewardAmount:
         Number(
-          editForm.value.rewardAmount || 0
+          editForm.value.rewardAmount ??
+          0
         ),
 
       teenyScoreEnabled:
@@ -831,59 +1201,24 @@ async function handleUpdate() {
         editForm.value.verificationRequirement,
     }
 
-    console.log(
-      '퀘스트 수정 요청:',
-      requestData
+    await updateQuest(
+      questId,
+      data,
+      authStore.accessToken
     )
 
-    /**
-     * quest.js:
-     *
-     * updateQuest(
-     *   questId,
-     *   questData,
-     *   accessToken
-     * )
-     */
-    const res =
-      await updateQuest(
-        questId,
-        requestData,
-        authStore.accessToken
-      )
-
-    console.log(
-      '퀘스트 수정 응답:',
-      res
+    alert(
+      '퀘스트가 수정되었습니다.'
     )
 
-    if (res.success) {
-      /**
-       * 수정 응답에 전체 상세가
-       * 내려오면 바로 반영.
-       */
-      if (res.data) {
-        quest.value = {
-          ...quest.value,
-          ...res.data,
-        }
-      } else {
-        /**
-         * 응답 data가 없다면
-         * 상세 API를 다시 조회.
-         */
-        await loadQuestDetail()
-      }
+    isEditMode.value =
+      false
 
-      isEditMode.value = false
+    await loadQuestDetail()
 
-      alert(
-        '퀘스트가 수정됐어요!'
-      )
-    }
   } catch (error) {
     console.error(
-      '퀘스트 수정 실패:',
+      '수정 실패:',
       error
     )
 
@@ -891,51 +1226,37 @@ async function handleUpdate() {
       error.message ||
       '퀘스트 수정에 실패했습니다.'
     )
+
   } finally {
-    isSaving.value = false
+    isSaving.value =
+      false
   }
 }
 
-/* =========================
-   삭제
-========================= */
-
 async function handleDelete() {
-  if (!quest.value) {
-    return
-  }
-
-  const confirmed =
-    window.confirm(
+  if (
+    !window.confirm(
       '퀘스트를 삭제하시겠습니까?'
     )
-
-  if (!confirmed) {
+  ) {
     return
   }
 
   try {
-    /**
-     * quest.js:
-     *
-     * deleteQuest(
-     *   questId,
-     *   accessToken
-     * )
-     */
     await deleteQuest(
       questId,
       authStore.accessToken
     )
 
     alert(
-      '퀘스트가 삭제됐어요.'
+      '퀘스트가 삭제되었습니다.'
     )
 
     router.back()
+
   } catch (error) {
     console.error(
-      '퀘스트 삭제 실패:',
+      '삭제 실패:',
       error
     )
 
@@ -946,17 +1267,23 @@ async function handleDelete() {
   }
 }
 
-/* =========================
-   날짜 표시
-========================= */
+function formatReward(
+  value
+) {
+  return `${Number(
+    value ?? 0
+  ).toLocaleString()}원`
+}
 
-function formatDate(dateStr) {
-  if (!dateStr) {
+function formatDate(
+  value
+) {
+  if (!value) {
     return '-'
   }
 
   const date =
-    new Date(dateStr)
+    new Date(value)
 
   if (
     Number.isNaN(
@@ -966,29 +1293,29 @@ function formatDate(dateStr) {
     return '-'
   }
 
-  return new Intl.DateTimeFormat(
-    'ko-KR',
-    {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    }
-  ).format(date)
+  return new Intl
+    .DateTimeFormat(
+      'ko-KR',
+      {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }
+    )
+    .format(date)
 }
 
-/* =========================
-   datetime-local 변환
-========================= */
-
-function toLocalDatetime(isoStr) {
-  if (!isoStr) {
+function toLocalDatetime(
+  value
+) {
+  if (!value) {
     return ''
   }
 
   const date =
-    new Date(isoStr)
+    new Date(value)
 
   if (
     Number.isNaN(
@@ -1003,35 +1330,15 @@ function toLocalDatetime(isoStr) {
     60000
 
   return new Date(
-    date.getTime() - offset
+    date.getTime() -
+    offset
   )
     .toISOString()
     .slice(0, 16)
 }
 
-/* =========================
-   보상 표시
-========================= */
-
-function formatReward(value) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return '0원'
-  }
-
-  return `${Number(
-    value
-  ).toLocaleString()}원`
-}
-
-/* =========================
-   인증 방식
-========================= */
-
-function getVerificationRequirementLabel(
-  requirement
+function getRequirementLabel(
+  value
 ) {
   const map = {
     FREE: '자유 인증',
@@ -1040,58 +1347,35 @@ function getVerificationRequirementLabel(
   }
 
   return (
-    map[requirement] ||
-    requirement ||
+    map[value] ||
+    value ||
     '-'
   )
 }
 
-/* =========================
-   인증 상태
-========================= */
-
 function getVerificationStatusLabel(
   status
 ) {
-  if (!status) {
-    return '-'
-  }
-
   const map = {
     PENDING: '인증 대기',
-    APPROVED: '승인',
-    REJECTED: '반려',
-    DECLINED: '반려',
+    APPROVED: '승인 완료',
+    REJECTED: '거절',
+    DECLINED: '거절',
   }
 
   return (
     map[status] ||
-    status
+    status ||
+    '-'
   )
 }
-
-/* =========================
-   프로필 이미지 오류
-========================= */
 
 function handleProfileImageError(
   event
 ) {
-  if (
-    event.target.src.endsWith(
-      'child-profile.svg'
-    )
-  ) {
-    return
-  }
-
   event.target.src =
     defaultProfileImage
 }
-
-/* =========================
-   mounted
-========================= */
 
 onMounted(() => {
   loadQuestDetail()
@@ -1103,31 +1387,25 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #f4f5f7;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 70px;
+  background: #f4f5f7;
+  padding-bottom: 90px;
 }
 
-/* 헤더 */
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  background-color: #ffffff;
+  background: #ffffff;
   border-bottom: 1px solid #f0f1f3;
 }
 
 .back-btn {
   width: 60px;
   padding: 0;
-  background: transparent;
   border: none;
-  cursor: pointer;
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
+  background: transparent;
+  text-align: left;
 }
 
 .back-icon {
@@ -1139,13 +1417,10 @@ onMounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #191b1e;
 }
 
 .nav-actions {
-  width: 100px;
   display: flex;
-  justify-content: flex-end;
   gap: 6px;
 }
 
@@ -1159,37 +1434,28 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
 }
 
 .edit-btn {
-  background-color: #f4f5f7;
-  color: #191b1e;
+  background: #f4f5f7;
 }
 
 .delete-btn {
-  background-color: #ffe5e5;
+  background: #ffe5e5;
   color: #ff3b30;
 }
 
-/* 상태 */
 .state-box {
-  flex: 1;
   padding: 60px 20px;
   text-align: center;
   color: #8b9097;
   font-size: 14px;
 }
 
-.state-box p {
-  margin: 0;
-}
-
 .error-text {
   color: #ff3b30;
 }
 
-/* 내용 */
 .content {
   display: flex;
   flex-direction: column;
@@ -1197,24 +1463,15 @@ onMounted(() => {
   padding: 16px;
 }
 
-/* 카드 */
 .info-card {
-  background-color: #ffffff;
-  border-radius: 16px;
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #ffffff;
 }
 
-.card-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: #191b1e;
-}
-
-/* 자녀 정보 */
 .child-row {
   display: flex;
   align-items: center;
@@ -1224,35 +1481,29 @@ onMounted(() => {
 .child-avatar {
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
   border-radius: 50%;
   object-fit: cover;
-  flex-shrink: 0;
 }
 
 .child-info {
-  flex: 1;
   min-width: 0;
+  flex: 1;
 }
 
 .child-label {
-  margin: 0 0 2px;
+  margin: 0;
   font-size: 11px;
   color: #8b9097;
 }
 
 .child-name {
-  margin: 0;
+  margin: 2px 0 0;
   font-size: 15px;
   font-weight: 700;
-  color: #191b1e;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* 상태 배지 */
 .status-badge {
-  flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 12px;
@@ -1260,41 +1511,42 @@ onMounted(() => {
 }
 
 .status-available {
-  background-color: #eef1ff;
   color: #5970e8;
+  background: #eef1ff;
 }
 
 .status-progress {
-  background-color: #e9f8f0;
   color: #1d8b55;
+  background: #e9f8f0;
 }
 
 .status-pending {
-  background-color: #fff8e1;
   color: #b17600;
+  background: #fff8e1;
 }
 
 .status-completed {
-  background-color: #e3f2fd;
   color: #3b82f6;
+  background: #e3f2fd;
 }
 
-.status-failed {
-  background-color: #ffe5e5;
+.status-failed,
+.status-declined {
   color: #ff3b30;
+  background: #ffe5e5;
 }
 
 .status-expired {
-  background-color: #f4f5f7;
   color: #8b9097;
+  background: #f4f5f7;
 }
 
-.status-declined {
-  background-color: #ffe5e5;
-  color: #ff3b30;
+.card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
 }
 
-/* 정보 */
 .info-row {
   display: flex;
   flex-direction: column;
@@ -1303,37 +1555,53 @@ onMounted(() => {
 
 .info-label {
   margin: 0;
-  font-size: 12px;
   color: #8b9097;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .info-value {
   margin: 0;
-  font-size: 14px;
   color: #191b1e;
-  font-weight: 500;
+  font-size: 14px;
   line-height: 1.5;
   word-break: break-word;
 }
 
 .reward {
+  color: #ffbc00;
   font-size: 18px;
   font-weight: 700;
-  color: #ffbc00;
+}
+
+.rejection {
+  color: #ff3b30;
 }
 
 .divider {
   height: 1px;
-  background-color: #f0f1f3;
+  background: #f0f1f3;
 }
 
-/* 인증 이미지 */
+.verification-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verification-status {
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: #fff8e1;
+  color: #b17600;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .verify-image-wrap {
-  width: 100%;
-  border-radius: 10px;
   overflow: hidden;
-  background-color: #f4f5f7;
+  border-radius: 12px;
+  background: #f4f5f7;
 }
 
 .verify-image {
@@ -1343,7 +1611,42 @@ onMounted(() => {
   object-fit: cover;
 }
 
-/* 수정 */
+.image-expired {
+  padding: 30px 15px;
+  border-radius: 10px;
+  background: #f4f5f7;
+  color: #8b9097;
+  text-align: center;
+  font-size: 13px;
+}
+
+.verification-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.verification-reject-btn,
+.verification-approve-btn {
+  flex: 1;
+  height: 50px;
+  border-radius: 11px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.verification-reject-btn {
+  border: 1.5px solid #e0e2e6;
+  background: #ffffff;
+  color: #ff3b30;
+}
+
+.verification-approve-btn {
+  border: none;
+  background: #ffbc00;
+  color: #191b1e;
+}
+
 .section {
   display: flex;
   flex-direction: column;
@@ -1352,72 +1655,52 @@ onMounted(() => {
 
 .section-label {
   margin: 0;
+  color: #8b9097;
   font-size: 13px;
   font-weight: 600;
-  color: #8b9097;
 }
 
 .input,
 .textarea {
   width: 100%;
+  box-sizing: border-box;
   padding: 14px 16px;
   border: 1.5px solid #f0f1f3;
   border-radius: 10px;
-  font-size: 14px;
+  background: #ffffff;
   color: #191b1e;
-  outline: none;
-  box-sizing: border-box;
-  background-color: #ffffff;
   font-family: inherit;
-}
-
-.input:focus,
-.textarea:focus {
-  border-color: #ffbc00;
-}
-
-.input::placeholder,
-.textarea::placeholder {
-  color: #b9bec5;
+  font-size: 14px;
+  outline: none;
 }
 
 .textarea {
   resize: none;
-  line-height: 1.6;
 }
 
-/* 금액 */
 .amount-wrap {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  background-color: #ffffff;
+  padding: 14px 16px;
   border: 1.5px solid #f0f1f3;
   border-radius: 10px;
-  padding: 14px 16px;
+  background: #ffffff;
 }
 
 .amount-input {
-  flex: 1;
   min-width: 0;
+  flex: 1;
   border: none;
-  background: transparent;
+  outline: none;
+  text-align: right;
   font-size: 20px;
   font-weight: 700;
-  color: #191b1e;
-  text-align: right;
-  outline: none;
 }
 
 .won {
-  flex-shrink: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #191b1e;
+  margin-left: 8px;
 }
 
-/* 빠른 금액 */
 .quick-btns {
   display: flex;
   gap: 8px;
@@ -1426,46 +1709,40 @@ onMounted(() => {
 .quick-btn {
   flex: 1;
   height: 36px;
-  border: 1.5px solid #e0e2e6;
+  border: 1px solid #e0e2e6;
   border-radius: 20px;
-  background-color: #ffffff;
-  font-size: 12px;
-  font-weight: 600;
-  color: #191b1e;
-  cursor: pointer;
+  background: #ffffff;
 }
 
 .reset-btn {
   color: #8b9097;
 }
 
-/* 신뢰도 */
 .teeny-score-row {
   display: flex;
   align-items: center;
-  gap: 12px;
   width: 100%;
+  gap: 12px;
   padding: 14px 16px;
-  background-color: #fff8e1;
   border: none;
   border-radius: 12px;
-  cursor: pointer;
+  background: #fff8e1;
   text-align: left;
 }
 
 .checkbox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
   width: 22px;
   height: 22px;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
-  background-color: #f0f1f3;
+  background: #f0f1f3;
 }
 
 .checkbox.checked {
-  background-color: #ffbc00;
+  background: #ffbc00;
 }
 
 .check-icon {
@@ -1478,16 +1755,15 @@ onMounted(() => {
 }
 
 .teeny-score-title {
-  margin: 0 0 2px;
+  margin: 0;
   font-size: 14px;
   font-weight: 700;
-  color: #191b1e;
 }
 
 .teeny-score-desc {
-  margin: 0;
-  font-size: 12px;
+  margin: 2px 0 0;
   color: #8b9097;
+  font-size: 12px;
 }
 
 .shield-icon {
@@ -1495,44 +1771,31 @@ onMounted(() => {
   height: 20px;
 }
 
-/* 수정 버튼 */
 .edit-btns {
   display: flex;
   gap: 10px;
-  margin-top: 8px;
+}
+
+.cancel-btn,
+.submit-btn {
+  height: 49px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .cancel-btn {
   flex: 1;
-  height: 49px;
-  border: 1.5px solid #e0e2e6;
-  border-radius: 10px;
-  background-color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  color: #191b1e;
-  cursor: pointer;
+  border: 1px solid #e0e2e6;
+  background: #ffffff;
 }
 
 .submit-btn {
   flex: 2;
-  height: 49px;
   border: none;
-  border-radius: 10px;
-  background-color: #ffbc00;
-  font-size: 15px;
-  font-weight: 700;
-  color: #191b1e;
-  cursor: pointer;
+  background: #ffbc00;
 }
 
-.cancel-btn:disabled,
-.submit-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* 하단 네비게이션 */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1542,7 +1805,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-around;
   padding: 10px 0 20px;
-  background-color: #ffffff;
+  background: #ffffff;
   border-top: 1px solid #f0f1f3;
 }
 
@@ -1551,9 +1814,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background: transparent;
   border: none;
-  cursor: pointer;
+  background: transparent;
 }
 
 .nav-icon {
@@ -1562,12 +1824,128 @@ onMounted(() => {
 }
 
 .nav-label {
-  font-size: 11px;
   color: #8b9097;
+  font-size: 11px;
 }
 
 .nav-item-active .nav-label {
   color: #191b1e;
   font-weight: 700;
+}
+
+/* 거절 모달 */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,0.45);
+}
+
+.reject-modal {
+  width: 100%;
+  max-width: 320px;
+  box-sizing: border-box;
+  padding: 20px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+}
+
+.reject-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reject-modal-title {
+  margin: 0;
+  color: #191b1e;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.modal-close-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #8b9097;
+  font-size: 25px;
+}
+
+.reject-modal-description {
+  margin: 12px 0 14px;
+  color: #6f747b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.reject-textarea {
+  width: 100%;
+  min-height: 120px;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1.5px solid #e0e2e6;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #191b1e;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+}
+
+.reject-textarea:focus {
+  border-color: #ffbc00;
+}
+
+.reject-count {
+  margin: 6px 2px 0;
+  color: #a0a5ac;
+  font-size: 11px;
+  text-align: right;
+}
+
+.reject-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.reject-cancel-btn,
+.reject-confirm-btn {
+  flex: 1;
+  height: 46px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reject-cancel-btn {
+  border: 1px solid #e0e2e6;
+  background: #ffffff;
+  color: #555b63;
+}
+
+.reject-confirm-btn {
+  border: none;
+  background: #ff4d4f;
+  color: #ffffff;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 </style>

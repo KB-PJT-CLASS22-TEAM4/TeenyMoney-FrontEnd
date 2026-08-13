@@ -660,8 +660,8 @@ async function handleCreate() {
     )
 
     const res = await createQuest(
-      authStore.accessToken,
-      questData
+      questData,
+      authStore.accessToken
     )
 
     console.log(
