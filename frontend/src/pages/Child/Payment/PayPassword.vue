@@ -32,7 +32,7 @@
       </div>
 
       <!-- 에러 문구 -->
-      <p class="error-text" :class="{ show: isError }">비밀번호가 일치하지 않습니다</p>
+      <p class="error-text" :class="{ show: isError }">{{ errorText }}</p>
     </div>
 
     <!-- 숫자 키패드 -->
@@ -54,24 +54,23 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { usePaymentStore } from '@/stores/payment'
 
-const route = useRoute()
 const router = useRouter()
-
-// 결제정보에서 넘어온 QR 값
-const code = route.query.code || ''
+const authStore = useAuthStore()
+const paymentStore = usePaymentStore()
 
 const pin = ref('')
-const isError = ref(false)   // 비밀번호 틀림 상태
+const isError = ref(false)   // 비밀번호 틀림/결제 실패 상태
+const errorText = ref('비밀번호가 일치하지 않습니다') // 서버가 준 실제 에러 메시지로 갱신됨
+const submitting = ref(false)
 const PIN_LENGTH = 6
 
-// [더미] 지금은 '123456'을 정답으로 가정
-const DUMMY_CORRECT = '123456'
-
 function press(num) {
-  if (pin.value.length >= PIN_LENGTH) return
-  isError.value = false       
+  if (pin.value.length >= PIN_LENGTH || submitting.value) return
+  isError.value = false
   pin.value += num
 }
 
@@ -85,42 +84,27 @@ function goBack() {
 }
 
 // 6자리 다 채워지면 결제 실행
-watch(pin, (val) => {
-  if (val.length === PIN_LENGTH) {
-    if (val === DUMMY_CORRECT) {
-      router.push({ name: 'pay-processing', query: { code } })
-    } else {
-      handleError()
-    }
+watch(pin, async (val) => {
+  if (val.length !== PIN_LENGTH || submitting.value) return
+
+  submitting.value = true
+  try {
+    await paymentStore.pay(authStore.accessToken, val)
+    router.push({ name: 'pay-processing' })
+  } catch (e) {
+    handleError(e.message || '비밀번호가 일치하지 않습니다')
+  } finally {
+    submitting.value = false
   }
 })
 
-function submitPin() {
-  // ============================================================
-  // [API] 입력한 비밀번호로 결제 실행
-  //   POST /api/child/payment/pay
-  //   body: { code, pin: pin.value }
-  //   → 성공: 결제 진행중/완료 화면으로 이동
-  //   → 실패(비번 불일치): 서버가 에러 응답 → 아래 handleError()
-  //   → 잔액 부족 : 잔액 부족 안내 (TODO)
-  // ============================================================
-
-  // 지금은 더미로 검증 (API 붙이면 위 코드로 교체)
-  if (pin.value === DUMMY_CORRECT) {
-    // 성공 → 다음 화면
-    // router.push({ name: 'pay-processing', query: { code } })
-    console.log('비밀번호 일치 (성공)')
-  } else {
-    handleError()
-  }
-}
-
-// 비밀번호 틀렸을 때: 문구 + 흔들림 + 초기화
-function handleError() {
+// 실패했을 때: 서버 메시지 표시 + 흔들림 + 초기화
+function handleError(message) {
+  errorText.value = message
   isError.value = true
   setTimeout(() => {
     pin.value = ''
-    isError.value = false   
+    isError.value = false
   }, 500)
 }
 </script>
