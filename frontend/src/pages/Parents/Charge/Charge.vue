@@ -1,28 +1,50 @@
 <template>
   <div class="page">
+    <!-- 헤더 -->
     <header class="nav">
-      <button class="back-btn" type="button" aria-label="뒤로 가기" @click="router.back()">
-        <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
+      <button
+        class="back-btn"
+        type="button"
+        aria-label="뒤로 가기"
+        @click="router.back()"
+      >
+        <img
+          src="@/assets/icons/icon-back.svg"
+          alt=""
+          class="back-icon"
+        />
       </button>
+
       <h1 class="nav-title">충전</h1>
-      <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
+
+      <button
+        class="alarm-btn"
+        type="button"
+        aria-label="알림"
+      >
+        <img
+          src="@/assets/icons/icon-notification.svg"
+          alt=""
+          class="alarm-icon"
+        />
       </button>
     </header>
 
     <div class="content">
-      <!-- 연결된 계좌 카드 -->
-      <!-- TODO: GET /wallet/account → accountInfo 로 교체 -->
+      <!-- 현재 잔액 -->
       <div class="account-card">
-        <p class="account-label">연결된 계좌</p>
-        <p class="account-number">{{ accountInfo.bank }} {{ accountInfo.number }}</p>
         <p class="balance-label">현재 잔액</p>
-        <p class="balance-amount">{{ accountInfo.balance.toLocaleString() }}<span class="won">원</span></p>
+
+        <p class="balance-amount">
+          {{ walletBalance.toLocaleString() }}
+          <span class="won">원</span>
+        </p>
       </div>
 
-      <!-- 충전 금액 입력 -->
+      <!-- 충전 금액 -->
       <div class="charge-section">
         <p class="section-label">충전할 금액</p>
+
         <div class="amount-input-wrap">
           <input
             v-model="chargeAmount"
@@ -31,101 +53,595 @@
             placeholder="0"
             inputmode="numeric"
           />
+
           <span class="won-unit">원</span>
         </div>
 
+        <!-- 빠른 금액 선택 -->
         <div class="quick-btns">
           <button
             v-for="quick in quickAmounts"
             :key="quick.label"
+            type="button"
             class="quick-btn"
-            @click="chargeAmount = quick.value"
+            @click="addQuickAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
         </div>
       </div>
 
-      <!-- 자동 충전 설정 배너 -->
-      <button class="auto-charge-banner" @click="goToAutoCharge">
-        <div class="banner-left">
-          <div class="banner-icon-wrap">
-            <!-- <img src="@/assets/icons/icon-refresh.svg" alt="" class="banner-icon" /> -->
+      <!-- 결제 수단 -->
+      <div class="payment-method-section">
+        <p class="section-label">
+          결제수단
+        </p>
+
+        <!-- 선택된 결제수단 -->
+        <button
+          type="button"
+          class="payment-selector"
+          :class="{ opened: isPaymentOpen }"
+          @click="togglePaymentList"
+        >
+          <div
+            v-if="selectedPaymentMethod"
+            class="selected-payment-info"
+          >
+            <div class="payment-icon-wrap">
+              <img
+                src="@/assets/logo.svg"
+                alt=""
+                class="payment-icon"
+              />
+            </div>
+
+            <div class="selected-payment-text">
+              <div class="payment-name-row">
+                <p class="payment-name">
+                  {{
+                    getPaymentName(
+                      selectedPaymentMethod
+                    )
+                  }}
+                </p>
+
+                <span
+                  v-if="selectedPaymentMethod.primary"
+                  class="primary-badge"
+                >
+                  주 결제수단
+                </span>
+              </div>
+
+              <p class="payment-number">
+                {{
+                  getPaymentNumber(
+                    selectedPaymentMethod
+                  )
+                }}
+              </p>
+            </div>
           </div>
+
+          <!-- 결제수단 없음 -->
+          <div
+            v-else
+            class="payment-placeholder-wrap"
+          >
+            <div class="payment-icon-wrap">
+              <img
+                src="@/assets/logo.svg"
+                alt=""
+                class="payment-icon"
+              />
+            </div>
+
+            <span class="payment-placeholder">
+              결제수단을 선택해주세요
+            </span>
+          </div>
+
+          <img
+            src="@/assets/icons/icon-chevron.svg"
+            alt=""
+            class="payment-chevron"
+            :class="{ open: isPaymentOpen }"
+          />
+        </button>
+
+        <!-- 펼쳐지는 결제수단 목록 -->
+        <div
+          v-if="isPaymentOpen"
+          class="payment-dropdown"
+        >
+          <!-- 로딩 -->
+          <div
+            v-if="isMethodLoading"
+            class="payment-state"
+          >
+            결제수단을 불러오는 중...
+          </div>
+
+          <!-- 결제수단 없음 -->
+          <div
+            v-else-if="paymentMethods.length === 0"
+            class="payment-state"
+          >
+            등록된 결제수단이 없습니다.
+          </div>
+
+          <!-- 목록 -->
+          <template v-else>
+            <button
+              v-for="method in paymentMethods"
+              :key="method.id"
+              type="button"
+              class="payment-option"
+              :class="{
+                selected:
+                  selectedMethodId === method.id
+              }"
+              @click="selectPaymentMethod(method.id)"
+            >
+              <div class="payment-info">
+                <div class="payment-icon-wrap">
+                  <img
+                    src="@/assets/logo.svg"
+                    alt=""
+                    class="payment-icon"
+                  />
+                </div>
+
+                <div class="payment-text">
+                  <div class="payment-name-row">
+                    <p class="payment-name">
+                      {{ getPaymentName(method) }}
+                    </p>
+
+                    <span
+                      v-if="method.primary"
+                      class="primary-badge"
+                    >
+                      주 결제수단
+                    </span>
+                  </div>
+
+                  <p class="payment-number">
+                    {{ getPaymentNumber(method) }}
+                  </p>
+                </div>
+              </div>
+
+              <div
+                class="radio"
+                :class="{
+                  active:
+                    selectedMethodId === method.id
+                }"
+              >
+                <div
+                  v-if="
+                    selectedMethodId === method.id
+                  "
+                  class="radio-dot"
+                ></div>
+              </div>
+            </button>
+          </template>
+        </div>
+
+        <!-- 결제수단 관리 -->
+        <button
+          type="button"
+          class="payment-manage-btn"
+          @click="goToPaymentChange"
+        >
+          <span>
+            거래수단 추가/삭제하기
+          </span>
+
+          <span class="payment-manage-arrow">
+            ›
+          </span>
+        </button>
+      </div>
+
+      <!-- 자동 충전 설정 -->
+      <button
+        type="button"
+        class="auto-charge-banner"
+        @click="goToAutoCharge"
+      >
+        <div class="banner-left">
           <div>
-            <p class="banner-title">자동 충전 설정</p>
-            <p class="banner-desc">잔액 부족 시 자동으로 충전</p>
+            <p class="banner-title">
+              자동 충전 설정
+            </p>
+
+            <p class="banner-desc">
+              잔액 부족 시 자동으로 충전
+            </p>
           </div>
         </div>
-        <img src="@/assets/icons/icon-chevron.svg" alt="" class="chevron-icon" />
-      </button>
-    </div>
 
-    <!-- 하단 충전하기 버튼 -->
-    <div class="footer">
+        <img
+          src="@/assets/icons/icon-chevron.svg"
+          alt=""
+          class="chevron-icon"
+        />
+      </button>
+
+      <!-- 충전하기 -->
       <button
         class="submit-btn"
-        :disabled="!chargeAmount || chargeAmount <= 0"
-        @click="goToCharging"
+        type="button"
+        :disabled="
+          !chargeAmount ||
+          Number(chargeAmount) <= 0 ||
+          !selectedMethodId ||
+          isCharging
+        "
+        @click="handleCharge"
       >
-        + 충전하기
+        {{
+          isCharging
+            ? '충전 중...'
+            : '+ 충전하기'
+        }}
       </button>
     </div>
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-      <button class="nav-item nav-item-active" type="button" @click="router.push('/parents/home')">
-        <img src="@/assets/icons/icon-home-alive.svg" alt="" class="nav-icon" />
-        <span class="nav-label">홈</span>
+      <button
+        class="nav-item nav-item-active"
+        type="button"
+        @click="router.push('/parents/home')"
+      >
+        <img
+          src="@/assets/icons/icon-home-alive.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          홈
+        </span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/Childlist')">
-        <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
-        <span class="nav-label">자녀관리</span>
+
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/childlist')"
+      >
+        <img
+          src="@/assets/icons/icon-child.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          자녀관리
+        </span>
       </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
-        <span class="nav-label">마이페이지</span>
+
+      <button
+        class="nav-item"
+        type="button"
+        @click="router.push('/parents/mypage')"
+      >
+        <img
+          src="@/assets/icons/icon-mypage.svg"
+          alt=""
+          class="nav-icon"
+        />
+
+        <span class="nav-label">
+          마이페이지
+        </span>
       </button>
     </nav>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import {
+  ref,
+  computed,
+  onMounted,
+} from 'vue'
+
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+import {
+  getChargeMethods,
+  chargeWallet,
+} from '@/api/charge'
+
+import { getMyWallet } from '@/api/wallet'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
-// TODO: API 연동 후 하드코딩 제거
-// GET /wallet/account → accountInfo 로 교체
-const accountInfo = ref({
-  bank: '국민은행',
-  number: '123-456-7890',
-  balance: 12400,
-})
+/* =========================
+   상태
+========================= */
+
+const walletBalance = ref(0)
 
 const chargeAmount = ref('')
 
+const paymentMethods = ref([])
+
+const selectedMethodId = ref(null)
+
+const isPaymentOpen = ref(false)
+
+const isMethodLoading = ref(false)
+
+const isCharging = ref(false)
+
+/* =========================
+   빠른 충전 금액
+========================= */
+
 const quickAmounts = [
-  { label: '+1만', value: 10000 },
-  { label: '+3만', value: 30000 },
-  { label: '+5만', value: 50000 },
-  { label: '+10만', value: 100000 },
+  {
+    label: '+1만',
+    value: 10000,
+  },
+  {
+    label: '+3만',
+    value: 30000,
+  },
+  {
+    label: '+5만',
+    value: 50000,
+  },
+  {
+    label: '+10만',
+    value: 100000,
+  },
 ]
 
-function addAmount(value) {
-  chargeAmount.value = (Number(chargeAmount.value) || 0) + value
+/* =========================
+   선택된 결제수단
+========================= */
+
+const selectedPaymentMethod = computed(() => {
+  return (
+    paymentMethods.value.find(
+      (method) =>
+        method.id === selectedMethodId.value
+    ) ?? null
+  )
+})
+
+/* =========================
+   페이지 진입
+========================= */
+
+onMounted(async () => {
+  await Promise.all([
+    loadWallet(),
+    loadPaymentMethods(),
+  ])
+})
+
+/* =========================
+   지갑 조회
+========================= */
+
+async function loadWallet() {
+  try {
+    const res =
+      await getMyWallet(
+        authStore.accessToken
+      )
+
+    if (res.success) {
+      walletBalance.value =
+        res.data?.balance ?? 0
+    }
+  } catch (error) {
+    console.error(
+      '지갑 잔액 조회 실패:',
+      error
+    )
+  }
 }
+
+/* =========================
+   결제수단 조회
+========================= */
+
+async function loadPaymentMethods() {
+  isMethodLoading.value = true
+
+  try {
+    const res =
+      await getChargeMethods(
+        authStore.accessToken
+      )
+
+    if (res.success) {
+      paymentMethods.value =
+        res.data ?? []
+
+      /*
+       * 주 결제수단이 있으면
+       * 기본 선택
+       */
+      const primary =
+        paymentMethods.value.find(
+          (method) => method.primary
+        )
+
+      if (primary) {
+        selectedMethodId.value =
+          primary.id
+      } else if (
+        paymentMethods.value.length > 0
+      ) {
+        selectedMethodId.value =
+          paymentMethods.value[0].id
+      } else {
+        selectedMethodId.value = null
+      }
+    }
+  } catch (error) {
+    console.error(
+      '결제수단 조회 실패:',
+      error
+    )
+
+    paymentMethods.value = []
+
+    selectedMethodId.value = null
+  } finally {
+    isMethodLoading.value = false
+  }
+}
+
+/* =========================
+   표시용 결제수단 이름
+========================= */
+
+function getPaymentName(payment) {
+  if (!payment) return ''
+
+  return (
+    payment.cardCompany ||
+    payment.accountBankName ||
+    '결제수단'
+  )
+}
+
+/* =========================
+   표시용 번호
+========================= */
+
+function getPaymentNumber(payment) {
+  if (!payment) return ''
+
+  return (
+    payment.maskedCardNumber ||
+    payment.accountNumber ||
+    ''
+  )
+}
+
+/* =========================
+   빠른 금액 추가
+========================= */
+
+function addQuickAmount(amount) {
+  chargeAmount.value =
+    (Number(chargeAmount.value) || 0) +
+    amount
+}
+
+/* =========================
+   결제수단 토글
+========================= */
+
+function togglePaymentList() {
+  isPaymentOpen.value =
+    !isPaymentOpen.value
+}
+
+/* =========================
+   결제수단 선택
+========================= */
+
+function selectPaymentMethod(methodId) {
+  selectedMethodId.value =
+    methodId
+
+  isPaymentOpen.value =
+    false
+}
+
+/* =========================
+   결제수단 관리 페이지
+========================= */
+
+function goToPaymentChange() {
+  router.push(
+    '/parents/payment/change'
+  )
+}
+
+/* =========================
+   자동 충전
+========================= */
 
 function goToAutoCharge() {
-  router.push('/parents/charge/auto')
+  router.push(
+    '/parents/charge/auto'
+  )
 }
 
-function goToCharging() {
-  router.push({
-    path: '/parents/charge/charging',
-    query: { amount: chargeAmount.value },
-  })
+/* =========================
+   충전
+========================= */
+
+async function handleCharge() {
+  if (
+    !chargeAmount.value ||
+    Number(chargeAmount.value) <= 0
+  ) {
+    return
+  }
+
+  if (!selectedMethodId.value) {
+    alert(
+      '결제수단을 선택해주세요.'
+    )
+
+    return
+  }
+
+  if (isCharging.value) {
+    return
+  }
+
+  isCharging.value = true
+
+  try {
+    const res =
+      await chargeWallet(
+        authStore.accessToken,
+        Number(chargeAmount.value),
+        selectedMethodId.value
+      )
+
+    if (res.success) {
+      router.push({
+        path:
+          '/parents/charge/complete',
+
+        query: {
+          amount:
+            chargeAmount.value,
+        },
+      })
+    }
+  } catch (error) {
+    console.error(
+      '충전 실패:',
+      error
+    )
+
+    alert(
+      error.message ||
+      '충전에 실패했습니다.'
+    )
+  } finally {
+    isCharging.value = false
+  }
 }
 </script>
 
@@ -133,26 +649,43 @@ function goToCharging() {
 .page {
   width: 360px;
   min-height: 100dvh;
+
   margin: 0 auto;
+
   background-color: #f4f5f7;
+
   display: flex;
   flex-direction: column;
-  padding-bottom: 140px;
+
+  padding-bottom: 90px;
+
+  box-sizing: border-box;
 }
+
+/* =========================
+   헤더
+========================= */
 
 .nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
   padding: 18px 20px;
+
   background-color: #ffffff;
+
   border-bottom: 1px solid #f0f1f3;
 }
 
 .back-btn,
 .alarm-btn {
+  padding: 0;
+
   background: transparent;
+
   border: none;
+
   cursor: pointer;
 }
 
@@ -164,92 +697,135 @@ function goToCharging() {
 
 .nav-title {
   margin: 0;
+
   font-size: 16px;
   font-weight: 700;
+
   color: #191b1e;
 }
 
+/* =========================
+   본문
+========================= */
+
 .content {
+  width: 100%;
+
   display: flex;
   flex-direction: column;
-  gap: 12px;
+
+  gap: 16px;
+
   padding: 16px;
+
+  box-sizing: border-box;
 }
 
-/* 계좌 카드 */
+/* =========================
+   잔액
+========================= */
+
 .account-card {
-  background-color: #ffffff;
-  border-radius: 16px;
+  width: 100%;
+
   padding: 20px;
-}
 
-.account-label {
-  margin: 0 0 4px;
-  font-size: 12px;
-  color: #8b9097;
-}
+  background-color: #ffffff;
 
-.account-number {
-  margin: 0 0 16px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #ffbc00;
+  border-radius: 16px;
+
+  box-sizing: border-box;
 }
 
 .balance-label {
-  margin: 0 0 4px;
-  font-size: 12px;
+  margin: 0 0 8px;
+
+  font-size: 13px;
+
   color: #8b9097;
 }
 
 .balance-amount {
   margin: 0;
+
   font-size: 32px;
   font-weight: 700;
-  color: #ffbc00;
+
+  color: #191b1e;
 }
 
 .won {
+  margin-left: 2px;
+
   font-size: 20px;
   font-weight: 500;
 }
 
-/* 충전 금액 */
+/* =========================
+   충전 금액
+========================= */
+
 .charge-section {
-  background-color: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
+  width: 100%;
+
   display: flex;
   flex-direction: column;
-  gap: 16px;
+
+  gap: 12px;
 }
 
 .section-label {
   margin: 0;
+
   font-size: 14px;
   font-weight: 700;
+
   color: #191b1e;
 }
 
 .amount-input-wrap {
+  width: 100%;
+
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+
   gap: 8px;
-  background-color: #f4f5f7;
-  border-radius: 10px;
+
   padding: 14px 16px;
+
+  background-color: #ffffff;
+
+  border-radius: 10px;
+
+  box-sizing: border-box;
 }
 
 .amount-input {
   flex: 1;
+
+  min-width: 0;
+
   border: none;
+
   background: transparent;
+
+  outline: none;
+
+  text-align: right;
+
   font-size: 20px;
   font-weight: 700;
+
   color: #191b1e;
-  text-align: right;
-  outline: none;
+
+  -moz-appearance: textfield;
+}
+
+.amount-input::-webkit-inner-spin-button,
+.amount-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+
+  margin: 0;
 }
 
 .amount-input::placeholder {
@@ -259,128 +835,473 @@ function goToCharging() {
 .won-unit {
   font-size: 16px;
   font-weight: 500;
+
   color: #191b1e;
 }
 
+/* =========================
+   빠른 금액
+========================= */
+
 .quick-btns {
+  width: 100%;
+
   display: flex;
+
   gap: 8px;
 }
 
 .quick-btn {
   flex: 1;
+
   height: 36px;
+
   border: 1.5px solid #e0e2e6;
+
   border-radius: 20px;
+
   background-color: #ffffff;
+
   font-size: 13px;
   font-weight: 600;
+
   color: #191b1e;
+
   cursor: pointer;
 }
 
-/* 자동 충전 배너 */
-.auto-charge-banner {
+/* =========================
+   결제수단
+========================= */
+
+.payment-method-section {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+.payment-selector {
+  width: 100%;
+  min-height: 72px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: #fff8e1;
-  border-radius: 16px;
-  padding: 16px;
-  border: none;
+
+  gap: 12px;
+
+  padding: 14px 16px;
+
+  background-color: #ffffff;
+
+  border: 1.5px solid transparent;
+
+  border-radius: 14px;
+
   cursor: pointer;
+
+  text-align: left;
+
+  box-sizing: border-box;
+
+  transition: 0.2s ease;
+}
+
+.payment-selector.opened {
+  border-color: #e8e9eb;
+
+  border-radius: 14px 14px 8px 8px;
+}
+
+.selected-payment-info,
+.payment-placeholder-wrap {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.selected-payment-text,
+.payment-text {
+  min-width: 0;
+}
+
+.payment-icon-wrap {
+  width: 40px;
+  height: 40px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: #f4f5f7;
+
+  border-radius: 10px;
+}
+
+.payment-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.payment-name-row {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  margin-bottom: 4px;
+}
+
+.payment-name {
+  margin: 0;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  color: #191b1e;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+.payment-number {
+  margin: 0;
+
+  font-size: 12px;
+
+  color: #8b9097;
+}
+
+.primary-badge {
+  flex-shrink: 0;
+
+  padding: 3px 6px;
+
+  background-color: #fff3c4;
+
+  border-radius: 10px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  color: #a86f00;
+}
+
+.payment-placeholder {
+  font-size: 14px;
+  font-weight: 500;
+
+  color: #8b9097;
+}
+
+.payment-chevron {
+  width: 18px;
+  height: 18px;
+
+  flex-shrink: 0;
+
+  transition:
+    transform 0.2s ease;
+}
+
+.payment-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* =========================
+   펼쳐지는 결제수단 목록
+========================= */
+
+.payment-dropdown {
   width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  padding: 6px;
+
+  margin-top: -4px;
+
+  background-color: #ffffff;
+
+  border: 1px solid #e8e9eb;
+
+  border-radius: 8px 8px 14px 14px;
+
+  box-sizing: border-box;
+}
+
+.payment-option {
+  width: 100%;
+  min-height: 64px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 12px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background-color: transparent;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  box-sizing: border-box;
+}
+
+.payment-option:hover {
+  background-color: #f7f7f8;
+}
+
+.payment-option.selected {
+  background-color: #fff8e1;
+}
+
+.payment-info {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.payment-state {
+  padding: 20px 12px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  color: #8b9097;
+}
+
+/* =========================
+   라디오
+========================= */
+
+.radio {
+  width: 20px;
+  height: 20px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid #d9dce1;
+
+  border-radius: 50%;
+
+  box-sizing: border-box;
+}
+
+.radio.active {
+  border-color: #ffbc00;
+}
+
+.radio-dot {
+  width: 10px;
+  height: 10px;
+
+  background-color: #ffbc00;
+
+  border-radius: 50%;
+}
+
+/* =========================
+   거래수단 관리
+========================= */
+
+.payment-manage-btn {
+  align-self: flex-end;
+
+  display: flex;
+  align-items: center;
+
+  gap: 3px;
+
+  padding: 3px 2px;
+
+  margin-top: 1px;
+
+  border: none;
+
+  background-color: transparent;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  color: #8b9097;
+
+  cursor: pointer;
+}
+
+.payment-manage-btn:hover {
+  color: #555b63;
+}
+
+.payment-manage-arrow {
+  position: relative;
+
+  top: -1px;
+
+  font-size: 16px;
+
+  line-height: 1;
+}
+
+/* =========================
+   자동 충전
+========================= */
+
+.auto-charge-banner {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px;
+
+  border: none;
+
+  border-radius: 16px;
+
+  background-color: #fff8e1;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  box-sizing: border-box;
 }
 
 .banner-left {
   display: flex;
   align-items: center;
+
   gap: 12px;
-}
-
-.banner-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: #ffbc00;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.banner-icon {
-  width: 20px;
-  height: 20px;
 }
 
 .banner-title {
   margin: 0 0 4px;
+
   font-size: 14px;
   font-weight: 700;
+
   color: #191b1e;
 }
 
 .banner-desc {
   margin: 0;
+
   font-size: 12px;
+
   color: #8b9097;
 }
 
 .chevron-icon {
   width: 18px;
   height: 18px;
+
+  flex-shrink: 0;
 }
 
-/* 하단 버튼 */
-.footer {
-  position: fixed;
-  bottom: 70px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  padding: 10px 16px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
+/* =========================
+   충전 버튼
+========================= */
 
 .submit-btn {
   width: 100%;
   height: 49px;
+
   border: none;
+
   border-radius: 10px;
+
   background-color: #ffbc00;
+
   font-size: 16px;
   font-weight: 700;
+
   color: #191b1e;
+
   cursor: pointer;
+
+  box-sizing: border-box;
 }
 
 .submit-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
+
   cursor: not-allowed;
 }
 
-/* 하단 네비게이션 */
+/* =========================
+   하단 네비게이션
+========================= */
+
 .bottom-nav {
   position: fixed;
+
   bottom: 0;
   left: 50%;
+
   transform: translateX(-50%);
+
   width: 360px;
+
   display: flex;
   justify-content: space-around;
+
   padding: 10px 0 20px;
+
   background-color: #ffffff;
+
   border-top: 1px solid #f0f1f3;
+
+  box-sizing: border-box;
+
+  z-index: 50;
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+
   gap: 4px;
+
   background: transparent;
+
   border: none;
+
   cursor: pointer;
 }
 
@@ -391,11 +1312,13 @@ function goToCharging() {
 
 .nav-label {
   font-size: 11px;
+
   color: #8b9097;
 }
 
 .nav-item-active .nav-label {
   color: #191b1e;
+
   font-weight: 700;
 }
 </style>
