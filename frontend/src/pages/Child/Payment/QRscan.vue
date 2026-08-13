@@ -47,10 +47,14 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { QrcodeStream } from 'vue-qrcode-reader'
+import { useAuthStore } from '@/stores/auth'
+import { usePaymentStore } from '@/stores/payment'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const paymentStore = usePaymentStore()
 
-const errorMsg = ref('')       // 카메라 에러 안내
+const errorMsg = ref('')       // 카메라/검증 에러 안내
 const scanned = ref(false)     // 중복 인식 방지 플래그
 
 // X(닫기) -> 홈으로 이동
@@ -68,18 +72,31 @@ function onCameraOn() {
   errorMsg.value = ''
 }
 
-// QR 인식됨. detected[0].rawValue 에 QR 안의 값이 들어옴
-function onDetect(detected) {
+// QR 인식됨. detected[0].rawValue 에 QR 안의 값(JSON 문자열)이 들어옴
+async function onDetect(detected) {
   if (scanned.value) return              // 이미 한 번 인식했으면 무시
-  const code = detected[0]?.rawValue
-  if (!code) return
+  const raw = detected[0]?.rawValue
+  if (!raw) return
 
   scanned.value = true
-  console.log('스캔된 QR 값:', code)
+  errorMsg.value = ''
 
-  // 결제 정보 화면으로 이동 (스캔값 전달)
-  // 결제 정보 화면 만들면 아래 주석 풀기
-  // router.push({ name: 'pay-info', query: { code } })
+  let qrPayload
+  try {
+    qrPayload = JSON.parse(raw)
+  } catch {
+    errorMsg.value = '올바른 QR 코드가 아니에요'
+    scanned.value = false
+    return
+  }
+
+  try {
+    await paymentStore.verifyQr(authStore.accessToken, qrPayload)
+    router.push({ name: 'pay-password' })
+  } catch (e) {
+    errorMsg.value = e.message || 'QR 코드를 확인할 수 없어요'
+    scanned.value = false
+  }
 }
 
 // 카메라 에러 처리 (권한 거부 등)
@@ -99,9 +116,8 @@ function onError(err) {
   }
 }
 
+// 개발용: 실제 QR 없이 비밀번호 화면으로 바로 이동 (결제 정보가 없어 실제 결제는 실패함)
 function devSkip() {
-  const dummyCode = 'TEST_QR_12345'
-  console.log('개발용 스킵, 더미 값:', dummyCode)
   router.push({ name: 'pay-password' })
 }
 </script>

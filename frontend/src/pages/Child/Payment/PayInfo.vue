@@ -25,7 +25,7 @@
         </div>
       </div>
 
-      <!-- 카테고리 / 잔액 / 한도 카드 -->
+      <!-- 카테고리 / 잔액 카드 -->
       <div class="card info-card">
         <div class="info-row">
           <span class="info-label">카테고리</span>
@@ -35,13 +35,9 @@
             <span class="cat-auto">자동분류</span>
           </span>
         </div>
-        <div class="info-row">
+        <div class="info-row no-border">
           <span class="info-label">지갑 잔액</span>
           <span class="info-value">{{ balance.toLocaleString() }}원</span>
-        </div>
-        <div class="info-row no-border">
-          <span class="info-label">남은 한도</span>
-          <span class="info-value">{{ limit.toLocaleString() }}원</span>
         </div>
       </div>
     </div>
@@ -87,22 +83,26 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { usePaymentStore } from '@/stores/payment'
+import { useAllowRequestStore } from '@/stores/allowRequest'
 
-const route = useRoute()
 const router = useRouter()
+const paymentStore = usePaymentStore()
+const allowStore = useAllowRequestStore()
 
-// 스캔에서 넘어온 QR 값
-const code = route.query.code || ''
+// QR 검증 단계(qr-scan)에서 저장해둔 결제 정보
+const pending = paymentStore.pending
 
-// [API] 결제 정보 조회
-// 지금은 더미 데이터 
-const store = ref({ name: 'GS25 강남점' })
-const category = ref('식비')
-const amount = ref(3200)
-const balance = ref(342000)
-const limit = ref(50000)
-const categoryStatus = ref('warn')   // 'normal' | 'warn' | 'block'
+const store = ref({ name: pending?.merchantName ?? '' })
+const amount = ref(pending?.amount ?? 0)
+const balance = ref(pending?.balance ?? 0)
+const category = ref(pending?.categoryPolicy?.categoryName ?? '')
+const categoryId = pending?.categoryPolicy?.id ?? null
+
+// ALLOW -> normal, WATCH -> warn, BLOCK -> block
+const POLICY_STATUS = { ALLOW: 'normal', WATCH: 'warn', BLOCK: 'block' }
+const categoryStatus = ref(POLICY_STATUS[pending?.categoryPolicy?.policy] ?? 'normal')
 
 const showModal = ref(false)
 
@@ -120,14 +120,18 @@ function confirmPay() {
     return
   }
   // 정상이면 비밀번호 화면으로
-  // router.push({ name: 'pay-password', query: { code } })
+  router.push({ name: 'pay-password' })
 }
 
 function requestApproval() {
-  // 보호자에게 승인 요청 (주의 단계에서만)
-  //   예) POST /api/child/payment/approval-request
+  // '오늘만 허용' 요청 화면으로 이 카테고리를 미리 선택한 채 이동
   showModal.value = false
-  // router.push({ name: 'approval-request' })
+  if (categoryId !== null) {
+    allowStore.set([categoryId], [category.value], '')
+  }
+  // 이 결제 시도는 승인 후 다시 스캔해서 진행해야 하므로 초기화
+  paymentStore.reset()
+  router.push({ name: 'child-todayallow-request' })
 }
 </script>
 
@@ -245,7 +249,7 @@ function requestApproval() {
   color: #15171b;
 }
 
-/* 카테고리 / 잔액 / 한도 카드 */
+/* 카테고리 / 잔액 카드 */
 .info-card {
   display: flex;
   flex-direction: column;
