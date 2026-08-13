@@ -31,9 +31,7 @@
     </header>
 
     <div class="content">
-      <!-- ========================= -->
-      <!-- 현재 지갑 잔액 -->
-      <!-- ========================= -->
+      <!-- 현재 잔액 -->
       <div class="account-card">
         <p class="balance-label">현재 잔액</p>
 
@@ -43,9 +41,7 @@
         </p>
       </div>
 
-      <!-- ========================= -->
       <!-- 충전 금액 -->
-      <!-- ========================= -->
       <div class="charge-section">
         <p class="section-label">충전할 금액</p>
 
@@ -68,30 +64,26 @@
             :key="quick.label"
             type="button"
             class="quick-btn"
-            @click="
-              chargeAmount =
-                (Number(chargeAmount) || 0) + quick.value
-            "
+            @click="addQuickAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
         </div>
       </div>
 
-      <!-- ========================= -->
-      <!-- 결제수단 -->
-      <!-- ========================= -->
+      <!-- 결제 수단 -->
       <div class="payment-method-section">
-        <p class="section-label">결제수단</p>
+        <p class="section-label">
+          결제수단
+        </p>
 
-        <!-- 현재 선택된 결제수단 -->
+        <!-- 선택된 결제수단 -->
         <button
           type="button"
           class="payment-selector"
           :class="{ opened: isPaymentOpen }"
           @click="togglePaymentList"
         >
-          <!-- 결제수단 있음 -->
           <div
             v-if="selectedPaymentMethod"
             class="selected-payment-info"
@@ -108,9 +100,9 @@
               <div class="payment-name-row">
                 <p class="payment-name">
                   {{
-                    selectedPaymentMethod.cardCompany ||
-                    selectedPaymentMethod.accountBankName ||
-                    '결제수단'
+                    getPaymentName(
+                      selectedPaymentMethod
+                    )
                   }}
                 </p>
 
@@ -124,9 +116,9 @@
 
               <p class="payment-number">
                 {{
-                  selectedPaymentMethod.maskedCardNumber ||
-                  selectedPaymentMethod.accountNumber ||
-                  ''
+                  getPaymentNumber(
+                    selectedPaymentMethod
+                  )
                 }}
               </p>
             </div>
@@ -150,7 +142,6 @@
             </span>
           </div>
 
-          <!-- 화살표 -->
           <img
             src="@/assets/icons/icon-chevron.svg"
             alt=""
@@ -159,9 +150,7 @@
           />
         </button>
 
-        <!-- ========================= -->
         <!-- 펼쳐지는 결제수단 목록 -->
-        <!-- ========================= -->
         <div
           v-if="isPaymentOpen"
           class="payment-dropdown"
@@ -182,7 +171,7 @@
             등록된 결제수단이 없습니다.
           </div>
 
-          <!-- 결제수단 목록 -->
+          <!-- 목록 -->
           <template v-else>
             <button
               v-for="method in paymentMethods"
@@ -190,7 +179,8 @@
               type="button"
               class="payment-option"
               :class="{
-                selected: selectedMethodId === method.id
+                selected:
+                  selectedMethodId === method.id
               }"
               @click="selectPaymentMethod(method.id)"
             >
@@ -206,11 +196,7 @@
                 <div class="payment-text">
                   <div class="payment-name-row">
                     <p class="payment-name">
-                      {{
-                        method.cardCompany ||
-                        method.accountBankName ||
-                        '결제수단'
-                      }}
+                      {{ getPaymentName(method) }}
                     </p>
 
                     <span
@@ -222,24 +208,22 @@
                   </div>
 
                   <p class="payment-number">
-                    {{
-                      method.maskedCardNumber ||
-                      method.accountNumber ||
-                      ''
-                    }}
+                    {{ getPaymentNumber(method) }}
                   </p>
                 </div>
               </div>
 
-              <!-- 선택 표시 -->
               <div
                 class="radio"
                 :class="{
-                  active: selectedMethodId === method.id
+                  active:
+                    selectedMethodId === method.id
                 }"
               >
                 <div
-                  v-if="selectedMethodId === method.id"
+                  v-if="
+                    selectedMethodId === method.id
+                  "
                   class="radio-dot"
                 ></div>
               </div>
@@ -247,22 +231,23 @@
           </template>
         </div>
 
-        <!-- ========================= -->
-        <!-- 거래수단 추가 / 삭제 -->
-        <!-- ========================= -->
+        <!-- 결제수단 관리 -->
         <button
           type="button"
           class="payment-manage-btn"
           @click="goToPaymentChange"
         >
-          <span>거래수단 추가/삭제하기</span>
-          <span class="payment-manage-arrow">›</span>
+          <span>
+            거래수단 추가/삭제하기
+          </span>
+
+          <span class="payment-manage-arrow">
+            ›
+          </span>
         </button>
       </div>
 
-      <!-- ========================= -->
       <!-- 자동 충전 설정 -->
-      <!-- ========================= -->
       <button
         type="button"
         class="auto-charge-banner"
@@ -287,9 +272,7 @@
         />
       </button>
 
-      <!-- ========================= -->
       <!-- 충전하기 -->
-      <!-- ========================= -->
       <button
         class="submit-btn"
         type="button"
@@ -309,9 +292,7 @@
       </button>
     </div>
 
-    <!-- ========================= -->
     <!-- 하단 네비게이션 -->
-    <!-- ========================= -->
     <nav class="bottom-nav">
       <button
         class="nav-item nav-item-active"
@@ -323,7 +304,10 @@
           alt=""
           class="nav-icon"
         />
-        <span class="nav-label">홈</span>
+
+        <span class="nav-label">
+          홈
+        </span>
       </button>
 
       <button
@@ -336,7 +320,10 @@
           alt=""
           class="nav-icon"
         />
-        <span class="nav-label">자녀관리</span>
+
+        <span class="nav-label">
+          자녀관리
+        </span>
       </button>
 
       <button
@@ -349,7 +336,10 @@
           alt=""
           class="nav-icon"
         />
-        <span class="nav-label">마이페이지</span>
+
+        <span class="nav-label">
+          마이페이지
+        </span>
       </button>
     </nav>
   </div>
@@ -417,7 +407,7 @@ const quickAmounts = [
 ]
 
 /* =========================
-   현재 선택된 결제수단
+   선택된 결제수단
 ========================= */
 
 const selectedPaymentMethod = computed(() => {
@@ -441,14 +431,15 @@ onMounted(async () => {
 })
 
 /* =========================
-   지갑 잔액 조회
+   지갑 조회
 ========================= */
 
 async function loadWallet() {
   try {
-    const res = await getMyWallet(
-      authStore.accessToken
-    )
+    const res =
+      await getMyWallet(
+        authStore.accessToken
+      )
 
     if (res.success) {
       walletBalance.value =
@@ -463,41 +454,41 @@ async function loadWallet() {
 }
 
 /* =========================
-   결제수단 목록 조회
+   결제수단 조회
 ========================= */
 
 async function loadPaymentMethods() {
   isMethodLoading.value = true
 
   try {
-    const res = await getChargeMethods(
-      authStore.accessToken
-    )
+    const res =
+      await getChargeMethods(
+        authStore.accessToken
+      )
 
     if (res.success) {
       paymentMethods.value =
         res.data ?? []
 
       /*
-       * 주 결제수단 자동 선택
+       * 주 결제수단이 있으면
+       * 기본 선택
        */
-      const primaryMethod =
+      const primary =
         paymentMethods.value.find(
           (method) => method.primary
         )
 
-      if (primaryMethod) {
+      if (primary) {
         selectedMethodId.value =
-          primaryMethod.id
+          primary.id
       } else if (
         paymentMethods.value.length > 0
       ) {
-        /*
-         * 주 결제수단이 없으면
-         * 첫 번째 결제수단 선택
-         */
         selectedMethodId.value =
           paymentMethods.value[0].id
+      } else {
+        selectedMethodId.value = null
       }
     }
   } catch (error) {
@@ -505,9 +496,51 @@ async function loadPaymentMethods() {
       '결제수단 조회 실패:',
       error
     )
+
+    paymentMethods.value = []
+
+    selectedMethodId.value = null
   } finally {
     isMethodLoading.value = false
   }
+}
+
+/* =========================
+   표시용 결제수단 이름
+========================= */
+
+function getPaymentName(payment) {
+  if (!payment) return ''
+
+  return (
+    payment.cardCompany ||
+    payment.accountBankName ||
+    '결제수단'
+  )
+}
+
+/* =========================
+   표시용 번호
+========================= */
+
+function getPaymentNumber(payment) {
+  if (!payment) return ''
+
+  return (
+    payment.maskedCardNumber ||
+    payment.accountNumber ||
+    ''
+  )
+}
+
+/* =========================
+   빠른 금액 추가
+========================= */
+
+function addQuickAmount(amount) {
+  chargeAmount.value =
+    (Number(chargeAmount.value) || 0) +
+    amount
 }
 
 /* =========================
@@ -524,18 +557,31 @@ function togglePaymentList() {
 ========================= */
 
 function selectPaymentMethod(methodId) {
-  selectedMethodId.value = methodId
+  selectedMethodId.value =
+    methodId
 
-  // 선택하면 목록 닫기
-  isPaymentOpen.value = false
+  isPaymentOpen.value =
+    false
 }
 
 /* =========================
-   거래수단 추가 / 삭제 페이지
+   결제수단 관리 페이지
 ========================= */
 
 function goToPaymentChange() {
-  router.push('/parents/payment/change')
+  router.push(
+    '/parents/payment/change'
+  )
+}
+
+/* =========================
+   자동 충전
+========================= */
+
+function goToAutoCharge() {
+  router.push(
+    '/parents/charge/auto'
+  )
 }
 
 /* =========================
@@ -551,7 +597,10 @@ async function handleCharge() {
   }
 
   if (!selectedMethodId.value) {
-    alert('결제수단을 선택해주세요.')
+    alert(
+      '결제수단을 선택해주세요.'
+    )
+
     return
   }
 
@@ -562,18 +611,21 @@ async function handleCharge() {
   isCharging.value = true
 
   try {
-    const res = await chargeWallet(
-      authStore.accessToken,
-      Number(chargeAmount.value),
-      selectedMethodId.value
-    )
+    const res =
+      await chargeWallet(
+        authStore.accessToken,
+        Number(chargeAmount.value),
+        selectedMethodId.value
+      )
 
     if (res.success) {
       router.push({
-        path: '/parents/charge/complete',
+        path:
+          '/parents/charge/complete',
 
         query: {
-          amount: chargeAmount.value,
+          amount:
+            chargeAmount.value,
         },
       })
     }
@@ -585,19 +637,11 @@ async function handleCharge() {
 
     alert(
       error.message ||
-        '충전에 실패했습니다.'
+      '충전에 실패했습니다.'
     )
   } finally {
     isCharging.value = false
   }
-}
-
-/* =========================
-   자동 충전 페이지
-========================= */
-
-function goToAutoCharge() {
-  router.push('/parents/charge/auto')
 }
 </script>
 
@@ -613,7 +657,7 @@ function goToAutoCharge() {
   display: flex;
   flex-direction: column;
 
-  padding-bottom: 70px;
+  padding-bottom: 90px;
 
   box-sizing: border-box;
 }
@@ -780,6 +824,7 @@ function goToAutoCharge() {
 .amount-input::-webkit-inner-spin-button,
 .amount-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
+
   margin: 0;
 }
 
@@ -838,8 +883,6 @@ function goToAutoCharge() {
   gap: 8px;
 }
 
-/* 선택된 결제수단 */
-
 .payment-selector {
   width: 100%;
   min-height: 72px;
@@ -872,8 +915,6 @@ function goToAutoCharge() {
 
   border-radius: 14px 14px 8px 8px;
 }
-
-/* 선택 정보 */
 
 .selected-payment-info,
 .payment-placeholder-wrap {
@@ -944,8 +985,6 @@ function goToAutoCharge() {
   color: #8b9097;
 }
 
-/* 주 결제수단 */
-
 .primary-badge {
   flex-shrink: 0;
 
@@ -961,8 +1000,6 @@ function goToAutoCharge() {
   color: #a86f00;
 }
 
-/* 결제수단 없을 때 */
-
 .payment-placeholder {
   font-size: 14px;
   font-weight: 500;
@@ -970,15 +1007,14 @@ function goToAutoCharge() {
   color: #8b9097;
 }
 
-/* 화살표 */
-
 .payment-chevron {
   width: 18px;
   height: 18px;
 
   flex-shrink: 0;
 
-  transition: transform 0.2s ease;
+  transition:
+    transform 0.2s ease;
 }
 
 .payment-chevron.open {
@@ -986,7 +1022,7 @@ function goToAutoCharge() {
 }
 
 /* =========================
-   펼쳐지는 목록
+   펼쳐지는 결제수단 목록
 ========================= */
 
 .payment-dropdown {
@@ -1054,8 +1090,18 @@ function goToAutoCharge() {
   gap: 12px;
 }
 
+.payment-state {
+  padding: 20px 12px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  color: #8b9097;
+}
+
 /* =========================
-   선택 라디오
+   라디오
 ========================= */
 
 .radio {
@@ -1088,20 +1134,8 @@ function goToAutoCharge() {
   border-radius: 50%;
 }
 
-/* 로딩 / 결제수단 없음 */
-
-.payment-state {
-  padding: 20px 12px;
-
-  text-align: center;
-
-  font-size: 13px;
-
-  color: #8b9097;
-}
-
 /* =========================
-   거래수단 추가 / 삭제
+   거래수단 관리
 ========================= */
 
 .payment-manage-btn {
@@ -1138,6 +1172,7 @@ function goToAutoCharge() {
   top: -1px;
 
   font-size: 16px;
+
   line-height: 1;
 }
 
@@ -1199,12 +1234,11 @@ function goToAutoCharge() {
 }
 
 /* =========================
-   충전하기
+   충전 버튼
 ========================= */
 
 .submit-btn {
   width: 100%;
-
   height: 49px;
 
   border: none;
