@@ -3,25 +3,30 @@ const API_BASE_URL = import.meta.env.DEV
   : import.meta.env.VITE_API_BASE_URL
 
 
-// ========================================
-// 퀘스트 목록 조회
-// GET /api/v1/quests
-// ========================================
-export async function getQuests(accessToken) {
+export async function getQuests(
+  accessToken,
+  tab = 'AVAILABLE'
+) {
   if (!accessToken) {
     throw new Error('로그인이 필요합니다.')
   }
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/quests`,
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  )
+  const params = new URLSearchParams()
+  params.append('tab', tab)
+
+  const url =
+    `${API_BASE_URL}/api/v1/quests?${params.toString()}`
+
+  console.log('퀘스트 조회 URL:', url)
+  console.log('퀘스트 조회 TAB:', tab)
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
 
   let result
 
@@ -30,6 +35,8 @@ export async function getQuests(accessToken) {
   } catch {
     throw new Error('서버 응답을 읽을 수 없습니다.')
   }
+
+  console.log('퀘스트 목록 응답:', result)
 
   if (!response.ok || !result.success) {
     throw new Error(

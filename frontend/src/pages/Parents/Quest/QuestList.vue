@@ -31,19 +31,18 @@
         :key="tab.value"
         class="tab"
         :class="{ active: activeTab === tab.value }"
-        @click="activeTab = tab.value"
+        @click="changeTab(tab.value)"
       >
         {{ tab.label }}
       </button>
     </div>
 
     <div class="content">
-
       <!-- 인증 대기 카드 -->
       <div
         v-if="pendingQuest"
         class="pending-card"
-        @click="goToApproval(pendingQuest)"
+        @click="goToDetail(pendingQuest.questId)"
       >
         <div class="pending-top">
           <span class="pending-badge">
@@ -51,12 +50,17 @@
           </span>
 
           <span class="pending-time">
-            {{ formatTime(pendingQuest.completedAt) }}
+            {{
+              formatTime(
+                pendingQuest.endedAt ||
+                pendingQuest.deadline
+              )
+            }}
           </span>
         </div>
 
         <p class="pending-child">
-          {{ pendingQuest.childName }}
+          {{ pendingQuest.child.name || '자녀' }}
         </p>
 
         <p class="pending-title">
@@ -66,18 +70,17 @@
         <button
           class="confirm-btn"
           type="button"
-          @click.stop="goToApproval(pendingQuest)"
+          @click.stop="goToDetail(pendingQuest.questId)"
         >
           인증 확인하기
         </button>
       </div>
 
-      <!-- 등록된 퀘스트 -->
+      <!-- 퀘스트 목록 -->
       <div class="quest-section">
-
         <div class="quest-section-header">
           <p class="quest-section-title">
-            등록된 퀘스트
+            {{ sectionTitle }}
           </p>
 
           <div class="quest-section-actions">
@@ -123,24 +126,20 @@
 
         <!-- 목록 -->
         <div v-else>
-
-          <!-- 데이터 없음 -->
           <div
-            v-if="filteredQuests.length === 0"
+            v-if="displayQuests.length === 0"
             class="state-box"
           >
-            해당하는 퀘스트가 없습니다.
+            {{ emptyMessage }}
           </div>
 
-          <!-- 퀘스트 목록 -->
           <div
-            v-for="quest in filteredQuests"
-            :key="quest.id"
+            v-for="quest in displayQuests"
+            :key="quest.questId"
             class="quest-item"
             @click="handleQuestClick(quest)"
           >
             <div class="quest-item-left">
-
               <div class="quest-icon-wrap">
                 <img
                   src="@/assets/logo.svg"
@@ -150,14 +149,21 @@
               </div>
 
               <div class="quest-info">
-
                 <div class="quest-meta">
                   <span class="quest-child">
-                    {{ quest.childName }}
+                    {{ quest.child.name || '자녀' }}
                   </span>
 
                   <span class="quest-reward">
-                    {{ formatReward(quest.reward) }}
+                    {{ formatReward(quest.rewardAmount) }}
+                  </span>
+
+                  <span
+                    v-if="quest.status"
+                    class="status-text"
+                    :class="getStatusClass(quest.status)"
+                  >
+                    {{ getStatusLabel(quest.status) }}
                   </span>
                 </div>
 
@@ -166,12 +172,23 @@
                 </p>
 
                 <p class="quest-sub">
-                  신뢰점수 +{{ quest.trustScore || 0 }}
-                  <template v-if="quest.dueDate">
-                    · 기한: {{ quest.dueDate }}
+                  <template v-if="quest.teenyScoreEnabled">
+                    티니점수 적용
+                  </template>
+
+                  <template
+                    v-if="
+                      quest.teenyScoreEnabled &&
+                      quest.deadline
+                    "
+                  >
+                    ·
+                  </template>
+
+                  <template v-if="quest.deadline">
+                    기한: {{ formatDate(quest.deadline) }}
                   </template>
                 </p>
-
               </div>
             </div>
 
@@ -196,7 +213,6 @@
 
     <!-- 하단 네비게이션 -->
     <nav class="bottom-nav">
-
       <button
         class="nav-item"
         type="button"
@@ -240,7 +256,6 @@
           마이페이지
         </span>
       </button>
-
     </nav>
   </div>
 </template>
@@ -259,94 +274,111 @@ import { getQuests } from '@/api/quest'
 const router = useRouter()
 const authStore = useAuthStore()
 
-/* =========================
-   상태
-========================= */
-
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-const activeTab = ref('available')
+const activeTab = ref('AVAILABLE')
 
 const quests = ref([])
 
-/**
- * 부모가 승인/반려해야 하는 인증 요청
- */
-const pendingQuest = ref(null)
-
-/* =========================
-   탭
-========================= */
+const nextCursor = ref(null)
 
 const tabs = [
   {
     label: '시작 가능',
-    value: 'available',
+    value: 'AVAILABLE',
   },
   {
     label: '진행 중',
-    value: 'in_progress',
+    value: 'ONGOING',
   },
   {
     label: '완료',
-    value: 'completed',
+    value: 'COMPLETED',
   },
 ]
 
 /* =========================
-   퀘스트 필터
+   인증 대기 퀘스트
 ========================= */
 
-const filteredQuests = computed(() => {
-  return quests.value.filter(
-    quest => quest.status === activeTab.value
+const pendingQuest = computed(() => {
+  if (activeTab.value !== 'ONGOING') {
+    return null
+  }
+
+  return (
+    quests.value.find(
+      quest => quest.status === 'PENDING'
+    ) || null
   )
 })
 
 /* =========================
-   날짜 / 금액 표시
+   일반 목록
 ========================= */
 
-function formatTime(dateStr) {
-  if (!dateStr) {
-    return ''
+const displayQuests = computed(() => {
+  if (activeTab.value === 'ONGOING') {
+    return quests.value.filter(
+      quest => quest.status !== 'PENDING'
+    )
   }
 
-  const date = new Date(dateStr)
+  return quests.value
+})
 
-  if (Number.isNaN(date.getTime())) {
-    return ''
+const sectionTitle = computed(() => {
+  switch (activeTab.value) {
+    case 'AVAILABLE':
+      return '시작 가능한 퀘스트'
+
+    case 'ONGOING':
+      return '진행 중인 퀘스트'
+
+    case 'COMPLETED':
+      return '완료된 퀘스트'
+
+    default:
+      return '등록된 퀘스트'
+  }
+})
+
+const emptyMessage = computed(() => {
+  switch (activeTab.value) {
+    case 'AVAILABLE':
+      return '시작 가능한 퀘스트가 없습니다.'
+
+    case 'ONGOING':
+      return '진행 중인 퀘스트가 없습니다.'
+
+    case 'COMPLETED':
+      return '완료된 퀘스트가 없습니다.'
+
+    default:
+      return '퀘스트가 없습니다.'
+  }
+})
+
+/* =========================
+   탭 변경
+========================= */
+
+async function changeTab(tab) {
+  if (activeTab.value === tab) {
+    return
   }
 
-  const hours = date.getHours()
-  const minutes = String(
-    date.getMinutes()
-  ).padStart(2, '0')
+  activeTab.value = tab
 
-  const period = hours >= 12 ? '오후' : '오전'
+  quests.value = []
+  nextCursor.value = null
 
-  const formattedHour =
-    hours % 12 === 0
-      ? 12
-      : hours % 12
-
-  return `${period} ${formattedHour}:${minutes}`
-}
-
-function formatReward(reward) {
-  if (
-    reward === null ||
-    reward === undefined
-  ) {
-    return '0원'
-  }
-
-  return `${Number(reward).toLocaleString()}원`
+  await loadQuests()
 }
 
 /* =========================
-   퀘스트 데이터 조회
+   목록 조회
 ========================= */
 
 async function loadQuests() {
@@ -354,12 +386,18 @@ async function loadQuests() {
   errorMessage.value = ''
 
   try {
+    console.log(
+      '퀘스트 조회 TAB:',
+      activeTab.value
+    )
+
     const res = await getQuests(
-      authStore.accessToken
+      authStore.accessToken,
+      activeTab.value
     )
 
     console.log(
-      '퀘스트 목록 응답:',
+      '퀘스트 목록 전체 응답:',
       res
     )
 
@@ -371,33 +409,33 @@ async function loadQuests() {
     }
 
     /**
-     * API 응답 data가 배열이라는 전제
+     * 명세서 구조:
+     *
+     * data: {
+     *   items: [],
+     *   nextCursor: "..."
+     * }
      */
     quests.value =
-      Array.isArray(res.data)
-        ? res.data
+      Array.isArray(res.data?.items)
+        ? res.data.items
         : []
 
+    nextCursor.value =
+      res.data?.nextCursor || null
+
     console.log(
-      '퀘스트 목록:',
+      '퀘스트 items:',
       quests.value
     )
 
-    /**
-     * 인증/승인 대기 상태의 퀘스트 찾기
-     *
-     * 기존 프론트에서 사용하던
-     * pending_approval 상태를 우선 사용한다.
-     */
-    pendingQuest.value =
-      quests.value.find(
-        quest =>
-          quest.status ===
-          'pending_approval'
-      ) || null
+    console.log(
+      'nextCursor:',
+      nextCursor.value
+    )
 
     console.log(
-      '인증 대기 퀘스트:',
+      'PENDING 퀘스트:',
       pendingQuest.value
     )
   } catch (error) {
@@ -405,6 +443,8 @@ async function loadQuests() {
       '퀘스트 목록 불러오기 실패:',
       error
     )
+
+    quests.value = []
 
     errorMessage.value =
       error.message ||
@@ -415,80 +455,11 @@ async function loadQuests() {
 }
 
 /* =========================
-   일반 퀘스트 클릭
+   퀘스트 클릭
 ========================= */
 
 function handleQuestClick(quest) {
-  /**
-   * 만약 인증 대기 상태라면
-   * 일반 상세가 아니라 인증 상세로 이동
-   */
-  if (
-    quest.status ===
-    'pending_approval'
-  ) {
-    goToApproval(quest)
-    return
-  }
-
-  goToDetail(quest.id)
-}
-
-/* =========================
-   일반 퀘스트 상세
-========================= */
-
-function goToDetail(questId) {
-  router.push(
-    `/parents/quest/${questId}`
-  )
-}
-
-/* =========================
-   퀘스트 생성
-========================= */
-
-function goToCreate() {
-  router.push(
-    '/parents/quest/create'
-  )
-}
-
-/* =========================
-   인증 상세
-========================= */
-
-function goToApproval(quest) {
-  console.log(
-    '인증 상세 이동 퀘스트:',
-    quest
-  )
-
-  /**
-   * API 응답에 따라
-   *
-   * verificationId
-   *
-   * 또는
-   *
-   * verification.id
-   *
-   * 형태일 수도 있어서
-   * 둘 다 처리
-   */
-  const verificationId =
-    quest.verificationId ??
-    quest.verification?.id
-
-  /**
-   * quest.id 대신
-   * quest.questId로 내려오는 경우까지 대응
-   */
-  const questId =
-    quest.id ??
-    quest.questId
-
-  if (!questId) {
+  if (!quest.questId) {
     console.error(
       'questId가 없습니다.',
       quest
@@ -501,43 +472,186 @@ function goToApproval(quest) {
     return
   }
 
-  if (!verificationId) {
-    console.error(
-      'verificationId가 없습니다.',
-      quest
-    )
-
-    alert(
-      '퀘스트 인증 정보를 찾을 수 없습니다.'
-    )
-
-    return
-  }
-
-  console.log(
-    'questId:',
-    questId
-  )
-
-  console.log(
-    'verificationId:',
-    verificationId
-  )
-
   /**
-   * 인증 상세 화면으로 이동
+   * 목록 응답에는 verificationId가 없음.
    *
-   * 예:
-   * /parents/quest/10/verifications/23
+   * 따라서 PENDING이라고 바로
+   * verification 상세 URL을 만들 수 없음.
+   *
+   * 우선 일반 퀘스트 상세로 이동 후
+   * 상세 API에서 verificationId를 받아야 함.
    */
+  goToDetail(quest.questId)
+}
+
+/* =========================
+   상세
+========================= */
+
+function goToDetail(questId) {
   router.push(
-    `/parents/quest/${questId}/verifications/${verificationId}`
+    `/parents/quest/${questId}`
   )
 }
 
 /* =========================
-   mounted
+   생성
 ========================= */
+
+function goToCreate() {
+  router.push(
+    '/parents/quest/create'
+  )
+}
+
+/* =========================
+   시간
+========================= */
+
+function formatTime(dateStr) {
+  if (!dateStr) {
+    return ''
+  }
+
+  const date =
+    new Date(dateStr)
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return ''
+  }
+
+  const hours =
+    date.getHours()
+
+  const minutes =
+    String(
+      date.getMinutes()
+    ).padStart(
+      2,
+      '0'
+    )
+
+  const period =
+    hours >= 12
+      ? '오후'
+      : '오전'
+
+  const formattedHour =
+    hours % 12 === 0
+      ? 12
+      : hours % 12
+
+  return `${period} ${formattedHour}:${minutes}`
+}
+
+/* =========================
+   날짜
+========================= */
+
+function formatDate(dateStr) {
+  if (!dateStr) {
+    return ''
+  }
+
+  const date =
+    new Date(dateStr)
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return dateStr
+  }
+
+  const year =
+    date.getFullYear()
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(
+      2,
+      '0'
+    )
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(
+      2,
+      '0'
+    )
+
+  return `${year}.${month}.${day}`
+}
+
+/* =========================
+   금액
+========================= */
+
+function formatReward(rewardAmount) {
+  if (
+    rewardAmount === null ||
+    rewardAmount === undefined
+  ) {
+    return '0원'
+  }
+
+  return `${Number(
+    rewardAmount
+  ).toLocaleString()}원`
+}
+
+/* =========================
+   상태 라벨
+========================= */
+
+function getStatusLabel(status) {
+  const labels = {
+    AVAILABLE: '시작 가능',
+    IN_PROGRESS: '진행 중',
+    PENDING: '인증 대기',
+    COMPLETED: '완료',
+    FAILED: '실패',
+    EXPIRED: '기간 만료',
+    DECLINED: '반려',
+  }
+
+  return labels[status] || status
+}
+
+/* =========================
+   상태 CSS
+========================= */
+
+function getStatusClass(status) {
+  switch (status) {
+    case 'AVAILABLE':
+      return 'status-available'
+
+    case 'IN_PROGRESS':
+      return 'status-progress'
+
+    case 'PENDING':
+      return 'status-pending'
+
+    case 'COMPLETED':
+      return 'status-completed'
+
+    case 'FAILED':
+    case 'EXPIRED':
+    case 'DECLINED':
+      return 'status-failed'
+
+    default:
+      return ''
+  }
+}
 
 onMounted(() => {
   loadQuests()
@@ -549,6 +663,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
+
   background-color: #f4f5f7;
 
   display: flex;
@@ -557,9 +672,7 @@ onMounted(() => {
   padding-bottom: 90px;
 }
 
-/* =========================
-   헤더
-========================= */
+/* 헤더 */
 
 .nav {
   display: flex;
@@ -609,16 +722,15 @@ onMounted(() => {
   height: 24px;
 }
 
-/* =========================
-   탭
-========================= */
+/* 탭 */
 
 .tabs {
   display: flex;
 
   background-color: #ffffff;
 
-  border-bottom: 1px solid #f0f1f3;
+  border-bottom:
+    1px solid #f0f1f3;
 }
 
 .tab {
@@ -627,7 +739,8 @@ onMounted(() => {
   height: 44px;
 
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom:
+    2px solid transparent;
 
   background: transparent;
 
@@ -642,12 +755,11 @@ onMounted(() => {
 .tab.active {
   color: #ffbc00;
 
-  border-bottom-color: #ffbc00;
+  border-bottom-color:
+    #ffbc00;
 }
 
-/* =========================
-   Content
-========================= */
+/* Content */
 
 .content {
   display: flex;
@@ -658,9 +770,7 @@ onMounted(() => {
   padding: 16px;
 }
 
-/* =========================
-   인증 대기 카드
-========================= */
+/* 인증 대기 */
 
 .pending-card {
   padding: 16px;
@@ -675,10 +785,6 @@ onMounted(() => {
   gap: 6px;
 
   cursor: pointer;
-
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
 }
 
 .pending-card:active {
@@ -749,9 +855,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
-/* =========================
-   퀘스트 섹션
-========================= */
+/* 퀘스트 섹션 */
 
 .quest-section {
   background-color: #ffffff;
@@ -806,9 +910,7 @@ onMounted(() => {
   height: 20px;
 }
 
-/* =========================
-   퀘스트 Item
-========================= */
+/* 퀘스트 */
 
 .quest-item {
   display: flex;
@@ -864,13 +966,13 @@ onMounted(() => {
 
 .quest-info {
   min-width: 0;
-
   flex: 1;
 }
 
 .quest-meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
 
   gap: 6px;
 
@@ -879,7 +981,6 @@ onMounted(() => {
 
 .quest-child {
   font-size: 11px;
-
   color: #8b9097;
 }
 
@@ -888,6 +989,40 @@ onMounted(() => {
   font-weight: 700;
 
   color: #ffbc00;
+}
+
+.status-text {
+  padding: 2px 6px;
+
+  border-radius: 10px;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.status-available {
+  color: #5970e8;
+  background-color: #eef1ff;
+}
+
+.status-progress {
+  color: #1d8b55;
+  background-color: #e9f8f0;
+}
+
+.status-pending {
+  color: #b17600;
+  background-color: #fff4cc;
+}
+
+.status-completed {
+  color: #555b63;
+  background-color: #f0f1f3;
+}
+
+.status-failed {
+  color: #d94a4a;
+  background-color: #fff0f0;
 }
 
 .quest-title {
@@ -924,9 +1059,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-/* =========================
-   상태
-========================= */
+/* 상태 */
 
 .state-box {
   padding: 30px 20px;
@@ -942,9 +1075,7 @@ onMounted(() => {
   color: #ff3b30;
 }
 
-/* =========================
-   FAB
-========================= */
+/* FAB */
 
 .fab {
   position: fixed;
@@ -978,9 +1109,7 @@ onMounted(() => {
   justify-content: center;
 }
 
-/* =========================
-   하단 Navigation
-========================= */
+/* 하단 nav */
 
 .bottom-nav {
   position: fixed;
