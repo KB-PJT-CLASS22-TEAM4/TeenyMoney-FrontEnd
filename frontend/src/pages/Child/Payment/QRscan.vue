@@ -38,8 +38,6 @@
 
     <!-- 하단: QR코드 보여주기로 전환 -->
     <button class="cta" @click="goShowQr">QR코드 보여주기</button>
-    <!-- 개발용 임시 버튼 (배포 전 삭제) -->
-    <button class="dev-skip" @click="devSkip">[개발용] 스캔 건너뛰기</button>
   </div>
 </template>
 
@@ -92,7 +90,7 @@ async function onDetect(detected) {
 
   try {
     await paymentStore.verifyQr(authStore.accessToken, qrPayload)
-    router.push({ name: 'pay-password' })
+    router.push({ name: 'pay-info' })
   } catch (e) {
     errorMsg.value = e.message || 'QR 코드를 확인할 수 없어요'
     scanned.value = false
@@ -114,11 +112,6 @@ function onError(err) {
   } else {
     errorMsg.value = '카메라를 열 수 없어요'
   }
-}
-
-// 개발용: 실제 QR 없이 비밀번호 화면으로 바로 이동 (결제 정보가 없어 실제 결제는 실패함)
-function devSkip() {
-  router.push({ name: 'pay-password' })
 }
 </script>
 
@@ -267,16 +260,5 @@ function devSkip() {
 
 .cta:hover {
   filter: brightness(0.97);
-}
-/*  스캔 건너뛰기 버튼 (배포 전 삭제)  */
-.dev-skip {
-  margin: 8px auto;
-  padding: 8px 16px;
-  border: 1px dashed #ff6b6b;
-  border-radius: 6px;
-  background: transparent;
-  color: #ff6b6b;
-  font-size: 12px;
-  cursor: pointer;
 }
 </style>
