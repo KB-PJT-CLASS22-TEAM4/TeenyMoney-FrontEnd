@@ -1,391 +1,341 @@
 <template>
-  <div class="score-screen">
-    <div class="scroll">
+  <div class="score-view">
+    <div class="scroll-area">
 
-      <!-- 상단 네비  -->
-      <div class="nav">
-        <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="nav-title">티니 점수</h1>
-      </div>
-
-      <!-- 점수 도넛 -->
-      <div class="card">
-        <div class="card-header" @click="goGradeDetail" style="cursor: pointer;">
-          <span class="card-title">티니 점수 등급 알아보기</span>
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-            <path d="M9 6l6 6-6 6" stroke="#b9bec5" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-
-        <div class="donut-wrap">
-          <svg width="158" height="158" viewBox="0 0 158 158">
-            <circle cx="79" cy="79" r="62" fill="none" stroke="#edeff2" stroke-width="16"/>
-            <circle cx="79" cy="79" r="62" fill="none" stroke="#ffbc00" stroke-width="16"
-                    :stroke-dasharray="`${donutFill} ${donutCircumference}`"
-                    stroke-dashoffset="0" stroke-linecap="round"
-                    transform="rotate(-90 79 79)"/>
-          </svg>
-          <div class="donut-center">
-            <span class="donut-label">티니 점수</span>
-            <b class="donut-score">{{ score }}</b>
-          </div>
-        </div>
-
-        <div class="compare-row">
-          <span class="compare-text">지난주 보다</span>
-          <div class="compare-badge" :class="{ negative: scoreDiff < 0 }">
-            <svg v-if="scoreDiff >= 0" viewBox="0 0 10 10" width="10" height="10" fill="none">
-              <path d="M5 2l4 6H1z" fill="#62b24a"/>
+      <!-- 상단 히어로 점수 카드 섹션 -->
+      <section class="hero-section">
+        <!-- 상단 네비바 -->
+        <header class="top-nav">
+          <button class="back-btn" @click="goBack" aria-label="뒤로가기">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <svg v-else viewBox="0 0 10 10" width="10" height="10" fill="none">
-              <path d="M5 8L1 2h8z" fill="#e5484d"/>
+          </button>
+          <h1 class="nav-title">티니점수</h1>
+          <button class="q-btn" aria-label="도움말">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="#15171b" stroke-width="2"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#15171b" stroke-width="2" stroke-linecap="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="#15171b" stroke-width="2.5" stroke-linecap="round"/>
             </svg>
-            <span>{{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}점</span>
-          </div>
-        </div>
+          </button>
+        </header>
 
-        <div class="progress-wrap">
-          <div class="segment-bar">
-            <div v-for="(g, i) in grades" :key="g.label" class="segment"
-                 :style="{ background: i <= gradeIndex ? g.color : '#f0f1f3' }"></div>
-          </div>
-          <div class="grade-labels">
-            <span v-for="(g, i) in grades" :key="g.label" class="grade-label"
-                  :style="{ color: i <= gradeIndex ? g.color : '#c6cbd2' }">{{ g.label }}</span>
-          </div>
-        </div>
-
-        <div v-if="nextGradeGap !== null" class="encourage-text">
-          다음 등급까지 <b>{{ nextGradeGap }}점</b> 남았어요! 조금만 더 힘내요 💪
-        </div>
-        <div v-else class="encourage-text">
-          최고 등급이에요! 지금처럼만 잘 관리해봐요 🎉
-        </div>
-      </div>
-
-      <!-- 주간 점수 변동  -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">주간 점수 변동</span>
-        </div>
-
-        <div class="line-chart-wrap">
-          <svg :viewBox="`0 0 ${svgW} ${svgH}`" width="100%" :height="svgH" overflow="visible">
-            <line v-for="y in yLabels" :key="y"
-                  :x1="paddingL" :y1="scoreToY(y)"
-                  :x2="svgW - paddingR" :y2="scoreToY(y)"
-                  stroke="#f2f4f6" stroke-width="1"/>
-
-            <text v-for="y in yLabels" :key="`label-${y}`"
-                  :x="paddingL - 14" :y="scoreToY(y) + 4"
-                  text-anchor="end" font-size="9" fill="#c6cbd2">{{ y }}</text>
-
-            <path :d="areaPath" fill="#ffbc00" fill-opacity="0.1"/>
-
-            <path :d="linePath" fill="none" stroke="#ffbc00" stroke-width="2.5"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-
-            <g v-for="(w, i) in weekly" :key="`dot-${i}`">
-              <template v-if="w.current">
-                <circle :cx="pointX(i)" :cy="scoreToY(w.score)" r="6" fill="#ffbc00"/>
-                <circle :cx="pointX(i)" :cy="scoreToY(w.score)" r="3" fill="#fff"/>
-                <rect :x="pointX(i) - 22" :y="scoreToY(w.score) - 32"
-                      width="44" height="20" rx="6" fill="#ffbc00"/>
-                <text :x="pointX(i)" :y="scoreToY(w.score) - 18"
-                      text-anchor="middle" font-size="10" font-weight="700" fill="#fff">{{ w.score }}점</text>
-              </template>
-              <template v-else>
-                <circle :cx="pointX(i)" :cy="scoreToY(w.score)" r="4"
-                        fill="#fff" stroke="#ffbc00" stroke-width="2"/>
-                <text :x="pointX(i)" :y="scoreToY(w.score) - 12"
-                      text-anchor="middle" font-size="9" fill="#b9bec5">{{ w.score }}</text>
-              </template>
-            </g>
-
-            <text v-for="(w, i) in weekly" :key="`xlabel-${i}`"
-                  :x="pointX(i)" :y="svgH - 2"
-                  text-anchor="middle" font-size="9" fill="#8a9099">{{ w.label }}</text>
-          </svg>
-        </div>
-      </div>
-
-      <!-- 등급 혜택 -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">{{ grade }} 등급 혜택</span>
-          <div class="active-badge">{{ gradeEmoji[grade] }} {{ grade }}등급 적용 중</div>
-        </div>
-
-        <div class="benefit-list">
-          <div v-for="(b, i) in benefits" :key="i" class="benefit-row"
-               :class="{ 'border-top': i > 0 }">
-            <div class="benefit-text">
-              <span class="benefit-title">{{ b.title }}</span>
-              <span class="benefit-desc">{{ b.desc }}</span>
+        <!-- 히어로 점수 카드 -->
+        <div class="hero-card">
+          <div class="hero-top-row">
+            <!-- 도넛 차트 -->
+            <div class="donut-wrap">
+              <svg width="130" height="130" viewBox="0 0 130 130">
+                <circle cx="65" cy="65" r="52" fill="none" stroke="#f1f5f9" stroke-width="12"/>
+                <circle cx="65" cy="65" r="52" fill="none" stroke="#facc15" stroke-width="12"
+                        :stroke-dasharray="`${donutFill} ${donutCircumference}`"
+                        stroke-dashoffset="0" stroke-linecap="round"
+                        transform="rotate(-90 65 65)"/>
+              </svg>
+              <div class="donut-center">
+                <span class="donut-label">티니점수</span>
+                <b class="donut-score">{{ score }}</b>
+                <span class="donut-max">/ 1000</span>
+              </div>
             </div>
-            <!-- 등급 조건 충족 시에만 초록 dot, 아니면 회색 -->
-            <span class="benefit-dot" :class="{ inactive: !b.active }"></span>
-          </div>
-        </div>
-      </div>
 
-      <!-- 최근 점수 변동 -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">최근 점수 변동</span>
-          <span class="score-diff-text">
-            <b class="diff-val" :class="{ minus: scoreDiff < 0 }">{{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}</b>
-            <span class="diff-sub"> 이번 주</span>
-          </span>
-        </div>
+            <!-- 현재 등급 + 티니 캐릭터 -->
+            <div class="grade-info-col">
+              <div class="grade-header-row">
+                <span class="sub-label">현재 등급</span>
+                
+              <!-- 티니 캐릭터 -->
+                <div class="current-chick-img-wrap">
+                  <img :src="currentChickImage" alt="현재 등급 마스코트" class="chick-avatar-img" />
+                </div>
+              </div>
 
-        <div class="activity-list">
-          <div v-for="(a, i) in activities" :key="i" class="activity-row"
-               :class="{ 'border-top': i > 0 }">
-            <div class="activity-text">
-              <span class="activity-title">{{ a.title }}</span>
-              <span class="activity-desc">{{ a.desc }}</span>
+              <!-- 등급 명칭 -->
+              <div class="grade-badge-row">
+                <span class="badge-gold-text">{{ grade }}</span>
+              </div>
+
+              <!-- 안내 멘트 -->
+              <p class="grade-status-desc">
+                지금 아주 훌륭하게<br />신용 점수를 모으고 있어요!
+              </p>
             </div>
-            <div class="activity-score">
-              <b :class="['score-val', a.diff >= 0 ? 'plus' : 'minus']">
-                {{ a.diff > 0 ? '+' : '' }}{{ a.diff }}
-              </b>
-              <span class="score-unit">점</span>
+          </div>
+
+          <!-- 티니 점수 게이지 바 -->
+          <div class="hero-progress-box">
+            <div class="progress-info-row">
+              <span class="gap-text">다음 등급까지 <strong>{{ remainingScore }}점</strong> 남았어요</span>
+              <span class="next-target">{{ maxScore }}점 (우수)</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }"></div>
+            </div>
+          </div>
+
+          <!-- 상세보기 버튼 -->
+          <button class="hero-detail-btn" @click="goGradeDetail">
+            <span class="btn-text">티니 등급 상세보기</span>
+            <span class="chev">›</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 지난주 대비 주간 점수 변동 -->
+      <section class="section-container">
+        <div class="card weekly-diff-card">
+          <div class="card-head-sm">
+            <span class="title">지난주 대비 점수 변동</span>
+            <span class="blue-pill" :class="{ minus: weeklyDiff < 0 }">
+              {{ weeklyDiff >= 0 ? '▲ +' : '▼ ' }}{{ weeklyDiff }}점
+            </span>
+          </div>
+
+          <p class="diff-sub-text">
+            지난주({{ prevWeekScore }}점)보다 <strong class="hl-text">{{ Math.abs(weeklyDiff) }}점 {{ weeklyDiff >= 0 ? '상승' : '하락' }}</strong>했어요!
+          </p>
+
+          <div class="diff-compare-box">
+            <div class="compare-item">
+              <span class="comp-label">지난주</span>
+              <b class="comp-val gray">{{ prevWeekScore }}점</b>
+            </div>
+            <div class="diff-arrow">→</div>
+            <div class="compare-item">
+              <span class="comp-label">이번 주</span>
+              <b class="comp-val main">{{ score }}점</b>
             </div>
           </div>
         </div>
+      </section>
 
-        <button class="more-btn" @click="goGradeDetail">전체 내역 보기 ›</button>
-      </div>
+      <!-- 현재 등급 혜택 (슬라이드 형태) -->
+      <section class="section-container">
+        <div class="benefit-slide-header">
+          <span class="title">현재 등급 혜택</span>
+          <span class="slide-count">{{ benefits.length }}개 적용 중</span>
+        </div>
+
+        <div class="benefit-carousel" ref="carouselRef" @scroll="onCarouselScroll">
+          <div v-for="(b, i) in benefits" :key="i" class="benefit-card">
+            <span class="benefit-tag">{{ b.tag }}</span>
+            <strong class="benefit-title">{{ b.title }}</strong>
+            <p class="benefit-desc">{{ b.desc }}</p>
+          </div>
+        </div>
+
+        <div class="carousel-indicators">
+          <span v-for="(_, i) in benefits" :key="i"
+                class="dot" :class="{ active: i === activeBenefitCard }"></span>
+        </div>
+      </section>
+
+      <!-- 최근 점수 변동 내역 (3개 요약) -->
+      <section class="section-container">
+        <div class="card">
+          <div class="history-head">
+            <span class="title">최근 점수 변동 내역</span>
+            <button class="all-link" @click="goGradeDetail">전체 보기 ›</button>
+          </div>
+
+          <div class="history-list">
+            <div v-for="(item, i) in summaryActivities" :key="i" class="history-item">
+              <div class="item-left">
+                <span class="diff-val" :class="{ minus: item.diff < 0 }">
+                  {{ item.diff > 0 ? '+' : '' }}{{ item.diff }}
+                </span>
+              </div>
+
+              <div class="item-center">
+                <span class="item-title">{{ item.title }}</span>
+                <span class="item-date">{{ item.date }}</span>
+              </div>
+
+              <span class="item-result-score">{{ item.resultScore }}점</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 하단 티니코치-->
+      <section class="section-container last-section">
+        <div class="coach-tip-banner">
+          <div class="coach-tip-top">
+            <div class="coach-character-wrap">
+              <img :src="teenyScoreMascot" alt="티니코치" class="coach-full-mascot" />
+            </div>
+
+            <div class="coach-speech-box">
+              <div class="speech-header">
+                <span class="coach-tag">티니 코치의 꿀팁!</span>
+              </div>
+              <p class="speech-text">
+                티니점수를 더 올려볼까?<br />
+                아래 미션을 꾸준히 해봐!
+              </p>
+            </div>
+          </div>
+
+          <div class="tip-buttons-row">
+            <div class="tip-pill pill-yellow">소비 기록하기</div>
+            <div class="tip-pill pill-blue">저축 목표 달성하기</div>
+            <div class="tip-pill pill-green">용돈 계획 세우기</div>
+          </div>
+        </div>
+      </section>
 
     </div>
 
-    <BottomTabBar active="finance" @select="onTabSelect" />
+    <!-- 하단 탭바 -->
+    <BottomTabBar active="home" @select="onTabSelect" />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
 const router = useRouter()
 
-// ==================================================================
-// API 연동 필요 (지금은 더미 데이터)
-// ==================================================================
+// 티니 캐릭터
+const teenyScoreMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
-const score = 850
-
-// grade는 API에서 내려주는 값이 아니라 score 기준으로 프론트에서 계산.
-// 600~1000점을 5등급으로 80점씩 균등 분할.
-function getGradeByScore(s) {
-  if (s >= 920) return '우수'
-  if (s >= 840) return '양호'
-  if (s >= 760) return '보통'
-  if (s >= 680) return '주의'
-  return '회복'
-}
-const grade = getGradeByScore(score)
-
-const gradeEmoji = { '회복': '🌱', '주의': '🍀', '보통': '🌳', '양호': '🍎', '우수': '⭐' }
-
-const SCORE_MIN = 600
-const SCORE_MAX = 1000
-
-const donutCircumference = 2 * Math.PI * 62
-const donutFill = computed(() =>
-  ((score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * donutCircumference
-)
-
-const grades = [
-  { label: '회복',   color: '#f08080' },
-  { label: '주의', color: '#f4a86a' },
-  { label: '보통',   color: '#f0cc6a' },
-  { label: '양호',   color: '#72c472' },
-  { label: '우수',     color: '#7ab8f5' },
-]
-const gradeIndex = computed(() => grades.findIndex(g => g.label === grade))
-
-// 다음 등급까지 남은 점수 (격려 문구용). 이미 최고 등급이면 null.
-const GRADE_STEP = 80 // (SCORE_MAX - SCORE_MIN) / grades.length
-const nextGradeGap = computed(() => {
-  if (gradeIndex.value >= grades.length - 1) return null
-  const nextThreshold = 680 + gradeIndex.value * GRADE_STEP
-  return nextThreshold - score
+// 상단 티니 캐릭터
+const currentChickImage = computed(() => {
+  return new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 })
 
-function getWeekLabel(weeksAgo) {
-  const date = new Date()
-  date.setDate(date.getDate() - weeksAgo * 7)
-  const month = date.getMonth() + 1
-  const weekOfMonth = Math.ceil(date.getDate() / 7)
-  return `${month}월 ${weekOfMonth}주`
-}
+// 점수 및 등급 기본 데이터
+const score = ref(850)
+const grade = ref('양호')
+const minScore = ref(840)
+const maxScore = ref(920)
 
-const weekly = [
-  { label: getWeekLabel(3), score: 800, current: false },
-  { label: getWeekLabel(2), score: 835, current: false },
-  { label: getWeekLabel(1), score: 850, current: false },
-  { label: getWeekLabel(0), score: 870, current: true  },
-]
+const prevWeekScore = ref(730)
+const weeklyDiff = computed(() => score.value - prevWeekScore.value)
 
-// scoreDiff는 하드코딩하지 않고 weekly 마지막 두 값의 차이로 계산
-// (API 연동 후에도 weekly만 내려주면 이 값은 자동으로 맞음)
-const scoreDiff = computed(() => {
-  if (weekly.length < 2) return 0
-  const last = weekly[weekly.length - 1].score
-  const prev = weekly[weekly.length - 2].score
-  return last - prev
+const remainingScore = computed(() => Math.max(0, maxScore.value - score.value))
+const progressPercent = computed(() => {
+  const total = maxScore.value - minScore.value
+  const current = score.value - minScore.value
+  return Math.min(100, Math.max(0, (current / total) * 100))
 })
 
-const svgW     = 280
-const svgH     = 169
-const paddingL = 52
-const paddingR = 16
-const paddingT = 34
-const paddingB = 22
+// 도넛 차트 SVG 계산
+const donutCircumference = 2 * Math.PI * 52
+const donutFill = computed(() => ((score.value - 600) / (1000 - 600)) * donutCircumference)
 
-// 점수는 600점부터 시작. 도넛과 동일한 스케일로 통일.
-const Y_MAX = 1000
-const Y_MIN = 600
-const yLabels = [1000, 900, 800, 700, 600]
+// 혜택 데이터
+const benefits = ref([
+  { tag: '금리 혜택', title: '저축 기본 이자 우대', desc: '연 +0.2%p 우대 금리 자동 적용' },
+  { tag: '퀘스트', title: '양호 전용 퀘스트', desc: '더 많은 포인트를 받는 퀘스트 오픈' },
+  { tag: '배지', title: '양호 전용 프로필 배지', desc: '마이페이지 전용 양호 배지 부여' },
+  { tag: '수수료', title: '송금 수수료 무제한 면제', desc: '어디로 보내든 송금 수수료 0원' },
+])
 
-function scoreToY(s) {
-  return paddingT + ((Y_MAX - s) / (Y_MAX - Y_MIN)) * (svgH - paddingT - paddingB)
-}
-function pointX(i) {
-  const usableW = svgW - paddingL - paddingR
-  return paddingL + (i / (weekly.length - 1)) * usableW
-}
-const linePath = computed(() =>
-  weekly.map((w, i) => `${i === 0 ? 'M' : 'L'} ${pointX(i)} ${scoreToY(w.score)}`).join(' ')
-)
-const areaPath = computed(() => {
-  const line = weekly.map((w, i) => `${i === 0 ? 'M' : 'L'} ${pointX(i)} ${scoreToY(w.score)}`).join(' ')
-  const bottom = scoreToY(Y_MIN)
-  return `${line} L ${pointX(weekly.length - 1)} ${bottom} L ${pointX(0)} ${bottom} Z`
-})
+const carouselRef = ref(null)
+const activeBenefitCard = ref(0)
 
-// benefits의 active는 현재 등급(grade)에 따라 결정되어야 함.
-// 지금은 예시로 '열매' 등급 이상이면 앞 3개가 적용된다고 가정한 더미 데이터.
-// 성인 은행앱 문구(적금 우대금리/대출 금리 인하) 대신 아이가 체감할 수 있는 혜택으로 교체함.
-const benefits = [
-  { title: '🛍️ 자유로운 결제',          desc: '대부분의 결제를 자유롭게 할 수 있어요',           active: true },
-  { title: '🐷 용돈 저금 보너스',         desc: '저금 목표를 달성하면 보너스 용돈을 받아요',        active: true },
-  { title: '🎁 특별 아이템 교환',         desc: '티니 포인트로 특별 아이템을 교환할 수 있어요',      active: true },
-  { title: '🔓 오늘만 허용 범위 확대',    desc: '오늘만 허용 요청 범위가 더 넓어져요',              active: false },
-]
-
-const activities = [
-  { title: '퀘스트 완료',    desc: '방 청소하기 · 오늘',   diff: 10 },
-  { title: '목표 저축 달성', desc: '무선 이어폰 · 어제',   diff: 5  },
-  { title: '위험 결제 시도', desc: '심야 편의점 · 3일 전', diff: -3 },
-]
-
-function goBack() {
-  router.push({ name: 'child-home' })
+function onCarouselScroll() {
+  const el = carouselRef.value
+  if (!el) return
+  const cardWidth = 210 + 10
+  activeBenefitCard.value = Math.round(el.scrollLeft / cardWidth)
 }
 
-function goGradeDetail() {
-  router.push({ name: 'child-score-grade' })
-}
+// 최근 내역
+const activities = ref([
+  { title: '매일 소비 기록 완료', date: '오늘', diff: 10, resultScore: 850 },
+  { title: '목표저축 성공', date: '어제', diff: 5, resultScore: 840 },
+  { title: '예산 초과 소비', date: '2일 전', diff: -3, resultScore: 835 },
+  { title: '퀘스트 완료', date: '3일 전', diff: 8, resultScore: 838 },
+  { title: '가계부 3일 연속 작성', date: '4일 전', diff: 7, resultScore: 830 },
+])
+
+const summaryActivities = computed(() => activities.value.slice(0, 3))
+
+function goBack() { router.push({ name: 'child-home' }) }
+function goGradeDetail() { router.push({ name: 'child-score-grade' }) }
 
 function onTabSelect(key) {
   if (key === 'home')    router.push({ name: 'child-home' })
   if (key === 'my')      router.push({ name: 'child-mypage' })
   if (key === 'q')       router.push({ name: 'qr-scan' })
   if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
-  if (key === 'report')  router.push({ name: 'child-report' })
+  if (key === 'quest')   router.push({ name: 'child-quest-list' })
 }
 </script>
 
 <style scoped>
-.score-screen {
+.score-view {
   box-sizing: border-box;
-  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
   background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
   font-family: 'Pretendard', 'Inter', sans-serif;
 }
 
-.scroll {
+.scroll-area {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 16px 16px;
+  scrollbar-width: none;
+}
+.scroll-area::-webkit-scrollbar { display: none; }
+
+.section-container {
+  padding: 0 16px 12px;
+}
+.section-container.last-section {
+  padding-bottom: 16px;
+}
+
+/* 메인 섹션 */
+.hero-section {
+  padding: 12px 16px 12px;
+}
+
+.top-nav {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.scroll::-webkit-scrollbar {
-  width: 3px;
-}
-
-.scroll::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 999px;
-}
-
-.nav {
-  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  padding: 4px 0 8px;
+  margin-bottom: 12px;
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.back-btn, .q-btn {
+  background: none;
   border: none;
-  background: transparent;
   cursor: pointer;
-  padding: 10px;
-  margin: -10px;
-  min-width: 44px;
-  min-height: 44px;
+  padding: 0;
+  display: flex;
 }
 
 .nav-title {
   margin: 0;
-  font-weight: 700;
   font-size: 17px;
-  color: #15171b;
+  font-weight: 800;
+  color: #0f172a;
 }
 
-.card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 18px 20px;
-  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+.hero-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 18px 16px 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
 }
 
-.card-header {
+.hero-top-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border-bottom: 1.3px solid #f2f4f6;
-  padding-bottom: 12px;
-}
-
-.card-title {
-  font-weight: 700;
-  font-size: 14.5px;
-  color: #191b1e;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .donut-wrap {
@@ -393,7 +343,9 @@ function onTabSelect(key) {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 22px 0 10px;
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
 }
 
 .donut-center {
@@ -404,245 +356,489 @@ function onTabSelect(key) {
 }
 
 .donut-label {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #b9bec5;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94a3b8;
 }
 
 .donut-score {
-  font-size: 34px;
-  font-weight: 800;
-  color: #15171b;
-  letter-spacing: -0.62px;
+  font-size: 32px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -1px;
+  line-height: 1;
 }
 
-.compare-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 18px;
-}
-
-.compare-text {
-  font-size: 12px;
-  color: #8b9097;
-}
-
-.compare-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 9px;
-  background: #e8f4e2;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 12px;
-  color: #62b24a;
-}
-
-.compare-badge.negative {
-  background: #fbe9e9;
-  color: #e5484d;
-}
-
-.progress-wrap {
-  padding: 0 0 18px;
-}
-
-.segment-bar {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.segment {
-  flex: 1;
-  height: 10px;
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
-
-.grade-labels {
-  display: flex;
-  gap: 4px;
-}
-
-.grade-label {
-  flex: 1;
+.donut-max {
   font-size: 10px;
   font-weight: 700;
-  text-align: center;
-  transition: color 0.3s ease;
+  color: #94a3b8;
+  margin-top: 2px;
 }
 
-.encourage-text {
-  text-align: center;
+.grade-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+/* '현재 등급' 문구와 우측 여백의 이미지 마스코트 정돈 */
+.grade-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 2px;
+}
+
+.sub-label {
   font-size: 12px;
-  font-weight: 500;
-  color: #6b7078;
-  padding-top: 14px;
-  border-top: 1.3px solid #f2f4f6;
+  font-weight: 700;
+  color: #94a3b8;
 }
 
-.encourage-text b {
-  color: #ffbc00;
+.current-chick-img-wrap {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -6px;
+}
+
+.chick-avatar-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.08));
+}
+
+.badge-gold-text {
+  font-size: 22px;
+  font-weight: 900;
+  color: #eab308;
+  letter-spacing: 0.5px;
+}
+
+.grade-status-desc {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.4;
+}
+
+/* 게이지 바 */
+.hero-progress-box {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.progress-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 6px;
+}
+
+.gap-text strong {
+  color: #2563eb;
+}
+
+.next-target {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: #facc15;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.hero-detail-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.btn-text {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.chev {
+  font-size: 16px;
+  color: #94a3b8;
+}
+
+/* 카드 공통 스타일 */
+.card {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.card-head-sm {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.card-head-sm .title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.blue-pill {
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.blue-pill.minus {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.diff-sub-text {
+  margin: 2px 0 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.hl-text {
+  color: #2563eb;
   font-weight: 800;
 }
 
-.line-chart-wrap {
-  padding-top: 6px;
-  overflow: visible;
-}
-
-.active-badge {
-  padding: 3px 8px;
-  background: #e8f4e2;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 11px;
-  color: #62b24a;
-}
-
-.benefit-list {
-  padding-top: 4px;
-}
-
-.benefit-row {
+.diff-compare-box {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 13px 0;
+  justify-content: space-around;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 12px;
 }
 
-.benefit-row.border-top {
-  border-top: 1.3px solid #f2f4f6;
-}
-
-.benefit-text {
-  flex: 1;
+.compare-item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-
-.benefit-title {
-  font-weight: 600;
-  font-size: 14.5px;
-  color: #191b1e;
-}
-
-.benefit-desc {
-  font-weight: 500;
-  font-size: 12.5px;
-  color: #b9bec5;
-}
-
-.benefit-dot {
-  width: 6px;
-  height: 6px;
-  background: #62b24a;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.benefit-dot.inactive {
-  background: #d8dbe0;
-}
-
-.score-diff-text {
-  display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 2px;
 }
 
-.diff-val {
+.comp-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.comp-val {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.comp-val.gray { color: #64748b; }
+.comp-val.main { color: #0f172a; }
+
+.diff-arrow {
+  font-size: 16px;
+  font-weight: 800;
+  color: #cbd5e1;
+}
+
+/* 혜택 카드 */
+.benefit-slide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.benefit-slide-header .title {
   font-size: 14px;
   font-weight: 800;
-  color: #4585d6;
+  color: #0f172a;
 }
 
-.diff-val.minus {
-  color: #e5484d;
+.slide-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
 }
 
-.diff-sub {
+.benefit-carousel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.benefit-carousel::-webkit-scrollbar { display: none; }
+
+.benefit-card {
+  flex: 0 0 210px;
+  scroll-snap-align: start;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+}
+
+.benefit-tag {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.benefit-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.benefit-desc {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.carousel-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.carousel-indicators .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: all 0.2s;
+}
+
+.carousel-indicators .dot.active {
+  width: 14px;
+  border-radius: 3px;
+  background: #0f172a;
+}
+
+/* 최근 내역 */
+.history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.history-head .title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.all-link {
+  background: none;
+  border: none;
   font-size: 11.5px;
-  color: #8b9097;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
 }
 
-.activity-list {
-  padding-top: 4px;
+.history-list {
+  display: flex;
+  flex-direction: column;
 }
 
-.activity-row {
+.history-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 13px 0;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid #f8fafc;
 }
 
-.activity-row.border-top {
-  border-top: 1.3px solid #f2f4f6;
+.history-item:first-child { border-top: none; }
+
+.item-left { width: 45px; }
+
+.diff-val {
+  font-size: 13px;
+  font-weight: 900;
+  color: #16a34a;
 }
 
-.activity-text {
+.diff-val.minus { color: #ef4444; }
+
+.item-center {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
 }
 
-.activity-title {
-  font-weight: 600;
-  font-size: 14.5px;
-  color: #15171b;
-}
-
-.activity-desc {
-  font-weight: 500;
+.item-title {
   font-size: 12px;
-  color: #b9bec5;
+  font-weight: 700;
+  color: #1e293b;
 }
 
-.activity-score {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.score-val {
-  font-size: 16.5px;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-}
-
-.score-val.plus {
-  color: #4585d6;
-}
-
-.score-val.minus {
-  color: #e5484d;
-}
-
-.score-unit {
-  font-size: 11px;
-  color: #c6cbd2;
-}
-
-.more-btn {
-  width: 100%;
-  padding: 14px 0 0;
-  border: none;
-  border-top: 1.3px solid #f2f4f6;
-  background: transparent;
+.item-date {
+  font-size: 9.5px;
   font-weight: 600;
-  font-size: 13.5px;
-  color: #8b9097;
+  color: #94a3b8;
+}
+
+.item-result-score {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+/* 티니코치 캐릭터 팁 배너 */
+.coach-tip-banner {
+  background: linear-gradient(135deg, #fffdf0 0%, #fff9d6 100%);
+  border: 1.5px solid #fef08a;
+  border-radius: 22px;
+  padding: 16px 14px 14px;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.08);
+}
+
+.coach-tip-top {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.coach-character-wrap {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: -4px;
+}
+
+.coach-full-mascot {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+}
+
+.coach-speech-box {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #fde047;
+  border-radius: 16px;
+  border-bottom-left-radius: 4px;
+  padding: 10px 12px;
+  flex: 1;
+  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.12);
+}
+
+.speech-header {
+  margin-bottom: 2px;
+}
+
+.coach-tag {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #d97706;
+}
+
+.speech-text {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.35;
+  letter-spacing: -0.2px;
+}
+
+.tip-buttons-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tip-buttons-row::-webkit-scrollbar { display: none; }
+
+.tip-pill {
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
   cursor: pointer;
-  text-align: center;
-  margin-top: 4px;
-  min-height: 44px;
+  transition: transform 0.1s ease;
+}
+
+.tip-pill:active {
+  transform: scale(0.96);
+}
+
+.pill-yellow {
+  background: #ffffff;
+  border: 1.5px solid #fde047;
+  color: #854d0e;
+}
+
+.pill-blue {
+  background: #ffffff;
+  border: 1.5px solid #93c5fd;
+  color: #1e40af;
+}
+
+.pill-green {
+  background: #ffffff;
+  border: 1.5px solid #86efac;
+  color: #166534;
 }
 </style>
