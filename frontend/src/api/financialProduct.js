@@ -1,10 +1,12 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
 // ── 목록 공통 ──
 async function fetchProducts(accessToken, path) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products/${path}`,
@@ -30,7 +32,7 @@ async function fetchProducts(accessToken, path) {
 
 // ── 상세 공통 ──
 async function fetchProductDetail(accessToken, path, productId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products/${path}/${productId}`,

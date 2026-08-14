@@ -60,13 +60,9 @@
               class="selected-child"
             >
               <img
-                :src="
-                  child.profileImageUrl ||
-                  '/src/assets/icons/child-profile.svg'
-                "
+                :src="CHILD_PROFILE_IMAGE"
                 alt=""
                 class="selected-child-avatar"
-                @error="handleImageError"
               />
 
               <span class="selected-child-name">
@@ -372,13 +368,9 @@
 
                 <div class="modal-avatar">
                   <img
-                    :src="
-                      child.profileImageUrl ||
-                      '/src/assets/icons/child-profile.svg'
-                    "
+                    :src="CHILD_PROFILE_IMAGE"
                     alt=""
                     class="modal-avatar-img"
-                    @error="handleImageError"
                   />
                 </div>
 
@@ -682,6 +674,10 @@ import {
 import {
   createQuest,
 } from '@/api/quest'
+
+import {
+  CHILD_PROFILE_IMAGE,
+} from '@/utils/profileImages'
 
 
 const router =
@@ -1220,9 +1216,7 @@ async function loadChildren() {
             name:
               child.name,
 
-            profileImageUrl:
-              child.profileImageUrl ||
-              null,
+            profileImageUrl: CHILD_PROFILE_IMAGE,
           })
         )
 
@@ -1332,19 +1326,6 @@ function addAmount(
         form.value.rewardAmount
       ) || 0
     ) + value
-}
-
-
-// =========================
-// 이미지 오류
-// =========================
-
-function handleImageError(
-  event
-) {
-
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
 }
 
 
@@ -1603,7 +1584,8 @@ async function handleCreate() {
 
   border-radius: 50%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .selected-child-name {
@@ -2085,7 +2067,8 @@ async function handleCreate() {
   width: 100%;
   height: 100%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .modal-child-name {

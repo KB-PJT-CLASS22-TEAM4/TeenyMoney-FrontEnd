@@ -161,15 +161,31 @@
 
       <!-- 정렬 -->
       <div class="sort-area">
-
         <button
           type="button"
           class="sort-button"
           @click="toggleSort"
         >
-          {{ selectedSort === 'DESC' ? '최신순' : '과거순' }}
+          <span class="sort-label">
+            {{ selectedSort === 'DESC' ? '최신순' : '과거순' }}
+          </span>
+          <svg
+            class="sort-switch-icon"
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M7 10l5-5 5 5M7 14l5 5 5-5"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
-
       </div>
 
 
@@ -421,11 +437,8 @@ async function fetchWallet() {
   try {
 
     if (!authStore.accessToken) {
-
-      router.replace('/login')
-
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
       return
-
     }
 
 
@@ -451,9 +464,7 @@ async function fetchWallet() {
 
     if (error.status === 401) {
 
-      authStore.clearUser()
-
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
 
     }
 
@@ -479,11 +490,8 @@ async function fetchTransactions() {
   try {
 
     if (!authStore.accessToken) {
-
-      router.replace('/login')
-
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
       return
-
     }
 
 
@@ -520,9 +528,7 @@ async function fetchTransactions() {
 
     if (error.status === 401) {
 
-      authStore.clearUser()
-
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
 
       return
 
@@ -768,7 +774,7 @@ button {
 
   color: #191b1e;
 
-  background-color: #f4f5f7;
+  background-color: #ffffff;
 }
 
 
@@ -787,6 +793,10 @@ button {
   height: 64px;
 
   padding: 0 20px 4px;
+
+  border-bottom: 1px solid #f0f1f3;
+
+  background-color: #ffffff;
 }
 
 .back-icon {
@@ -855,6 +865,10 @@ button {
   border-radius: 16px;
 
   background-color: #ffffff;
+
+  border: 1px solid #eaedf1;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .wallet-logo {
@@ -936,11 +950,11 @@ button {
 }
 
 .tab-active {
-  border-color: #191b1e;
+  border-color: #ffbc00;
 
-  color: #ffffff;
+  color: #191b1e;
 
-  background-color: #191b1e;
+  background-color: #ffbc00;
 }
 
 .tab-period {
@@ -1015,6 +1029,10 @@ button {
 }
 
 .sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
   padding: 4px 6px;
 
   border: none;
@@ -1026,6 +1044,15 @@ button {
   background: transparent;
 
   cursor: pointer;
+}
+
+.sort-label {
+  line-height: 1;
+}
+
+.sort-switch-icon {
+  flex-shrink: 0;
+  color: #8b9097;
 }
 
 
@@ -1057,9 +1084,13 @@ button {
 .transaction-card {
   overflow: hidden;
 
-  border-radius: 14px;
+  border-radius: 16px;
 
   background-color: #ffffff;
+
+  border: 1px solid #eaedf1;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 
@@ -1129,11 +1160,11 @@ button {
 }
 
 .transaction-amount.positive {
-  color: #2878d0;
+  color: #3178c6;
 }
 
 .transaction-amount.negative {
-  color: #191b1e;
+  color: #ef4444;
 }
 
 .transaction-balance {

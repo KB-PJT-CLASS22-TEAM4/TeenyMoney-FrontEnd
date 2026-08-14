@@ -1,10 +1,12 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
 // 오늘만 허용 요청 조회
 export async function getPermissions(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const params = new URLSearchParams()
   if (childId) {
@@ -40,7 +42,7 @@ export async function getPermissions(accessToken, childId) {
 
 // 오늘만 허용 요청 이력 조회
 export async function getPermissionHistory(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
   if (!childId) throw new Error('자녀 정보가 필요합니다.')
 
   const response = await fetch(
@@ -74,7 +76,7 @@ export async function getPermissionHistory(accessToken, childId) {
 
 // 오늘만 허용 요청 승인
 export async function approvePermission(accessToken, permissionId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/permissions/${permissionId}/approve`,
@@ -103,7 +105,7 @@ export async function approvePermission(accessToken, permissionId) {
 
 // 오늘만 허용 요청 거절
 export async function rejectPermission(accessToken, permissionId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/permissions/${permissionId}/reject`,
@@ -132,7 +134,7 @@ export async function rejectPermission(accessToken, permissionId) {
 
 // 오늘만 허용 요청 (자녀)
 export async function requestPermission(accessToken, { categories, reason }) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/permissions`,
@@ -163,7 +165,7 @@ export async function requestPermission(accessToken, { categories, reason }) {
 
 // 오늘만 허용 요청 수정
 export async function updatePermission(accessToken, permissionId, { categories, reason }) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/permissions/${permissionId}`,
@@ -197,7 +199,7 @@ export async function updatePermission(accessToken, permissionId, { categories, 
 
 // 오늘만 허용 요청 취소
 export async function cancelPermission(accessToken, permissionId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/permissions/${permissionId}`,

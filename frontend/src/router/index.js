@@ -69,7 +69,6 @@ import ChildList from '@/pages/Parents/Child/ChildList.vue';
 import LinkCode from '@/pages/Parents/Link/LinkCode.vue';
 
 import Charge from '@/pages/Parents/Charge/Charge.vue'
-import AutoCharge from '@/pages/Parents/Charge/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charge/Charging.vue'
 import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
@@ -84,6 +83,8 @@ import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete
 import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
 import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
+import ChildFinance from '@/pages/Parents/Child/ChildFinance.vue'
+import FinanceProductCreate from '@/pages/Parents/Child/FinanceProductCreate.vue'
 import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
 import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
@@ -97,18 +98,21 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage,
+      meta: { public: true },
     },
     // 로그인 페이지
     {
     path: '/login',
     name: 'login',
-    component: LoginView
+    component: LoginView,
+    meta: { public: true },
     },
     // 회원가입 페이지
     {
       path: '/signup',
       name: 'signup',
       component: Signup,
+      meta: { public: true },
     },
     // 자녀 연동 코드 입력 페이지
     {
@@ -168,11 +172,6 @@ const router = createRouter({
     { path: '/parents/charge', 
       name: 'charge', 
       component:Charge 
-    },
-    // 자동 충전 페이지
-    { path: '/parents/charge/auto', 
-      name: 'auto-charge', 
-      component: AutoCharge 
     },
     // 충전 진행 중 페이지
     { path: '/parents/charge/charging', 
@@ -399,6 +398,16 @@ const router = createRouter({
     name: 'parents-child-detail',
     component: ChildDetail,
   },
+  {
+    path: '/parents/children/:childId/finance',
+    name: 'parents-child-finance',
+    component: ChildFinance,
+  },
+  {
+    path: '/parents/children/:childId/finance/create',
+    name: 'parents-child-finance-create',
+    component: FinanceProductCreate,
+  },
   { 
     path: '/parents/children/:childId/teeny-score', 
     name: 'teeny-score', 
@@ -483,6 +492,16 @@ const router = createRouter({
   path: '/parents/children/:childId',
   name: 'parents-child-detail',
   component: ChildDetail,
+},
+{
+  path: '/parents/children/:childId/finance',
+  name: 'parents-child-finance',
+  component: ChildFinance,
+},
+{
+  path: '/parents/children/:childId/finance/create',
+  name: 'parents-child-finance-create',
+  component: FinanceProductCreate,
 },
 { 
   path: '/parents/children/:childId/teeny-score', 

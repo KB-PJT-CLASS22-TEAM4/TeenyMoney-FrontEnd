@@ -70,7 +70,7 @@
         <div class="hero-mascot-wrap">
 
           <img
-            :src="teenyScoreMascot"
+            :src="CHILD_DETAIL_MASCOT"
             class="hero-mascot"
             alt="티니"
           />
@@ -141,7 +141,7 @@
               </span>
 
               <span class="progress-target">
-                {{ child.score }} / 1000점
+                {{ child.score }} / {{ child.maxScore || 1000 }}점
               </span>
 
             </div>
@@ -337,134 +337,61 @@
           class="finance-scroll"
           @scroll="onScroll"
         >
-
-          <!-- 예적금 -->
-          <div class="finance-product-card">
-
+          <div
+            v-for="card in financePreviewCards"
+            :key="card.key"
+            class="finance-product-card"
+          >
             <div class="finance-product-top">
-
-              <div class="product-tag saving-tag">
-                예적금
+              <div class="product-tag" :class="card.tagClass">
+                {{ card.tagLabel }}
               </div>
 
-              <span class="product-rate">
-                +2.4%
+              <span
+                v-if="card.badge"
+                class="product-rate"
+                :class="card.badgeClass"
+              >
+                {{ card.badge }}
               </span>
-
             </div>
 
-
             <p class="product-name">
-              티니 정기예금
+              {{ card.title }}
             </p>
 
             <p class="product-sub">
-              외 1건
+              {{ card.subtitle }}
             </p>
 
-
             <div class="product-bottom">
-
               <span class="product-label">
-                보유 금액
+                {{ card.amountLabel }}
               </span>
 
               <strong class="product-amount">
-                1,200,000원
+                {{ card.amountText }}
               </strong>
-
             </div>
-
           </div>
 
-
-          <!-- 대출 -->
-          <div class="finance-product-card">
-
-            <div class="finance-product-top">
-
-              <div class="product-tag loan-tag">
-                빌리기
-              </div>
-
-              <span class="product-dday">
-                D-3
-              </span>
-
-            </div>
-
-
-            <p class="product-name">
-              엄마표 소액대출
-            </p>
-
-            <p class="product-sub">
-              상환 예정
-            </p>
-
-
-            <div class="product-bottom">
-
-              <span class="product-label">
-                남은 금액
-              </span>
-
-              <strong class="product-amount">
-                5,000원
-              </strong>
-
-            </div>
-
+          <div
+            v-if="!financePreviewCards.length"
+            class="finance-empty-card"
+          >
+            등록된 금융 상품이 없습니다
           </div>
-
-
-          <!-- 투자 -->
-          <div class="finance-product-card">
-
-            <div class="finance-product-top">
-
-              <div class="product-tag investment-tag">
-                투자
-              </div>
-
-              <span class="product-rate">
-                +12.5%
-              </span>
-
-            </div>
-
-
-            <p class="product-name">
-              모의 주식 투자
-            </p>
-
-            <p class="product-sub">
-              투자 현황
-            </p>
-
-
-            <div class="product-bottom">
-
-              <span class="product-label">
-                평가 금액
-              </span>
-
-              <strong class="product-amount">
-                245,600원
-              </strong>
-
-            </div>
-
-          </div>
-
         </div>
 
 
         <!-- 슬라이드 인디케이터 -->
-        <div class="indicator">
+        <div
+          v-if="financePreviewCards.length > 1"
+          class="indicator"
+        >
 
           <span
-            v-for="(_, index) in financeCards"
+            v-for="(_, index) in financePreviewCards"
             :key="index"
             class="dot"
             :class="{
@@ -494,6 +421,7 @@ import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 
 import {
   computed,
+  onMounted,
   ref
 } from 'vue'
 
@@ -502,12 +430,21 @@ import {
   useRouter
 } from 'vue-router'
 
+import { useAuthStore } from '@/stores/auth'
+import { getChildren } from '@/api/children'
+import { getTeenyScore } from '@/api/teenyScore'
+import * as financialProductsApi from '@/api/financialProducts'
+import { fetchAllChildFinancialProducts } from '@/utils/financialProductMapper'
+import { CHILD_DETAIL_MASCOT } from '@/utils/profileImages'
+
 
 const router =
   useRouter()
 
 const route =
   useRoute()
+
+const authStore = useAuthStore()
 
 
 // ========================================
@@ -534,13 +471,19 @@ const child =
   ref({
     id: childId,
 
-    name: '김첫째',
+    name: '자녀',
 
     balance: 42500,
 
-    score: 820,
+    score: 0,
 
-    grade: '우수 등급',
+    grade: '-',
+
+    gradeColor: '#3b82f6',
+
+    minScore: 0,
+
+    maxScore: 1000,
 
     harmfulAttemptCount: 2,
   })
@@ -552,13 +495,22 @@ const child =
 
 const scorePercent =
   computed(() => {
+    const min = child.value.minScore ?? 0
+    const max = child.value.maxScore ?? 1000
+    const range = max - min
 
-    const score =
-      child.value.score
+    if (range <= 0) {
+      return Math.min(
+        Math.max(child.value.score / 10, 0),
+        100
+      )
+    }
+
+    const current = child.value.score - min
 
     return Math.min(
       Math.max(
-        score / 10,
+        (current / range) * 100,
         0
       ),
       100
@@ -588,12 +540,115 @@ function goToHarmfulCategory() {
 // 금융상품 슬라이드 UI
 // ========================================
 
-const financeCards = [
-  'saving',
-  'loan',
-  'investment',
-]
+const financeProducts = ref([])
 
+const financePreviewCards = computed(() => {
+  const activeItems = financeProducts.value.filter(
+    (item) => !item.isPending && item.status !== 'REJECTED'
+  )
+
+  const groups = [
+    {
+      key: 'saving-deposit',
+      tagLabel: '예적금',
+      tagClass: 'saving-tag',
+      categories: ['적금', '예금'],
+      amountLabel: '보유 금액',
+    },
+    {
+      key: 'loan',
+      tagLabel: '빌리기',
+      tagClass: 'loan-tag',
+      categories: ['대출'],
+      amountLabel: '남은 금액',
+    },
+  ]
+
+  return groups
+    .map((group) => {
+      const items = activeItems.filter((item) =>
+        group.categories.includes(item.category)
+      )
+
+      if (!items.length) return null
+
+      const totalAmount = items.reduce(
+        (sum, item) => sum + (item.accumulatedAmount || 0),
+        0
+      )
+
+      return {
+        key: group.key,
+        tagLabel: group.tagLabel,
+        tagClass: group.tagClass,
+        title: items[0].title,
+        subtitle: items.length > 1 ? `외 ${items.length - 1}건` : items[0].rateText,
+        amountLabel: group.amountLabel,
+        amountText: `${totalAmount.toLocaleString()}원`,
+        badge: group.key === 'loan' ? items[0].maturityDate : items[0].rateText,
+        badgeClass: group.key === 'loan' ? 'product-dday' : '',
+      }
+    })
+    .filter(Boolean)
+})
+
+async function fetchTeenyScore() {
+  try {
+    const res = await getTeenyScore(authStore.accessToken, childId)
+
+    if (!res.success) return
+
+    const data = res.data
+
+    child.value.score = data.teenyScore ?? 0
+    child.value.grade = data.gradeName
+      ? `${data.gradeName} 등급`
+      : '-'
+    child.value.gradeColor = data.color ?? '#3b82f6'
+    child.value.minScore = data.minScore ?? 0
+    child.value.maxScore = data.maxScore ?? 1000
+  } catch (error) {
+    console.error('티니점수 조회 실패:', error)
+  }
+}
+
+async function fetchChildInfo() {
+  try {
+    const res = await getChildren(authStore.accessToken)
+    const matched = res.data?.find(
+      (item) => Number(item.childId) === childId
+    )
+
+    if (matched) {
+      child.value.name = matched.name
+    }
+  } catch (error) {
+    console.error('자녀 정보 조회 실패:', error)
+  }
+}
+
+async function fetchFinancePreview() {
+  try {
+    financeProducts.value = await fetchAllChildFinancialProducts(
+      authStore.accessToken,
+      childId,
+      financialProductsApi
+    )
+  } catch (error) {
+    console.error('금융 상품 미리보기 조회 실패:', error)
+    financeProducts.value = []
+  }
+}
+
+onMounted(async () => {
+  if (!authStore.accessToken) return
+
+  await Promise.all([
+    fetchChildInfo(),
+    fetchTeenyScore(),
+    fetchFinancePreview(),
+  ])
+})
 const activeCard =
   ref(0)
 
@@ -607,6 +662,13 @@ function onScroll() {
     scrollRef.value
 
   if (!el) {
+    return
+  }
+
+  const cardCount = financePreviewCards.value.length
+
+  if (cardCount <= 1) {
+    activeCard.value = 0
     return
   }
 
@@ -624,22 +686,13 @@ function onScroll() {
     Math.round(
       ratio *
       (
-        financeCards.length -
+        cardCount -
         1
       )
     )
 }
 
 
-// ========================================
-// ChildHome과 동일한 캐릭터
-// ========================================
-
-const teenyScoreMascot =
-  new URL(
-    '@/assets/mascot/teeny-coach.png',
-    import.meta.url
-  ).href
 </script>
 
 
@@ -1475,6 +1528,19 @@ const teenyScoreMascot =
   background: #ffffff;
 
   scroll-snap-align: start;
+}
+
+.finance-empty-card {
+  flex: 0 0 244px;
+  min-height: 125px;
+  padding: 14px;
+  border: 1px dashed #e8edf3;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8b9097;
+  font-size: 13px;
 }
 
 
