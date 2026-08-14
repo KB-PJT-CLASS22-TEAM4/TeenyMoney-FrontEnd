@@ -210,3 +210,66 @@ export async function fetchAllChildFinancialProducts(accessToken, childId, api) 
 
   return merged
 }
+
+export function extractApprovalRequestList(payload) {
+  return extractFinancialProductList(payload)
+}
+
+function normalizeApprovalStatus(rawStatus) {
+  const raw = String(rawStatus ?? 'PENDING')
+
+  return (
+    STATUS_NORMALIZE[raw]
+    ?? STATUS_NORMALIZE[raw.toUpperCase()]
+    ?? raw.toUpperCase()
+  )
+}
+
+export function normalizeApprovalRequest(item) {
+  const productType = item?.productType ?? 'SAVING'
+  const category = toCategoryLabel(productType)
+  const status = normalizeApprovalStatus(item?.status)
+
+  return {
+    enrollmentId: item?.enrollmentId ?? item?.id,
+    productType,
+    category,
+    title: item?.productName ?? '금융 상품',
+    childId: item?.childId,
+    childName: item?.childName ?? '자녀',
+    requestedAmount: item?.requestedAmount ?? 0,
+    monthlyAmount: item?.requestedAmount ?? 0,
+    termMonths: item?.termMonths ?? 0,
+    expectedAppliedRate: item?.expectedAppliedRate,
+    rateText: formatRate(item?.expectedAppliedRate),
+    requestedAt: item?.requestedAt,
+    autoTransfer: item?.autoTransfer ?? false,
+    interestCalculationType: item?.interestCalculationType,
+    earlyTerminationRate: item?.earlyTerminationRate,
+    lateFeeRate: item?.lateFeeRate,
+    paymentDay: item?.paymentDay,
+    repaymentType: item?.repaymentType,
+    savingsType: item?.savingsType,
+    productId: item?.productId,
+    status,
+    statusLabel:
+      status === 'PENDING'
+        ? '승인 대기'
+        : status === 'APPROVED'
+          ? '승인'
+          : status === 'REJECTED'
+            ? '거절'
+            : status,
+    isPending: PENDING_STATUSES.has(status),
+    isCompleted: status === 'APPROVED' || status === 'REJECTED',
+  }
+}
+
+export async function fetchChildApprovalRequests(accessToken, childId, api) {
+  const res = await api.getFinancialProductApprovalRequests(accessToken)
+  const items = extractApprovalRequestList(res.data)
+
+  return items
+    .filter((item) => Number(item?.childId) === Number(childId))
+    .map((item) => normalizeApprovalRequest(item))
+}
