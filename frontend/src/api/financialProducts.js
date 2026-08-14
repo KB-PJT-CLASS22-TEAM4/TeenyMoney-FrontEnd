@@ -91,12 +91,28 @@ export async function getChildLoanProducts(accessToken, childId) {
   return parseResponse(response)
 }
 
+function toProductPathSegment(productType) {
+  const map = {
+    SAVING: 'saving',
+    SAVINGS: 'saving',
+    DEPOSIT: 'deposit',
+    LOAN: 'loan',
+    적금: 'saving',
+    예금: 'deposit',
+    대출: 'loan',
+  }
+
+  return map[productType] || 'saving'
+}
+
 // 부모 금융상품 등록
 export async function createFinancialProduct(accessToken, payload) {
   ensureAccessToken(accessToken)
 
+  const segment = toProductPathSegment(payload?.productType)
+
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products`,
+    `${API_BASE_URL}/api/v1/financial-products/${segment}`,
     {
       method: 'POST',
       headers: authHeaders(accessToken, true),
