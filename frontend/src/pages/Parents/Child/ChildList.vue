@@ -15,7 +15,7 @@
         <div v-for="child in children" :key="child.id" class="child-card">
           <div class="child-info">
             <img
-              :src="child.profileImageUrl || '/src/assets/icons/child-profile.svg'"
+              :src="CHILD_PROFILE_IMAGE"
               alt=""
               class="child-avatar"
             />
@@ -72,6 +72,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -88,7 +89,7 @@ onMounted(async () => {
         email: child.email,
         balance: child.balance,
         points: child.teenyScore,
-        profileImageUrl: child.profileImageUrl,
+        profileImageUrl: CHILD_PROFILE_IMAGE,
       }))
     }
   } catch (error) {
@@ -196,7 +197,8 @@ function goToDetail(id) {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .child-name {

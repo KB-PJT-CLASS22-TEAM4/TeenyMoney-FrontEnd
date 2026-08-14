@@ -51,13 +51,9 @@
           >
             <div class="selected-avatar">
               <img
-                :src="
-                  selectedChild.profileImageUrl ||
-                  '/src/assets/icons/child-profile.svg'
-                "
+                :src="CHILD_PROFILE_IMAGE"
                 alt=""
                 class="selected-avatar-img"
-                @error="handleChildImageError"
               />
             </div>
 
@@ -261,13 +257,9 @@
               <div class="modal-child-left">
                 <div class="modal-avatar">
                   <img
-                    :src="
-                      child.profileImageUrl ||
-                      '/src/assets/icons/child-profile.svg'
-                    "
+                    :src="CHILD_PROFILE_IMAGE"
                     alt=""
                     class="modal-avatar-img"
-                    @error="handleModalImageError"
                   />
                 </div>
 
@@ -323,6 +315,7 @@ import {
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -407,8 +400,7 @@ async function fetchChildren() {
         child => ({
           id: child.childId,
           name: child.name,
-          profileImageUrl:
-            child.profileImageUrl || '',
+          profileImageUrl: CHILD_PROFILE_IMAGE,
         })
       )
     }
@@ -442,16 +434,6 @@ function selectChild(child) {
 
 
 // 이미지 에러
-function handleChildImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
-function handleModalImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
 
 // 빠른 금액 입력
 function addAmount(value) {
@@ -609,7 +591,8 @@ button {
 .selected-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .selected-child-name {
@@ -948,7 +931,8 @@ button {
   width: 100%;
   height: 100%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 :global(.modal-child-name) {

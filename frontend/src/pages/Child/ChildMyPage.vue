@@ -6,6 +6,10 @@ import { getMyInfo, getLinkedParent } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 import { logout as logoutApi } from '@/api/auth';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import {
+  CHILD_PROFILE_IMAGE,
+  PARENT_PROFILE_IMAGE,
+} from '@/utils/profileImages';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -129,10 +133,7 @@ function onScroll() {
       <!-- 프로필 -->
       <section class="profile">
         <div class="avatar">
-          <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
-            <circle cx="16" cy="12" r="5" stroke="#b9bec5" stroke-width="2.2"/>
-            <path d="M6 27c0-5 4.5-8 10-8s10 3 10 8" stroke="#b9bec5" stroke-width="2.2"/>
-          </svg>
+          <img :src="CHILD_PROFILE_IMAGE" alt="" class="avatar-img" />
         </div>
         <div class="profile-text">
           <p class="profile-name">{{ user.name }}</p>
@@ -172,11 +173,7 @@ function onScroll() {
 
         <div v-if="parent" class="parent-row">
           <div class="parent-avatar">
-            <img v-if="parent.profileImageUrl" :src="parent.profileImageUrl" alt="" class="parent-avatar-img">
-            <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none">
-              <circle cx="12" cy="9" r="3.5" stroke="#b9bec5" stroke-width="1.8"/>
-              <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="#b9bec5" stroke-width="1.8"/>
-            </svg>
+            <img :src="PARENT_PROFILE_IMAGE" alt="" class="parent-avatar-img">
           </div>
           <div class="parent-text">
             <b class="parent-name">{{ parent.name }}</b>
@@ -295,6 +292,13 @@ function onScroll() {
   background: #f2f4f6;
   border-radius: 50%;
   flex: none;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .profile-name {
@@ -404,7 +408,7 @@ function onScroll() {
 .parent-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .parent-text {

@@ -209,11 +209,14 @@ import {
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet } from '@/api/wallet'
+import {
+  PARENT_PROFILE_IMAGE,
+} from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const parentMascot = new URL('@/assets/mascot/teeny-parent.png', import.meta.url).href
+const parentMascot = PARENT_PROFILE_IMAGE
 
 const isWalletLoading = ref(false)
 const walletError = ref('')

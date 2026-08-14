@@ -58,40 +58,10 @@
         <div class="profile-image-wrapper">
 
           <img
-            v-if="member.profileImageUrl"
-            :src="member.profileImageUrl"
+            :src="PARENT_PROFILE_IMAGE"
             alt="프로필 이미지"
             class="profile-image"
-            @error="handleProfileImageError"
           />
-
-          <div
-            v-else
-            class="default-profile"
-          >
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 52 52"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                cx="26"
-                cy="17"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-
-              <path
-                d="M9 46C9 35.5066 16.6112 29 26 29C35.3888 29 43 35.5066 43 46"
-                stroke="currentColor"
-                stroke-width="4"
-                stroke-linecap="round"
-              />
-            </svg>
-          </div>
         </div>
 
         <div class="profile-text">
@@ -210,17 +180,9 @@
               <div class="child-info">
 
                 <img
-                  :src="
-                    child.profileImageUrl
-                      || '/src/assets/icons/child-profile.svg'
-                  "
+                  :src="CHILD_PROFILE_IMAGE"
                   alt=""
                   class="child-icon"
-                  @error="
-                    (e) =>
-                      e.target.src =
-                        '/src/assets/icons/child-profile.svg'
-                  "
                 />
 
                 <div class="child-text">
@@ -352,6 +314,10 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
 import { getChildren } from '@/api/children'
+import {
+  PARENT_PROFILE_IMAGE,
+  CHILD_PROFILE_IMAGE,
+} from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -600,14 +566,6 @@ async function disconnectChild(child) {
 }
 
 /* =========================
-   프로필 이미지 에러
-========================= */
-
-function handleProfileImageError() {
-  member.profileImageUrl = ''
-}
-
-/* =========================
    로그인 이동
 ========================= */
 
@@ -815,27 +773,12 @@ button {
   height: 86px;
 }
 
-.profile-image,
-.default-profile {
-  width: 100%;
-  height: 100%;
-
-  border-radius: 50%;
-}
-
 .profile-image {
   display: block;
-
-  object-fit: cover;
-}
-
-.default-profile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  color: #b8bdc5;
-
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
   background-color: #f4f5f7;
 }
 
@@ -1063,7 +1006,8 @@ button {
 
   border-radius: 50%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .child-text {
