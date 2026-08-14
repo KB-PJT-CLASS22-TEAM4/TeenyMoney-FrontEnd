@@ -71,17 +71,29 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import QrcodeVue from 'qrcode.vue'
+import { getMyWallet } from '@/api/wallet'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // [API] 실제로는 서버에서 결제용 QR 값을 발급받아야 함
 // 예) GET /api/child/payment/qr → { qrValue, expiresIn }
 //  지금은 더미 값으로 QR 무늬만 그림
 const qrValue = ref('TEENYMONEY_PAY_TEST_12345')
 
-// [API] 실제 잔액 조회 (지금은 더미)
-const balance = ref('342,000')
+// 지갑 잔액 (GET /api/v1/wallet/me 로 실제 연동)
+const balance = ref('0')
 const showBalance = ref(true)
+
+async function fetchBalance() {
+  try {
+    const result = await getMyWallet(authStore.accessToken)
+    balance.value = result.data.balance.toLocaleString()
+  } catch (e) {
+    console.error(e.message)
+  }
+}
 
 // 유효시간 카운트다운 (3분)
 const remainSec = ref(180)
@@ -94,6 +106,7 @@ const formattedTime = computed(() => {
 })
 
 onMounted(() => {
+  fetchBalance()
   timer = setInterval(() => {
     if (remainSec.value > 0) remainSec.value--
   }, 1000)
