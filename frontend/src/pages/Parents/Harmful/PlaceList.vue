@@ -280,11 +280,7 @@ async function fetchPlaces() {
 
   if (!authStore.accessToken) {
 
-    alert('로그인이 필요합니다.')
-
-    authStore.clearUser()
-
-    router.replace('/login')
+    authStore.handleUnauthorized('서비스를 이용하려면 로그인해 주세요.')
 
     return
   }
@@ -361,15 +357,9 @@ async function fetchPlaces() {
      * 401 처리가 가능
      */
     if (error?.status === 401) {
-
-      authStore.clearUser()
-
-      alert(
-        '로그인 세션이 만료되었습니다.'
+      authStore.handleUnauthorized(
+        '로그인이 만료되었습니다.\n다시 로그인해 주세요.'
       )
-
-      router.replace('/login')
-
       return
     }
 
@@ -448,11 +438,7 @@ async function handleSave() {
 
   if (!authStore.accessToken) {
 
-    alert('로그인이 필요합니다.')
-
-    authStore.clearUser()
-
-    router.replace('/login')
+    authStore.handleUnauthorized('서비스를 이용하려면 로그인해 주세요.')
 
     return
   }
@@ -546,15 +532,9 @@ async function handleSave() {
 
 
     if (error?.status === 401) {
-
-      authStore.clearUser()
-
-      alert(
-        '로그인 세션이 만료되었습니다.'
+      authStore.handleUnauthorized(
+        '로그인이 만료되었습니다.\n다시 로그인해 주세요.'
       )
-
-      router.replace('/login')
-
       return
     }
 

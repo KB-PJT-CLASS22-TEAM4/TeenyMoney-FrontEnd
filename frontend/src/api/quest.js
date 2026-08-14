@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -16,9 +18,7 @@ export async function getQuests(
   childId = null,
   cursor = null
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const params = new URLSearchParams()
 

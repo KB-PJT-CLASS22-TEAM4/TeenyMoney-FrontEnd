@@ -1,12 +1,12 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
 // 내 지갑 잔액 + 최근 거래내역 3건 조회
 export async function getMyWallet(accessToken) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/wallet/me`,
@@ -44,9 +44,7 @@ export async function getMyTransactions(
     type = 'ALL',
   } = {}
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const params = new URLSearchParams({
     period,

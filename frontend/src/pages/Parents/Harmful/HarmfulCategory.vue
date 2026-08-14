@@ -534,8 +534,7 @@ async function fetchCategoryPolicies() {
   }
 
   if (!authStore.accessToken) {
-    alert('로그인이 필요합니다.')
-    router.replace('/login')
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
     return
   }
 
@@ -727,9 +726,7 @@ onMounted(async () => {
 
   if (!authStore.accessToken) {
 
-    alert('로그인이 필요합니다.')
-
-    router.replace('/login')
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
 
     return
   }

@@ -1,12 +1,12 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
 // 연동된 자녀 목록 조회
 export async function getChildren(accessToken) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/members/me/children`,

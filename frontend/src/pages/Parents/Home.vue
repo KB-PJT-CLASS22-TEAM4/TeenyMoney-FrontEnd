@@ -338,9 +338,7 @@ async function fetchWallet() {
     // Access Token 만료 시
     if (error.status === 401) {
 
-      authStore.clearUser()
-
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
 
       return
     }

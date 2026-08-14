@@ -476,11 +476,7 @@ async function fetchMyInfo() {
     )
 
     if (error.status === 401) {
-      authStore.clearUser()
-
-      errorMessage.value =
-        '로그인이 필요합니다.'
-
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
       return
     }
 
@@ -616,8 +612,7 @@ function handleProfileImageError() {
 ========================= */
 
 function goToLogin() {
-  authStore.clearUser()
-  router.replace('/login')
+  authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
 }
 
 /* =========================
@@ -673,7 +668,6 @@ function logout() {
   }
 
   authStore.clearUser()
-
   router.replace('/login')
 }
 

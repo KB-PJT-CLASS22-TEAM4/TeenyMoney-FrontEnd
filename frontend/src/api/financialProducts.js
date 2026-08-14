@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -33,7 +35,7 @@ function authHeaders(accessToken, withJson = false) {
 
 // 자녀 가입 전체 금융상품 목록
 export async function getChildFinancialProducts(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
   if (!childId) throw new Error('자녀 정보가 필요합니다.')
 
   const response = await fetch(
@@ -48,7 +50,7 @@ export async function getChildFinancialProducts(accessToken, childId) {
 }
 
 export async function getChildSavingProducts(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products/children/${childId}/saving`,
@@ -62,7 +64,7 @@ export async function getChildSavingProducts(accessToken, childId) {
 }
 
 export async function getChildDepositProducts(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products/children/${childId}/deposit`,
@@ -76,7 +78,7 @@ export async function getChildDepositProducts(accessToken, childId) {
 }
 
 export async function getChildLoanProducts(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products/children/${childId}/loan`,
@@ -91,7 +93,7 @@ export async function getChildLoanProducts(accessToken, childId) {
 
 // 부모 금융상품 등록
 export async function createFinancialProduct(accessToken, payload) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products`,
@@ -112,7 +114,7 @@ export async function approveFinancialEnrollment(
   category,
   enrollmentId
 ) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const pathMap = {
     적금: 'saving',
@@ -139,7 +141,7 @@ export async function rejectFinancialEnrollment(
   category,
   enrollmentId
 ) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const pathMap = {
     적금: 'saving',

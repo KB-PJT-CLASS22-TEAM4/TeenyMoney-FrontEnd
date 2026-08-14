@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 // 마이페이지 조회 API
 
 const API_BASE_URL = import.meta.env.DEV
@@ -13,9 +15,7 @@ console.log(import.meta.env.VITE_API_BASE_URL)
 
 // 부모 마이페이지 조회
 export async function getMyInfo(accessToken) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/members/me`,
@@ -47,7 +47,7 @@ export async function getMyInfo(accessToken) {
 
 // 연동된 부모 조회
 export async function getLinkedParent(accessToken) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
  
   const API_BASE_URL = import.meta.env.DEV
     ? ''

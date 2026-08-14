@@ -99,18 +99,21 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage,
+      meta: { public: true },
     },
     // 로그인 페이지
     {
     path: '/login',
     name: 'login',
-    component: LoginView
+    component: LoginView,
+    meta: { public: true },
     },
     // 회원가입 페이지
     {
       path: '/signup',
       name: 'signup',
       component: Signup,
+      meta: { public: true },
     },
     // 자녀 연동 코드 입력 페이지
     {

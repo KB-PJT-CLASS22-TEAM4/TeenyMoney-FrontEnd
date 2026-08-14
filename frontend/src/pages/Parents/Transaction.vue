@@ -421,11 +421,8 @@ async function fetchWallet() {
   try {
 
     if (!authStore.accessToken) {
-
-      router.replace('/login')
-
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
       return
-
     }
 
 
@@ -451,9 +448,7 @@ async function fetchWallet() {
 
     if (error.status === 401) {
 
-      authStore.clearUser()
-
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
 
     }
 
@@ -479,11 +474,8 @@ async function fetchTransactions() {
   try {
 
     if (!authStore.accessToken) {
-
-      router.replace('/login')
-
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
       return
-
     }
 
 
@@ -520,9 +512,7 @@ async function fetchTransactions() {
 
     if (error.status === 401) {
 
-      authStore.clearUser()
-
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
 
       return
 

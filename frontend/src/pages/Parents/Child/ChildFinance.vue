@@ -369,9 +369,9 @@ function goCreate() {
 
 onMounted(async () => {
   if (!authStore.accessToken) {
-    router.replace('/login')
-    return
-  }
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+      return
+    }
 
   await Promise.all([
     fetchChildInfo(),
