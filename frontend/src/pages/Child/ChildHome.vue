@@ -2,7 +2,7 @@
   <div class="child-home">
     <div class="scroll-area">
 
-      <!-- 상단 영역 (일러스트 배경 + 인사말 + 캐릭터 + 통합 점수카드) -->
+      <!-- 상단 히어로 영역 (일러스트 배경 + 인사말 + 캐릭터 + 통합 점수카드) -->
       <section class="hero-section">
         <!-- 상단 네비바 -->
         <header class="top-nav">
@@ -11,7 +11,6 @@
             <span class="brand-title">티니머니</span>
           </div>
           <div class="nav-actions">
-            <!-- 알림 버튼 -->
             <button class="bell-btn" @click="goNotification">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
                 <path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#333" stroke-width="1.8" stroke-linejoin="round"/>
@@ -22,7 +21,7 @@
           </div>
         </header>
 
-       <!-- 인사말 텍스트 -->
+        <!-- 인사말 텍스트 -->
         <div class="hero-text">
           <h2 class="hero-title">
             오늘도 반가워요!<br />
@@ -48,7 +47,7 @@
               </div>
             </div>
 
-            <!-- 등급 배지: 현재 등급 색상(API) 반영 -->
+            <!-- 등급 배지 -->
             <div class="score-card-right">
               <div
                 class="grade-badge"
@@ -87,6 +86,73 @@
         </div>
       </section>
 
+      <!-- 오늘만 허용 섹션 -->
+      <section class="allow-section">
+        <div class="allow-head">
+          <span class="allow-title">오늘만 허용</span>
+          <span class="allow-expire">오늘 밤 11:59까지</span>
+        </div>
+
+        <div class="allow-slide">
+          <!-- 요청한 업종 카드 목록 -->
+          <div
+            v-for="item in allowRequests"
+            :key="item.id"
+            class="allow-card"
+            :class="{ 'clickable': item.status === 'PENDING' }"
+            @click="onClickAllowCard(item)"
+          >
+            <div class="allow-card-content">
+              <div class="allow-card-badge" :class="`status-badge--${item.status.toLowerCase()}`">
+                {{ getAllowStatusText(item.status) }}
+              </div>
+
+              <div class="allow-card-name">{{ item.label }}</div>
+              
+              <!-- 안내 메시지 및 남은 시간 표시 -->
+              <div class="allow-card-sub">
+                <template v-if="item.status === 'APPROVED'">
+                  <div class="allow-time-box">
+                    <div class="allow-time-bar">
+                      <div class="allow-time-fill" :style="{ width: '62%' }"></div>
+                    </div>
+                    <span class="allow-card-remain">{{ getRemainingTime() }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="item.status === 'PENDING'">
+                  <div class="allow-card-msg">부모님이 확인 중이에요</div>
+                </template>
+
+                <template v-else-if="item.status === 'REJECTED'">
+                  <div class="allow-card-msg msg--rejected">
+                    부모님이 허락하지 않았어요!<br />오늘은 이용할 수 없어요
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- 상태별 캐릭터 이미지 -->
+            <img 
+              v-if="getMascotImage(item.status)"
+              :src="getMascotImage(item.status)" 
+              class="allow-mascot" 
+              alt="티니" 
+            />
+          </div>
+
+          <!-- 새로 요청하기 카드 -->
+          <div class="allow-card allow-card--new" @click="goAllowRequest">
+            <div class="plus-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="#8b9097" stroke-width="2.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="allow-card-label">허용 요청하기</span>
+          </div>
+        </div>
+      </section>
+
       <!-- 내 금융 -->
       <section class="finance">
         <div class="finance-head" @click="goFinance" style="cursor: pointer;">
@@ -113,14 +179,20 @@
           <span class="history-title">최근 이용내역</span>
           <span class="chev">›</span>
         </div>
-        <div v-for="t in transactions" :key="t.id" class="tx-item">
-          <div class="tx-info">
-            <span class="tx-date">{{ t.date }}</span>
-            <span class="tx-name">{{ t.name }}</span>
+        
+        <template v-if="transactions.length > 0">
+          <div v-for="t in transactions" :key="t.id" class="tx-item">
+            <div class="tx-info">
+              <span class="tx-date">{{ t.date }}</span>
+              <span class="tx-name">{{ t.name }}</span>
+            </div>
+            <span class="tx-amount" :class="{ plus: t.amount > 0 }">
+              {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}원
+            </span>
           </div>
-          <span class="tx-amount" :class="{ plus: t.amount > 0 }">
-            {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}
-          </span>
+        </template>
+        <div v-else class="tx-empty">
+          최근 이용 내역이 없습니다.
         </div>
       </section>
     </div>
@@ -162,26 +234,93 @@ function goNotification() { router.push({ name: 'child-notification' }) }
 function goPayment()      { router.push({ name: 'child-transaction' }) }
 function goScore()        { router.push({ name: 'child-score' }) }
 function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
+function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
 
+// ==== 오늘만 허용 매핑 정보 ====
+const CATEGORY_LABELS = {
+  1: '편의점',
+  2: '카페·디저트',
+  3: '문구·도서·완구',
+  4: '게임',
+  5: 'PC방·노래방',
+  6: '패션·뷰티',
+  7: '대중교통',
+  8: '통신',
+  9: '영화·공연·테마파크',
+  10: '온라인쇼핑',
+  11: '학원·교육',
+  12: '유흥·성인업소',
+  13: '사행성·도박',
+  14: '성인숙박업',
+  15: '일반숙박업',
+  16: '생활용품·잡화',
+  17: '외식·숙박',
+  18: '의료·건강',
+  19: '문화·여가',
+  20: '생활서비스',
+  21: '기타',
+}
+
+const allowRequests = computed(() => {
+  const permission = allowStore.todayPermission
+  if (!permission) return []
+  return permission.categories.map(categoryId => ({
+    id: categoryId,
+    label: CATEGORY_LABELS[categoryId] ?? `${categoryId}`,
+    status: permission.status,
+  }))
+})
+
+function onClickAllowCard(item) {
+  if (item.status === 'PENDING') {
+    router.push({
+      name: 'child-todayallow-edit',
+      query: { id: allowStore.todayPermission?.id, label: item.label },
+    })
+  }
+}
+
+function getMascotImage(status) {
+  if (status === 'PENDING')  return new URL('@/assets/mascot/teeny-pending.png', import.meta.url).href
+  if (status === 'APPROVED') return new URL('@/assets/mascot/teeny-approved.png', import.meta.url).href
+  if (status === 'REJECTED') return new URL('@/assets/mascot/teeny-rejected.png', import.meta.url).href
+  return ''
+}
+
+function getAllowStatusText(status) {
+  if (status === 'PENDING')  return '승인 대기 중'
+  if (status === 'APPROVED') return '승인 완료'
+  if (status === 'REJECTED') return '승인 거부'
+  return ''
+}
+
+function getRemainingTime() {
+  const now      = new Date()
+  const midnight = new Date()
+  midnight.setHours(23, 59, 0, 0)
+  const diff = midnight - now
+  const h = Math.floor(diff / (1000 * 60 * 60))
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  return `${h}시간 ${m}분 남음`
+}
+
+// ==== 유저 및 잔액/점수 정보 ====
 const userName     = ref('')
 const balance      = ref(0)
 const transactions = ref([])
 
-// 티니점수 관련 값 — getTeenyScore API로 채워짐 (onMounted 참고)
-const score    = ref(0)
-const grade    = ref('')
-const minScore = ref(0)     // 현재 등급 구간 최소값 (진행바용)
-const maxScore = ref(0)     // 현재 등급 구간 최대값 (표시 폴백용)
-const gradeColor = ref('#facc15') // 현재 등급 색상 (API의 color 값)
-const nextGradeMinScore = ref(null) // 다음 등급 시작 점수. 최고 등급이면 null
+const score             = ref(0)
+const grade             = ref('')
+const minScore          = ref(0)
+const maxScore          = ref(0)
+const gradeColor        = ref('#facc15')
+const nextGradeMinScore = ref(null)
 
-// "다음 등급까지 몇 점"은 다음 등급의 시작 점수를 목표로 계산한다.
-// 현재 등급의 maxScore를 목표로 삼으면 등급 상세 화면(다음 등급 minScore 기준)과
-// 1점 차이가 나므로, 계산 기준을 nextGradeMinScore로 통일했다.
 const remainingScore = computed(() => {
-  if (nextGradeMinScore.value === null) return 0 // 최고 등급
+  if (nextGradeMinScore.value === null) return 0
   return Math.max(0, nextGradeMinScore.value - score.value)
 })
+
 const progressPercent = computed(() => {
   const target = nextGradeMinScore.value ?? maxScore.value
   const total = target - minScore.value
@@ -195,25 +334,19 @@ const finances = ref([
   { id: 2, type: '예금', rate: '연 2.8%', name: '용돈 모으기 예금', amount: '35,000원', sub: '자유 입출금', progress: 60, amountColor: '#15171b' },
 ])
 
-// 백엔드 createdAt이 문자열 또는 [년,월,일,시,분,초] 배열(LocalDateTime 직렬화)로
-// 올 수 있어 둘 다 지원. 기존 표시 형식("MM-DD  HH:mm")을 그대로 유지한다.
 function pad2(n) {
   return String(n).padStart(2, '0')
 }
 
 function formatTxDate(dateVal) {
   if (!dateVal) return '-'
-
   if (Array.isArray(dateVal)) {
     const [, month, day, hour = 0, minute = 0] = dateVal
     return `${pad2(month)}-${pad2(day)}  ${pad2(hour)}:${pad2(minute)}`
   }
-
-  // 문자열(ISO)인 경우 기존 방식 유지: "2026-08-13T16:49:00" → "08-13  16:49"
   if (typeof dateVal === 'string' && dateVal.length >= 16) {
     return dateVal.slice(5, 16).replace('T', '  ')
   }
-
   const d = new Date(dateVal)
   if (isNaN(d.getTime())) return '-'
   return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}  ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
@@ -239,18 +372,20 @@ onMounted(async () => {
 
     const d = scoreRes.data
     score.value      = d.teenyScore
-    grade.value       = d.gradeName
-    minScore.value    = d.minScore
-    maxScore.value     = d.maxScore
-    gradeColor.value  = d.color
+    grade.value      = d.gradeName
+    minScore.value   = d.minScore
+    maxScore.value   = d.maxScore
+    gradeColor.value = d.color
 
-    // 다음 등급의 시작 점수 계산 (등급 상세 화면과 기준 통일)
     const gradesAsc = [...gradesRes.data].sort((a, b) => a.minScore - b.minScore)
     const currentIdx = gradesAsc.findIndex((g) => g.gradeId === d.gradeId)
     const next = currentIdx >= 0 && currentIdx < gradesAsc.length - 1
       ? gradesAsc[currentIdx + 1]
       : null
     nextGradeMinScore.value = next ? next.minScore : null
+
+    // 오늘만 허용 상태 데이터 패치
+    await allowStore.fetchTodayPermission(authStore.accessToken)
   } catch (e) {
     console.error('홈 데이터 조회 실패:', e.message)
   }
@@ -285,7 +420,7 @@ function onTabSelect(key) {
 }
 .scroll-area::-webkit-scrollbar { display: none; }
 
-/* 상단 일러스트 영역 */
+/* 히어로 영역 */
 .hero-section {
   position: relative;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
@@ -295,7 +430,6 @@ function onTabSelect(key) {
   overflow: hidden;
 }
 
-/* 네비게이션 바 */
 .top-nav {
   display: flex;
   justify-content: space-between;
@@ -325,14 +459,14 @@ function onTabSelect(key) {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 4px;
   display: flex;
 }
 
 .bell-dot {
   position: absolute;
-  top: -1px;
-  right: 1px;
+  top: 2px;
+  right: 3px;
   width: 7px;
   height: 7px;
   background: #ff4d4f;
@@ -340,7 +474,6 @@ function onTabSelect(key) {
   border: 1.5px solid #fff;
 }
 
-/* 히어로 텍스트 */
 .hero-text {
   position: relative;
   z-index: 2;
@@ -365,7 +498,6 @@ function onTabSelect(key) {
   color: #71717a;
 }
 
-/* 캐릭터 및 그림자 */
 .hero-mascot-wrap {
   position: absolute;
   right: -8px;
@@ -401,7 +533,7 @@ function onTabSelect(key) {
   width: 170px;
   background: #ffffff;
   border-radius: 18px;
-  padding: 12px 12px;
+  padding: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
   cursor: pointer;
 }
@@ -445,11 +577,9 @@ function onTabSelect(key) {
   color: #0f172a;
 }
 
-/* 등급 배지 */
 .score-card-right {
   display: flex;
   align-items: center;
-  gap: 2px;
 }
 
 .grade-badge {
@@ -469,14 +599,6 @@ function onTabSelect(key) {
   white-space: nowrap;
 }
 
-.arrow-icon {
-  font-size: 13px;
-  font-weight: 700;
-  color: #a1a1aa;
-  margin-left: 1px;
-}
-
-/* 카드 내부 게이지 레이아웃 */
 .score-progress-wrap {
   margin-top: 8px;
   padding-top: 6px;
@@ -492,9 +614,7 @@ function onTabSelect(key) {
   margin-bottom: 4px;
 }
 
-.hl-blue {
-  font-weight: 800;
-}
+.hl-blue { font-weight: 800; }
 
 .progress-bar-bg {
   width: 100%;
@@ -560,6 +680,205 @@ function onTabSelect(key) {
 .btn-gray {
   background: #f4f4f5;
   color: #27272a;
+}
+
+/* 오늘만 허용 섹션 */
+.allow-section {
+  padding: 20px 0 0;
+}
+
+.allow-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  margin-bottom: 10px;
+}
+
+.allow-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.allow-expire {
+  font-weight: 600;
+  font-size: 11px;
+  color: #a0a5b1;
+  line-height: 1;
+}
+
+.allow-slide {
+  display: flex;
+  gap: 10px;
+  padding: 2px 18px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.allow-slide::-webkit-scrollbar {
+  display: none;
+}
+
+.allow-card {
+  flex-shrink: 0;
+  width: 175px;
+  height: 124px;
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease;
+  overflow: hidden;
+}
+
+.allow-card.clickable {
+  cursor: pointer;
+}
+
+.allow-card:active {
+  transform: scale(0.97);
+}
+
+.allow-card-content {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+.allow-card-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 8px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.status-badge--pending {
+  background: #fff8e6;
+  color: #d98200;
+}
+
+.status-badge--approved {
+  background: #eef9eb;
+  color: #3b8e27;
+}
+
+.status-badge--rejected {
+  background: #fff0f0;
+  color: #e5484d;
+}
+
+.allow-card-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #22252a;
+  line-height: 1.1;
+  white-space: nowrap;
+  margin-bottom: 12px;
+}
+
+.allow-card-sub {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.allow-card-msg {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #d98200;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.allow-card-msg.msg--rejected {
+  color: #d94b4f;
+}
+
+.allow-time-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100px;
+}
+
+.allow-time-bar {
+  width: 100%;
+  height: 5px;
+  background: #f0f2f5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.allow-time-fill {
+  height: 100%;
+  background: #62b24a;
+  border-radius: 999px;
+}
+
+.allow-card-remain {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #43962d;
+  line-height: 1;
+}
+
+.allow-mascot {
+  position: absolute;
+  right: -6px;
+  bottom: -10px;
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+}
+
+.allow-card--new {
+  width: 100px;
+  height: 124px;
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.allow-card--new:active {
+  background: #f1f5f9;
+}
+
+.plus-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.allow-card-label {
+  font-weight: 700;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1;
 }
 
 /* 내 금융 */
@@ -681,6 +1000,14 @@ function onTabSelect(key) {
 
 .tx-amount.plus {
   color: #2563eb;
+}
+
+.tx-empty {
+  padding: 20px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: #a1a1aa;
+  font-weight: 600;
 }
 
 .child-home :deep(.tabbar) {
