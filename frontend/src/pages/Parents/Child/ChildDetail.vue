@@ -423,14 +423,16 @@
       </button>
 
     </nav>
-
+<ParentBottomNav active="child" />
   </div>
 </template>
 
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
 
 const router = useRouter()
 const route = useRoute()

@@ -368,66 +368,7 @@
       +
     </button>
 
-    <!-- 하단 -->
-    <nav class="bottom-nav">
-      <button
-        class="nav-item"
-        type="button"
-        @click="
-          router.push(
-            '/parents/home'
-          )
-        "
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <button
-        class="
-          nav-item
-          nav-item-active
-        "
-        type="button"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="
-          router.push(
-            '/parents/mypage'
-          )
-        "
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-    </nav>
+    <ParentBottomNav active="quest" />
 
     <!-- ==================================
          거절 사유 입력 모달
@@ -518,6 +459,8 @@
 
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import {
   ref,
   computed,

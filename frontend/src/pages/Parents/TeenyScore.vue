@@ -107,25 +107,13 @@
       </div>
     </div>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-      <button class="nav-item" type="button" @click="router.push('/parents/home')">
-        <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
-        <span class="nav-label">홈</span>
-      </button>
-      <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child-alive.svg" alt="" class="nav-icon" />
-        <span class="nav-label">자녀관리</span>
-      </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
-        <span class="nav-label">마이페이지</span>
-      </button>
-    </nav>
+    <ParentBottomNav active="child" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -493,39 +481,4 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
-/* 하단 네비게이션 */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.nav-icon { width: 24px; height: 24px; }
-
-.nav-label {
-  font-size: 11px;
-  color: #8b9097;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
-}
 </style>

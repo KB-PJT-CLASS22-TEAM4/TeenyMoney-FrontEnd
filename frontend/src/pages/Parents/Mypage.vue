@@ -333,64 +333,13 @@
       </section>
     </main>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-
-      <!-- 홈 -->
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <!-- 자녀관리 -->
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <!-- 마이페이지 -->
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-      >
-        <img
-          src="@/assets/icons/icon-mypage-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-
-    </nav>
+    <ParentBottomNav active="mypage" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import {
   computed,
   onMounted,
@@ -1235,66 +1184,5 @@ button {
   cursor: pointer;
 }
 
-/* =========================
-   하단 네비게이션
-========================= */
 
-.bottom-nav {
-  position: fixed;
-
-  bottom: 0;
-  left: 50%;
-
-  z-index: 100;
-
-  display: flex;
-
-  justify-content: space-around;
-
-  width: 360px;
-
-  padding: 10px 0 20px;
-
-  border-top: 1px solid #f0f1f3;
-
-  background-color: #ffffff;
-
-  transform: translateX(-50%);
-}
-
-.nav-item {
-  display: flex;
-
-  min-width: 70px;
-
-  flex-direction: column;
-  align-items: center;
-
-  gap: 4px;
-
-  padding: 0;
-
-  border: none;
-
-  background: transparent;
-
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-
-  font-weight: 700;
-}
 </style>

@@ -3,13 +3,11 @@ const API_BASE_URL = import.meta.env.DEV
   : import.meta.env.VITE_API_BASE_URL
 
 
-// ========================================
+
 // 퀘스트 목록 조회
-//
 // GET /api/v1/quests?tab=AVAILABLE
 // GET /api/v1/quests?tab=ONGOING
 // GET /api/v1/quests?tab=COMPLETED
-// ========================================
 export async function getQuests(
   accessToken,
   tab = 'AVAILABLE',
@@ -67,11 +65,7 @@ export async function getQuests(
 }
 
 
-// ========================================
 // 퀘스트 상세 조회
-//
-// GET /api/v1/quests/{questId}
-// ========================================
 export async function getQuestDetail(
   questId,
   accessToken
@@ -181,11 +175,7 @@ export async function createQuest(
 }
 
 
-// ========================================
 // 퀘스트 수정
-//
-// PATCH /api/v1/quests/{questId}
-// ========================================
 export async function updateQuest(
   questId,
   questData,
@@ -231,11 +221,8 @@ export async function updateQuest(
 }
 
 
-// ========================================
+
 // 퀘스트 삭제
-//
-// DELETE /api/v1/quests/{questId}
-// ========================================
 export async function deleteQuest(
   questId,
   accessToken
@@ -291,14 +278,7 @@ export async function deleteQuest(
   return result
 }
 
-
-// ========================================
 // 퀘스트 인증 승인
-//
-// PATCH
-// /api/v1/quests/{questId}
-// /verifications/{verificationId}/approve
-// ========================================
 export async function approveQuestVerification(
   questId,
   verificationId,
