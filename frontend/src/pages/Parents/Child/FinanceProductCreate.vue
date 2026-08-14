@@ -204,7 +204,7 @@
             :disabled="isSubmitting"
             @click="handleSubmit"
           >
-            {{ activeType === 'DEPOSIT' ? '상품 등록하기' : '적금 상품 등록하기' }}
+            상품 등록하기
           </button>
         </div>
       </section>
