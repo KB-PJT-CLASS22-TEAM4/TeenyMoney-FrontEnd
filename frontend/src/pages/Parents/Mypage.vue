@@ -779,25 +779,19 @@ button {
 
   color: #191b1e;
 
-  background-color: #f4f5f7;
+  background-color: white;
 }
 
-/* =========================
-   헤더
-========================= */
 
+/* 헤더 */
 .nav {
   position: relative;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   height: 64px;
-
   padding: 0 20px 4px;
-
-  background-color: #f4f5f7;
+  background-color: white;
 }
 
 .back-icon {

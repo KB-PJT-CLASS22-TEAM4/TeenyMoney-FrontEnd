@@ -56,7 +56,12 @@ import QrScan from '@/pages/Child/Payment/QRscan.vue';
 import TeenyScore from '@/pages/Child/TeenyScore.vue';
 // 자녀 티니점수 등급 상세
 import TeenyScoreGrade from '@/pages/Child/TeenyScoreGrade.vue';
-
+// 자녀 퀘스트 목록
+import QuestList from '@/pages/Child/Quest/QuestList.vue';
+// 자녀 퀘스트 인증하기
+import QuestDetail from '@/pages/Child/Quest/QuestDetail.vue';
+// 자녀 오늘만 허용 수정 페이지
+import Edit from '@/pages/Child/TodayAllow/Edit.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
@@ -80,7 +85,10 @@ import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
 import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
 import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
-
+import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
+import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
+import QuestDetails from '@/pages/Parents/Quest/QuestDetail.vue'
+import QuestApproval from '@/pages/Parents/Quest/QuestApproval.vue';'@/pages/Parents/QuestApproval.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -253,8 +261,8 @@ const router = createRouter({
   path: '/child/passwordchange',
   name: 'child-password-change',
   component: PasswordChange,
-},
-// 자녀 소비 리포트
+  },
+  // 자녀 소비 리포트
   {
   path: '/child/report',
   name: 'child-report',
@@ -325,6 +333,109 @@ const router = createRouter({
     name: 'child-score-grade',
     component: TeenyScoreGrade,
   },
+  // 자녀 퀘스트 목록
+  { 
+    path: '/child/quest', 
+    name: 'child-quest-list', 
+    component: QuestList
+  },
+  // 자녀 퀘스트 인증하기
+  { 
+  path: '/child/questdetail/:questId',   // :questId 추가
+  name: 'child-quest-detail', 
+  component: QuestDetail
+  },
+  // 자녀 오늘만 허용 수정 페이지 
+  {
+    path: '/child/todayallow/edit',
+    name: 'child-todayallow-edit',
+    component: Edit
+  },
+  // QR스캔
+  {
+    path: '/child/payment/scan',
+    name: 'qr-scan',
+    component: QrScan,
+  },
+  { path: '/parents/send-allowance', 
+    name: 'send-allowance', 
+    component: SendAllowance 
+  },
+  {
+    path: '/parents/sending-allowance',
+    name: 'sending-allowance',
+    component: SendingAllowance,
+  },
+  { path: '/parents/send/fail', 
+    name: 'send-fail', 
+    component: SendFail 
+  },
+  { path: '/parents/send/complete', 
+    name: 'send-complete', 
+    component: SendComplete 
+  },
+  { 
+    path: '/parents/payment/change',
+    name: 'payment-change', 
+    component: PaymentChange 
+  },
+  { 
+    path: '/parents/payment/change-complete', 
+    name: 'payment-change-complete', 
+    component: PaymentChangeComplete 
+  },
+  { 
+    path: '/parents/regular-allowance', 
+    name: 'regular-allowance', 
+    component: RegularAllowance 
+  },
+  { 
+    path: '/parents/regular-allowance/complete', 
+    name: 'regular-allowance-complete', 
+    component: RegularAllowanceComplete 
+  },
+  {
+    path: '/parents/children/:childId',
+    name: 'parents-child-detail',
+    component: ChildDetail,
+  },
+  { 
+    path: '/parents/children/:childId/teeny-score', 
+    name: 'teeny-score', 
+    component: TeenyScoring 
+  },
+  {
+    path: '/parents/quest',
+    name: 'parents-quest-list',
+    component: QuestLists,
+  },
+  {
+    path : '/parents/quest/create',
+    name : 'parents-quest-create',
+    component : QuestCreate
+  },
+  { 
+    path: '/parents/quest/:questId', 
+    name: 'quest-detail', 
+    component: QuestDetails 
+  },
+  {
+  path: '/parents/quest/:questId/verifications/:verificationId',
+  name: 'ParentQuestApproval',
+  component: QuestApproval,
+  },
+  // 자녀 퀘스트 목록
+  { 
+    path: '/child/quest', 
+    name: 'child-quest-list', 
+    component: QuestList 
+  },
+  // 자녀 퀘스트 인증하기
+{ 
+  path: '/child/questdetail/:questId',   // :questId 추가
+  name: 'child-quest-detail', 
+  component: QuestDetail
+},
     // QR스캔
     {
       path: '/child/payment/scan',
@@ -378,7 +489,6 @@ const router = createRouter({
   name: 'teeny-score', 
   component: TeenyScoring 
 }
-
   ],
 });
 
