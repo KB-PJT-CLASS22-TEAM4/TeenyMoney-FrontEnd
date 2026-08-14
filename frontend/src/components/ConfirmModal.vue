@@ -11,8 +11,14 @@
       <h2 class="modal-title">{{ title }}</h2>
       <p v-if="description" class="modal-desc">{{ description }}</p>
 
-      <div class="modal-btns">
-        <button class="btn btn-cancel" @click="onCancel">{{ cancelText }}</button>
+      <div class="modal-btns" :class="{ single: hideCancel }">
+        <button
+          v-if="!hideCancel"
+          class="btn btn-cancel"
+          @click="onCancel"
+        >
+          {{ cancelText }}
+        </button>
         <button class="btn btn-confirm" @click="onConfirm">{{ confirmText }}</button>
       </div>
     </div>
@@ -26,6 +32,7 @@ defineProps({
   description: { type: String, default: '' },
   confirmText: { type: String, default: '확인' },
   cancelText: { type: String, default: '취소' },
+  hideCancel: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['confirm', 'cancel'])
@@ -114,6 +121,10 @@ function onCancel() {
 .btn-confirm {
   background: #ffbc00;
   color: #ffffff;
+}
+
+.modal-btns.single .btn-confirm {
+  color: #191b1e;
 }
 
 .btn-confirm:active {
