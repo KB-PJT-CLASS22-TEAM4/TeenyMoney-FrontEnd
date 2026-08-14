@@ -1,14 +1,12 @@
 <script setup>
-import { ref, computed , watch} from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getFinancialProducts } from '@/api/finance'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
 const router = useRouter()
-
-// ============================================================
-//  [API 연동 필요] 금융상품 목록
-// 현재는 더미 데이터. 백엔드 API 나오면 products를 교체.
-// ============================================================
+const authStore = useAuthStore()
 
 // 탭: 신규 상품 / 나의 상품
 const activeTab = ref('신규 상품')
@@ -24,98 +22,154 @@ watch(activeTab, (val) => {
 const activeCategory = ref('전체')
 const categories = ['전체', '적금', '예금', '대출']
 
-// --- [더미] 상품 목록 → API의 products로 교체 ---
-const products = ref([
-  {
-    id: 1,
-    category: '적금',
-    badgeColor: 'blue',
-    title: '티니 꿈나무 적금',
-    desc: '매월 자동으로 모으는 목표 적금',
-    liked: false,
-    details: [
-      { label: '기간', value: '12개월 기준', color: '' },
-      { label: '납입한도', value: '월 최대 30만원', color: '' },
-      { label: '금리', value: '연 3.0~4.5%', color: 'blue' },
-      { label: '티니점수 조건', value: '양호등급 이상', color: 'green' },
-    ],
-  },
-  {
-    id: 2,
-    category: '적금',
-    badgeColor: 'blue',
-    title: '티니 첫걸음 적금',
-    desc: '처음 시작하는 소액 저축',
-    liked: false,
-    details: [
-      { label: '기간', value: '6개월 기준', color: '' },
-      { label: '납입한도', value: '월 최대 10만원', color: '' },
-      { label: '금리', value: '연 1.5~3.0%', color: 'blue' },
-      { label: '티니점수 조건', value: '보통등급 이상', color: 'yellow' },
-    ],
-  },
-  {
-    id: 3,
-    category: '예금',
-    badgeColor: 'blue',
-    title: '티니 스타 예금',
-    desc: '목표까지 안전하게 저축',
-    liked: false,
-    details: [
-      { label: '기간', value: '12개월 기준', color: '' },
-      { label: '예치한도', value: '최대 100만원', color: '' },
-      { label: '금리', value: '연 2.0~4.0%', color: 'blue' },
-      { label: '티니점수 조건', value: '보통등급 이상', color: 'yellow' },
-    ],
-  },
-  {
-    id: 4,
-    category: '대출',
-    badgeColor: 'orange',
-    title: '티니 선물 대출',
-    desc: '친구 생일선물을 미리 대출',
-    liked: false,
-    details: [
-      { label: '기간', value: '최대 3개월', color: '' },
-      { label: '대출한도', value: '최대 5만원', color: '' },
-      { label: '금리', value: '금리 2.0~3.0%', color: 'blue' },
-      { label: '티니점수 조건', value: '우수등급 이상', color: 'blue' },
-    ],
-  },
-])
+// 상품 타입 매핑
+const typeMap       = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
+const badgeColorMap = { DEPOSIT: 'blue', SAVING: 'blue', LOAN: 'orange' }
 
-// 선택한 종류에 맞는 상품만 + 찜한 것 위로 정렬
+// 등급명 → 색상 (티니점수 등급 체계: 새싹 0~449 / 스타터 450~649 / 플러스 650~749 / 프로 750~899 / 마스터 900~1000)
+const gradeColorMap = {
+  '새싹': 'red',
+  '스타터': 'orange',
+  '플러스': 'yellow',
+  '프로': 'green',
+  '마스터': 'blue',
+}
+
+// 이자 계산 방식(단리/복리), 적금 적립 방식(자유적금/정액적금)
+// TODO: 실제 enum 값(interestCalculationType, savingsType)을 백엔드에 확인 후 채워넣기 — 매핑에 없으면 원본 값 그대로 표시
+const interestTypeMap = {
+  SIMPLE: '단리',
+  COMPOUND: '복리',
+}
+const savingsTypeMap = {
+  FREE: '자유적금',
+  FIXED: '정액적금',
+}
+
+// API 데이터 → 기존 구조 변환
+function mapProduct(p) {
+  const terms = p.availableTerms ?? []
+  const periodValue = terms.length === 1
+    ? `${terms[0]}개월`
+    : terms.length > 1
+      ? `${Math.min(...terms)}~${Math.max(...terms)}개월`
+      : '-'
+
+  // rates 배열이 있으면 그 안에서, 없으면 상품 자체의 baseRate/expectedAppliedRate 사용
+  const minRate = p.rates?.length ? Math.min(...p.rates.map(r => r.baseRate)) : p.baseRate
+  const maxRate = p.rates?.length ? Math.max(...p.rates.map(r => r.expectedAppliedRate)) : p.expectedAppliedRate
+  const rateValue = minRate != null ? `연 ${minRate}~${maxRate}%` : '-'
+
+  const limitLabel = p.productType === 'LOAN' ? '대출한도'
+    : p.productType === 'DEPOSIT' ? '예치한도' : '납입한도'
+  const limitValue = p.maximumAmount ? `${p.maximumAmount.toLocaleString()}원` : '-'
+
+  // 티니등급 가입조건은 대출 상품에만 존재 (예/적금은 조건 없음)
+  // 가입 가능 여부와 무관하게, 요구 등급의 실제 색상을 그대로 반영
+  const isLoan = p.productType === 'LOAN'
+  const scoreValue = isLoan
+    ? (p.requiredGradeName ? `${p.requiredGradeName} 등급 이상` : '제한 없음')
+    : null
+  const scoreColor = isLoan
+    ? (gradeColorMap[p.requiredGradeName] ?? 'blue')
+    : ''
+
+  const isSaving = p.productType === 'SAVING'
+
+  const details = [
+    { label: '기간',     value: periodValue, color: '' },
+    { label: limitLabel, value: limitValue,  color: '' },
+    { label: '금리',      value: rateValue,   color: 'blue' },
+  ]
+
+  // 예금/적금: 단리·복리 표시 (매핑 안 된 값이면 영어 원본이 그대로 보이니 아예 숨김)
+  if (!isLoan && interestTypeMap[p.interestCalculationType]) {
+    details.push({
+      label: '이자방식',
+      value: interestTypeMap[p.interestCalculationType],
+      color: '',
+    })
+  }
+
+  // 적금만: 자유적금·정액적금 표시 (매핑 안 된 값이면 숨김)
+  if (isSaving && savingsTypeMap[p.savingsType]) {
+    details.push({
+      label: '적립방식',
+      value: savingsTypeMap[p.savingsType],
+      color: '',
+    })
+  }
+
+  if (isLoan) {
+    details.push({ label: '티니점수 조건', value: scoreValue, color: scoreColor })
+  }
+
+  return {
+    id: `${p.productType}-${p.productId}`,
+    productId: p.productId,
+    category: typeMap[p.productType] ?? p.productType,
+    badgeColor: badgeColorMap[p.productType] ?? 'blue',
+    title: p.productName,
+    desc: p.financialCompanyName,
+    liked: false,
+    eligible: p.eligible,
+    ineligibleReason: p.ineligibleReason,
+    locked: isLoan && !p.eligible,
+    requiredGradeName: p.requiredGradeName,
+    gradeColor: scoreColor,
+    details,
+  }
+}
+
+// [API] 금융상품 목록 조회
+const products = ref([])
+
+onMounted(async () => {
+  try {
+    const data = await getFinancialProducts(authStore.accessToken)
+    const mapped = data.map(mapProduct)
+
+    // 방어: API 응답에 동일 상품(id 중복)이 섞여 오는 경우 첫 항목만 사용
+    const seen = new Set()
+    products.value = mapped.filter((p) => {
+      if (seen.has(p.id)) {
+        console.warn('중복 상품 데이터 감지, 제외됨:', p.id)
+        return false
+      }
+      seen.add(p.id)
+      return true
+    })
+  } catch (e) {
+    console.error('금융상품 조회 실패:', e.message)
+  }
+})
+
+// 필터 + 찜 정렬
 const filteredProducts = computed(() => {
-  // 1) 종류 필터 (전체면 다)
   const list = activeCategory.value === '전체'
     ? [...products.value]
     : products.value.filter((p) => p.category === activeCategory.value)
-
-  // 2) 찜한 것(liked=true)을 위로 정렬
-  //    liked끼리는 원래 순서 유지 (sort가 안정적)
   return list.sort((a, b) => Number(b.liked) - Number(a.liked))
 })
 
-// 별 찜 토글
+// 찜 토글
 function toggleLike(product) {
   product.liked = !product.liked
-  // TODO: [API] 찜하기/찜해제 요청
+  // TODO: POST /api/v1/financial-products/{id}/like
 }
 
 function goBack() {
-  router.push({ name: 'child-home' })  
+  router.push({ name: 'child-home' })
 }
 
-// 하단 탭 이동
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' })
-  if (key === 'report') router.push({ name: 'child-report' })
-  if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' })
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'report')  router.push({ name: 'child-report' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
 }
 
-// 스크롤할 때만 스크롤바 보이기
 const isScrolling = ref(false)
 let scrollTimer = null
 function onScroll() {
@@ -125,19 +179,26 @@ function onScroll() {
 }
 
 function goToApply(product) {
-  if (product.category === '대출') return  // 대출은 이동 안 함
+  // 가입 불가 상품은 신청 화면으로 보내지 않고 사유만 안내
+  if (!product.eligible) {
+    alert('아직은 가입할 수 없는 상품이에요!')
+    return
+  }
 
   const detail = (label) => product.details.find((d) => d.label === label)
   router.push({
     name: 'child-finance-join',
     query: {
-      category:   product.category,
-      title:      product.title,
-      rate:       detail('금리')?.value ?? '',
-      periodInfo: detail('기간')?.value ?? '',
-      limit:      detail('납입한도')?.value || detail('예치한도')?.value || '',
-      scoreReq:   detail('티니점수 조건')?.value ?? '',
-      scoreColor: detail('티니점수 조건')?.color ?? 'green',
+      productId:    product.productId,
+      category:     product.category,
+      title:        product.title,
+      rate:         detail('금리')?.value ?? '',
+      periodInfo:   detail('기간')?.value ?? '',
+      limit:        detail('납입한도')?.value || detail('예치한도')?.value || detail('대출한도')?.value || '',
+      scoreReq:     detail('티니점수 조건')?.value ?? '',
+      scoreColor:   detail('티니점수 조건')?.color ?? 'green',
+      interestType: detail('이자방식')?.value ?? '',
+      savingsType:  detail('적립방식')?.value ?? '',
     },
   })
 }
@@ -188,39 +249,52 @@ function goToApply(product) {
           v-for="product in filteredProducts"
           :key="product.id"
           class="card"
-          :class="{ liked: product.liked }"
+          :class="{ liked: product.liked, disabled: !product.eligible && !product.locked, locked: product.locked }"
           @click="goToApply(product)"
           style="cursor: pointer;"
         >
-          <div class="card-top">
-            <div class="card-info">
-              <div class="title-row">
-                <span class="badge" :class="product.badgeColor">{{ product.category }}</span>
-                <span class="prod-title">{{ product.title }}</span>
+          <div class="card-content" :class="{ 'is-blurred': product.locked }">
+            <div class="card-top">
+              <div class="card-info">
+                <div class="title-row">
+                  <span class="badge" :class="product.badgeColor">{{ product.category }}</span>
+                  <span class="prod-title">{{ product.title }}</span>
+                </div>
+                <span class="prod-desc">{{ product.desc }}</span>
               </div>
-              <span class="prod-desc">{{ product.desc }}</span>
+              <button class="star-btn"  @click.stop="toggleLike(product)" aria-label="찜하기">
+                <svg
+                  class="star"
+                  :class="{ on: product.liked }"
+                  viewBox="0 0 24 24"
+                  :fill="product.liked ? '#ffbc00' : 'none'"
+                >
+                  <path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.3l6-.7z"
+                        :stroke="product.liked ? '#ffbc00' : '#c6cbd2'"
+                        stroke-width="1.6" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
-            <button class="star-btn"  @click.stop="toggleLike(product)" aria-label="찜하기">
-              <svg
-                class="star"
-                :class="{ on: product.liked }"
-                viewBox="0 0 24 24"
-                :fill="product.liked ? '#ffbc00' : 'none'"
-              >
-                <path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.3l6-.7z"
-                      :stroke="product.liked ? '#ffbc00' : '#c6cbd2'"
-                      stroke-width="1.6" stroke-linejoin="round"/>
-              </svg>
-            </button>
+
+            <div class="divider"></div>
+
+            <div class="details">
+              <div v-for="(d, i) in product.details" :key="i" class="detail-row">
+                <span class="d-label">{{ d.label }}</span>
+                <span class="d-value" :class="d.color">{{ d.value }}</span>
+              </div>
+            </div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="details">
-            <div v-for="(d, i) in product.details" :key="i" class="detail-row">
-              <span class="d-label">{{ d.label }}</span>
-              <span class="d-value" :class="d.color">{{ d.value }}</span>
-            </div>
+          <!-- 티니점수 조건 미달 대출: 카드 전체 위에 큼직한 자물쇠 + 필요 등급 안내 -->
+          <div v-if="product.locked" class="lock-hint">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none">
+              <rect x="4" y="10.5" width="16" height="10.5" rx="3.5" fill="#ffffff"/>
+              <rect x="4" y="10.5" width="16" height="10.5" rx="3.5" stroke="#8b9097" stroke-width="1.8"/>
+              <path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3" stroke="#8b9097" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="12" cy="15.5" r="1.5" fill="#8b9097"/>
+            </svg>
+            <span class="lock-hint-text" :class="product.gradeColor">{{ product.requiredGradeName }} 등급이면 열려요</span>
           </div>
         </div>
       </TransitionGroup>
@@ -356,6 +430,7 @@ function goToApply(product) {
 
 /* 상품 카드 */
 .card {
+  position: relative;
   border: 1.3px solid #eaedf1;
   border-radius: 14px;
   padding: 17px;
@@ -367,6 +442,54 @@ function goToApply(product) {
 .card.liked {
   border-color: #ffe08a;
 }
+
+/* 가입 불가 상품 흐리게 표시 */
+.card.disabled {
+  opacity: 0.55;
+}
+
+/* 대출 - 티니점수 조건 미달: 잠금 카드 (제목 포함 전체를 살짝 블러 + 자물쇠 오버레이) */
+.card.locked {
+  opacity: 1;
+  cursor: default;
+}
+
+.card.locked .star-btn {
+  pointer-events: none;
+}
+
+.card-content.is-blurred {
+  filter: blur(1px);
+  opacity: 0.85;
+  user-select: none;
+  pointer-events: none;
+}
+
+.lock-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.lock-hint-text {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #4a4e55;
+  background: #ffffff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1.3px solid #e2e5e9;
+}
+
+.lock-hint-text.blue   { color: #4d8ad6; border-color: #dce8f7; }
+.lock-hint-text.green  { color: #62b24a; border-color: #dcf0d6; }
+.lock-hint-text.yellow { color: #b8901f; border-color: #ffe9b3; }
+.lock-hint-text.orange { color: #f57c00; border-color: #ffe3c9; }
+.lock-hint-text.red    { color: #e0554f; border-color: #ffd6d6; }
 
 .card-top {
   display: flex;
@@ -484,6 +607,14 @@ function goToApply(product) {
 }
 
 .d-value.yellow {
-  color: #ffbc00;
+  color: #b8901f;
+}
+
+.d-value.red {
+  color: #e0554f;
+}
+
+.d-value.orange {
+  color: #f57c00;
 }
 </style>

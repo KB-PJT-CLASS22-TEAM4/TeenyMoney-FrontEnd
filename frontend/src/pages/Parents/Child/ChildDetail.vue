@@ -1,138 +1,163 @@
 <template>
-  <div class="page">
+  <div class="child-detail">
 
-    <!-- 헤더 -->
-    <header class="nav">
-      <button
-        class="back-btn"
-        type="button"
-        aria-label="뒤로가기"
-        @click="router.back()"
-      >
-        <img
-          src="@/assets/icons/icon-back.svg"
-          alt=""
-          class="back-icon"
-        />
-      </button>
-
-      <h1 class="nav-title">자녀 관리</h1>
-
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
-      </button>
-    </header>
-
-
-    <main class="content">
+    <!-- =========================
+         스크롤 영역
+    ========================== -->
+    <div class="scroll-area">
 
       <!-- =========================
-           자녀 정보
+           히어로 영역
       ========================== -->
-      <section class="child-info-section">
+      <section class="hero-section">
 
-        <div class="child-info">
-          <p class="child-label">자녀 정보</p>
-          <p class="child-name">{{ child.name }}</p>
-        </div>
+        <!-- 상단 네비 -->
+        <header class="top-nav">
+          <button
+            class="back-btn"
+            type="button"
+            aria-label="뒤로가기"
+            @click="router.back()"
+          >
+            <img
+              src="@/assets/icons/icon-back.svg"
+              alt=""
+              class="back-icon"
+            />
+          </button>
 
-        <button
-          class="unlink-btn"
-          type="button"
-        >
-          연동 해제
-        </button>
-
-      </section>
-
-
-      <!-- =========================
-           티니머니 카드
-      ========================== -->
-      <section class="wallet-card">
-
-        <div class="wallet-top">
-
-          <div class="wallet-title-wrap">
-            <div class="wallet-icon-circle">
-              <img
-                src="@/assets/logo.svg"
-                alt=""
-                class="wallet-icon"
-              />
-            </div>
-
-            <span class="wallet-title">
-              티니머니
-            </span>
-          </div>
-        </div>
-
-
-        <p class="wallet-amount">
-          {{ child.balance.toLocaleString() }}
-          <span>원</span>
-        </p>
-
-      </section>
-
-
-      <!-- =========================
-           티니점수
-      ========================== -->
-      <section class="score-section">
-
-        <div class="section-header">
-          <div class="score-title-wrap">
-            <h2 class="section-title">
-              티니점수
-            </h2>
-
-            <!-- <span class="shield-icon">
-              ♢
-            </span> -->
-          </div>
+          <span class="nav-title">
+            자녀 관리
+          </span>
 
           <button
-  class="more-btn"
-  type="button"
-  @click="router.push(`/parents/children/${childId}/teeny-score`)"
->
-  기준 보기
-  <span>›</span>
-</button>
+            class="bell-btn"
+            type="button"
+            aria-label="알림"
+          >
+            <img
+              src="@/assets/icons/icon-notification.svg"
+              alt=""
+              class="alarm-icon"
+            />
+          </button>
+        </header>
+
+
+        <!-- 자녀 소개 -->
+        <div class="hero-text">
+
+          <span class="hero-eyebrow">
+            자녀 금융 현황
+          </span>
+
+          <h2 class="hero-title">
+            <span class="highlight-blue">
+              {{ child.name }}
+            </span>
+            님의<br />
+            금융 생활을 확인해보세요
+          </h2>
+
+          <p class="hero-sub">
+            티니머니와 함께 성장하고 있어요!
+          </p>
+
         </div>
 
 
-        <div class="score-card">
+        <!-- 캐릭터 -->
+        <div class="hero-mascot-wrap">
 
-          <p class="score-number">
-            {{ child.score }}
-            <span>점</span>
-          </p>
+          <img
+            :src="teenyScoreMascot"
+            class="hero-mascot"
+            alt="티니"
+          />
+
+          <div class="mascot-shadow"></div>
+
+        </div>
 
 
-          <div class="score-progress">
-            <div
-              class="score-progress-fill"
-              :style="{ width: scorePercent + '%' }"
-            ></div>
+        <!-- 티니점수 카드 -->
+        <div
+          class="hero-score-card"
+          @click="
+            router.push(
+              `/parents/children/${childId}/teeny-score`
+            )
+          "
+        >
+
+          <div class="score-card-top">
+
+            <div class="score-card-left">
+
+              <span class="score-card-title">
+                티니점수
+              </span>
+
+              <div class="score-value-row">
+
+                <span class="score-num">
+                  {{ child.score }}
+                </span>
+
+                <span class="score-unit">
+                  점
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <div class="score-card-right">
+
+              <div class="grade-badge">
+
+                <span class="badge-icon">
+                  🎖️
+                </span>
+
+                <span class="badge-text">
+                  {{ child.grade }}
+                </span>
+
+              </div>
+
+            </div>
+
           </div>
 
 
-          <div class="score-bottom">
+          <div class="score-progress-wrap">
 
-            <strong>
-              {{ child.grade }}
-            </strong>
+            <div class="progress-text-row">
+
+              <span class="progress-label">
+                성장 점수
+              </span>
+
+              <span class="progress-target">
+                {{ child.score }} / 1000점
+              </span>
+
+            </div>
+
+
+            <div class="progress-bar-bg">
+
+              <div
+                class="progress-bar-fill"
+                :style="{
+                  width: scorePercent + '%'
+                }"
+              ></div>
+
+            </div>
+
           </div>
 
         </div>
@@ -141,357 +166,480 @@
 
 
       <!-- =========================
-           유해 업소 시도
+           잔액
       ========================== -->
-      <button
-        class="menu-card danger-card"
-        type="button"
-      >
+      <section class="wallet-section">
 
-        <div class="menu-left">
+        <div class="balance-row">
 
-          <!-- <div class="menu-icon danger-icon">
-            !
-          </div> -->
+          <div class="balance-info">
 
-          <span class="danger-text">
-            유해 업소 시도
-          </span>
+            <span class="balance-label">
+              {{ child.name }}님의 티니머니 잔액
+            </span>
+
+            <p class="balance-amount">
+              {{ child.balance.toLocaleString() }}원
+            </p>
+
+          </div>
+
+
+          <button
+            class="unlink-btn"
+            type="button"
+          >
+            연동 해제
+          </button>
 
         </div>
 
-
-        <div class="menu-right danger-text">
-          <strong>{{ child.harmfulAttemptCount }}건</strong>
-          <span class="arrow">›</span>
-        </div>
-
-      </button>
+      </section>
 
 
       <!-- =========================
-           리포트
+           자녀 관리 카드
       ========================== -->
-      <button
-        class="menu-card report-card"
-        type="button"
-      >
+      <section class="manage-section">
 
-        <div class="menu-left">
+        <div class="section-head">
 
-          <!-- <div class="menu-icon report-icon">
-            ▥
-          </div> -->
-
-          <span>
-            리포트 보러가기
+          <span class="section-title">
+            자녀 관리
           </span>
+        </div>
+
+
+        <div class="manage-slide">
+
+          <!-- 유해 업소 -->
+          <div class="manage-card">
+
+            <div class="manage-card-content">
+
+              <div class="manage-card-badge danger-badge">
+                이용 관리
+              </div>
+
+              <div class="manage-card-title">
+                유해 업소 시도
+              </div>
+
+              <div class="manage-card-value danger-value">
+                {{ child.harmfulAttemptCount }}건
+              </div>
+
+              <div class="manage-card-sub">
+                최근 이용 시도 내역
+              </div>
+
+            </div>
+
+
+            <div class="manage-decoration danger-decoration">
+              !
+            </div>
+
+          </div>
+
+
+          <!-- 소비 리포트 -->
+          <div class="manage-card">
+
+            <div class="manage-card-content">
+
+              <div class="manage-card-badge report-badge">
+                소비 분석
+              </div>
+
+              <div class="manage-card-title">
+                소비 리포트
+              </div>
+
+              <div class="manage-card-sub large-sub">
+                자녀의 소비 습관을<br />
+                한눈에 확인해요
+              </div>
+
+            </div>
+
+
+            <div class="manage-decoration report-decoration">
+              ▤
+            </div>
+
+          </div>
+
+
+          <!-- 유해 업소 설정 -->
+          <div
+            class="manage-card"
+            @click="goToHarmfulCategory"
+          >
+
+            <div class="manage-card-content">
+
+              <div class="manage-card-badge setting-badge">
+                설정
+              </div>
+
+              <div class="manage-card-title">
+                유해 업소 설정
+              </div>
+
+              <div class="manage-card-sub large-sub">
+                이용 제한 업종을<br />
+                직접 관리해요
+              </div>
+
+            </div>
+
+
+            <div class="manage-decoration setting-decoration">
+              🛡
+            </div>
+
+          </div>
 
         </div>
 
-        <span class="arrow">
-          ›
-        </span>
-
-      </button>
+      </section>
 
 
       <!-- =========================
            금융 상품
       ========================== -->
-      <section class="finance-section">
+      <section class="finance">
 
-        <div class="section-header">
-
-          <h2 class="section-title">
-            금융 상품
-          </h2>
-
-          <button
-            class="more-btn"
-            type="button"
-            @click="router.push(`/parents/children/${childId}/finance`)"
-          >
-            상세보기
-            <span>›</span>
-          </button>
-
-        </div>
-
-
-        <!-- 예적금 -->
-        <div class="finance-card">
-
-          <div class="finance-left">
-
-            <!-- <div class="finance-icon saving">
-              ♧
-            </div> -->
-
-            <div>
-              <p class="finance-title">
-                예적금
-              </p>
-
-              <p class="finance-sub">
-                티니 정기예금 외 1건
-              </p>
-            </div>
-
-          </div>
-
-
-          <div class="finance-right">
-
-            <strong>
-              1,200,000원
-            </strong>
-
-            <span class="profit">
-              +2.4%
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <!-- 대출 -->
-        <div class="finance-card">
-
-          <div class="finance-left">
-
-            <!-- <div class="finance-icon loan">
-              ♧
-            </div> -->
-
-            <div>
-              <p class="finance-title">
-                빌리기 (대출)
-              </p>
-
-              <p class="finance-sub">
-                엄마표 소액대출
-              </p>
-            </div>
-
-          </div>
-
-
-          <div class="finance-right">
-
-            <strong>
-              5,000원
-            </strong>
-
-            <span class="d-day">
-              D-3
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <!-- 투자 -->
-        <div class="finance-card">
-
-          <div class="finance-left">
-
-            <!-- <div class="finance-icon investment">
-              ↗
-            </div> -->
-
-            <div>
-              <p class="finance-title">
-                투자 현황
-              </p>
-
-              <p class="finance-sub">
-                모의 주식 투자
-              </p>
-            </div>
-
-          </div>
-
-
-          <div class="finance-right">
-
-            <strong>
-              245,600원
-            </strong>
-
-            <span class="profit">
-              +12.5%
-            </span>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- =========================
-           자녀 관리 설정
-      ========================== -->
-      <section class="setting-section">
-
-        <h2 class="section-title">
-          자녀 관리 설정
-        </h2>
-
-
-        <button
-          class="setting-card"
-          type="button"
-          @click="goToHarmfulCategory"
+        <div
+          class="finance-head"
+          @click="
+            router.push(
+              `/parents/children/${childId}/finance`
+            )
+          "
         >
 
-          <div class="setting-left">
+          <span class="finance-section-title">
+            금융 상품
+          </span>
 
-            <span>
-              유해 업소 설정 바로가기
-            </span>
+          <span class="finance-all">
+            전체보기 ›
+          </span>
+
+        </div>
+
+
+        <!-- 가로 슬라이드 -->
+        <div
+          ref="scrollRef"
+          class="finance-scroll"
+          @scroll="onScroll"
+        >
+
+          <!-- 예적금 -->
+          <div class="finance-product-card">
+
+            <div class="finance-product-top">
+
+              <div class="product-tag saving-tag">
+                예적금
+              </div>
+
+              <span class="product-rate">
+                +2.4%
+              </span>
+
+            </div>
+
+
+            <p class="product-name">
+              티니 정기예금
+            </p>
+
+            <p class="product-sub">
+              외 1건
+            </p>
+
+
+            <div class="product-bottom">
+
+              <span class="product-label">
+                보유 금액
+              </span>
+
+              <strong class="product-amount">
+                1,200,000원
+              </strong>
+
+            </div>
 
           </div>
 
-          <span class="arrow">
-            ›
-          </span>
 
-        </button>
+          <!-- 대출 -->
+          <div class="finance-product-card">
+
+            <div class="finance-product-top">
+
+              <div class="product-tag loan-tag">
+                빌리기
+              </div>
+
+              <span class="product-dday">
+                D-3
+              </span>
+
+            </div>
+
+
+            <p class="product-name">
+              엄마표 소액대출
+            </p>
+
+            <p class="product-sub">
+              상환 예정
+            </p>
+
+
+            <div class="product-bottom">
+
+              <span class="product-label">
+                남은 금액
+              </span>
+
+              <strong class="product-amount">
+                5,000원
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <!-- 투자 -->
+          <div class="finance-product-card">
+
+            <div class="finance-product-top">
+
+              <div class="product-tag investment-tag">
+                투자
+              </div>
+
+              <span class="product-rate">
+                +12.5%
+              </span>
+
+            </div>
+
+
+            <p class="product-name">
+              모의 주식 투자
+            </p>
+
+            <p class="product-sub">
+              투자 현황
+            </p>
+
+
+            <div class="product-bottom">
+
+              <span class="product-label">
+                평가 금액
+              </span>
+
+              <strong class="product-amount">
+                245,600원
+              </strong>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- 슬라이드 인디케이터 -->
+        <div class="indicator">
+
+          <span
+            v-for="(_, index) in financeCards"
+            :key="index"
+            class="dot"
+            :class="{
+              active:
+                index === activeCard
+            }"
+          ></span>
+
+        </div>
 
       </section>
 
-    </main>
+    </div>
 
 
     <!-- =========================
-         하단 네비게이션
+         하단 NAV
     ========================== -->
-    <nav class="bottom-nav">
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/mypage')"
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-
-    </nav>
+    <ParentBottomNav active="child" />
 
   </div>
 </template>
 
 
 <script setup>
-import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 
-const router = useRouter()
-const route = useRoute()
+import {
+  computed,
+  ref
+} from 'vue'
+
+import {
+  useRoute,
+  useRouter
+} from 'vue-router'
 
 
-// URL
-// /parents/children/150
-const childId = Number(route.params.childId)
+const router =
+  useRouter()
 
-console.log('현재 자녀 ID:', childId)
+const route =
+  useRoute()
 
 
 // ========================================
-// TODO
-// 자녀 상세 API 나오면 이 부분 교체
+// 기존 childId
 // ========================================
 
-const child = ref({
-  id: childId,
-
-  name: '김첫째',
-
-  balance: 42500,
-
-  score: 820,
-
-  grade: '우수 등급',
-
-  harmfulAttemptCount: 2,
-})
-
-
-// 점수 게이지
-const scorePercent = computed(() => {
-
-  const score = child.value.score
-
-  // 1000점 만점 기준
-  return Math.min(
-    Math.max(score / 10, 0),
-    100
+const childId =
+  Number(
+    route.params.childId
   )
 
-})
+console.log(
+  '현재 자녀 ID:',
+  childId
+)
 
 
 // ========================================
-// 유해 업소 설정
+// 기존 자녀 데이터
+// TODO 상세 API 연동 시 교체
+// ========================================
+
+const child =
+  ref({
+    id: childId,
+
+    name: '김첫째',
+
+    balance: 42500,
+
+    score: 820,
+
+    grade: '우수 등급',
+
+    harmfulAttemptCount: 2,
+  })
+
+
+// ========================================
+// 기존 점수 계산
+// ========================================
+
+const scorePercent =
+  computed(() => {
+
+    const score =
+      child.value.score
+
+    return Math.min(
+      Math.max(
+        score / 10,
+        0
+      ),
+      100
+    )
+  })
+
+
+// ========================================
+// 기존 유해 업소 설정 이동
 // ========================================
 
 function goToHarmfulCategory() {
 
   router.push({
-    path: '/parents/harmfulcategory',
+    path:
+      '/parents/harmfulcategory',
 
     query: {
-      childId: childId,
+      childId:
+        childId,
     },
   })
-
 }
+
+
+// ========================================
+// 금융상품 슬라이드 UI
+// ========================================
+
+const financeCards = [
+  'saving',
+  'loan',
+  'investment',
+]
+
+const activeCard =
+  ref(0)
+
+const scrollRef =
+  ref(null)
+
+
+function onScroll() {
+
+  const el =
+    scrollRef.value
+
+  if (!el) {
+    return
+  }
+
+  const maxScroll =
+    el.scrollWidth -
+    el.clientWidth
+
+  const ratio =
+    maxScroll > 0
+      ? el.scrollLeft /
+        maxScroll
+      : 0
+
+  activeCard.value =
+    Math.round(
+      ratio *
+      (
+        financeCards.length -
+        1
+      )
+    )
+}
+
+
+// ========================================
+// ChildHome과 동일한 캐릭터
+// ========================================
+
+const teenyScoreMascot =
+  new URL(
+    '@/assets/mascot/teeny-coach.png',
+    import.meta.url
+  ).href
 </script>
 
 
@@ -500,49 +648,105 @@ function goToHarmfulCategory() {
   box-sizing: border-box;
 }
 
-.page {
+
+/* =====================================
+   전체 화면
+===================================== */
+
+.child-detail {
+  display: flex;
+  flex-direction: column;
+
   width: 360px;
+
+  /* nav까지 화면을 꽉 채움 */
+  height: 100dvh;
   min-height: 100dvh;
+
   margin: 0 auto;
 
-  padding-bottom: 90px;
+  overflow: hidden;
 
-  background: #f8f8f8;
+  border-left:
+    1px solid #eceef1;
 
-  color: #111827;
+  border-right:
+    1px solid #eceef1;
+
+  background: #f8fafc;
 }
 
 
-/* =====================
-   HEADER
-===================== */
+.scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 
-.nav {
+  /* 마지막 카드와 nav 사이 최소 여백 */
+  padding-bottom: 80px;
+
+  background: #f8fafc;
+
+  scrollbar-width: none;
+}
+
+
+.scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* =====================================
+   HERO
+===================================== */
+
+.hero-section {
+  position: relative;
+
+  overflow: hidden;
+
+  padding:
+    28px 18px 24px;
+
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #eef7ff 0%,
+      #fffbe8 100%
+    );
+}
+
+
+/* =====================================
+   상단 NAV
+===================================== */
+
+.top-nav {
   position: relative;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  height: 74px;
+  height: 34px;
 
-  padding: 0 20px;
-
-  background: #ffffff;
-
-  border-bottom: 1px solid #eeeeee;
+  margin-bottom: 16px;
 }
 
-.nav-title {
-  margin: 0;
-
-  font-size: 20px;
-  font-weight: 800;
-}
 
 .back-btn {
   position: absolute;
-  left: 18px;
+  left: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
 
   padding: 0;
 
@@ -553,521 +757,584 @@ function goToHarmfulCategory() {
   cursor: pointer;
 }
 
+
 .back-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
-.alarm-btn {
+
+.nav-title {
+  color: #1c1e22;
+
+  font-size: 16px;
+  font-weight: 900;
+}
+
+
+.bell-btn {
   position: absolute;
-  right: 18px;
+  right: 0;
 
-  border: none;
-
-  background: transparent;
-
-  cursor: pointer;
-}
-
-.alarm-icon {
-  width: 27px;
-  height: 27px;
-}
-
-
-/* =====================
-   CONTENT
-===================== */
-
-.content {
-  padding: 24px 20px 30px;
-}
-
-
-/* =====================
-   CHILD
-===================== */
-
-.child-info-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  margin-bottom: 24px;
-
-  padding: 0 8px;
-}
-
-.child-label {
-  margin: 0 0 4px;
-
-  color: #8b9097;
-
-  font-size: 13px;
-}
-
-.child-name {
-  margin: 0;
-
-  font-size: 21px;
-  font-weight: 800;
-}
-
-.unlink-btn {
-  height: 38px;
-
-  padding: 0 18px;
-
-  border: 1px solid #ff7a70;
-  border-radius: 20px;
-
-  background: #ffffff;
-
-  color: #ff4d42;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-
-/* =====================
-   WALLET
-===================== */
-
-.wallet-card {
-  min-height: 180px;
-
-  margin-bottom: 24px;
-
-  padding: 22px;
-
-  border-radius: 18px;
-
-  background: #ffc20e;
-
-  box-shadow:
-    0 5px 10px rgba(0, 0, 0, 0.08);
-}
-
-.wallet-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.wallet-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.wallet-icon-circle {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
+
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+  cursor: pointer;
+}
+
+
+.alarm-icon {
+  width: 22px;
+  height: 22px;
+}
+
+
+/* =====================================
+   HERO TEXT
+===================================== */
+
+.hero-text {
+  position: relative;
+
+  z-index: 2;
+
+  margin-bottom: 16px;
+}
+
+
+.hero-eyebrow {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #64748b;
+
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+
+.hero-title {
+  margin: 0 0 6px;
+
+  color: #191b1e;
+
+  font-size: 21px;
+  font-weight: 900;
+
+  line-height: 1.35;
+
+  letter-spacing: -0.5px;
+}
+
+
+.highlight-blue {
+  color: #2563eb;
+}
+
+
+.hero-sub {
+  margin: 0;
+
+  color: #71717a;
+
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+
+/* =====================================
+   캐릭터
+===================================== */
+
+.hero-mascot-wrap {
+  position: absolute;
+
+  right: -8px;
+  top: 125px;
+
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  pointer-events: none;
+}
+
+
+.hero-mascot {
+  width: 165px;
+  height: 165px;
+
+  object-fit: contain;
+}
+
+
+.mascot-shadow {
+  width: 105px;
+  height: 12px;
+
+  margin-top: -18px;
 
   border-radius: 50%;
 
-  background: rgba(255, 255, 255, 0.35);
+  background:
+    rgba(
+      220,
+      190,
+      80,
+      0.32
+    );
+
+  filter: blur(5px);
 }
 
-.wallet-icon {
-  width: 24px;
-  height: 24px;
+
+/* =====================================
+   티니점수
+===================================== */
+
+.hero-score-card {
+  position: relative;
+
+  z-index: 3;
+
+  display: flex;
+  flex-direction: column;
+
+  width: 170px;
+
+  padding: 12px;
+
+  border-radius: 18px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 8px 24px
+    rgba(
+      0,
+      0,
+      0,
+      0.06
+    );
+
+  cursor: pointer;
 }
 
-.wallet-title {
-  font-size: 18px;
+
+.score-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+
+.score-card-left {
+  display: flex;
+  flex-direction: column;
+
+  gap: 1px;
+}
+
+
+.score-card-title {
+  color: #27272a;
+
+  font-size: 11px;
   font-weight: 800;
 }
 
-.transaction-btn {
+
+.score-value-row {
   display: flex;
-  align-items: center;
-  gap: 5px;
+  align-items: baseline;
 
-  border: none;
+  gap: 2px;
 
-  background: transparent;
+  margin-top: 1px;
+}
 
-  color: #1f2937;
+
+.score-num {
+  color: #0f172a;
+
+  font-size: 26px;
+  font-weight: 900;
+
+  letter-spacing: -1px;
+
+  line-height: 1;
+}
+
+
+.score-unit {
+  color: #0f172a;
 
   font-size: 14px;
-
-  cursor: pointer;
-}
-
-.transaction-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.wallet-amount {
-  margin: 28px 0 0;
-
-  font-size: 30px;
-  font-weight: 900;
-
-  letter-spacing: 1px;
-}
-
-.wallet-amount span {
-  font-size: 16px;
-}
-
-
-/* =====================
-   SECTION HEADER
-===================== */
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  margin-bottom: 12px;
-}
-
-.section-title {
-  margin: 0;
-
-  font-size: 18px;
   font-weight: 800;
 }
 
-.score-title-wrap {
+
+.score-card-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.shield-icon {
-  color: #ffc20e;
-
-  font-size: 20px;
-}
-
-.more-btn {
-  border: none;
-
-  background: transparent;
-
-  color: #8b9097;
-
-  font-size: 13px;
-
-  cursor: pointer;
-}
-
-.more-btn span {
-  font-size: 20px;
 }
 
 
-/* =====================
-   SCORE
-===================== */
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
 
-.score-section {
-  margin-bottom: 22px;
+  gap: 2px;
+
+  padding: 2px 6px;
+
+  border:
+    1px solid #fde68a;
+
+  border-radius: 999px;
+
+  background: #fffbe8;
 }
 
-.score-card {
-  padding: 24px 22px;
 
-  border-radius: 20px;
-
-  background: #111c32;
-
-  color: #ffffff;
+.badge-icon {
+  font-size: 9px;
 }
 
-.score-number {
-  margin: 0 0 20px;
 
-  font-size: 34px;
-  font-weight: 900;
+.badge-text {
+  color: #b77900;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  white-space: nowrap;
 }
 
-.score-number span {
-  font-size: 16px;
+
+.score-progress-wrap {
+  margin-top: 8px;
+
+  padding-top: 6px;
+
+  border-top:
+    1px solid #f1f5f9;
 }
 
-.score-progress {
-  overflow: hidden;
 
+.progress-text-row {
+  display: flex;
+  justify-content: space-between;
+
+  margin-bottom: 4px;
+
+  color: #64748b;
+
+  font-size: 9px;
+  font-weight: 700;
+}
+
+
+.progress-bar-bg {
   width: 100%;
   height: 7px;
 
-  border-radius: 10px;
+  overflow: hidden;
 
-  background: #303a4f;
+  border-radius: 999px;
+
+  background: #f1f5f9;
 }
 
-.score-progress-fill {
+
+.progress-bar-fill {
   height: 100%;
 
-  border-radius: 10px;
+  border-radius: 999px;
 
-  background: #ffc20e;
-}
+  background: #facc15;
 
-.score-bottom {
-  display: flex;
-  justify-content: space-between;
-
-  margin-top: 8px;
-
-  color: #929aaa;
-
-  font-size: 12px;
-}
-
-.score-bottom strong {
-  color: #ffc20e;
+  transition:
+    width 0.4s ease-out;
 }
 
 
-/* =====================
-   MENU CARD
-===================== */
+/* =====================================
+   잔액
+===================================== */
 
-.menu-card {
+.wallet-section {
+  padding:
+    14px 18px 0;
+}
+
+
+.balance-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  width: 100%;
-  height: 66px;
+  padding: 16px 18px;
 
-  margin-bottom: 12px;
-
-  padding: 0 16px;
-
-  border: none;
-  border-radius: 18px;
+  border-radius: 20px;
 
   background: #ffffff;
 
   box-shadow:
-    0 3px 9px rgba(0, 0, 0, 0.05);
-
-  font-size: 16px;
-  font-weight: 800;
-
-  cursor: pointer;
+    0 2px 8px
+    rgba(
+      0,
+      0,
+      0,
+      0.03
+    );
 }
 
-.menu-left,
-.menu-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 
-.menu-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.balance-label {
+  color: #71717a;
 
-  width: 36px;
-  height: 36px;
-
-  border-radius: 50%;
-}
-
-.danger-card {
-  background: #fff8f7;
-}
-
-.danger-icon {
-  background: #ffe7e4;
-
-  color: #ff4d42;
-
-  font-size: 20px;
+  font-size: 11.5px;
   font-weight: 700;
 }
 
-.danger-text {
-  color: #ff4d42;
-}
 
-.report-card {
-  background: #fffaf1;
-}
+.balance-amount {
+  margin: 2px 0 0;
 
-.report-icon {
-  background: #fff2cc;
+  color: #0f172a;
 
-  color: #ffb800;
-}
-
-.arrow {
-  color: #8b9097;
-
-  font-size: 24px;
-  font-weight: 400;
+  font-size: 21px;
+  font-weight: 900;
 }
 
 
-/* =====================
-   FINANCE
-===================== */
+.unlink-btn {
+  padding: 8px 12px;
 
-.finance-section {
-  margin-top: 28px;
-}
+  border:
+    1px solid #fecaca;
 
-.finance-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  min-height: 78px;
-
-  margin-bottom: 12px;
-
-  padding: 14px 16px;
-
-  border-radius: 18px;
+  border-radius: 12px;
 
   background: #ffffff;
 
-  box-shadow:
-    0 3px 9px rgba(0, 0, 0, 0.05);
-}
-
-.finance-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.finance-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  width: 40px;
-  height: 40px;
-
-  border-radius: 12px;
-
-  font-size: 20px;
-  font-weight: 800;
-}
-
-/* .finance-icon.saving {
-  background: #ddfbf7;
-  color: #00a99d;
-} */
-
-/* .finance-icon.loan {
-  background: #fff0ed;
-  color: #ff4d42;
-}
-
-.finance-icon.investment {
-  background: #fff6dd;
-  color: #ffb800;
-} */
-
-.finance-title {
-  margin: 0 0 3px;
-
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.finance-sub {
-  margin: 0;
-
-  color: #8b9097;
-
-  font-size: 12px;
-}
-
-.finance-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.finance-right strong {
-  font-size: 17px;
-}
-
-.profit {
-  color: #00a99d;
-
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.d-day {
-  padding: 3px 9px;
-
-  border-radius: 12px;
-
-  background: #ff4d42;
-
-  color: #ffffff;
+  color: #ef4444;
 
   font-size: 11px;
   font-weight: 700;
-}
-
-
-/* =====================
-   SETTING
-===================== */
-
-.setting-section {
-  margin-top: 28px;
-}
-
-.setting-section .section-title {
-  margin-bottom: 14px;
-}
-
-.setting-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  width: 100%;
-  height: 76px;
-
-  padding: 0 16px;
-
-  border: none;
-  border-radius: 18px;
-
-  background: #ffffff;
-
-  box-shadow:
-    0 3px 9px rgba(0, 0, 0, 0.05);
 
   cursor: pointer;
 }
 
-.setting-left {
+
+/* =====================================
+   공통 제목
+===================================== */
+
+.section-head {
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: space-between;
 
-  font-size: 16px;
+  padding: 0 20px;
+
+  margin-bottom: 10px;
+}
+
+
+.section-title {
+  color: #0f172a;
+
+  font-size: 15px;
   font-weight: 800;
 }
 
-.setting-icon {
+
+.section-description {
+  color: #a0a5b1;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+/* =====================================
+   자녀 관리 가로 슬라이드
+===================================== */
+
+.manage-section {
+  padding: 20px 0 0;
+}
+
+
+.manage-slide {
+  display: flex;
+
+  gap: 10px;
+
+  padding:
+    2px 18px 8px;
+
+  overflow-x: auto;
+
+  scrollbar-width: none;
+}
+
+
+.manage-slide::-webkit-scrollbar {
+  display: none;
+}
+
+
+.manage-card {
+  position: relative;
+
+  flex-shrink: 0;
+
+  width: 165px;
+  height: 118px;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+
+  padding: 12px 14px;
+
+  border:
+    1px solid #eaedf1;
+
+  border-radius: 20px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 4px 12px
+    rgba(
+      0,
+      0,
+      0,
+      0.03
+    );
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease;
+}
+
+
+.manage-card:active {
+  transform: scale(0.97);
+}
+
+
+.manage-card-content {
+  position: relative;
+
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+
+  height: 100%;
+}
+
+
+.manage-card-badge {
+  align-self: flex-start;
+
+  padding: 3px 7px;
+
+  margin-bottom: 8px;
+
+  border-radius: 8px;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  line-height: 1;
+}
+
+
+.danger-badge {
+  color: #e5484d;
+
+  background: #fff0f0;
+}
+
+
+.report-badge {
+  color: #d98200;
+
+  background: #fff8e6;
+}
+
+
+.setting-badge {
+  color: #2563eb;
+
+  background: #eff6ff;
+}
+
+
+.manage-card-title {
+  margin-bottom: 8px;
+
+  color: #22252a;
+
+  font-size: 14px;
+  font-weight: 800;
+}
+
+
+.manage-card-value {
+  font-size: 19px;
+  font-weight: 900;
+}
+
+
+.danger-value {
+  color: #e5484d;
+}
+
+
+.manage-card-sub {
+  margin-top: 3px;
+
+  color: #8b9097;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  line-height: 1.35;
+}
+
+
+.large-sub {
+  margin-top: 3px;
+}
+
+
+.manage-decoration {
+  position: absolute;
+
+  right: 10px;
+  bottom: 9px;
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1075,49 +1342,285 @@ function goToHarmfulCategory() {
   width: 40px;
   height: 40px;
 
-  border: 1px solid #eeeeee;
-  border-radius: 50%;
-
-  color: #6b7280;
+  border-radius: 14px;
 
   font-size: 19px;
+  font-weight: 900;
 }
 
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
+
+.danger-decoration {
+  color: #ef4444;
+
+  background: #fff1f2;
 }
 
-.nav-item {
+
+.report-decoration {
+  color: #d98200;
+
+  background: #fff8e6;
+}
+
+
+.setting-decoration {
+  background: #eff6ff;
+}
+
+
+/* =====================================
+   금융 상품
+===================================== */
+
+.finance {
+  margin:
+    12px 18px 0;
+
+  padding:
+    16px 0 12px;
+
+  overflow: hidden;
+
+  border-radius: 20px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 2px 8px
+    rgba(
+      0,
+      0,
+      0,
+      0.03
+    );
+}
+
+
+/* 헤더 */
+.finance-head {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
+  justify-content: space-between;
+
+  padding:
+    0 16px 12px;
+
+  border-bottom:
+    1px solid #f1f5f9;
+
   cursor: pointer;
 }
 
-.nav-icon {
-  width: 24px;
-  height: 24px;
+
+.finance-section-title {
+  color: #0f172a;
+
+  font-size: 15px;
+  font-weight: 800;
 }
 
-.nav-label {
-  font-size: 11px;
-  color: #8b9097;
-}
 
-.nav-item-active .nav-label {
-  color: #191b1e;
+.finance-all {
+  color: #a1a1aa;
+
+  font-size: 12px;
   font-weight: 700;
+}
+
+
+/*
+ * 여기 수정 핵심
+ * 바깥 테두리와 첫 카드 사이
+ * 좌우 16px 공간 확보
+ */
+.finance-scroll {
+  display: flex;
+
+  gap: 12px;
+
+  padding:
+    16px 16px 14px;
+
+  overflow-x: auto;
+
+  scroll-snap-type:
+    x mandatory;
+
+  scroll-padding-left:
+    16px;
+
+  scrollbar-width: none;
+}
+
+
+.finance-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* 금융 상품 카드 */
+.finance-product-card {
+  flex:
+    0 0 244px;
+
+  min-height: 125px;
+
+  padding: 14px;
+
+  border:
+    1px solid #e8edf3;
+
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  scroll-snap-align: start;
+}
+
+
+.finance-product-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+.product-tag {
+  padding: 4px 8px;
+
+  border-radius: 8px;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+
+.saving-tag {
+  color: #059669;
+
+  background: #ecfdf5;
+}
+
+
+.loan-tag {
+  color: #ef4444;
+
+  background: #fff1f2;
+}
+
+
+.investment-tag {
+  color: #2563eb;
+
+  background: #eff6ff;
+}
+
+
+.product-rate {
+  color: #16a34a;
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+
+.product-dday {
+  padding: 3px 7px;
+
+  border-radius: 999px;
+
+  color: #ef4444;
+
+  background: #fff1f2;
+
+  font-size: 9px;
+  font-weight: 800;
+}
+
+
+.product-name {
+  margin:
+    12px 0 2px;
+
+  color: #18181b;
+
+  font-size: 15px;
+  font-weight: 800;
+}
+
+
+.product-sub {
+  margin: 0;
+
+  color: #a1a1aa;
+
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+
+.product-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  margin-top: 18px;
+}
+
+
+.product-label {
+  color: #a1a1aa;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+
+.product-amount {
+  color: #15171b;
+
+  font-size: 15px;
+  font-weight: 900;
+}
+
+
+/* =====================================
+   금융상품 인디케이터
+===================================== */
+
+.indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+}
+
+
+.dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 3px;
+
+  background: #e2e8f0;
+
+  transition:
+    all 0.2s;
+}
+
+
+.dot.active {
+  width: 16px;
+
+  background: #0f172a;
+}
+
+/* =====================================
+   버튼 공통
+===================================== */
+
+button {
+  font-family: inherit;
 }
 </style>
