@@ -1,10 +1,12 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
 // 가족 연동 코드 발급
 export async function makeFamilyCode(accessToken, idempotencyKey, signal) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   // Idempotency-Key: 재발급마다 고유한 UUID 생성
   if (!idempotencyKey) {
@@ -41,7 +43,7 @@ export async function makeFamilyCode(accessToken, idempotencyKey, signal) {
 
 // 연동된 부모 조회 (자녀용)
 export async function getMyParent(accessToken) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/members/me/parent`,
@@ -71,7 +73,7 @@ export async function getMyParent(accessToken) {
 
 // 연동 코드 소비 (자녀가 코드 입력)
 export async function connectFamilyCode(accessToken, code) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/families/connect-link`,

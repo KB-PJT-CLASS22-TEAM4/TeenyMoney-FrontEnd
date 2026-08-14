@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -5,7 +7,7 @@ const API_BASE_URL = import.meta.env.DEV
 // QR 코드 검증 (가맹점/금액 정보 + 잔액 + 업종 정책 확인)
 // POST /api/v1/payments/qrcode
 export async function verifyQrPayment(accessToken, qrPayload) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/payments/qrcode`,
@@ -37,7 +39,7 @@ export async function verifyQrPayment(accessToken, qrPayload) {
 // 결제 진행 (비밀번호 검증 + 실제 결제)
 // POST /api/v1/payments
 export async function processPayment(accessToken, { idempotencyKey, orderId, password }) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/payments`,

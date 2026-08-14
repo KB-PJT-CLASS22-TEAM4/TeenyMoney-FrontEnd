@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -7,7 +9,7 @@ const BASE_URL = `${API_BASE_URL}/api/v1/members/me`
 // 결제 비밀번호 최초 등록
 // POST /api/v1/members/me/payment-password
 export async function registerPaymentPassword(accessToken, password) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${BASE_URL}/payment-password`,

@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -7,9 +9,7 @@ const API_BASE_URL = import.meta.env.DEV
 // GET /api/v1/charge-methods
 // ========================================
 export async function getChargeMethods(accessToken) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods`,
@@ -49,9 +49,7 @@ export async function addCardChargeMethod(
   accessToken,
   cardData
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods/card`,
@@ -110,9 +108,7 @@ export async function setPrimaryChargeMethod(
   accessToken,
   paymentMethodId
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods/${paymentMethodId}/primary`,
@@ -161,9 +157,7 @@ export async function deleteChargeMethod(
   accessToken,
   paymentMethodId
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods/${paymentMethodId}`,
@@ -213,9 +207,7 @@ export async function chargeWallet(
   amount,
   paymentMethodId
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   if (!paymentMethodId) {
     throw new Error(
