@@ -22,56 +22,56 @@
           </button>
         </header>
 
-        <div class="hero-text">
-          <h2 class="hero-title">
-            안녕하세요!<br />
-            <span class="highlight-blue">
-              {{ authStore.name ? `${authStore.name}님` : '보호자님' }}
-            </span>
-          </h2>
-          <p class="hero-sub">티니와 함께 자녀의 금융 생활을 관리해 보세요</p>
+        <div class="hero-body">
+          <div class="hero-text">
+            <h2 class="hero-title">
+              안녕하세요!<br />
+              <span class="highlight-blue">
+                {{ authStore.name ? `${authStore.name}님` : '보호자님' }}
+              </span>
+            </h2>
+            <p class="hero-sub">티니와 함께 자녀의 금융 생활을 관리해 보세요</p>
+          </div>
+
+          <div class="hero-mascot-wrap" aria-hidden="true">
+            <img :src="parentMascot" class="hero-mascot" alt="" />
+            <div class="mascot-shadow"></div>
+          </div>
         </div>
       </section>
 
       <section class="wallet-section">
         <div class="wallet-card">
-          <div class="wallet-top">
-            <div class="wallet-main">
-              <p class="wallet-label">티니머니</p>
+          <div class="wallet-main">
+            <p class="wallet-label">티니머니</p>
 
-              <div class="wallet-row">
-                <img
-                  src="@/assets/logo.svg"
-                  alt="티니머니 로고"
-                  class="wallet-logo"
-                />
+            <div class="wallet-row">
+              <img
+                src="@/assets/logo.svg"
+                alt="티니머니 로고"
+                class="wallet-logo"
+              />
 
-                <p
-                  v-if="isWalletLoading"
-                  class="wallet-amount loading-text"
-                >
-                  조회 중...
-                </p>
+              <p
+                v-if="isWalletLoading"
+                class="wallet-amount loading-text"
+              >
+                조회 중...
+              </p>
 
-                <p
-                  v-else-if="walletError"
-                  class="wallet-amount error-text"
-                >
-                  조회 실패
-                </p>
+              <p
+                v-else-if="walletError"
+                class="wallet-amount error-text"
+              >
+                조회 실패
+              </p>
 
-                <p
-                  v-else
-                  class="wallet-amount"
-                >
-                  {{ wallet.balance.toLocaleString() }}원
-                </p>
-              </div>
-            </div>
-
-            <div class="wallet-mascot-wrap" aria-hidden="true">
-              <img :src="parentMascot" class="wallet-mascot" alt="" />
-              <div class="mascot-shadow"></div>
+              <p
+                v-else
+                class="wallet-amount"
+              >
+                {{ wallet.balance.toLocaleString() }}원
+              </p>
             </div>
           </div>
 
@@ -332,11 +332,56 @@ button {
 
 .hero-section {
   position: relative;
+  overflow: hidden;
   padding: 36px 18px 28px;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
+}
+
+.hero-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-mascot-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 118px;
+  height: 118px;
   overflow: hidden;
+  pointer-events: none;
+}
+
+.hero-mascot {
+  width: 100%;
+  height: 100%;
+  max-width: 118px;
+  max-height: 118px;
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+.mascot-shadow {
+  width: 72px;
+  height: 8px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: rgba(220, 190, 80, 0.28);
+  filter: blur(4px);
 }
 
 .top-nav {
@@ -378,12 +423,6 @@ button {
   height: 22px;
 }
 
-.hero-text {
-  position: relative;
-  z-index: 2;
-  margin-bottom: 0;
-}
-
 .hero-title {
   margin: 0 0 6px;
   font-size: 21px;
@@ -391,6 +430,7 @@ button {
   line-height: 1.35;
   color: #191b1e;
   letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
 }
 
 .highlight-blue {
@@ -407,13 +447,13 @@ button {
 .wallet-section {
   position: relative;
   z-index: 2;
-  margin-top: 12px;
+  margin-top: -10px;
   padding: 0 18px;
 }
 
 .wallet-card {
   position: relative;
-  overflow: hidden;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -423,46 +463,7 @@ button {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
-.wallet-top {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.wallet-mascot-wrap {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  width: 84px;
-  height: 84px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.wallet-mascot {
-  width: 100%;
-  height: 100%;
-  max-width: 84px;
-  max-height: 84px;
-  object-fit: contain;
-  object-position: bottom center;
-}
-
-.mascot-shadow {
-  width: 56px;
-  height: 6px;
-  margin-top: -8px;
-  border-radius: 50%;
-  background: rgba(220, 190, 80, 0.28);
-  filter: blur(4px);
-}
-
 .wallet-main {
-  flex: 1;
   min-width: 0;
 }
 
