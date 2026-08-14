@@ -60,18 +60,15 @@ function handleGoogleLogin() {
         
   <div class="login-screen">
     <div class="scroll">
-      
-      
-      <header class="nav">
-            <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.push('/')"/>
-      </header>
-
       <div class="pad">
         <img class="logo" :src="logoUrl" alt="티니머니" />
- 
+
         <div class="heading">
-          <h1 class="welcome">다시 만나서 반가워요</h1>
-          <p class="subtitle">티니머니 계정으로 로그인하세요</p>
+          <h1 class="welcome">티니머니에 오신 걸 환영해요</h1>
+          <p class="subtitle">
+            용돈을 충전하고 목표를 모아요.<br />
+            로그인하고 자녀와 함께 시작해 보세요.
+          </p>
         </div>
  
         <div class="form">
@@ -158,18 +155,11 @@ function handleGoogleLogin() {
   overflow-y: auto;
 }
 
-/* back-btn 관련 추가 */
-.nav {
-  display: flex;
-  align-items: center;
-  padding: 18px 20px 6px;  /* ← 좌우 20px 여백 추가 */
-}
- 
 .pad {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30px 20px 0;
+  padding: 48px 20px 0;
   gap: 20px;
 }
  
@@ -202,7 +192,8 @@ function handleGoogleLogin() {
   margin: 0;
   font-weight: 500;
   font-size: 13.3px;
-  line-height: 16px;
+  line-height: 1.5;
+  text-align: center;
   color: #8b9097;
 }
  

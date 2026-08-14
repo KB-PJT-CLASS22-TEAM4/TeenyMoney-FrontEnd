@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomePage from '@/pages/HomePage.vue';
 import LoginView from '@/pages/Login.vue';
 import Signup from '@/pages/Signup.vue';
 // 자녀 연동 코드 입력 페이지
@@ -97,16 +96,14 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomePage,
+      name: 'login',
+      component: LoginView,
       meta: { public: true },
     },
-    // 로그인 페이지
+    // 로그인 페이지 (기존 경로 호환)
     {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-    meta: { public: true },
+      path: '/login',
+      redirect: '/',
     },
     // 회원가입 페이지
     {
