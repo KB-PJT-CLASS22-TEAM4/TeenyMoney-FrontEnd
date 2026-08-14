@@ -765,6 +765,7 @@ onMounted(async () => {
   gap: 10px;
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
+  background-color: #ffffff;
 }
 
 .back-btn {
@@ -800,13 +801,15 @@ onMounted(async () => {
 }
 
 .policy-card {
-  background-color: #f4f5f7;
-  border-radius: 12px;
+  background-color: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .policy-label {
@@ -933,13 +936,15 @@ onMounted(async () => {
 }
 
 .request-card {
-  background-color: #f4f5f7;
+  background-color: #ffffff;
+  border: 1px solid #eaedf1;
   border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .request-top {
@@ -996,7 +1001,7 @@ onMounted(async () => {
 .category-tag {
   padding: 4px 10px;
   border-radius: 999px;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
   color: #191b1e;
   font-size: 12px;
   font-weight: 600;

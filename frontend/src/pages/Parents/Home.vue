@@ -667,7 +667,7 @@ button {
 }
 
 .tx-amount.minus {
-  color: #191b1e;
+  color: #ef4444;
 }
 
 .transaction-state {

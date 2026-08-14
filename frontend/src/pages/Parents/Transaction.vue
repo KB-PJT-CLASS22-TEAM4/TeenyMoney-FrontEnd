@@ -758,7 +758,7 @@ button {
 
   color: #191b1e;
 
-  background-color: #f4f5f7;
+  background-color: #ffffff;
 }
 
 
@@ -777,6 +777,10 @@ button {
   height: 64px;
 
   padding: 0 20px 4px;
+
+  border-bottom: 1px solid #f0f1f3;
+
+  background-color: #ffffff;
 }
 
 .back-icon {
@@ -845,6 +849,10 @@ button {
   border-radius: 16px;
 
   background-color: #ffffff;
+
+  border: 1px solid #eaedf1;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .wallet-logo {
@@ -1047,9 +1055,13 @@ button {
 .transaction-card {
   overflow: hidden;
 
-  border-radius: 14px;
+  border-radius: 16px;
 
   background-color: #ffffff;
+
+  border: 1px solid #eaedf1;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 
@@ -1119,11 +1131,11 @@ button {
 }
 
 .transaction-amount.positive {
-  color: #2878d0;
+  color: #3178c6;
 }
 
 .transaction-amount.negative {
-  color: #191b1e;
+  color: #ef4444;
 }
 
 .transaction-balance {
