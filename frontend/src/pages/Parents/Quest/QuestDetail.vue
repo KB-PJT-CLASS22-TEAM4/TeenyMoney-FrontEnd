@@ -1330,7 +1330,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #f4f5f7;
+  background: white;
   padding-bottom: 90px;
 }
 
@@ -1407,12 +1407,13 @@ onMounted(() => {
 }
 
 .info-card {
+  background-color: white;
+  border-radius: 16px;
+  border: 1px solid #f0f1f3;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-  background: #ffffff;
+  gap: 10px;
 }
 
 .child-row {

@@ -149,6 +149,25 @@
           승인 요청 내역
         </p>
 
+        <div class="request-tabs">
+          <button
+            v-for="tab in requestTabs"
+            :key="tab.value"
+            class="request-tab"
+            :class="{ active: activeRequestTab === tab.value }"
+            type="button"
+            @click="activeRequestTab = tab.value"
+          >
+            {{ tab.label }}
+            <span
+              v-if="tab.count > 0"
+              class="tab-count"
+            >
+              {{ tab.count }}
+            </span>
+          </button>
+        </div>
+
 
         <!-- 요청 로딩 -->
         <div
@@ -159,70 +178,125 @@
         </div>
 
 
-        <!-- 요청 없음 -->
+        <!-- 요청 대기 탭 -->
         <div
-          v-else-if="!pendingRequests.length"
-          class="empty-request"
+          v-else-if="activeRequestTab === 'pending'"
         >
-          <p>
-            오늘만 허용 요청이 없습니다.
-          </p>
-        </div>
-
-
-        <!-- 요청 목록 -->
-        <div v-else>
+          <div
+            v-if="!pendingRequests.length"
+            class="empty-request"
+          >
+            <p>대기 중인 승인 요청이 없습니다.</p>
+          </div>
 
           <div
             v-for="req in pendingRequests"
             :key="req.id"
             class="request-card"
           >
-
             <div class="request-top">
-
               <span class="request-status block">
-                차단
+                요청
               </span>
-
               <span class="request-name">
-                {{ req.child ? req.child.name : '' }}
+                {{ req.childName }}
               </span>
-
               <span class="request-time">
-                {{ formatTime(req.createdAt) }}
+                {{ formatRelativeTime(req.createdAt) }}
               </span>
-
             </div>
 
+            <div
+              v-if="req.categories.length"
+              class="request-categories"
+            >
+              <span
+                v-for="(category, idx) in req.categories"
+                :key="idx"
+                class="category-tag"
+              >
+                {{ category }}
+              </span>
+            </div>
 
-            <p class="request-desc">
+            <p
+              v-if="req.reason"
+              class="request-desc"
+            >
               {{ req.reason }}
             </p>
 
-
             <div class="request-btns">
-
               <button
                 class="btn btn-secondary"
-                :disabled="req.status !== 'PENDING'"
+                :disabled="processingId === req.id"
+                type="button"
                 @click="handleReject(req.id)"
               >
                 거절
               </button>
-
               <button
                 class="btn btn-primary"
-                :disabled="req.status !== 'PENDING'"
+                :disabled="processingId === req.id"
+                type="button"
                 @click="handleAccept(req.id)"
               >
                 승인
               </button>
-
             </div>
+          </div>
+        </div>
 
+
+        <!-- 처리 완료 탭 -->
+        <div v-else>
+          <div
+            v-if="!completedRequests.length"
+            class="empty-request"
+          >
+            <p>처리 완료된 승인 요청이 없습니다.</p>
           </div>
 
+          <div
+            v-for="req in completedRequests"
+            :key="req.id"
+            class="request-card"
+          >
+            <div class="request-top">
+              <span
+                class="request-status"
+                :class="req.status === 'APPROVED' ? 'approved' : 'rejected'"
+              >
+                {{ req.status === 'APPROVED' ? '승인' : '거절' }}
+              </span>
+              <span class="request-name">
+                {{ req.childName }}
+              </span>
+              <span class="request-time">
+                {{ formatRelativeTime(req.updatedAt || req.createdAt) }}
+              </span>
+            </div>
+
+            <div
+              v-if="req.categories.length"
+              class="request-categories"
+            >
+              <span
+                v-for="(category, idx) in req.categories"
+                :key="idx"
+                class="category-tag"
+              >
+                {{ category }}
+              </span>
+            </div>
+
+            <p
+              v-if="req.reason"
+              class="request-desc"
+            >
+              {{ req.reason }}
+            </p>
+          </div>
         </div>
 
       </div>
@@ -238,7 +312,7 @@
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -249,6 +323,7 @@ import {
 
 import {
   getPermissions,
+  getPermissionHistory,
   approvePermission,
   rejectPermission
 } from '@/api/permissions'
@@ -289,38 +364,157 @@ const errorMessage = ref('')
 // 오늘만 허용 요청
 // ========================================
 
-const pendingRequests = ref([])
+const permissionRequests = ref([])
 const isPermissionLoading = ref(false)
+const activeRequestTab = ref('pending')
+const processingId = ref(null)
+
+const normalizedRequests = computed(() =>
+  permissionRequests.value
+    .map(normalizePermissionRequest)
+    .sort((a, b) => getTimestamp(b.createdAt) - getTimestamp(a.createdAt))
+)
+
+const pendingRequests = computed(() =>
+  normalizedRequests.value.filter((req) => req.status === 'PENDING')
+)
+
+const completedRequests = computed(() =>
+  normalizedRequests.value.filter(
+    (req) => req.status === 'APPROVED' || req.status === 'REJECTED'
+  )
+)
+
+const requestTabs = computed(() => [
+  {
+    label: '요청 대기',
+    value: 'pending',
+    count: pendingRequests.value.length,
+  },
+  {
+    label: '처리 완료',
+    value: 'completed',
+    count: completedRequests.value.length,
+  },
+])
 
 
 // ========================================
 // 시간 포맷
 // ========================================
 
-function formatTime(createdAt) {
+function parseCreatedAt(createdAt) {
+  if (!createdAt) return null
 
-  if (!createdAt) return ''
+  if (Array.isArray(createdAt)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = createdAt
+    return new Date(year, month - 1, day, hour, minute, second)
+  }
 
   const date = new Date(createdAt)
-  const now = new Date()
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
-  const diff = Math.floor(
-    (now - date) / 1000 / 60
-  )
+function formatRelativeTime(createdAt) {
+  const date = parseCreatedAt(createdAt)
+  if (!date) return ''
 
-  if (diff < 1) {
-    return '방금 전'
+  const diffMinutes = Math.floor((Date.now() - date.getTime()) / 1000 / 60)
+
+  if (diffMinutes < 1) return '방금 전'
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}시간 전`
+
+  const diffDays = Math.floor(diffMinutes / 1440)
+  return `${diffDays}일 전`
+}
+
+function getTimestamp(dateValue) {
+  const date = parseCreatedAt(dateValue)
+  return date ? date.getTime() : 0
+}
+
+function getPermissionChildId(permission) {
+  return permission?.childId
+    ?? permission?.child?.childId
+    ?? permission?.child?.id
+    ?? null
+}
+
+function getCategoryLabel(category) {
+  if (typeof category === 'string') return category
+  if (typeof category === 'number') return String(category)
+
+  return category?.category
+    ?? category?.categoryName
+    ?? category?.merchantCategoryName
+    ?? category?.name
+    ?? ''
+}
+
+function extractCategories(permission) {
+  if (!Array.isArray(permission?.categories)) return []
+  return permission.categories.map(getCategoryLabel).filter(Boolean)
+}
+
+function normalizePermissionRequest(permission) {
+  return {
+    id: permission.id,
+    childName: permission.child?.name ?? '자녀',
+    reason: permission.reason ?? '',
+    status: permission.status ?? 'PENDING',
+    categories: extractCategories(permission),
+    createdAt: permission.createdAt,
+    updatedAt: permission.updatedAt ?? null,
+  }
+}
+
+function extractPermissionsList(payload) {
+  if (!payload) return []
+
+  if (Array.isArray(payload.permissions)) {
+    return payload.permissions
   }
 
-  if (diff < 60) {
-    return `${diff}분 전`
+  if (Array.isArray(payload.items)) {
+    return payload.items
   }
 
-  if (diff < 1440) {
-    return `${Math.floor(diff / 60)}시간 전`
+  if (Array.isArray(payload)) {
+    return payload
   }
 
-  return `${Math.floor(diff / 1440)}일 전`
+  if (payload.isExist && payload.permission) {
+    return [payload.permission]
+  }
+
+  if (payload.permission) {
+    return [payload.permission]
+  }
+
+  return []
+}
+
+function matchesSelectedChild(permission) {
+  if (!childId.value) return true
+
+  const permissionChildId = getPermissionChildId(permission)
+  if (permissionChildId == null) return true
+
+  return Number(permissionChildId) === Number(childId.value)
+}
+
+function mergePermissionRequests(currentList, historyList) {
+  const merged = new Map()
+
+  ;[...currentList, ...historyList].forEach((permission) => {
+    if (!permission?.id || !matchesSelectedChild(permission)) return
+    merged.set(permission.id, permission)
+  })
+
+  return Array.from(merged.values())
 }
 
 
@@ -449,105 +643,73 @@ function goToPlaceList() {
 // ========================================
 
 async function fetchPermissions() {
-
   isPermissionLoading.value = true
 
   try {
+    const [currentResult, historyResult] = await Promise.allSettled([
+      getPermissions(
+        authStore.accessToken,
+        childId.value
+      ),
+      getPermissionHistory(
+        authStore.accessToken,
+        childId.value
+      ),
+    ])
 
-    const res =
-      await getPermissions(
-        authStore.accessToken
-      )
+    const currentList = currentResult.status === 'fulfilled'
+      ? extractPermissionsList(currentResult.value.data)
+      : []
 
-    if (
-      res.success &&
-      res.data?.isExist
-    ) {
+    const historyList = historyResult.status === 'fulfilled'
+      ? extractPermissionsList(historyResult.value.data)
+      : []
 
-      pendingRequests.value = [
-        res.data.permission
-      ]
-
-    } else {
-
-      pendingRequests.value = []
-
-    }
+    permissionRequests.value = mergePermissionRequests(
+      currentList,
+      historyList
+    )
 
   } catch (error) {
-
     console.error(
       '오늘만 허용 요청 불러오기 실패:',
       error
     )
 
+    permissionRequests.value = []
+
   } finally {
-
     isPermissionLoading.value = false
-
   }
 }
 
-
-// ========================================
-// 승인
-// ========================================
 
 async function handleAccept(id) {
+  processingId.value = id
 
   try {
-
-    await approvePermission(
-      authStore.accessToken,
-      id
-    )
-
-    alert('승인되었습니다!')
-
+    await approvePermission(authStore.accessToken, id)
     await fetchPermissions()
-
-    // 현재 선택된 자녀 정책 다시 조회
     await fetchCategoryPolicies()
-
   } catch (error) {
-
-    console.error(
-      '승인 실패:',
-      error
-    )
-
-    alert('승인에 실패했습니다.')
-
+    console.error('승인 실패:', error)
+    alert(error.message || '승인에 실패했습니다.')
+  } finally {
+    processingId.value = null
   }
 }
 
-
-// ========================================
-// 거절
-// ========================================
-
 async function handleReject(id) {
+  processingId.value = id
 
   try {
-
-    await rejectPermission(
-      authStore.accessToken,
-      id
-    )
-
-    alert('거절되었습니다.')
-
+    await rejectPermission(authStore.accessToken, id)
     await fetchPermissions()
-
   } catch (error) {
-
-    console.error(
-      '거절 실패:',
-      error
-    )
-
-    alert('거절에 실패했습니다.')
-
+    console.error('거절 실패:', error)
+    alert(error.message || '거절에 실패했습니다.')
+  } finally {
+    processingId.value = null
   }
 }
 
@@ -722,6 +884,50 @@ onMounted(async () => {
   color: #8b9097;
 }
 
+.request-tabs {
+  display: flex;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.request-tab {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #8b9097;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.request-tab.active {
+  color: #191b1e;
+  border-bottom-color: #ffbc00;
+}
+
+.tab-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #f4f5f7;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.request-tab.active .tab-count {
+  background: #fff6dd;
+  color: #191b1e;
+}
+
 .empty-request {
   padding: 20px 0;
   text-align: center;
@@ -757,6 +963,16 @@ onMounted(async () => {
   color: #ff3b30;
 }
 
+.request-status.approved {
+  background-color: #e8f8ee;
+  color: #34c759;
+}
+
+.request-status.rejected {
+  background-color: #ffe5e5;
+  color: #ff3b30;
+}
+
 .request-status.caution {
   background-color: #fff3e0;
   color: #ff9500;
@@ -772,6 +988,21 @@ onMounted(async () => {
 .request-time {
   font-size: 12px;
   color: #8b9097;
+}
+
+.request-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.category-tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #191b1e;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .request-desc {
@@ -808,43 +1039,5 @@ onMounted(async () => {
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  font-size: 11px;
-  color: #8b9097;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
 }
 </style>
