@@ -1,8 +1,18 @@
 import { ensureAccessToken } from '@/utils/authSession'
+import { getExtendedDeadlineIso } from '@/utils/questDeadline'
 
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
+
+function createQuestApiError(
+  message,
+  status,
+) {
+  const error = new Error(message)
+  error.status = status
+  return error
+}
 
 
 // ========================================
@@ -486,9 +496,10 @@ export async function approveQuestVerification(
     !response.ok ||
     !result.success
   ) {
-    throw new Error(
+    throw createQuestApiError(
       result.message ||
-      '퀘스트 인증 승인에 실패했습니다.'
+      '퀘스트 인증 승인에 실패했습니다.',
+      response.status,
     )
   }
 
@@ -621,13 +632,38 @@ export async function rejectQuestVerification(
     !response.ok ||
     !result.success
   ) {
-    throw new Error(
+    throw createQuestApiError(
       result.message ||
-      '퀘스트 인증 거절에 실패했습니다.'
+      '퀘스트 인증 거절에 실패했습니다.',
+      response.status,
     )
   }
 
   return result
+}
+
+
+// ========================================
+// 부모 - 퀘스트 기한 연장
+//
+// PATCH /api/v1/quests/{questId}
+// ========================================
+export async function extendQuestDeadline(
+  questId,
+  accessToken,
+  currentDeadline,
+  extensionDays = 7,
+) {
+  return updateQuest(
+    questId,
+    {
+      deadline: getExtendedDeadlineIso(
+        currentDeadline,
+        extensionDays,
+      ),
+    },
+    accessToken,
+  )
 }
 
 
