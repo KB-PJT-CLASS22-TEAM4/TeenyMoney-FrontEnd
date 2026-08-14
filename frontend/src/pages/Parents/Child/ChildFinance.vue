@@ -38,6 +38,19 @@
       <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
 
       <template v-else>
+        <div class="filters">
+          <button
+            v-for="category in categories"
+            :key="category"
+            class="chip"
+            :class="{ off: activeCategory !== category }"
+            type="button"
+            @click="activeCategory = category"
+          >
+            {{ category }}
+          </button>
+        </div>
+
         <div v-if="activeApprovalTab === 'pending'">
           <div
             v-for="item in pendingApprovals"
@@ -72,7 +85,7 @@
           </div>
         </div>
 
-        <div v-else>
+        <div v-if="activeApprovalTab === 'completed'">
           <div
             v-if="!completedApprovals.length"
             class="empty-box"
@@ -98,63 +111,48 @@
           </div>
         </div>
 
-        <div class="filters">
-          <button
-            v-for="category in categories"
-            :key="category"
-            class="chip"
-            :class="{ off: activeCategory !== category }"
-            type="button"
-            @click="activeCategory = category"
-          >
-            {{ category }}
-          </button>
-        </div>
-
-        <div v-if="activeApprovalTab === 'pending'">
-          <template v-for="group in groupedActiveProducts" :key="group.label">
-            <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
-
-            <div
-              v-for="product in group.items"
-              :key="product.enrollmentId"
-              class="product-card"
-            >
-              <div class="product-head">
-                <p class="product-title">{{ product.title }}</p>
-                <span class="product-rate">{{ product.rateText }}</span>
-              </div>
-
-              <p class="product-amount-label">
-                누적 금액
-                <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
-              </p>
-
-              <div class="progress-bar-bg">
-                <div
-                  class="progress-bar-fill"
-                  :style="{ width: product.progress + '%' }"
-                ></div>
-              </div>
-
-              <div class="product-foot">
-                <span>
-                  {{ product.periodMonths }}개월
-                  <template v-if="product.totalPayments">
-                    ({{ product.paymentCount }}회납)
-                  </template>
-                </span>
-                <span>만기 {{ product.maturityDate }}</span>
-              </div>
-            </div>
-          </template>
+        <template v-for="group in groupedActiveProducts" :key="group.label">
+          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
 
           <div
-            v-if="!groupedActiveProducts.length"
-            class="empty-box"
+            v-for="product in group.items"
+            :key="product.enrollmentId"
+            class="product-card"
           >
-            {{ emptyCategoryMessage }}
+            <div class="product-head">
+              <p class="product-title">{{ product.title }}</p>
+              <span class="product-rate">{{ product.rateText }}</span>
+            </div>
+
+            <p class="product-amount-label">
+              누적 금액
+              <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
+            </p>
+
+            <div class="progress-bar-bg">
+              <div
+                class="progress-bar-fill"
+                :style="{ width: product.progress + '%' }"
+              ></div>
+            </div>
+
+            <div class="product-foot">
+              <span>
+                {{ product.periodMonths }}개월
+                <template v-if="product.totalPayments">
+                  ({{ product.paymentCount }}회납)
+                </template>
+              </span>
+              <span>만기 {{ product.maturityDate }}</span>
+            </div>
           </div>
+        </template>
+
+        <div
+          v-if="!groupedActiveProducts.length"
+          class="empty-box"
+        >
+          {{ emptyCategoryMessage }}
         </div>
       </template>
     </div>
@@ -573,7 +571,7 @@ onMounted(async () => {
 .filters {
   display: flex;
   gap: 8px;
-  margin: 8px 0 16px;
+  margin: 0 0 16px;
 }
 
 .chip {
