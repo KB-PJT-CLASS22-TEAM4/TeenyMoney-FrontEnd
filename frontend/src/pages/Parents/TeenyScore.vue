@@ -52,8 +52,13 @@
 
         <!-- 점수 카드 -->
         <div class="score-card">
-          <p class="score-value">점수 : <strong>{{ scoreData.score }}점</strong></p>
-          <p class="score-diff">
+          <p class="score-value">
+            점수 : <strong>{{ scoreData.teenyScore }}점</strong>
+          </p>
+          <p
+            class="score-diff"
+            :class="{ down: scoreData.diff < 0 }"
+          >
             <span class="trend-icon">📈</span>
             지난달보다 {{ scoreData.diff >= 0 ? '+' : '' }}{{ scoreData.diff }}점
             {{ scoreData.diff >= 0 ? '올랐어요!' : '내렸어요!' }}
@@ -128,56 +133,79 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 
 const scoreData = ref({
-  score: 0,
+  teenyScore: 0,
   gradeName: '',
+  minScore: 0,
+  maxScore: 0,
+  gradeColor: '#3b82f6',
+  bonusRate: 0,
   diff: 0,
-  feedback: '',
+  feedback: '꾸준히 좋은 습관을 유지하고 있어요!',
 })
 
-// 등급 기준 (API 응답에 맞게 수정 필요)
-const grades = ref([
-  { name: '우수', range: '850~1000점', color: '#3b82f6' },
-  { name: '양호', range: '700~849점', color: '#22c55e' },
-  { name: '보통', range: '650~699점', color: '#eab308' },
-  { name: '주의', range: '500~649점', color: '#f97316' },
-  { name: '회복 필요', range: '300~499점', color: '#ef4444' },
-])
+const grades = ref([])
 
 const monthlyHistory = ref([])
+
+function formatYearMonthLabel(yearMonth) {
+  if (!yearMonth) return ''
+  const [, month] = yearMonth.split('-')
+  return `${Number(month)}월`
+}
+
+function calcMonthDiff(currentScore, history) {
+  const now = new Date()
+  const currentYearMonth =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+  const prevMonthEntry = [...history]
+    .filter((item) => item.yearMonth < currentYearMonth)
+    .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth))[0]
+
+  if (!prevMonthEntry) return 0
+  return currentScore - prevMonthEntry.teenyScore
+}
 
 // 차트 경로 계산
 const chartLabels = computed(() => {
   if (!monthlyHistory.value.length) return []
-  return monthlyHistory.value.map(h => h.month + '월')
+  return monthlyHistory.value.map((item) =>
+    formatYearMonthLabel(item.yearMonth)
+  )
 })
 
 const chartPath = computed(() => {
   if (!monthlyHistory.value.length) return ''
+
   const data = monthlyHistory.value
-  const maxScore = Math.max(...data.map(d => d.score))
-  const minScore = Math.min(...data.map(d => d.score))
+  const scores = data.map((item) => item.teenyScore)
+  const maxScore = Math.max(...scores)
+  const minScore = Math.min(...scores)
   const range = maxScore - minScore || 1
   const w = 300
   const h = 80
-  const step = w / (data.length - 1)
+  const step = data.length > 1 ? w / (data.length - 1) : 0
 
-  return data.map((d, i) => {
-    const x = i * step
-    const y = h - ((d.score - minScore) / range) * h
-    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
+  return data.map((item, index) => {
+    const x = data.length > 1 ? index * step : w / 2
+    const y = h - ((item.teenyScore - minScore) / range) * h
+    return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
   }).join(' ')
 })
 
 const chartAreaPath = computed(() => {
   if (!chartPath.value) return ''
+
   const data = monthlyHistory.value
-  const maxScore = Math.max(...data.map(d => d.score))
-  const minScore = Math.min(...data.map(d => d.score))
+  const scores = data.map((item) => item.teenyScore)
+  const maxScore = Math.max(...scores)
+  const minScore = Math.min(...scores)
   const range = maxScore - minScore || 1
   const w = 300
   const h = 80
-  const step = w / (data.length - 1)
-  const lastX = (data.length - 1) * step
+  const step = data.length > 1 ? w / (data.length - 1) : 0
+  const lastX = data.length > 1 ? (data.length - 1) * step : w / 2
+
   return `${chartPath.value} L ${lastX} ${h} L 0 ${h} Z`
 })
 
@@ -190,23 +218,35 @@ onMounted(async () => {
       getTeenyScoreGrades(authStore.accessToken),
     ])
 
-    // TODO: API 응답 구조에 맞게 필드명 수정
     if (scoreRes.success) {
+      const data = scoreRes.data
+      const history = historyRes.success ? (historyRes.data ?? []) : []
+
       scoreData.value = {
-        score: scoreRes.data.score,
-        gradeName: scoreRes.data.gradeName,
-        diff: scoreRes.data.diff ?? 0,
-        feedback: scoreRes.data.feedback ?? '꾸준히 좋은 습관을 유지하고 있어요!',
+        teenyScore: data.teenyScore ?? 0,
+        gradeName: data.gradeName ?? '',
+        minScore: data.minScore ?? 0,
+        maxScore: data.maxScore ?? 0,
+        gradeColor: data.color ?? '#3b82f6',
+        bonusRate: data.bonusRate ?? 0,
+        diff: calcMonthDiff(data.teenyScore ?? 0, history),
+        feedback: '꾸준히 좋은 습관을 유지하고 있어요!',
       }
     }
 
     if (historyRes.success) {
-      monthlyHistory.value = historyRes.data
+      monthlyHistory.value = [...(historyRes.data ?? [])]
+        .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth))
     }
 
     if (gradesRes.success) {
-      // TODO: API 응답 구조에 맞게 grades 매핑
-      // grades.value = gradesRes.data.map(g => ({ ... }))
+      grades.value = [...(gradesRes.data ?? [])]
+        .sort((a, b) => b.minScore - a.minScore)
+        .map((grade) => ({
+          name: grade.gradeName,
+          range: `${grade.minScore}~${grade.maxScore}점`,
+          color: grade.color ?? '#3b82f6',
+        }))
     }
   } catch (error) {
     console.error('티니 점수 불러오기 실패:', error)
@@ -403,6 +443,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.score-diff.down {
+  color: #ef4444;
 }
 
 /* 차트 */

@@ -84,6 +84,8 @@ import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete
 import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
 import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
+import ChildFinance from '@/pages/Parents/Child/ChildFinance.vue'
+import FinanceProductCreate from '@/pages/Parents/Child/FinanceProductCreate.vue'
 import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
 import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
@@ -399,6 +401,16 @@ const router = createRouter({
     name: 'parents-child-detail',
     component: ChildDetail,
   },
+  {
+    path: '/parents/children/:childId/finance',
+    name: 'parents-child-finance',
+    component: ChildFinance,
+  },
+  {
+    path: '/parents/children/:childId/finance/create',
+    name: 'parents-child-finance-create',
+    component: FinanceProductCreate,
+  },
   { 
     path: '/parents/children/:childId/teeny-score', 
     name: 'teeny-score', 
@@ -483,6 +495,16 @@ const router = createRouter({
   path: '/parents/children/:childId',
   name: 'parents-child-detail',
   component: ChildDetail,
+},
+{
+  path: '/parents/children/:childId/finance',
+  name: 'parents-child-finance',
+  component: ChildFinance,
+},
+{
+  path: '/parents/children/:childId/finance/create',
+  name: 'parents-child-finance-create',
+  component: FinanceProductCreate,
 },
 { 
   path: '/parents/children/:childId/teeny-score', 
