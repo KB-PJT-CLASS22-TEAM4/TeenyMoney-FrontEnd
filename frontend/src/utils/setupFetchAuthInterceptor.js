@@ -2,7 +2,6 @@ import { useAuthStore } from '@/stores/auth'
 import { handleUnauthorizedResponse } from '@/utils/authSession'
 
 const PUBLIC_ROUTE_NAMES = new Set([
-  'home',
   'login',
   'signup',
 ])
