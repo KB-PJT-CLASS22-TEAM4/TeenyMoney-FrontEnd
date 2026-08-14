@@ -444,12 +444,23 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :show="isExtendModalOpen"
+      title="기한이 지났습니다. 연장할까요?"
+      description="기한을 연장하면 자녀가 다시 인증을 시도할 수 있어요."
+      confirm-text="연장하기"
+      cancel-text="취소"
+      @confirm="confirmExtendDeadline"
+      @cancel="closeExtendModal"
+    />
   </div>
 </template>
 
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 import {
   ref,
@@ -470,7 +481,12 @@ import {
   getQuestDetail,
   approveQuestVerification,
   rejectQuestVerification,
+  extendQuestDeadline,
 } from '@/api/quest'
+
+import {
+  isQuestDeadlineExpiredError,
+} from '@/utils/questDeadline'
 
 
 const router =
@@ -522,6 +538,18 @@ const rejectTargetQuest =
 
 const rejectionReason =
   ref('')
+
+const isExtendModalOpen =
+  ref(false)
+
+const isExtendingDeadline =
+  ref(false)
+
+const extendTargetQuest =
+  ref(null)
+
+const pendingVerificationAction =
+  ref(null)
 
 
 /* =========================
@@ -903,6 +931,19 @@ async function handleApprove(
       error
     )
 
+    if (
+      handleQuestDeadlineExpired(
+        error,
+        quest,
+        handleApprove.bind(
+          null,
+          quest,
+        ),
+      )
+    ) {
+      return
+    }
+
     alert(
       error.message ||
       '퀘스트 인증 승인에 실패했습니다.'
@@ -1065,6 +1106,16 @@ async function submitReject() {
       error
     )
 
+    if (
+      handleQuestDeadlineExpired(
+        error,
+        quest,
+        submitReject,
+      )
+    ) {
+      return
+    }
+
     alert(
       error.message ||
       '퀘스트 인증 거절에 실패했습니다.'
@@ -1074,6 +1125,100 @@ async function submitReject() {
 
     processingQuestId.value =
       null
+  }
+}
+
+
+function handleQuestDeadlineExpired(
+  error,
+  quest,
+  retryAction,
+) {
+  if (
+    !isQuestDeadlineExpiredError(error) ||
+    !quest
+  ) {
+    return false
+  }
+
+  extendTargetQuest.value =
+    quest
+
+  pendingVerificationAction.value =
+    retryAction
+
+  isExtendModalOpen.value =
+    true
+
+  return true
+}
+
+function closeExtendModal() {
+  if (isExtendingDeadline.value) {
+    return
+  }
+
+  isExtendModalOpen.value =
+    false
+
+  extendTargetQuest.value =
+    null
+
+  pendingVerificationAction.value =
+    null
+}
+
+async function confirmExtendDeadline() {
+  const quest =
+    extendTargetQuest.value
+
+  const retryAction =
+    pendingVerificationAction.value
+
+  if (
+    !quest ||
+    isExtendingDeadline.value
+  ) {
+    return
+  }
+
+  isExtendingDeadline.value =
+    true
+
+  try {
+    await extendQuestDeadline(
+      quest.questId,
+      authStore.accessToken,
+      quest.deadline,
+    )
+
+    isExtendModalOpen.value =
+      false
+
+    extendTargetQuest.value =
+      null
+
+    pendingVerificationAction.value =
+      null
+
+    await loadQuests()
+
+    if (retryAction) {
+      await retryAction()
+    }
+  } catch (error) {
+    console.error(
+      '기한 연장 실패:',
+      error,
+    )
+
+    alert(
+      error.message ||
+      '기한 연장에 실패했습니다.'
+    )
+  } finally {
+    isExtendingDeadline.value =
+      false
   }
 }
 
