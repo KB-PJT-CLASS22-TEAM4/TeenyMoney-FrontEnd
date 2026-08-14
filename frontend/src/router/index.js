@@ -69,7 +69,6 @@ import ChildList from '@/pages/Parents/Child/ChildList.vue';
 import LinkCode from '@/pages/Parents/Link/LinkCode.vue';
 
 import Charge from '@/pages/Parents/Charge/Charge.vue'
-import AutoCharge from '@/pages/Parents/Charge/AutoCharge.vue'
 import Charging from '@/pages/Parents/Charge/Charging.vue'
 import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
@@ -173,11 +172,6 @@ const router = createRouter({
     { path: '/parents/charge', 
       name: 'charge', 
       component:Charge 
-    },
-    // 자동 충전 페이지
-    { path: '/parents/charge/auto', 
-      name: 'auto-charge', 
-      component: AutoCharge 
     },
     // 충전 진행 중 페이지
     { path: '/parents/charge/charging', 
