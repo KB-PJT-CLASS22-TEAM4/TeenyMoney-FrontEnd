@@ -601,8 +601,10 @@ onMounted(() => {
   min-height: 100dvh;
   margin: 0 auto;
   padding-bottom: 150px;
-  background-color: #f4f5f7;
+  background-color: #ffffff;
   color: #191b1e;
+  display: flex;
+  flex-direction: column;
 }
 
 
@@ -614,9 +616,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 64px;
-  padding: 0 20px;
-  background-color: #f4f5f7;
+  padding: 18px 20px;
+  border-bottom: 1px solid #f0f1f3;
+  background-color: #ffffff;
 }
 
 .back-btn {
@@ -638,6 +640,7 @@ onMounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
+  color: #191b1e;
 }
 
 
@@ -649,9 +652,9 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin: 10px 16px 14px;
-  padding: 12px;
-  border-radius: 10px;
+  margin: 16px 16px 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
   background-color: #fff7d6;
 }
 
@@ -680,8 +683,8 @@ onMounted(() => {
   margin: 0 16px 16px;
   padding: 0 14px;
   height: 44px;
-  border-radius: 10px;
-  background-color: #ffffff;
+  border-radius: 12px;
+  background-color: #f4f5f7;
 }
 
 .search-icon {
@@ -734,14 +737,14 @@ onMounted(() => {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 0 16px;
 }
 
 .place-card {
   padding: 16px;
-  border-radius: 16px;
-  background-color: #ffffff;
+  border-radius: 12px;
+  background-color: #f4f5f7;
 }
 
 .place-name {
@@ -760,7 +763,7 @@ onMounted(() => {
   height: 44px;
   border: none;
   border-radius: 24px;
-  background-color: #f4f5f7;
+  background-color: #ffffff;
   color: #8b9097;
   font-size: 14px;
   font-weight: 700;
@@ -792,30 +795,22 @@ onMounted(() => {
   bottom: 90px;
   left: 50%;
   z-index: 99;
-
   width: 100%;
   max-width: 360px;
-
-  padding: 0 50px;
-
+  padding: 0 16px;
   box-sizing: border-box;
-
-  transform:
-    translateX(-50%);
+  transform: translateX(-50%);
 }
 
 .submit-btn {
   width: 100%;
-  height: 49px;
+  height: 54px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: #ffbc00;
-
   color: #191b1e;
-
   font-size: 16px;
   font-weight: 700;
-
   cursor: pointer;
 }
 
