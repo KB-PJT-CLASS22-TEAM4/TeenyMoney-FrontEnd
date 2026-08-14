@@ -3,19 +3,26 @@ const API_BASE_URL = import.meta.env.DEV
   : import.meta.env.VITE_API_BASE_URL
 
 // 오늘만 허용 요청 조회
-export async function getPermissions(accessToken) {
+export async function getPermissions(accessToken, childId) {
   if (!accessToken) throw new Error('로그인이 필요합니다.')
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/permissions`,
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  )
+  const params = new URLSearchParams()
+  if (childId) {
+    params.set('childId', String(childId))
+  }
+
+  const query = params.toString()
+  const url = query
+    ? `${API_BASE_URL}/api/v1/permissions?${query}`
+    : `${API_BASE_URL}/api/v1/permissions`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
 
   let result
   try {
@@ -26,6 +33,40 @@ export async function getPermissions(accessToken) {
 
   if (!response.ok || result.success === false) {
     throw new Error(result.message || '오늘만 허용 요청을 불러오지 못했습니다.')
+  }
+
+  return result
+}
+
+// 오늘만 허용 요청 이력 조회
+export async function getPermissionHistory(accessToken, childId) {
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  if (!childId) throw new Error('자녀 정보가 필요합니다.')
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/permissions/history?childId=${encodeURIComponent(childId)}`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  if (response.status === 404) {
+    return { success: true, data: [] }
+  }
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '승인 요청 이력을 불러오지 못했습니다.')
   }
 
   return result
