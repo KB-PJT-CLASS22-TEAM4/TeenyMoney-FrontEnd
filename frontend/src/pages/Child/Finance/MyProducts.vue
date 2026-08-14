@@ -1,9 +1,12 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getMyEnrolledFinancialProducts } from '@/api/finance'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const activeTab = ref('나의 상품')
 const tabs = ['신규 상품', '나의 상품']
@@ -17,48 +20,83 @@ watch(activeTab, (val) => {
 const activeCategory = ref('전체')
 const categories = ['전체', '적금', '예금', '대출']
 
-// --- [더미] 나의 가입 상품 목록 (추후 API 연동) ---
-const myProducts = ref([
-  {
-    id: 101,
-    category: '적금',
-    badgeColor: 'blue',
-    title: '티니 꿈나무 적금',
-    desc: '매월 자동으로 모으는 목표 적금',
-    joinDate: '2024. 03. 15',
-    amountLabel: '납입금액',
-    amountValue: '월 30,000원',
-    status: '가입 중',
-    statusColor: 'blue',
-    rateText: '12개월 기준, 연 3.0~4.5%',
-  },
-  {
-    id: 102,
-    category: '예금',
-    badgeColor: 'blue',
-    title: '티니 스타 예금',
-    desc: '목표까지 안전하게 저축',
-    joinDate: '2024. 01. 08',
-    amountLabel: '예치금액',
-    amountValue: '500,000원',
-    status: '가입 중',
-    statusColor: 'blue',
-    rateText: '12개월 기준, 연 2.0~4.0%',
-  },
-  {
-    id: 103,
-    category: '대출',
-    badgeColor: 'orange',
-    title: '티니 선물 대출',
-    desc: '친구 생일선물을 미리 대출',
-    joinDate: '2024. 05. 22',
-    amountLabel: '대출잔액',
-    amountValue: '30,000원',
-    status: '이용 중',
-    statusColor: 'orange',
-    rateText: '대출한도 5만원, 금리 2.0~3.0%',
-  },
-])
+// 상품 타입 매핑 (신규 상품 화면과 동일)
+const typeMap       = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
+const badgeColorMap = { DEPOSIT: 'blue', SAVING: 'blue', LOAN: 'orange' }
+
+// 가입 상태 → 한글 라벨/색상
+// TODO: 실제 status 값(enum)을 백엔드에 확인 후 채워넣기 — 매핑 안 된 값은 영어 원문 대신 상품타입 기준 기본값으로 표시
+const statusMap = {
+  // ACTIVE: { label: '가입 중', color: 'blue' },
+  // IN_PROGRESS: { label: '이용 중', color: 'orange' },
+  // COMPLETED: { label: '만기 완료', color: 'green' },
+  // CANCELLED: { label: '중도 해지', color: 'red' },
+}
+
+// startDate가 문자열("2024-03-15")이거나, LocalDateTime이 배열([2024,3,15,...])로 오는 경우 모두 처리
+function formatJoinDate(raw) {
+  if (!raw) return '-'
+
+  let y, m, d
+  if (Array.isArray(raw)) {
+    [y, m, d] = raw
+  } else {
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return '-'
+    y = parsed.getFullYear()
+    m = parsed.getMonth() + 1
+    d = parsed.getDate()
+  }
+
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${y}. ${pad(m)}. ${pad(d)}`
+}
+
+// API 데이터 → 화면 표시 구조로 변환
+function mapEnrolledProduct(p) {
+  const isLoan = p.productType === 'LOAN'
+  const isSaving = p.productType === 'SAVING'
+
+  const amountLabel = isLoan ? '대출잔액' : isSaving ? '납입금액' : '예치금액'
+  const amountValue = isSaving
+    ? `월 ${(p.monthlyAmount ?? 0).toLocaleString()}원`
+    : `${(p.currentAmount ?? 0).toLocaleString()}원`
+
+  const statusInfo = statusMap[p.status] ?? {
+    label: isLoan ? '이용 중' : '가입 중',
+    color: isLoan ? 'orange' : 'blue',
+  }
+
+  const rateText = isLoan
+    ? `금리 연 ${p.appliedRate ?? '-'}%`
+    : `${p.termMonths ?? '-'}개월 기준, 연 ${p.appliedRate ?? '-'}%`
+
+  return {
+    id: p.enrollmentId,
+    category: typeMap[p.productType] ?? p.productType,
+    badgeColor: badgeColorMap[p.productType] ?? 'blue',
+    title: p.productName,
+    desc: p.description || p.financialCompanyName || '',
+    joinDate: formatJoinDate(p.startDate),
+    amountLabel,
+    amountValue,
+    status: statusInfo.label,
+    statusColor: statusInfo.color,
+    rateText,
+  }
+}
+
+// [API] 나의 가입 상품 목록
+const myProducts = ref([])
+
+onMounted(async () => {
+  try {
+    const data = await getMyEnrolledFinancialProducts(authStore.accessToken)
+    myProducts.value = data.map(mapEnrolledProduct)
+  } catch (e) {
+    console.error('가입 상품 목록 조회 실패:', e.message)
+  }
+})
 
 const filteredProducts = computed(() => {
   if (activeCategory.value === '전체') return myProducts.value
@@ -359,6 +397,8 @@ function onScroll() {
 }
 .d-value.blue   { color: #2e7bf0; }
 .d-value.orange { color: #f57c00; }
+.d-value.green  { color: #62b24a; }
+.d-value.red    { color: #e0554f; }
 
 .rate-summary {
   font-weight: 600;
