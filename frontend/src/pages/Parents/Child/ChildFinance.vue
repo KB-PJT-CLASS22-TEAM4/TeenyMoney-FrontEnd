@@ -87,14 +87,14 @@
 
         <div v-if="activeApprovalTab === 'completed'">
           <div
-            v-if="!completedApprovals.length"
+            v-if="!filteredCompletedApprovals.length"
             class="empty-box"
           >
             처리 완료된 승인 요청이 없습니다.
           </div>
 
           <div
-            v-for="item in completedApprovals"
+            v-for="item in filteredCompletedApprovals"
             :key="`${item.enrollmentId}-${item.status}`"
             class="completed-card"
           >
@@ -111,49 +111,51 @@
           </div>
         </div>
 
-        <template v-for="group in groupedActiveProducts" :key="group.label">
-          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+        <template v-if="activeApprovalTab === 'pending'">
+          <template v-for="group in groupedActiveProducts" :key="group.label">
+            <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+
+            <div
+              v-for="product in group.items"
+              :key="product.enrollmentId"
+              class="product-card"
+            >
+              <div class="product-head">
+                <p class="product-title">{{ product.title }}</p>
+                <span class="product-rate">{{ product.rateText }}</span>
+              </div>
+
+              <p class="product-amount-label">
+                누적 금액
+                <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
+              </p>
+
+              <div class="progress-bar-bg">
+                <div
+                  class="progress-bar-fill"
+                  :style="{ width: product.progress + '%' }"
+                ></div>
+              </div>
+
+              <div class="product-foot">
+                <span>
+                  {{ product.periodMonths }}개월
+                  <template v-if="product.totalPayments">
+                    ({{ product.paymentCount }}회납)
+                  </template>
+                </span>
+                <span>만기 {{ product.maturityDate }}</span>
+              </div>
+            </div>
+          </template>
 
           <div
-            v-for="product in group.items"
-            :key="product.enrollmentId"
-            class="product-card"
+            v-if="!groupedActiveProducts.length"
+            class="empty-box"
           >
-            <div class="product-head">
-              <p class="product-title">{{ product.title }}</p>
-              <span class="product-rate">{{ product.rateText }}</span>
-            </div>
-
-            <p class="product-amount-label">
-              누적 금액
-              <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
-            </p>
-
-            <div class="progress-bar-bg">
-              <div
-                class="progress-bar-fill"
-                :style="{ width: product.progress + '%' }"
-              ></div>
-            </div>
-
-            <div class="product-foot">
-              <span>
-                {{ product.periodMonths }}개월
-                <template v-if="product.totalPayments">
-                  ({{ product.paymentCount }}회납)
-                </template>
-              </span>
-              <span>만기 {{ product.maturityDate }}</span>
-            </div>
+            {{ emptyCategoryMessage }}
           </div>
         </template>
-
-        <div
-          v-if="!groupedActiveProducts.length"
-          class="empty-box"
-        >
-          {{ emptyCategoryMessage }}
-        </div>
       </template>
     </div>
 
@@ -218,6 +220,16 @@ const completedApprovals = computed(() =>
         || item.status === 'COMPLETED')
   )
 )
+
+const filteredCompletedApprovals = computed(() => {
+  if (activeCategory.value === '전체') {
+    return completedApprovals.value
+  }
+
+  return completedApprovals.value.filter(
+    (item) => item.category === activeCategory.value
+  )
+})
 
 const activeProducts = computed(() =>
   products.value.filter(
