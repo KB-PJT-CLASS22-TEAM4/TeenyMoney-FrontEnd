@@ -27,11 +27,10 @@
           <span class="info-value">{{ paidAt }}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">카테고리</span>
+          <span class="info-label">업종</span>
           <span class="info-value cat-value">
             <span class="cat-dot"></span>
             <span class="cat-name">{{ category }}</span>
-            <span class="cat-auto">자동분류</span>
           </span>
         </div>
         <div class="info-row no-border">
@@ -51,19 +50,47 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { usePaymentStore } from '@/stores/payment'
 
-const route = useRoute()
 const router = useRouter()
+const paymentStore = usePaymentStore()
 
-const code = route.query.code || ''
+// PayPassword.vue에서 pay() 성공 후 저장해둔 결제 결과
+const result = paymentStore.lastResult
 
-// [API] 결제 완료 정보 (결제 성공 응답에서 받은 값으로 채움) -> 현재는 더미값
-const store = ref({ name: 'CU 강남역점' })
-const amount = ref(3500)
-const category = ref('식비')
-const paidAt = ref('2024.07.20 (토) 14:30')
-const balance = ref(26500)
+const store = ref({ name: result?.merchantName ?? '' })
+const amount = ref(result?.amount ?? 0)
+const category = ref(result?.categoryPolicy?.categoryName ?? '')
+const balance = ref(result?.balance ?? 0)
+
+// createdAt이 ISO 문자열("2026-08-11T08:22:02.126Z") 또는
+// 배열([year, month, day, hour, minute, second]) 형태로 올 수 있어 둘 다 처리
+const paidAt = ref(formatPaidAt(result?.createdAt))
+
+function formatPaidAt(value) {
+  if (!value) return ''
+
+  let d
+  if (Array.isArray(value)) {
+    // [year, month(1~12), day, hour, minute, second] → JS Date는 month가 0부터 시작이라 -1 보정
+    const [year, month, day, hour = 0, minute = 0, second = 0] = value
+    d = new Date(year, month - 1, day, hour, minute, second)
+  } else {
+    d = new Date(value)
+  }
+
+  if (isNaN(d.getTime())) return ''
+
+  const days = ['일', '월', '화', '수', '목', '금', '토']
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const day = days[d.getDay()]
+  const hh = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  return `${yyyy}.${mm}.${dd} (${day}) ${hh}:${min}`
+}
 
 function goHome() {
   router.push({ name: 'child-home' })
@@ -104,8 +131,8 @@ function goHistory() {
   justify-content: center;
   align-items: center;
   width: 180px;
-  height: 180px;
-  margin-bottom: 10px;
+  height: 150px;  
+  margin-bottom: 0px;  
   flex-shrink: 0;
 }
 
@@ -236,12 +263,6 @@ function goHistory() {
   font-weight: 600;
   font-size: 14px;
   color: #191b1e;
-}
-
-.cat-auto {
-  font-weight: 600;
-  font-size: 10.7px;
-  color: #b9bec5;
 }
 
 /* 하단 버튼 */
