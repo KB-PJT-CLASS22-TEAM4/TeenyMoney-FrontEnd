@@ -161,15 +161,31 @@
 
       <!-- 정렬 -->
       <div class="sort-area">
-
         <button
           type="button"
           class="sort-button"
           @click="toggleSort"
         >
-          {{ selectedSort === 'DESC' ? '최신순' : '과거순' }}
+          <span class="sort-label">
+            {{ selectedSort === 'DESC' ? '최신순' : '과거순' }}
+          </span>
+          <svg
+            class="sort-switch-icon"
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M7 10l5-5 5 5M7 14l5 5 5-5"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
         </button>
-
       </div>
 
 
@@ -934,11 +950,11 @@ button {
 }
 
 .tab-active {
-  border-color: #191b1e;
+  border-color: #ffbc00;
 
-  color: #ffffff;
+  color: #191b1e;
 
-  background-color: #191b1e;
+  background-color: #ffbc00;
 }
 
 .tab-period {
@@ -1013,6 +1029,10 @@ button {
 }
 
 .sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
   padding: 4px 6px;
 
   border: none;
@@ -1024,6 +1044,15 @@ button {
   background: transparent;
 
   cursor: pointer;
+}
+
+.sort-label {
+  line-height: 1;
+}
+
+.sort-switch-icon {
+  flex-shrink: 0;
+  color: #8b9097;
 }
 
 
