@@ -209,9 +209,9 @@ const expectedScore = computed(() => {
   return 0
 })
 
-// 금리 포맷
+// 금리 포맷 (백엔드 expectedAppliedRate는 이미 퍼센트 값, 예: 3.5 = 3.5%. ×100 하면 안 됨)
 const appliedRate = route.query.appliedRate 
-  ? `${(Number(route.query.appliedRate) * 100).toFixed(1)}%` 
+  ? `${Number(route.query.appliedRate).toFixed(1)}%` 
   : (route.query.rate || '')
 
 // 페널티 안내문구 (엑셀 정책 반영)

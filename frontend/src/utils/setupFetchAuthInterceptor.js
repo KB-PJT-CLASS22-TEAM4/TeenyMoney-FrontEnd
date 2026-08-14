@@ -28,15 +28,12 @@ export function setupFetchAuthInterceptor() {
 }
 
 export function setupAuthRouterGuard(router) {
-  router.beforeEach((to, _from, next) => {
+  router.beforeEach((to) => {
     const authStore = useAuthStore()
 
-    if (isPublicRoute(to) || authStore.isAuthenticated) {
-      next()
-      return
+    if (!isPublicRoute(to) && !authStore.isAuthenticated) {
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
     }
-
-    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
-    next()
+    // 어느 경우든 네비게이션을 막지 않으므로 return 값 없이(undefined) 그대로 통과
   })
 }
