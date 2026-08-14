@@ -107,32 +107,110 @@ export async function createFinancialProduct(accessToken, payload) {
   return parseResponse(response)
 }
 
-// 가입 승인 / 거절
+function toApiProductType(categoryOrType) {
+  const map = {
+    적금: 'SAVING',
+    SAVINGS: 'SAVING',
+    SAVING: 'SAVING',
+    예금: 'DEPOSIT',
+    DEPOSIT: 'DEPOSIT',
+    대출: 'LOAN',
+    LOAN: 'LOAN',
+  }
+
+  return map[categoryOrType] || categoryOrType
+}
+
+// 가입 승인 요청 목록
+export async function getFinancialProductApprovalRequests(accessToken) {
+  ensureAccessToken(accessToken)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/approval-requests`,
+    {
+      method: 'GET',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}
+
+// 가입 승인 요청 상세
+export async function getFinancialProductApprovalRequestDetail(
+  accessToken,
+  productType,
+  enrollmentId
+) {
+  ensureAccessToken(accessToken)
+
+  const type = toApiProductType(productType)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/approval-requests/${type}/${enrollmentId}`,
+    {
+      method: 'GET',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}
+
+// 가입 승인
+export async function approveFinancialProductApprovalRequest(
+  accessToken,
+  productType,
+  enrollmentId
+) {
+  ensureAccessToken(accessToken)
+
+  const type = toApiProductType(productType)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/approval-requests/${type}/${enrollmentId}/approve`,
+    {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}
+
+// 가입 거절
+export async function rejectFinancialProductApprovalRequest(
+  accessToken,
+  productType,
+  enrollmentId
+) {
+  ensureAccessToken(accessToken)
+
+  const type = toApiProductType(productType)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/approval-requests/${type}/${enrollmentId}/reject`,
+    {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}
+
+// 가입 승인 / 거절 (legacy wrapper)
 export async function approveFinancialEnrollment(
   accessToken,
   childId,
   category,
   enrollmentId
 ) {
-  ensureAccessToken(accessToken)
-
-  const pathMap = {
-    적금: 'saving',
-    예금: 'deposit',
-    대출: 'loan',
-  }
-
-  const segment = pathMap[category] || 'saving'
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/${segment}/${enrollmentId}/approve`,
-    {
-      method: 'PATCH',
-      headers: authHeaders(accessToken),
-    }
+  return approveFinancialProductApprovalRequest(
+    accessToken,
+    category,
+    enrollmentId
   )
-
-  return parseResponse(response)
 }
 
 export async function rejectFinancialEnrollment(
@@ -141,23 +219,9 @@ export async function rejectFinancialEnrollment(
   category,
   enrollmentId
 ) {
-  ensureAccessToken(accessToken)
-
-  const pathMap = {
-    적금: 'saving',
-    예금: 'deposit',
-    대출: 'loan',
-  }
-
-  const segment = pathMap[category] || 'saving'
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/${segment}/${enrollmentId}/reject`,
-    {
-      method: 'PATCH',
-      headers: authHeaders(accessToken),
-    }
+  return rejectFinancialProductApprovalRequest(
+    accessToken,
+    category,
+    enrollmentId
   )
-
-  return parseResponse(response)
 }

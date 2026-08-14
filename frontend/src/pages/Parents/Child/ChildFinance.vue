@@ -53,9 +53,20 @@
 
         <div v-if="activeApprovalTab === 'pending'">
           <div
-            v-for="item in pendingApprovals"
+            v-if="!filteredPendingApprovals.length"
+            class="empty-box"
+          >
+            승인 대기 중인 가입 신청이 없습니다.
+          </div>
+
+          <div
+            v-for="item in filteredPendingApprovals"
             :key="item.enrollmentId"
-            class="pending-card"
+            class="pending-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
           >
             <div class="pending-top">
               <p class="pending-title">{{ item.title }}</p>
@@ -64,24 +75,6 @@
             <p class="pending-meta">
               {{ formatPendingMeta(item) }}
             </p>
-            <div class="pending-btns">
-              <button
-                class="btn btn-secondary"
-                type="button"
-                :disabled="processingId === item.enrollmentId"
-                @click="handleReject(item)"
-              >
-                거절
-              </button>
-              <button
-                class="btn btn-primary"
-                type="button"
-                :disabled="processingId === item.enrollmentId"
-                @click="handleApprove(item)"
-              >
-                승인
-              </button>
-            </div>
           </div>
         </div>
 
@@ -96,7 +89,11 @@
           <div
             v-for="item in filteredCompletedApprovals"
             :key="`${item.enrollmentId}-${item.status}`"
-            class="completed-card"
+            class="completed-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
           >
             <div class="pending-top">
               <p class="pending-title">{{ item.title }}</p>
@@ -180,12 +177,11 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
-import {
-  approveFinancialEnrollment,
-  rejectFinancialEnrollment,
-} from '@/api/financialProducts'
 import * as financialProductsApi from '@/api/financialProducts'
-import { fetchAllChildFinancialProducts } from '@/utils/financialProductMapper'
+import {
+  fetchAllChildFinancialProducts,
+  fetchChildApprovalRequests,
+} from '@/utils/financialProductMapper'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
@@ -195,12 +191,12 @@ const authStore = useAuthStore()
 const childId = Number(route.params.childId)
 
 const childName = ref('자녀')
-const products = ref([])
+const approvalRequests = ref([])
+const activeProducts = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const activeApprovalTab = ref('pending')
 const activeCategory = ref('전체')
-const processingId = ref(null)
 
 const categories = ['전체', '적금', '예금', '대출']
 const approvalTabs = [
@@ -209,17 +205,21 @@ const approvalTabs = [
 ]
 
 const pendingApprovals = computed(() =>
-  products.value.filter((item) => item.isPending)
+  approvalRequests.value.filter((item) => item.isPending)
 )
 
-const completedApprovals = computed(() =>
-  products.value.filter(
-    (item) =>
-      !item.isPending
-      && (item.status === 'APPROVED'
-        || item.status === 'REJECTED'
-        || item.status === 'COMPLETED')
+const filteredPendingApprovals = computed(() => {
+  if (activeCategory.value === '전체') {
+    return pendingApprovals.value
+  }
+
+  return pendingApprovals.value.filter(
+    (item) => item.category === activeCategory.value
   )
+})
+
+const completedApprovals = computed(() =>
+  approvalRequests.value.filter((item) => item.isCompleted)
 )
 
 const filteredCompletedApprovals = computed(() => {
@@ -231,14 +231,6 @@ const filteredCompletedApprovals = computed(() => {
     (item) => item.category === activeCategory.value
   )
 })
-
-const activeProducts = computed(() =>
-  products.value.filter(
-    (item) =>
-      !item.isPending
-      && item.status !== 'REJECTED'
-  )
-)
 
 const filteredActiveProducts = computed(() => {
   if (activeCategory.value === '전체') {
@@ -291,12 +283,14 @@ const emptyCategoryMessage = computed(() => {
 function formatPendingMeta(item) {
   const parts = []
 
-  if (item.monthlyAmount) {
+  if (item.requestedAmount) {
+    parts.push(`${item.requestedAmount.toLocaleString()}원`)
+  } else if (item.monthlyAmount) {
     parts.push(`월 ${item.monthlyAmount.toLocaleString()}원`)
   }
 
-  if (item.periodMonths) {
-    parts.push(`${item.periodMonths}개월`)
+  if (item.termMonths || item.periodMonths) {
+    parts.push(`${item.termMonths || item.periodMonths}개월`)
   }
 
   if (item.rateText && item.rateText !== '-') {
@@ -322,54 +316,42 @@ async function fetchProducts() {
   errorMessage.value = ''
 
   try {
-    products.value = await fetchAllChildFinancialProducts(
-      authStore.accessToken,
-      childId,
-      financialProductsApi
+    const [approvals, products] = await Promise.all([
+      fetchChildApprovalRequests(
+        authStore.accessToken,
+        childId,
+        financialProductsApi,
+      ),
+      fetchAllChildFinancialProducts(
+        authStore.accessToken,
+        childId,
+        financialProductsApi,
+      ),
+    ])
+
+    approvalRequests.value = approvals
+    activeProducts.value = products.filter(
+      (item) => !item.isPending && item.status !== 'REJECTED',
     )
   } catch (error) {
     console.error('금융 상품 조회 실패:', error)
     errorMessage.value = error.message || '금융 상품을 불러오지 못했습니다.'
-    products.value = []
+    approvalRequests.value = []
+    activeProducts.value = []
   } finally {
     isLoading.value = false
   }
 }
 
-async function handleApprove(item) {
-  processingId.value = item.enrollmentId
-
-  try {
-    await approveFinancialEnrollment(
-      authStore.accessToken,
+function goApprovalDetail(item) {
+  router.push({
+    name: 'parents-finance-approval-detail',
+    params: {
       childId,
-      item.category,
-      item.enrollmentId
-    )
-    await fetchProducts()
-  } catch (error) {
-    alert(error.message || '승인에 실패했습니다.')
-  } finally {
-    processingId.value = null
-  }
-}
-
-async function handleReject(item) {
-  processingId.value = item.enrollmentId
-
-  try {
-    await rejectFinancialEnrollment(
-      authStore.accessToken,
-      childId,
-      item.category,
-      item.enrollmentId
-    )
-    await fetchProducts()
-  } catch (error) {
-    alert(error.message || '거절에 실패했습니다.')
-  } finally {
-    processingId.value = null
-  }
+      productType: item.productType,
+      enrollmentId: item.enrollmentId,
+    },
+  })
 }
 
 function goCreate() {
@@ -511,6 +493,14 @@ onMounted(async () => {
   margin-bottom: 14px;
   border-radius: 16px;
   background: #f8fafc;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:active {
+  opacity: 0.92;
 }
 
 .pending-top {
