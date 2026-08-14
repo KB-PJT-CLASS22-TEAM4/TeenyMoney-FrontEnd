@@ -122,10 +122,6 @@
             {{ quick.label }}
           </button>
         </div>
-
-        <p class="amount-desc">
-          자녀에게 보낼 금액을 입력해주세요.
-        </p>
       </div>
 
       <!-- 보내기 버튼 -->
@@ -517,6 +513,7 @@ button {
 .content {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 24px;
   padding: 20px 16px;
 }
@@ -648,18 +645,11 @@ button {
   background-color: #f4f5f7;
 }
 
-.amount-desc {
-  margin: 0;
-  color: #8b9097;
-  font-size: 12px;
-  text-align: center;
-}
-
-
 /* 보내기 버튼 */
 .submit-btn {
   width: 100%;
   height: 52px;
+  margin-top: auto;
   border: none;
   border-radius: 12px;
   color: #191b1e;
