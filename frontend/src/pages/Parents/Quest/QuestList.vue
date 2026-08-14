@@ -27,7 +27,7 @@
       </button>
     </header>
 
-    <!-- 탭 -->
+    <!-- 상태 탭 -->
     <div class="tabs">
       <button
         v-for="tab in tabs"
@@ -44,20 +44,46 @@
 
     <div class="content">
 
-      <!-- ==================================
+      <!-- ================================
+           검색창
+      ================================= -->
+      <div class="quest-search-wrap">
+        <div class="quest-search-box">
+          <img
+            src="@/assets/icons/icon-search.svg"
+            alt=""
+            class="search-icon"
+          />
+
+          <input
+            v-model="searchKeyword"
+            type="text"
+            class="search-input"
+            placeholder="퀘스트 검색"
+          />
+
+          <button
+            v-if="searchKeyword"
+            type="button"
+            class="search-clear-btn"
+            aria-label="검색어 지우기"
+            @click="searchKeyword = ''"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      <!-- ================================
            첫 번째 인증 대기 퀘스트 강조 카드
-      =================================== -->
+      ================================= -->
       <div
-        v-if="pendingQuest"
+        v-if="pendingQuest && matchesSearch(pendingQuest)"
         class="pending-card"
       >
         <div
           class="pending-content"
-          @click="
-            goToDetail(
-              pendingQuest.questId
-            )
-          "
+          @click="goToDetail(pendingQuest.questId)"
         >
           <div class="pending-top">
             <span class="pending-badge">
@@ -147,40 +173,10 @@
         </button>
       </div>
 
-      <!-- ==================================
-           목록
-      =================================== -->
+      <!-- ================================
+           퀘스트 목록
+      ================================= -->
       <div class="quest-section">
-
-        <div class="quest-section-header">
-          <p class="quest-section-title">
-            {{ sectionTitle }}
-          </p>
-
-          <div class="quest-section-actions">
-            <button
-              class="icon-btn"
-              type="button"
-              aria-label="검색"
-            >
-              <img
-                src="@/assets/icons/icon-search.svg"
-                alt=""
-              />
-            </button>
-
-            <button
-              class="icon-btn"
-              type="button"
-              aria-label="필터"
-            >
-              <img
-                src="@/assets/icons/icon-filter.svg"
-                alt=""
-              />
-            </button>
-          </div>
-        </div>
 
         <!-- 로딩 -->
         <div
@@ -200,14 +196,16 @@
 
         <!-- 목록 -->
         <div v-else>
+          <!-- 검색 결과 / 빈 목록 -->
           <div
-            v-if="
-              displayQuests.length === 0 &&
-              !pendingQuest
-            "
+            v-if="!hasVisibleQuests"
             class="state-box"
           >
-            {{ emptyMessage }}
+            {{
+              searchKeyword.trim()
+                ? '검색 결과가 없습니다.'
+                : emptyMessage
+            }}
           </div>
 
           <div
@@ -225,6 +223,7 @@
               "
             >
               <div class="quest-item-left">
+
                 <div class="quest-icon-wrap">
                   <img
                     src="@/assets/logo.svg"
@@ -234,7 +233,9 @@
                 </div>
 
                 <div class="quest-info">
+
                   <div class="quest-meta">
+
                     <span class="quest-child">
                       {{
                         quest.child.name ||
@@ -265,6 +266,7 @@
                         )
                       }}
                     </span>
+
                   </div>
 
                   <p class="quest-title">
@@ -272,6 +274,7 @@
                   </p>
 
                   <p class="quest-sub">
+
                     <template
                       v-if="
                         quest.teenyScoreEnabled
@@ -299,7 +302,9 @@
                         )
                       }}
                     </template>
+
                   </p>
+
                 </div>
               </div>
 
@@ -310,7 +315,7 @@
               />
             </div>
 
-            <!-- PENDING이면 목록에서도 승인/거절 -->
+            <!-- PENDING이면 목록에서도 승인 / 거절 -->
             <div
               v-if="
                 quest.status === 'PENDING'
@@ -359,7 +364,7 @@
       </div>
     </div>
 
-    <!-- 생성 -->
+    <!-- 퀘스트 생성 FAB -->
     <button
       class="fab"
       type="button"
@@ -370,15 +375,16 @@
 
     <ParentBottomNav active="quest" />
 
-    <!-- ==================================
+    <!-- ================================
          거절 사유 입력 모달
-    =================================== -->
+    ================================= -->
     <div
       v-if="isRejectModalOpen"
       class="modal-overlay"
       @click.self="closeRejectModal"
     >
       <div class="reject-modal">
+
         <div class="reject-modal-header">
           <h2 class="reject-modal-title">
             인증 거절 사유
@@ -425,6 +431,7 @@
         </p>
 
         <div class="reject-modal-actions">
+
           <button
             type="button"
             class="reject-cancel-btn"
@@ -451,6 +458,7 @@
                 : '거절하기'
             }}
           </button>
+
         </div>
       </div>
     </div>
@@ -482,14 +490,16 @@ import {
   rejectQuestVerification,
 } from '@/api/quest'
 
+
 const router =
   useRouter()
 
 const authStore =
   useAuthStore()
 
+
 /* =========================
-   상태
+   기본 상태
 ========================= */
 
 const isLoading =
@@ -511,7 +521,15 @@ const processingQuestId =
   ref(null)
 
 /* =========================
-   거절 모달 상태
+   검색
+========================= */
+
+const searchKeyword =
+  ref('')
+
+
+/* =========================
+   거절 모달
 ========================= */
 
 const isRejectModalOpen =
@@ -522,6 +540,7 @@ const rejectTargetQuest =
 
 const rejectionReason =
   ref('')
+
 
 /* =========================
    탭
@@ -541,6 +560,40 @@ const tabs = [
     value: 'COMPLETED',
   },
 ]
+
+
+/* =========================
+   검색 판별
+========================= */
+
+function matchesSearch(
+  quest
+) {
+  const keyword =
+    searchKeyword.value
+      .trim()
+      .toLowerCase()
+
+  if (!keyword) {
+    return true
+  }
+
+  const title =
+    String(
+      quest?.title || ''
+    ).toLowerCase()
+
+  const childName =
+    String(
+      quest?.child?.name || ''
+    ).toLowerCase()
+
+  return (
+    title.includes(keyword) ||
+    childName.includes(keyword)
+  )
+}
+
 
 /* =========================
    인증 대기
@@ -565,43 +618,78 @@ const pendingQuest =
     )
   })
 
+
+/* =========================
+   화면에 표시할 목록
+========================= */
+
 const displayQuests =
   computed(() => {
 
-    if (!pendingQuest.value) {
-      return quests.value
+    let list =
+      pendingQuest.value
+        ? quests.value.filter(
+            quest =>
+              quest.questId !==
+              pendingQuest.value.questId
+          )
+        : quests.value
+
+    const keyword =
+      searchKeyword.value
+        .trim()
+        .toLowerCase()
+
+    if (!keyword) {
+      return list
     }
 
-    return quests.value.filter(
-      quest =>
-        quest.questId !==
-        pendingQuest.value.questId
+    return list.filter(
+      quest => {
+
+        const title =
+          String(
+            quest.title || ''
+          ).toLowerCase()
+
+        const childName =
+          String(
+            quest.child?.name || ''
+          ).toLowerCase()
+
+        return (
+          title.includes(keyword) ||
+          childName.includes(keyword)
+        )
+      }
     )
   })
 
+
 /* =========================
-   제목
+   현재 화면에 표시되는
+   퀘스트가 있는지
 ========================= */
 
-const sectionTitle =
+const hasVisibleQuests =
   computed(() => {
 
-    switch (
-      activeTab.value
-    ) {
-      case 'AVAILABLE':
-        return '시작 가능한 퀘스트'
+    const hasPending =
+      pendingQuest.value &&
+      matchesSearch(
+        pendingQuest.value
+      )
 
-      case 'ONGOING':
-        return '진행 중인 퀘스트'
-
-      case 'COMPLETED':
-        return '완료된 퀘스트'
-
-      default:
-        return '등록된 퀘스트'
-    }
+    return (
+      Boolean(hasPending) ||
+      displayQuests.value.length > 0
+    )
   })
+
+
+/* =========================
+   빈 데이터 메시지
+========================= */
 
 const emptyMessage =
   computed(() => {
@@ -609,6 +697,7 @@ const emptyMessage =
     switch (
       activeTab.value
     ) {
+
       case 'AVAILABLE':
         return '시작 가능한 퀘스트가 없습니다.'
 
@@ -622,6 +711,7 @@ const emptyMessage =
         return '퀘스트가 없습니다.'
     }
   })
+
 
 /* =========================
    탭 변경
@@ -639,23 +729,36 @@ async function changeTab(
   activeTab.value =
     tab
 
-  quests.value = []
-  nextCursor.value = null
+  // 탭 이동 시 검색어 초기화
+  searchKeyword.value =
+    ''
+
+  quests.value =
+    []
+
+  nextCursor.value =
+    null
 
   closeRejectModal()
 
   await loadQuests()
 }
 
+
 /* =========================
    목록 조회
 ========================= */
 
 async function loadQuests() {
-  isLoading.value = true
-  errorMessage.value = ''
+
+  isLoading.value =
+    true
+
+  errorMessage.value =
+    ''
 
   try {
+
     const res =
       await getQuests(
         authStore.accessToken,
@@ -679,22 +782,26 @@ async function loadQuests() {
       null
 
   } catch (error) {
+
     console.error(
       '퀘스트 목록 조회 실패:',
       error
     )
 
-    quests.value = []
+    quests.value =
+      []
 
     errorMessage.value =
       error.message ||
       '퀘스트 목록을 불러오지 못했습니다.'
 
   } finally {
+
     isLoading.value =
       false
   }
 }
+
 
 /* =========================
    상세 API에서
@@ -704,6 +811,7 @@ async function loadQuests() {
 async function findVerificationId(
   questId
 ) {
+
   const res =
     await getQuestDetail(
       questId,
@@ -724,6 +832,7 @@ async function findVerificationId(
     verificationId === null ||
     verificationId === undefined
   ) {
+
     console.error(
       'latestVerification:',
       res.data?.latestVerification
@@ -737,6 +846,7 @@ async function findVerificationId(
   return verificationId
 }
 
+
 /* =========================
    승인
 ========================= */
@@ -744,6 +854,7 @@ async function findVerificationId(
 async function handleApprove(
   quest
 ) {
+
   if (
     processingQuestId.value !==
     null
@@ -755,9 +866,11 @@ async function handleApprove(
     quest?.questId === null ||
     quest?.questId === undefined
   ) {
+
     alert(
       '퀘스트 ID를 찾을 수 없습니다.'
     )
+
     return
   }
 
@@ -773,6 +886,7 @@ async function handleApprove(
     quest.questId
 
   try {
+
     const verificationId =
       await findVerificationId(
         quest.questId
@@ -801,6 +915,7 @@ async function handleApprove(
     await loadQuests()
 
   } catch (error) {
+
     console.error(
       '승인 실패:',
       error
@@ -812,10 +927,12 @@ async function handleApprove(
     )
 
   } finally {
+
     processingQuestId.value =
       null
   }
 }
+
 
 /* =========================
    거절 모달 열기
@@ -824,6 +941,7 @@ async function handleApprove(
 function openRejectModal(
   quest
 ) {
+
   if (
     processingQuestId.value !==
     null
@@ -836,9 +954,11 @@ function openRejectModal(
     quest.questId === null ||
     quest.questId === undefined
   ) {
+
     alert(
       '퀘스트 정보를 찾을 수 없습니다.'
     )
+
     return
   }
 
@@ -852,11 +972,13 @@ function openRejectModal(
     true
 }
 
+
 /* =========================
    거절 모달 닫기
 ========================= */
 
 function closeRejectModal() {
+
   if (
     processingQuestId.value !==
     null
@@ -874,11 +996,13 @@ function closeRejectModal() {
     ''
 }
 
+
 /* =========================
    실제 거절 처리
 ========================= */
 
 async function submitReject() {
+
   if (
     processingQuestId.value !==
     null
@@ -897,9 +1021,11 @@ async function submitReject() {
   }
 
   if (!reason) {
+
     alert(
       '거절 사유를 입력해주세요.'
     )
+
     return
   }
 
@@ -907,6 +1033,7 @@ async function submitReject() {
     quest.questId
 
   try {
+
     const verificationId =
       await findVerificationId(
         quest.questId
@@ -950,6 +1077,7 @@ async function submitReject() {
     await loadQuests()
 
   } catch (error) {
+
     console.error(
       '거절 실패:',
       error
@@ -961,10 +1089,12 @@ async function submitReject() {
     )
 
   } finally {
+
     processingQuestId.value =
       null
   }
 }
+
 
 /* =========================
    이동
@@ -973,6 +1103,7 @@ async function submitReject() {
 function goToDetail(
   questId
 ) {
+
   if (
     questId === null ||
     questId === undefined
@@ -985,27 +1116,37 @@ function goToDetail(
   )
 }
 
+
 function goToCreate() {
+
   router.push(
     '/parents/quest/create'
   )
 }
 
+
 /* =========================
-   포맷
+   금액 포맷
 ========================= */
 
 function formatReward(
   value
 ) {
+
   return `${Number(
     value ?? 0
   ).toLocaleString()}원`
 }
 
+
+/* =========================
+   날짜 포맷
+========================= */
+
 function formatDate(
   value
 ) {
+
   if (!value) {
     return ''
   }
@@ -1032,9 +1173,15 @@ function formatDate(
   }`
 }
 
+
+/* =========================
+   시간 포맷
+========================= */
+
 function formatTime(
   value
 ) {
+
   if (!value) {
     return ''
   }
@@ -1069,6 +1216,7 @@ function formatTime(
   return `${period} ${displayHour}:${minutes}`
 }
 
+
 /* =========================
    Status
 ========================= */
@@ -1076,6 +1224,7 @@ function formatTime(
 function getStatusLabel(
   status
 ) {
+
   const map = {
     AVAILABLE: '시작 가능',
     IN_PROGRESS: '진행 중',
@@ -1092,10 +1241,13 @@ function getStatusLabel(
   )
 }
 
+
 function getStatusClass(
   status
 ) {
+
   switch (status) {
+
     case 'AVAILABLE':
       return 'status-available'
 
@@ -1118,6 +1270,7 @@ function getStatusClass(
   }
 }
 
+
 onMounted(() => {
   loadQuests()
 })
@@ -1129,9 +1282,13 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #f4f5f7;
+  background: #ffffff;
   padding-bottom: 90px;
 }
+
+/* =========================
+   헤더
+========================= */
 
 .nav {
   display: flex;
@@ -1165,7 +1322,10 @@ onMounted(() => {
   padding: 0;
 }
 
-/* 탭 */
+
+/* =========================
+   탭
+========================= */
 
 .tabs {
   display: flex;
@@ -1176,10 +1336,14 @@ onMounted(() => {
 .tab {
   flex: 1;
   height: 44px;
+
   border: none;
   border-bottom: 2px solid transparent;
+
   background: transparent;
+
   color: #8b9097;
+
   font-size: 14px;
   font-weight: 600;
 }
@@ -1189,18 +1353,113 @@ onMounted(() => {
   border-bottom-color: #ffbc00;
 }
 
+
+/* =========================
+   Content
+========================= */
+
 .content {
   display: flex;
   flex-direction: column;
+
   gap: 12px;
+
   padding: 16px;
 }
 
-/* 인증 대기 */
+
+/* =========================
+   검색창
+========================= */
+
+.quest-search-wrap {
+  width: 100%;
+}
+
+.quest-search-box {
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  height: 46px;
+
+  box-sizing: border-box;
+
+  padding: 0 14px;
+
+  border: 1px solid #eceef1;
+  border-radius: 12px;
+
+  background: #f6f7f8;
+}
+
+.search-icon {
+  width: 19px;
+  height: 19px;
+
+  flex-shrink: 0;
+
+  margin-right: 9px;
+
+  opacity: 0.55;
+}
+
+.search-input {
+  flex: 1;
+
+  min-width: 0;
+
+  padding: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #191b1e;
+
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.search-input::placeholder {
+  color: #a7acb3;
+}
+
+.search-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 22px;
+  height: 22px;
+
+  flex-shrink: 0;
+
+  padding: 0;
+  margin-left: 6px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: #dfe2e6;
+
+  color: #ffffff;
+
+  font-size: 16px;
+  line-height: 1;
+}
+
+
+/* =========================
+   인증 대기
+========================= */
 
 .pending-card {
   padding: 16px;
+
   border-radius: 16px;
+
   background: #ffbc00;
 }
 
@@ -1216,8 +1475,11 @@ onMounted(() => {
 
 .pending-badge {
   padding: 4px 9px;
+
   border-radius: 20px;
+
   background: rgba(0, 0, 0, 0.1);
+
   font-size: 12px;
   font-weight: 700;
 }
@@ -1228,18 +1490,22 @@ onMounted(() => {
 
 .pending-child {
   margin: 10px 0 3px;
+
   font-size: 12px;
+
   opacity: 0.7;
 }
 
 .pending-title {
   margin: 0;
+
   font-size: 16px;
   font-weight: 700;
 }
 
 .pending-reward {
   margin: 5px 0 0;
+
   font-size: 13px;
   font-weight: 700;
 }
@@ -1247,7 +1513,9 @@ onMounted(() => {
 .pending-actions,
 .list-actions {
   display: flex;
+
   gap: 8px;
+
   margin-top: 14px;
 }
 
@@ -1256,8 +1524,11 @@ onMounted(() => {
 .list-reject-btn,
 .list-approve-btn {
   flex: 1;
+
   height: 42px;
+
   border-radius: 10px;
+
   font-size: 14px;
   font-weight: 700;
 }
@@ -1265,74 +1536,67 @@ onMounted(() => {
 .reject-btn,
 .list-reject-btn {
   border: 1px solid #e0e2e6;
+
   background: #ffffff;
+
   color: #ff3b30;
 }
 
 .approve-btn {
   border: none;
+
   background: #191b1e;
+
   color: #ffffff;
 }
 
 .list-approve-btn {
   border: none;
+
   background: #ffbc00;
+
   color: #191b1e;
 }
 
 .detail-btn {
   width: 100%;
   height: 38px;
+
   margin-top: 8px;
+
   border: none;
   border-radius: 9px;
-  background: rgba(255,255,255,0.85);
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.85
+    );
+
   font-size: 13px;
   font-weight: 700;
 }
 
-/* 목록 */
+
+/* =========================
+   목록
+========================= */
 
 .quest-section {
   overflow: hidden;
+
   border-radius: 16px;
+
   background: #ffffff;
-}
-
-.quest-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f1f3;
-}
-
-.quest-section-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.quest-section-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.icon-btn {
-  padding: 4px;
-  border: none;
-  background: transparent;
-}
-
-.icon-btn img {
-  width: 20px;
-  height: 20px;
 }
 
 .quest-item {
   padding-bottom: 14px;
-  border-bottom: 1px solid #f0f1f3;
+
+  border-bottom:
+    1px solid #f0f1f3;
 }
 
 .quest-item:last-child {
@@ -1341,29 +1605,39 @@ onMounted(() => {
 
 .quest-item-main {
   display: flex;
+
   justify-content: space-between;
   align-items: center;
+
   padding: 14px 16px 0;
+
   cursor: pointer;
 }
 
 .quest-item-left {
   display: flex;
   align-items: center;
+
   gap: 12px;
+
   min-width: 0;
+
   flex: 1;
 }
 
 .quest-icon-wrap {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: 8px;
-  background: #f4f5f7;
   display: flex;
   justify-content: center;
   align-items: center;
+
+  width: 36px;
+  height: 36px;
+
+  flex-shrink: 0;
+
+  border-radius: 8px;
+
+  background: #f4f5f7;
 }
 
 .quest-icon {
@@ -1373,68 +1647,83 @@ onMounted(() => {
 
 .quest-info {
   min-width: 0;
+
   flex: 1;
 }
 
 .quest-meta {
   display: flex;
   flex-wrap: wrap;
+
   gap: 6px;
+
   align-items: center;
 }
 
 .quest-child {
-  font-size: 11px;
   color: #8b9097;
+
+  font-size: 11px;
 }
 
 .quest-reward {
+  color: #ffbc00;
+
   font-size: 11px;
   font-weight: 700;
-  color: #ffbc00;
 }
 
 .quest-title {
   margin: 3px 0;
+
   font-size: 14px;
   font-weight: 700;
 }
 
 .quest-sub {
   margin: 0;
-  font-size: 11px;
+
   color: #8b9097;
+
+  font-size: 11px;
 }
 
 .status-text {
   padding: 2px 6px;
+
   border-radius: 10px;
+
   font-size: 10px;
   font-weight: 700;
 }
 
 .status-available {
   color: #5970e8;
+
   background: #eef1ff;
 }
 
 .status-progress {
   color: #1d8b55;
+
   background: #e9f8f0;
 }
 
 .status-pending {
   color: #b17600;
+
   background: #fff4cc;
 }
 
 .status-completed {
   color: #555b63;
+
   background: #f0f1f3;
 }
 
 .status-failed {
   color: #d94a4a;
+
   background: #fff0f0;
 }
 
@@ -1447,10 +1736,18 @@ onMounted(() => {
   margin: 12px 16px 0;
 }
 
+
+/* =========================
+   상태
+========================= */
+
 .state-box {
   padding: 30px 20px;
+
   text-align: center;
+
   color: #8b9097;
+
   font-size: 14px;
 }
 
@@ -1458,59 +1755,41 @@ onMounted(() => {
   color: #ff3b30;
 }
 
-/* FAB */
+
+/* =========================
+   FAB
+========================= */
 
 .fab {
   position: fixed;
-  right: calc(50% - 160px);
+
+  right:
+    calc(
+      50% - 160px
+    );
+
   bottom: 90px;
+
   width: 52px;
   height: 52px;
+
   border: none;
   border-radius: 50%;
+
   background: #ffbc00;
+
   font-size: 28px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+  box-shadow:
+    0 4px 12px
+    rgba(
+      0,
+      0,
+      0,
+      0.15
+    );
 }
 
-/* bottom nav */
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #ffbc00;
-  font-weight: 700;
-}
 
 /* =========================
    거절 사유 모달
@@ -1518,21 +1797,30 @@ onMounted(() => {
 
 .modal-overlay {
   position: fixed;
+
   inset: 0;
+
   z-index: 2000;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   padding: 20px;
 
   background:
-    rgba(0, 0, 0, 0.45);
+    rgba(
+      0,
+      0,
+      0,
+      0.45
+    );
 }
 
 .reject-modal {
   width: 100%;
+
   max-width: 320px;
 
   box-sizing: border-box;
@@ -1545,11 +1833,17 @@ onMounted(() => {
 
   box-shadow:
     0 12px 30px
-    rgba(0,0,0,0.18);
+    rgba(
+      0,
+      0,
+      0,
+      0.18
+    );
 }
 
 .reject-modal-header {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
 }
@@ -1576,6 +1870,7 @@ onMounted(() => {
   color: #8b9097;
 
   font-size: 25px;
+
   line-height: 1;
 }
 
@@ -1585,6 +1880,7 @@ onMounted(() => {
   color: #6f747b;
 
   font-size: 13px;
+
   line-height: 1.5;
 }
 
@@ -1599,6 +1895,7 @@ onMounted(() => {
 
 .reject-textarea {
   width: 100%;
+
   min-height: 120px;
 
   box-sizing: border-box;
@@ -1615,17 +1912,18 @@ onMounted(() => {
   color: #191b1e;
 
   font-family: inherit;
+
   font-size: 14px;
 
   line-height: 1.5;
 
   resize: none;
+
   outline: none;
 }
 
 .reject-textarea:focus {
-  border-color:
-    #ffbc00;
+  border-color: #ffbc00;
 }
 
 .reject-textarea::placeholder {
@@ -1644,6 +1942,7 @@ onMounted(() => {
 
 .reject-modal-actions {
   display: flex;
+
   gap: 10px;
 
   margin-top: 18px;
@@ -1678,12 +1977,18 @@ onMounted(() => {
   color: #ffffff;
 }
 
+
+/* =========================
+   공통 버튼
+========================= */
+
 button {
   cursor: pointer;
 }
 
 button:disabled {
   opacity: 0.45;
+
   cursor: not-allowed;
 }
 </style>
