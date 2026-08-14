@@ -32,26 +32,29 @@
 
     <div class="content">
       <!-- 현재 잔액 -->
-      <div class="account-card">
-        <p class="balance-label">
+      <div class="section">
+        <p class="section-label">
           현재 잔액
         </p>
 
-        <p class="balance-amount">
-          {{ walletBalance.toLocaleString() }}
+        <div class="balance-wrap">
+          <span class="balance-amount">
+            {{ walletBalance.toLocaleString() }}
+          </span>
+
           <span class="won">
             원
           </span>
-        </p>
+        </div>
       </div>
 
       <!-- 충전 금액 -->
-      <div class="charge-section">
+      <div class="section">
         <p class="section-label">
           충전할 금액
         </p>
 
-        <div class="amount-input-wrap">
+        <div class="amount-wrap">
           <input
             v-model="chargeAmount"
             type="number"
@@ -60,7 +63,7 @@
             inputmode="numeric"
           />
 
-          <span class="won-unit">
+          <span class="won">
             원
           </span>
         </div>
@@ -79,7 +82,7 @@
       </div>
 
       <!-- 카드 선택 -->
-      <div class="payment-method-section">
+      <div class="section">
         <p class="section-label">
           결제 카드
         </p>
@@ -267,7 +270,7 @@
         {{
           isCharging
             ? '충전 중...'
-            : '+ 충전하기'
+            : '충전하기'
         }}
       </button>
     </div>
@@ -561,31 +564,42 @@ async function handleCharge() {
 </script>
 
 <style scoped>
-.page {
-  width: 360px;
-  min-height: 100dvh;
-  margin: 0 auto;
-  background-color: #f4f5f7;
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 90px;
+* {
   box-sizing: border-box;
 }
 
+button {
+  font: inherit;
+}
+
+.page {
+  display: flex;
+  width: 360px;
+  min-height: 100dvh;
+  flex-direction: column;
+  margin: 0 auto;
+  padding-bottom: 70px;
+  background-color: #ffffff;
+}
+
 .nav {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  background-color: #ffffff;
   border-bottom: 1px solid #f0f1f3;
+  background-color: #ffffff;
 }
 
 .back-btn,
 .alarm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
-  background: transparent;
   border: none;
+  background: transparent;
   cursor: pointer;
 }
 
@@ -596,104 +610,86 @@ async function handleCharge() {
 }
 
 .nav-title {
+  position: absolute;
+  left: 50%;
   margin: 0;
+  color: #191b1e;
   font-size: 16px;
   font-weight: 700;
-  color: #191b1e;
+  transform: translateX(-50%);
 }
 
 .content {
-  width: 100%;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-.account-card {
-  width: 100%;
-  padding: 20px;
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-sizing: border-box;
-}
-
-.balance-label {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: #8b9097;
-}
-
-.balance-amount {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: #191b1e;
-}
-
-.won {
-  margin-left: 2px;
-  font-size: 20px;
-  font-weight: 500;
-}
-
-.charge-section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  gap: 24px;
+  padding: 20px 16px;
 }
 
 .section-label {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
+  margin: 0 0 12px;
   color: #191b1e;
+  font-size: 15px;
+  font-weight: 700;
 }
 
-.amount-input-wrap {
-  width: 100%;
+.balance-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: #f4f5f7;
+}
+
+.balance-amount {
+  color: #191b1e;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.won {
+  color: #191b1e;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.amount-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 16px;
-  background-color: #ffffff;
-  border-radius: 10px;
-  box-sizing: border-box;
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: #f4f5f7;
 }
 
 .amount-input {
-  flex: 1;
   min-width: 0;
+  flex: 1;
   border: none;
-  background: transparent;
   outline: none;
-  text-align: right;
-  font-size: 20px;
-  font-weight: 700;
   color: #191b1e;
+  background: transparent;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: right;
   -moz-appearance: textfield;
+}
+
+.amount-input::placeholder {
+  color: #c6c9ce;
 }
 
 .amount-input::-webkit-inner-spin-button,
 .amount-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
   margin: 0;
-}
-
-.amount-input::placeholder {
-  color: #b9bec5;
-}
-
-.won-unit {
-  font-size: 16px;
-  font-weight: 500;
-  color: #191b1e;
+  appearance: none;
 }
 
 .quick-btns {
-  width: 100%;
   display: flex;
   gap: 8px;
 }
@@ -703,40 +699,35 @@ async function handleCharge() {
   height: 36px;
   border: 1.5px solid #e0e2e6;
   border-radius: 20px;
-  background-color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
   color: #191b1e;
+  background-color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.payment-method-section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.quick-btn:active {
+  background-color: #f4f5f7;
 }
 
 .payment-selector {
-  width: 100%;
-  min-height: 72px;
   display: flex;
+  width: 100%;
+  min-height: 66px;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
-  background-color: #ffffff;
-  border: 1.5px solid transparent;
-  border-radius: 14px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 12px;
+  background-color: #f4f5f7;
   cursor: pointer;
   text-align: left;
-  box-sizing: border-box;
-  transition: 0.2s ease;
+  transition: border-radius 0.2s ease;
 }
 
 .payment-selector.opened {
-  border-color: #e8e9eb;
-  border-radius: 14px 14px 8px 8px;
+  border-radius: 12px 12px 8px 8px;
 }
 
 .selected-payment-info,
@@ -754,14 +745,14 @@ async function handleCharge() {
 }
 
 .payment-icon-wrap {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
   display: flex;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  background-color: #f4f5f7;
   border-radius: 10px;
+  background-color: #ffffff;
 }
 
 .payment-icon {
@@ -778,39 +769,39 @@ async function handleCharge() {
 
 .payment-name {
   margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: #191b1e;
-  white-space: nowrap;
   overflow: hidden;
+  color: #191b1e;
+  font-size: 15px;
+  font-weight: 700;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .payment-number {
   margin: 0;
-  font-size: 12px;
   color: #8b9097;
+  font-size: 12px;
 }
 
 .primary-badge {
   flex-shrink: 0;
   padding: 3px 6px;
-  background-color: #fff3c4;
   border-radius: 10px;
+  background-color: #fff3c4;
+  color: #a86f00;
   font-size: 10px;
   font-weight: 700;
-  color: #a86f00;
 }
 
 .payment-placeholder {
+  color: #8b9097;
   font-size: 14px;
   font-weight: 500;
-  color: #8b9097;
 }
 
 .payment-chevron {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }
@@ -820,22 +811,21 @@ async function handleCharge() {
 }
 
 .payment-dropdown {
-  width: 100%;
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: 4px;
   padding: 6px;
   margin-top: -4px;
-  background-color: #ffffff;
   border: 1px solid #e8e9eb;
-  border-radius: 8px 8px 14px 14px;
-  box-sizing: border-box;
+  border-radius: 8px 8px 12px 12px;
+  background-color: #ffffff;
 }
 
 .payment-option {
+  display: flex;
   width: 100%;
   min-height: 64px;
-  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -845,7 +835,6 @@ async function handleCharge() {
   background-color: transparent;
   cursor: pointer;
   text-align: left;
-  box-sizing: border-box;
 }
 
 .payment-option:hover {
@@ -866,21 +855,20 @@ async function handleCharge() {
 
 .payment-state {
   padding: 20px 12px;
-  text-align: center;
-  font-size: 13px;
   color: #8b9097;
+  font-size: 13px;
+  text-align: center;
 }
 
 .radio {
+  display: flex;
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid #d9dce1;
   border-radius: 50%;
-  box-sizing: border-box;
 }
 
 .radio.active {
@@ -890,22 +878,22 @@ async function handleCharge() {
 .radio-dot {
   width: 10px;
   height: 10px;
-  background-color: #ffbc00;
   border-radius: 50%;
+  background-color: #ffbc00;
 }
 
 .payment-manage-btn {
-  align-self: flex-end;
   display: flex;
   align-items: center;
   gap: 3px;
+  align-self: flex-end;
+  margin-top: 8px;
   padding: 3px 2px;
-  margin-top: 1px;
   border: none;
   background-color: transparent;
-  font-size: 11px;
-  font-weight: 500;
   color: #8b9097;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -922,59 +910,19 @@ async function handleCharge() {
 
 .submit-btn {
   width: 100%;
-  height: 49px;
+  height: 52px;
+  margin-top: auto;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
+  color: #191b1e;
   background-color: #ffbc00;
   font-size: 16px;
   font-weight: 700;
-  color: #191b1e;
   cursor: pointer;
-  box-sizing: border-box;
 }
 
 .submit-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.4;
   cursor: not-allowed;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-  box-sizing: border-box;
-  z-index: 50;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  font-size: 11px;
-  color: #8b9097;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
 }
 </style>

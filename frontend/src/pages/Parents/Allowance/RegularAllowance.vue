@@ -158,25 +158,28 @@
         </p>
       </div>
 
-      <!-- 주의사항 -->
-      <div class="notice-card">
-        <div class="notice-header">
-          <img
-            src="@/assets/icons/icon-info.svg"
-            alt=""
-            class="notice-icon"
-          />
+      <!-- 안내 -->
+      <div class="notice-banner">
+        <img
+          src="@/assets/icons/icon-info.svg"
+          alt=""
+          class="info-icon"
+        />
 
-          <p class="notice-title">
-            주의사항
+        <div class="notice-content">
+          <p class="notice-label">
+            안내
           </p>
-        </div>
 
-        <p class="notice-text">
-          결제 수단 미등록 시 설정 할 수 없습니다.
-          <br />
-          계좌를 먼저 연결해 주세요.
-        </p>
+          <ul class="notice-list">
+            <li>
+              결제 수단이 등록되어 있어야 정기 용돈을 설정할 수 있어요.
+            </li>
+            <li>
+              설정 전 결제 수단 메뉴에서 카드를 먼저 등록해 주세요.
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- 설정 저장 -->
@@ -732,40 +735,46 @@ button {
 }
 
 
-/* 주의사항 */
+/* 안내 */
 
-.notice-card {
+.notice-banner {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
   border-radius: 12px;
-  background-color: #f4f5f7;
+  background-color: #fff7d6;
 }
 
-.notice-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.notice-icon {
+.info-icon {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
+  margin-top: 1px;
 }
 
-.notice-title {
-  margin: 0;
-  color : red;
-  font-size: 14px;
+.notice-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice-label {
+  margin: 0 0 6px;
+  color: #8b6e00;
+  font-size: 12px;
   font-weight: 700;
 }
 
-.notice-text {
+.notice-list {
   margin: 0;
-  color: red;
-  font-size: 13px;
-  line-height: 1.6;
+  padding-left: 16px;
+  color: #6c6252;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.notice-list li + li {
+  margin-top: 4px;
 }
 
 /* =========================
