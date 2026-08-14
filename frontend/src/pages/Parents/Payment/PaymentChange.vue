@@ -167,6 +167,9 @@
           </div>
         </div>
 
+      </div>
+
+      <div class="action-area">
         <!-- =========================
              새로운 결제수단 추가
         ========================== -->
@@ -313,12 +316,7 @@
             }}
           </button>
         </div>
-      </div>
 
-      <!-- =========================
-           변경하기
-      ========================== -->
-      <div class="submit-area">
         <button
           class="submit-btn"
           type="button"
@@ -837,6 +835,7 @@ async function handleChange() {
 
 .content {
   display: flex;
+  flex: 1;
   flex-direction: column;
 
   gap: 24px;
@@ -1131,11 +1130,18 @@ async function handleChange() {
   transform: rotate(90deg);
 }
 
+.action-area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
 /* 카드 등록 폼 */
 
 .add-form {
-  margin-top: 12px;
-
   padding: 16px;
 
   display: flex;
@@ -1246,19 +1252,13 @@ async function handleChange() {
   cursor: not-allowed;
 }
 
-/* 변경하기 */
-
-.submit-area {
-  width: 100%;
-}
-
 .submit-btn {
   width: 100%;
-  height: 49px;
+  height: 52px;
 
   border: none;
 
-  border-radius: 10px;
+  border-radius: 12px;
 
   background-color: #ffbc00;
 
