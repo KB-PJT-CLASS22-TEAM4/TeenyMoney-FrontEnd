@@ -35,41 +35,43 @@
 
       <section class="wallet-section">
         <div class="wallet-card">
-          <div class="wallet-mascot-wrap">
-            <img :src="parentMascot" class="wallet-mascot" alt="티니" />
-            <div class="mascot-shadow"></div>
-          </div>
+          <div class="wallet-top">
+            <div class="wallet-main">
+              <p class="wallet-label">티니머니</p>
 
-          <div class="wallet-main">
-            <p class="wallet-label">티니머니</p>
+              <div class="wallet-row">
+                <img
+                  src="@/assets/logo.svg"
+                  alt="티니머니 로고"
+                  class="wallet-logo"
+                />
 
-            <div class="wallet-row">
-              <img
-                src="@/assets/logo.svg"
-                alt="티니머니 로고"
-                class="wallet-logo"
-              />
+                <p
+                  v-if="isWalletLoading"
+                  class="wallet-amount loading-text"
+                >
+                  조회 중...
+                </p>
 
-              <p
-                v-if="isWalletLoading"
-                class="wallet-amount loading-text"
-              >
-                조회 중...
-              </p>
+                <p
+                  v-else-if="walletError"
+                  class="wallet-amount error-text"
+                >
+                  조회 실패
+                </p>
 
-              <p
-                v-else-if="walletError"
-                class="wallet-amount error-text"
-              >
-                조회 실패
-              </p>
+                <p
+                  v-else
+                  class="wallet-amount"
+                >
+                  {{ wallet.balance.toLocaleString() }}원
+                </p>
+              </div>
+            </div>
 
-              <p
-                v-else
-                class="wallet-amount"
-              >
-                {{ wallet.balance.toLocaleString() }}원
-              </p>
+            <div class="wallet-mascot-wrap" aria-hidden="true">
+              <img :src="parentMascot" class="wallet-mascot" alt="" />
+              <div class="mascot-shadow"></div>
             </div>
           </div>
 
@@ -405,13 +407,13 @@ button {
 .wallet-section {
   position: relative;
   z-index: 2;
-  margin-top: -10px;
+  margin-top: 12px;
   padding: 0 18px;
 }
 
 .wallet-card {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -421,36 +423,47 @@ button {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
+.wallet-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
 .wallet-mascot-wrap {
-  position: absolute;
-  top: -72px;
-  right: 8px;
-  z-index: 0;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
   pointer-events: none;
 }
 
 .wallet-mascot {
-  width: 118px;
-  height: 118px;
+  width: 100%;
+  height: 100%;
+  max-width: 84px;
+  max-height: 84px;
   object-fit: contain;
+  object-position: bottom center;
 }
 
 .mascot-shadow {
-  width: 72px;
-  height: 8px;
-  margin-top: -12px;
+  width: 56px;
+  height: 6px;
+  margin-top: -8px;
   border-radius: 50%;
   background: rgba(220, 190, 80, 0.28);
   filter: blur(4px);
 }
 
 .wallet-main {
-  position: relative;
-  z-index: 1;
-  padding-right: 96px;
+  flex: 1;
+  min-width: 0;
 }
 
 .wallet-label {
@@ -464,6 +477,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .wallet-logo {
@@ -474,10 +488,14 @@ button {
 
 .wallet-amount {
   margin: 0;
+  min-width: 0;
   font-size: 24px;
   font-weight: 900;
   color: #0f172a;
   letter-spacing: -0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .loading-text {
