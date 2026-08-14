@@ -1193,7 +1193,7 @@ function onScroll() {
 
 
 /* =====================================
-   자녀 관리 가로 슬라이드
+   자녀 관리 카드
 ===================================== */
 
 .manage-section {
@@ -1202,30 +1202,17 @@ function onScroll() {
 
 
 .manage-slide {
-  display: flex;
-
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
-
-  padding:
-    2px 18px 8px;
-
-  overflow-x: auto;
-
-  scrollbar-width: none;
-}
-
-
-.manage-slide::-webkit-scrollbar {
-  display: none;
+  padding: 2px 18px 8px;
 }
 
 
 .manage-card {
   position: relative;
 
-  flex-shrink: 0;
-
-  width: 165px;
+  width: 100%;
   height: 118px;
 
   box-sizing: border-box;
