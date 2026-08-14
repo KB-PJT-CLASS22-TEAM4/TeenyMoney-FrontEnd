@@ -94,8 +94,6 @@
       </section>
 
       <section class="allowance-section">
-        <h2 class="section-title">정기 용돈 설정</h2>
-
         <button
           class="allowance-card"
           type="button"
@@ -111,8 +109,7 @@
             </div>
 
             <div>
-              <p class="allowance-main">매월 1일 지급</p>
-              <p class="allowance-sub">100,000원 자동 충전</p>
+              <p class="allowance-main">정기용돈 설정</p>
             </div>
           </div>
 
@@ -523,13 +520,6 @@ button {
   padding: 16px 18px 0;
 }
 
-.section-title {
-  margin: 0 0 10px 2px;
-  font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
 .allowance-card {
   display: flex;
   align-items: center;
@@ -566,17 +556,10 @@ button {
 }
 
 .allowance-main {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 14px;
   font-weight: 800;
   color: #191b1e;
-}
-
-.allowance-sub {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #8b9097;
 }
 
 .chev {
