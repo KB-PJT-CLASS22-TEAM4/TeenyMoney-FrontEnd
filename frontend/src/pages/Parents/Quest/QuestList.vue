@@ -2,33 +2,10 @@
   <div class="page">
     <!-- 헤더 -->
     <header class="nav">
-      <button
-        class="back-btn"
-        type="button"
-        @click="router.back()"
-      >
-        <img
-          src="@/assets/icons/icon-back.svg"
-          alt=""
-          class="back-icon"
-        />
-      </button>
-      <div class="nav-title-wrap">
-        <h1 class="nav-title">
-          퀘스트
-        </h1>
-      </div>
-
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
+      <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()" />
+      <h1 class="nav-title">퀘스트</h1>
+      <button class="alarm-btn" type="button" aria-label="알림">
+        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
       </button>
     </header>
 
