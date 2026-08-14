@@ -2,13 +2,18 @@
   <div class="page">
     <!-- 헤더 -->
     <header class="nav">
-      <div class="nav-title-wrap">
+      <button
+        class="back-btn"
+        type="button"
+        @click="router.back()"
+      >
         <img
-          src="@/assets/icons/icon-quest.svg"
+          src="@/assets/icons/icon-back.svg"
           alt=""
-          class="nav-icon-title"
+          class="back-icon"
         />
-
+      </button>
+      <div class="nav-title-wrap">
         <h1 class="nav-title">
           퀘스트
         </h1>
@@ -1278,6 +1283,7 @@ onMounted(() => {
 
 
 <style scoped>
+
 .page {
   width: 360px;
   min-height: 100dvh;
@@ -1296,6 +1302,19 @@ onMounted(() => {
   justify-content: space-between;
   padding: 18px 20px;
   background: #ffffff;
+}
+
+.back-btn {
+  width: 60px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+}
+
+.back-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .nav-title-wrap {
