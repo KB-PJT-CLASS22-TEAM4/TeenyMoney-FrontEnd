@@ -190,13 +190,28 @@
               </span>
 
               <span class="request-time">
-                {{ formatTime(req.createdAt) }}
+                {{ formatRelativeTime(req.createdAt) }}
               </span>
 
             </div>
 
+            <div
+              v-if="req.categories?.length"
+              class="request-categories"
+            >
+              <span
+                v-for="(category, idx) in req.categories"
+                :key="idx"
+                class="category-tag"
+              >
+                {{ category }}
+              </span>
+            </div>
 
-            <p class="request-desc">
+            <p
+              v-if="req.reason"
+              class="request-desc"
+            >
               {{ req.reason }}
             </p>
 
@@ -297,30 +312,32 @@ const isPermissionLoading = ref(false)
 // 시간 포맷
 // ========================================
 
-function formatTime(createdAt) {
+function parseCreatedAt(createdAt) {
+  if (!createdAt) return null
 
-  if (!createdAt) return ''
+  if (Array.isArray(createdAt)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = createdAt
+    return new Date(year, month - 1, day, hour, minute, second)
+  }
 
   const date = new Date(createdAt)
-  const now = new Date()
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
-  const diff = Math.floor(
-    (now - date) / 1000 / 60
-  )
+function formatRelativeTime(createdAt) {
+  const date = parseCreatedAt(createdAt)
+  if (!date) return ''
 
-  if (diff < 1) {
-    return '방금 전'
-  }
+  const diffMinutes = Math.floor((Date.now() - date.getTime()) / 1000 / 60)
 
-  if (diff < 60) {
-    return `${diff}분 전`
-  }
+  if (diffMinutes < 1) return '방금 전'
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
 
-  if (diff < 1440) {
-    return `${Math.floor(diff / 60)}시간 전`
-  }
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}시간 전`
 
-  return `${Math.floor(diff / 1440)}일 전`
+  const diffDays = Math.floor(diffMinutes / 1440)
+  return `${diffDays}일 전`
 }
 
 
@@ -772,6 +789,21 @@ onMounted(async () => {
 .request-time {
   font-size: 12px;
   color: #8b9097;
+}
+
+.request-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.category-tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: #ffffff;
+  color: #191b1e;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .request-desc {
