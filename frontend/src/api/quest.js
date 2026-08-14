@@ -24,39 +24,71 @@ export async function getQuests(
 
   params.append('tab', tab)
 
-  if (childId !== null && childId !== undefined) {
-    params.append('childId', String(childId))
+  if (
+    childId !== null &&
+    childId !== undefined
+  ) {
+    params.append(
+      'childId',
+      String(childId)
+    )
   }
 
   if (cursor) {
-    params.append('cursor', cursor)
+    params.append(
+      'cursor',
+      cursor
+    )
   }
 
   const url =
     `${API_BASE_URL}/api/v1/quests?${params.toString()}`
 
-  console.log('퀘스트 목록 요청 URL:', url)
-  console.log('퀘스트 TAB:', tab)
+  console.log(
+    '퀘스트 목록 요청 URL:',
+    url
+  )
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-  })
+  console.log(
+    '퀘스트 TAB:',
+    tab
+  )
+
+  const response = await fetch(
+    url,
+    {
+      method: 'GET',
+
+      headers: {
+        Accept:
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
+      },
+    }
+  )
 
   let result
 
   try {
-    result = await response.json()
+    result =
+      await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
-  console.log('퀘스트 목록 응답:', result)
+  console.log(
+    '퀘스트 목록 응답:',
+    result
+  )
 
-  if (!response.ok || !result.success) {
+  if (
+    !response.ok ||
+    !result.success
+  ) {
     throw new Error(
       result.message ||
       '퀘스트 목록 조회에 실패했습니다.'
@@ -77,20 +109,31 @@ export async function getQuestDetail(
   accessToken
 ) {
   if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
   }
 
-  if (questId === null || questId === undefined) {
-    throw new Error('questId가 필요합니다.')
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
   }
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/quests/${questId}`,
     {
       method: 'GET',
+
       headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Accept:
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
       },
     }
   )
@@ -98,14 +141,23 @@ export async function getQuestDetail(
   let result
 
   try {
-    result = await response.json()
+    result =
+      await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
-  console.log('퀘스트 상세 응답:', result)
+  console.log(
+    '퀘스트 상세 응답:',
+    result
+  )
 
-  if (!response.ok || !result.success) {
+  if (
+    !response.ok ||
+    !result.success
+  ) {
     throw new Error(
       result.message ||
       '퀘스트 상세 조회에 실패했습니다.'
@@ -115,13 +167,20 @@ export async function getQuestDetail(
   return result
 }
 
+
+// ========================================
 // 퀘스트 생성
+//
+// POST /api/v1/quests
+// ========================================
 export async function createQuest(
   questData,
   accessToken
 ) {
   if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
   }
 
   const creationRequestKey =
@@ -136,18 +195,25 @@ export async function createQuest(
     `${API_BASE_URL}/api/v1/quests`,
     {
       method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
 
-        // ★ 필수 헤더
+      headers: {
+        Accept:
+          'application/json',
+
+        'Content-Type':
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
+
         'X-Creation-Request-Key':
           creationRequestKey,
       },
-      body: JSON.stringify(
-        questData
-      ),
+
+      body:
+        JSON.stringify(
+          questData
+        ),
     }
   )
 
@@ -192,35 +258,58 @@ export async function updateQuest(
   accessToken
 ) {
   if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
   }
 
-  if (questId === null || questId === undefined) {
-    throw new Error('questId가 필요합니다.')
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
   }
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/quests/${questId}`,
     {
       method: 'PATCH',
+
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Accept:
+          'application/json',
+
+        'Content-Type':
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(questData),
+
+      body:
+        JSON.stringify(
+          questData
+        ),
     }
   )
 
   let result
 
   try {
-    result = await response.json()
+    result =
+      await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
-  if (!response.ok || !result.success) {
+  if (
+    !response.ok ||
+    !result.success
+  ) {
     throw new Error(
       result.message ||
       '퀘스트 수정에 실패했습니다.'
@@ -241,25 +330,38 @@ export async function deleteQuest(
   accessToken
 ) {
   if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
   }
 
-  if (questId === null || questId === undefined) {
-    throw new Error('questId가 필요합니다.')
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
   }
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/quests/${questId}`,
     {
       method: 'DELETE',
+
       headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Accept:
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
       },
     }
   )
 
-  if (response.status === 204) {
+  if (
+    response.status === 204
+  ) {
     return {
       success: true,
       data: null,
@@ -269,7 +371,8 @@ export async function deleteQuest(
   let result
 
   try {
-    result = await response.json()
+    result =
+      await response.json()
   } catch {
     if (response.ok) {
       return {
@@ -278,10 +381,15 @@ export async function deleteQuest(
       }
     }
 
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
-  if (!response.ok || !result.success) {
+  if (
+    !response.ok ||
+    !result.success
+  ) {
     throw new Error(
       result.message ||
       '퀘스트 삭제에 실패했습니다.'
@@ -293,11 +401,10 @@ export async function deleteQuest(
 
 
 // ========================================
-// 퀘스트 인증 승인
+// 부모 - 퀘스트 인증 승인
 //
 // PATCH
-// /api/v1/quests/{questId}
-// /verifications/{verificationId}/approve
+// /api/v1/quests/{questId}/verifications/{verificationId}/approve
 // ========================================
 export async function approveQuestVerification(
   questId,
@@ -305,11 +412,18 @@ export async function approveQuestVerification(
   accessToken
 ) {
   if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
   }
 
-  if (questId === null || questId === undefined) {
-    throw new Error('questId가 필요합니다.')
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
   }
 
   if (
@@ -325,15 +439,20 @@ export async function approveQuestVerification(
     `${API_BASE_URL}/api/v1/quests/${questId}/verifications/${verificationId}/approve`,
     {
       method: 'PATCH',
+
       headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Accept:
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
       },
     }
   )
 
-  // 혹시 204를 반환하는 경우도 대응
-  if (response.status === 204) {
+  if (
+    response.status === 204
+  ) {
     return {
       success: true,
       data: null,
@@ -343,7 +462,8 @@ export async function approveQuestVerification(
   let result
 
   try {
-    result = await response.json()
+    result =
+      await response.json()
   } catch {
     if (response.ok) {
       return {
@@ -357,9 +477,15 @@ export async function approveQuestVerification(
     )
   }
 
-  console.log('인증 승인 응답:', result)
+  console.log(
+    '인증 승인 응답:',
+    result
+  )
 
-  if (!response.ok || !result.success) {
+  if (
+    !response.ok ||
+    !result.success
+  ) {
     throw new Error(
       result.message ||
       '퀘스트 인증 승인에 실패했습니다.'
@@ -370,6 +496,17 @@ export async function approveQuestVerification(
 }
 
 
+// ========================================
+// 부모 - 퀘스트 인증 거절
+//
+// PATCH
+// /api/v1/quests/{questId}/verifications/{verificationId}/reject
+//
+// body:
+// {
+//   "rejectionReason": "거절 사유"
+// }
+// ========================================
 export async function rejectQuestVerification(
   questId,
   verificationId,
@@ -377,7 +514,9 @@ export async function rejectQuestVerification(
   accessToken
 ) {
   if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
   }
 
   if (
@@ -399,7 +538,8 @@ export async function rejectQuestVerification(
   }
 
   if (
-    typeof rejectionReason !== 'string' ||
+    typeof rejectionReason !==
+      'string' ||
     !rejectionReason.trim()
   ) {
     throw new Error(
@@ -490,103 +630,280 @@ export async function rejectQuestVerification(
   return result
 }
 
-// 퀘스트 수락 (AVAILABLE → IN_PROGRESS)
+
+// ========================================
+// 자녀 - 퀘스트 수락
+//
+// AVAILABLE → IN_PROGRESS
 // PATCH /api/v1/quests/{questId}/accept
-export async function acceptQuest(accessToken, questId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+// ========================================
+export async function acceptQuest(
+  accessToken,
+  questId
+) {
+  if (!accessToken) {
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
+  }
+
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
+  }
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/quests/${questId}/accept`,
     {
       method: 'PATCH',
+
       headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Accept:
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
       },
     }
   )
 
-  if (response.status === 204) return { success: true }
-
-  let result
-  try {
-    result = await response.json()
-  } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+  if (
+    response.status === 204
+  ) {
+    return {
+      success: true,
+      data: null,
+    }
   }
 
-  if (!response.ok || result.success === false) {
-    throw new Error(result.message || '퀘스트 수락에 실패했습니다.')
+  let result
+
+  try {
+    result =
+      await response.json()
+  } catch {
+    if (response.ok) {
+      return {
+        success: true,
+        data: null,
+      }
+    }
+
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
+  }
+
+  if (
+    !response.ok ||
+    result.success === false
+  ) {
+    throw new Error(
+      result.message ||
+      '퀘스트 수락에 실패했습니다.'
+    )
   }
 
   return result
 }
 
-// 퀘스트 거절 (AVAILABLE → DECLINED, 티니점수 차감 없음)
+
+// ========================================
+// 자녀 - 퀘스트 거절
+//
+// AVAILABLE → DECLINED
 // PATCH /api/v1/quests/{questId}/decline
-export async function declineQuest(accessToken, questId, { reasonCode, reasonDetail } = {}) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+// ========================================
+export async function declineQuest(
+  accessToken,
+  questId,
+  {
+    reasonCode,
+    reasonDetail,
+  } = {}
+) {
+  if (!accessToken) {
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
+  }
+
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
+  }
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/quests/${questId}/decline`,
     {
       method: 'PATCH',
+
       headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Accept:
+          'application/json',
+
+        'Content-Type':
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ reasonCode, reasonDetail }),
+
+      body:
+        JSON.stringify({
+          reasonCode,
+          reasonDetail,
+        }),
     }
   )
 
-  if (response.status === 204) return { success: true }
-
-  let result
-  try {
-    result = await response.json()
-  } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+  if (
+    response.status === 204
+  ) {
+    return {
+      success: true,
+      data: null,
+    }
   }
 
-  if (!response.ok || result.success === false) {
-    throw new Error(result.message || '퀘스트 거절에 실패했습니다.')
+  let result
+
+  try {
+    result =
+      await response.json()
+  } catch {
+    if (response.ok) {
+      return {
+        success: true,
+        data: null,
+      }
+    }
+
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
+  }
+
+  if (
+    !response.ok ||
+    result.success === false
+  ) {
+    throw new Error(
+      result.message ||
+      '퀘스트 거절에 실패했습니다.'
+    )
   }
 
   return result
 }
 
-// 퀘스트 인증 제출 (IN_PROGRESS 상태, 새 시도 추가 → PENDING)
-// 사진 1장(jpg/jpeg/png/webp, 5MB 이하) + 텍스트(선택)
-// POST /api/v1/quests/{questId}/verifications
-export async function submitQuestVerification(accessToken, questId, { content, image } = {}) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
 
-  const formData = new FormData()
-  if (content && content.trim()) formData.append('content', content)
-  if (image) formData.append('image', image)
+// ========================================
+// 자녀 - 퀘스트 인증 제출
+//
+// IN_PROGRESS → PENDING
+// POST /api/v1/quests/{questId}/verifications
+//
+// multipart/form-data
+// content: 선택
+// image: 선택
+// ========================================
+export async function submitQuestVerification(
+  accessToken,
+  questId,
+  {
+    content,
+    image,
+  } = {}
+) {
+  if (!accessToken) {
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
+  }
+
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
+  }
+
+  const formData =
+    new FormData()
+
+  if (
+    content &&
+    content.trim()
+  ) {
+    formData.append(
+      'content',
+      content.trim()
+    )
+  }
+
+  if (image) {
+    formData.append(
+      'image',
+      image
+    )
+  }
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/quests/${questId}/verifications`,
     {
       method: 'POST',
+
       headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        Accept:
+          'application/json',
+
+        Authorization:
+          `Bearer ${accessToken}`,
       },
+
+      // multipart/form-data는
+      // Content-Type 직접 설정하면 안 됨
       body: formData,
     }
   )
 
   let result
+
   try {
-    result = await response.json()
+    result =
+      await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    if (response.ok) {
+      return {
+        success: true,
+        data: null,
+      }
+    }
+
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
-  if (!response.ok || result.success === false) {
-    throw new Error(result.message || '퀘스트 인증 제출에 실패했습니다.')
+  if (
+    !response.ok ||
+    result.success === false
+  ) {
+    throw new Error(
+      result.message ||
+      '퀘스트 인증 제출에 실패했습니다.'
+    )
   }
 
   return result

@@ -575,66 +575,7 @@
       </div>
     </div>
 
-    <!-- 하단 -->
-    <nav class="bottom-nav">
-      <button
-        class="nav-item"
-        type="button"
-        @click="
-          router.push(
-            '/parents/home'
-          )
-        "
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <button
-        class="
-          nav-item
-          nav-item-active
-        "
-        type="button"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="
-          router.push(
-            '/parents/mypage'
-          )
-        "
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-    </nav>
+    <ParentBottomNav active="quest" />
 
     <!-- =========================
          거절 모달
@@ -715,6 +656,8 @@
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import {
   ref,
   computed,
@@ -1387,7 +1330,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #f4f5f7;
+  background: white;
   padding-bottom: 90px;
 }
 
@@ -1464,12 +1407,13 @@ onMounted(() => {
 }
 
 .info-card {
+  background-color: white;
+  border-radius: 16px;
+  border: 1px solid #f0f1f3;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-  background: #ffffff;
+  gap: 10px;
 }
 
 .child-row {
