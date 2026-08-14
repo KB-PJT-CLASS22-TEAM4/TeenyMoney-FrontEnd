@@ -196,18 +196,18 @@
         <div class="notice-box">
           등록한 상품은 자녀관리 메뉴에서 추천 상품으로 노출됩니다.
         </div>
-      </section>
-    </div>
 
-    <div class="submit-wrap">
-      <button
-        class="submit-btn"
-        type="button"
-        :disabled="isSubmitting"
-        @click="handleSubmit"
-      >
-        {{ activeType === 'DEPOSIT' ? '상품 등록하기' : '적금 상품 등록하기' }}
-      </button>
+        <div class="submit-wrap">
+          <button
+            class="submit-btn"
+            type="button"
+            :disabled="isSubmitting"
+            @click="handleSubmit"
+          >
+            {{ activeType === 'DEPOSIT' ? '상품 등록하기' : '적금 상품 등록하기' }}
+          </button>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -386,7 +386,7 @@ async function handleSubmit() {
 
 .scroll-area {
   flex: 1;
-  padding: 16px 16px 110px;
+  padding: 16px 16px 32px;
 }
 
 .type-tabs {
@@ -520,14 +520,7 @@ async function handleSubmit() {
 }
 
 .submit-wrap {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 360px;
-  padding: 12px 16px 20px;
-  background: #ffffff;
-  border-top: 1px solid #f0f1f3;
+  margin-top: 16px;
 }
 
 .submit-btn {
