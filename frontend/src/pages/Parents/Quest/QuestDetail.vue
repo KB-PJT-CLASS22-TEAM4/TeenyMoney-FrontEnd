@@ -81,13 +81,9 @@
       <div class="info-card">
         <div class="child-row">
           <img
-            :src="
-              quest.child.profileImageUrl ||
-              defaultProfileImage
-            "
+            :src="CHILD_PROFILE_IMAGE"
             alt="자녀 프로필"
             class="child-avatar"
-            @error="handleProfileImageError"
           />
 
           <div class="child-info">
@@ -681,8 +677,7 @@ import {
   rejectQuestVerification,
 } from '@/api/quest'
 
-import defaultProfileImage
-  from '@/assets/icons/child-profile.svg'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router =
   useRouter()
@@ -1313,13 +1308,6 @@ function getVerificationStatusLabel(
   )
 }
 
-function handleProfileImageError(
-  event
-) {
-  event.target.src =
-    defaultProfileImage
-}
-
 onMounted(() => {
   loadQuestDetail()
 })
@@ -1427,7 +1415,8 @@ onMounted(() => {
   height: 40px;
   flex-shrink: 0;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .child-info {

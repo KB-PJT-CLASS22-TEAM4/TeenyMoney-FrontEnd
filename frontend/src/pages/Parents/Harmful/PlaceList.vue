@@ -723,8 +723,10 @@ onMounted(() => {
 
 .place-card {
   padding: 16px;
-  border-radius: 12px;
-  background-color: #f4f5f7;
+  border-radius: 16px;
+  border: 1px solid #eaedf1;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .place-name {
@@ -743,7 +745,7 @@ onMounted(() => {
   height: 44px;
   border: none;
   border-radius: 24px;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
   color: #8b9097;
   font-size: 14px;
   font-weight: 700;

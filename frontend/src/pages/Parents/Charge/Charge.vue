@@ -257,31 +257,6 @@
         </button>
       </div>
 
-      <!-- 자동 충전 -->
-      <button
-        type="button"
-        class="auto-charge-banner"
-        @click="goToAutoCharge"
-      >
-        <div class="banner-left">
-          <div>
-            <p class="banner-title">
-              자동 충전 설정
-            </p>
-
-            <p class="banner-desc">
-              잔액 부족 시 자동으로 충전
-            </p>
-          </div>
-        </div>
-
-        <img
-          src="@/assets/icons/icon-chevron.svg"
-          alt=""
-          class="chevron-icon"
-        />
-      </button>
-
       <!-- 충전 -->
       <button
         class="submit-btn"
@@ -494,12 +469,6 @@ function selectPaymentMethod(methodId) {
 function goToPaymentChange() {
   router.push(
     '/parents/payment/change'
-  )
-}
-
-function goToAutoCharge() {
-  router.push(
-    '/parents/charge/auto'
   )
 }
 
@@ -949,45 +918,6 @@ async function handleCharge() {
   top: -1px;
   font-size: 16px;
   line-height: 1;
-}
-
-.auto-charge-banner {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border: none;
-  border-radius: 16px;
-  background-color: #fff8e1;
-  cursor: pointer;
-  text-align: left;
-  box-sizing: border-box;
-}
-
-.banner-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.banner-title {
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #191b1e;
-}
-
-.banner-desc {
-  margin: 0;
-  font-size: 12px;
-  color: #8b9097;
-}
-
-.chevron-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
 }
 
 .submit-btn {

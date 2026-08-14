@@ -13,7 +13,7 @@
     <div class="scroll-area">
       <section class="child-info-card">
         <div class="child-info-left">
-          <img src="@/assets/icons/child-profile.svg" alt="" class="child-avatar" />
+          <img :src="CHILD_PROFILE_IMAGE" alt="" class="child-avatar" />
           <div>
             <p class="child-info-label">자녀 정보</p>
             <p class="child-info-name">{{ childName }}</p>
@@ -186,6 +186,7 @@ import {
 } from '@/api/financialProducts'
 import * as financialProductsApi from '@/api/financialProducts'
 import { fetchAllChildFinancialProducts } from '@/utils/financialProductMapper'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const route = useRoute()
@@ -463,6 +464,9 @@ onMounted(async () => {
 .child-avatar {
   width: 42px;
   height: 42px;
+  border-radius: 50%;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .child-info-label {

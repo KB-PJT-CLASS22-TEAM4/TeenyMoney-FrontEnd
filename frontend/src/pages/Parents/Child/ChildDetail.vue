@@ -70,7 +70,7 @@
         <div class="hero-mascot-wrap">
 
           <img
-            :src="teenyScoreMascot"
+            :src="CHILD_DETAIL_MASCOT"
             class="hero-mascot"
             alt="티니"
           />
@@ -435,6 +435,7 @@ import { getChildren } from '@/api/children'
 import { getTeenyScore } from '@/api/teenyScore'
 import * as financialProductsApi from '@/api/financialProducts'
 import { fetchAllChildFinancialProducts } from '@/utils/financialProductMapper'
+import { CHILD_DETAIL_MASCOT } from '@/utils/profileImages'
 
 
 const router =
@@ -692,15 +693,6 @@ function onScroll() {
 }
 
 
-// ========================================
-// ChildHome과 동일한 캐릭터
-// ========================================
-
-const teenyScoreMascot =
-  new URL(
-    '@/assets/mascot/teeny-coach.png',
-    import.meta.url
-  ).href
 </script>
 
 

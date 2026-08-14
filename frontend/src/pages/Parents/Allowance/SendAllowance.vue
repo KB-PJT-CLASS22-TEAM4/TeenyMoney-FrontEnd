@@ -51,13 +51,9 @@
           >
             <div class="selected-avatar">
               <img
-                :src="
-                  selectedChild.profileImageUrl ||
-                  '/src/assets/icons/child-profile.svg'
-                "
+                :src="CHILD_PROFILE_IMAGE"
                 alt=""
                 class="selected-avatar-img"
-                @error="handleChildImageError"
               />
             </div>
 
@@ -122,10 +118,6 @@
             {{ quick.label }}
           </button>
         </div>
-
-        <p class="amount-desc">
-          자녀에게 보낼 금액을 입력해주세요.
-        </p>
       </div>
 
       <!-- 보내기 버튼 -->
@@ -217,13 +209,9 @@
               <div class="modal-child-left">
                 <div class="modal-avatar">
                   <img
-                    :src="
-                      child.profileImageUrl ||
-                      '/src/assets/icons/child-profile.svg'
-                    "
+                    :src="CHILD_PROFILE_IMAGE"
                     alt=""
                     class="modal-avatar-img"
-                    @error="handleModalImageError"
                   />
                 </div>
 
@@ -279,6 +267,7 @@ import {
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -364,8 +353,7 @@ async function fetchChildren() {
       ).map(child => ({
         id: child.childId,
         name: child.name,
-        profileImageUrl:
-          child.profileImageUrl || '',
+        profileImageUrl: CHILD_PROFILE_IMAGE,
       }))
     }
   } catch (error) {
@@ -401,17 +389,6 @@ function closeChildModal() {
 // 자녀 선택
 function selectChild(child) {
   selectedChildId.value = child.id
-}
-
-// 이미지 오류
-function handleChildImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
-function handleModalImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
 }
 
 
@@ -517,6 +494,7 @@ button {
 .content {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 24px;
   padding: 20px 16px;
 }
@@ -560,7 +538,8 @@ button {
 .selected-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .selected-child-name {
@@ -648,18 +627,11 @@ button {
   background-color: #f4f5f7;
 }
 
-.amount-desc {
-  margin: 0;
-  color: #8b9097;
-  font-size: 12px;
-  text-align: center;
-}
-
-
 /* 보내기 버튼 */
 .submit-btn {
   width: 100%;
   height: 52px;
+  margin-top: auto;
   border: none;
   border-radius: 12px;
   color: #191b1e;
@@ -817,7 +789,8 @@ button {
   width: 100%;
   height: 100%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 :global(.modal-child-name) {
