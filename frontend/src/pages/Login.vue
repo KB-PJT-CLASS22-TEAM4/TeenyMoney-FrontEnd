@@ -1,14 +1,19 @@
 <script setup>
 import { ref, computed } from 'vue'
-import logoUrl from '@/assets/logo.svg'  // 지갑 로고: src/assets/logo.svg 에 저장
+import logoUrl from '@/assets/logo.svg'
 import { useRouter } from 'vue-router'
-const router = useRouter() 
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import { login } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { getMyParent } from '@/api/families'
 
+const router = useRouter()
+const authStore = useAuthStore()
+
 const email = ref('')
 const password = ref('')
+const showLoginErrorModal = ref(false)
+const loginErrorMessage = ref('')
  
 // 비밀번호 8자 이상인지 검사
 const isPasswordValid = computed(() => password.value.length >= 8)
@@ -20,33 +25,45 @@ const canSubmit = computed(() => email.value.length > 0 && isPasswordValid.value
 const showPasswordHint = computed(
   () => password.value.length > 0 && !isPasswordValid.value
 )
- 
-const authStore = useAuthStore()
 
 async function handleLogin() {
-  const res = await login(email.value, password.value)
+  if (!canSubmit.value) return
 
-  if (res.success) {
-    authStore.setUser(res.data)
+  try {
+    const res = await login(email.value, password.value)
 
-    if (res.data.role === 'CHILD') {
-      try {
-        const parentRes = await getMyParent(res.data.accessToken)
-        console.log('부모 조회 응답:', parentRes)
-        if (parentRes.data === null) {
+    if (res.success) {
+      authStore.setUser(res.data)
+
+      if (res.data.role === 'CHILD') {
+        try {
+          const parentRes = await getMyParent(res.data.accessToken)
+          if (parentRes.data === null) {
+            router.push({ name: 'child-link' })
+          } else {
+            router.push({ name: 'child-home' })
+          }
+        } catch {
           router.push({ name: 'child-link' })
-        } else {
-          router.push({ name: 'child-home' })
         }
-      } catch {
-        router.push({ name: 'child-link' })
+      } else {
+        router.push({ name: 'parents-home' })
       }
-    } else {
-      router.push({ name: 'parents-home' })
+      return
     }
-  } else {
-    console.log('로그인 실패:', res.message)
+
+    loginErrorMessage.value =
+      res.message || '이메일 또는 비밀번호가 일치하지 않습니다.'
+    showLoginErrorModal.value = true
+  } catch (error) {
+    console.error('로그인 실패:', error)
+    loginErrorMessage.value = '로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+    showLoginErrorModal.value = true
   }
+}
+
+function closeLoginErrorModal() {
+  showLoginErrorModal.value = false
 }
 
 function handleGoogleLogin() {
@@ -135,6 +152,16 @@ function handleGoogleLogin() {
       </div>
     </div>
   </div>
+
+  <ConfirmModal
+    :show="showLoginErrorModal"
+    title="로그인에 실패했어요"
+    :description="loginErrorMessage"
+    confirm-text="확인"
+    hide-cancel
+    @confirm="closeLoginErrorModal"
+    @cancel="closeLoginErrorModal"
+  />
     </template>
  
 <style scoped>
