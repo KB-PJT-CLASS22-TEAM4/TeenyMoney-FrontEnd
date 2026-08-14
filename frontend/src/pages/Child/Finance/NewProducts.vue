@@ -107,7 +107,6 @@ function mapProduct(p) {
   return {
     id: `${p.productType}-${p.productId}`,
     productId: p.productId,
-    availableTerms: terms,
     category: typeMap[p.productType] ?? p.productType,
     badgeColor: badgeColorMap[p.productType] ?? 'blue',
     title: p.productName,
@@ -187,7 +186,6 @@ function goToApply(product) {
   }
 
   const detail = (label) => product.details.find((d) => d.label === label)
-
   router.push({
     name: 'child-finance-join',
     query: {
@@ -201,7 +199,6 @@ function goToApply(product) {
       scoreColor:   detail('티니점수 조건')?.color ?? 'green',
       interestType: detail('이자방식')?.value ?? '',
       savingsType:  detail('적립방식')?.value ?? '',
-      terms:        product.availableTerms.join(','),
     },
   })
 }

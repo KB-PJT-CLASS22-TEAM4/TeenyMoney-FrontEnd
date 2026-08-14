@@ -81,13 +81,9 @@
       <div class="info-card">
         <div class="child-row">
           <img
-            :src="
-              quest.child.profileImageUrl ||
-              defaultProfileImage
-            "
+            :src="CHILD_PROFILE_IMAGE"
             alt="자녀 프로필"
             class="child-avatar"
-            @error="handleProfileImageError"
           />
 
           <div class="child-info">
@@ -575,66 +571,17 @@
       </div>
     </div>
 
-    <!-- 하단 -->
-    <nav class="bottom-nav">
-      <button
-        class="nav-item"
-        type="button"
-        @click="
-          router.push(
-            '/parents/home'
-          )
-        "
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
+    <ParentBottomNav active="quest" />
 
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <button
-        class="
-          nav-item
-          nav-item-active
-        "
-        type="button"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="
-          router.push(
-            '/parents/mypage'
-          )
-        "
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-    </nav>
+    <ConfirmModal
+      :show="isExtendModalOpen"
+      title="기한이 지났습니다. 연장할까요?"
+      description="기한을 연장하면 자녀가 다시 인증을 시도할 수 있어요."
+      confirm-text="연장하기"
+      cancel-text="취소"
+      @confirm="confirmExtendDeadline"
+      @cancel="closeExtendModal"
+    />
 
     <!-- =========================
          거절 모달
@@ -715,6 +662,9 @@
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+
 import {
   ref,
   computed,
@@ -736,10 +686,14 @@ import {
   deleteQuest,
   approveQuestVerification,
   rejectQuestVerification,
+  extendQuestDeadline,
 } from '@/api/quest'
 
-import defaultProfileImage
-  from '@/assets/icons/child-profile.svg'
+import {
+  isQuestDeadlineExpiredError,
+} from '@/utils/questDeadline'
+
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router =
   useRouter()
@@ -777,6 +731,15 @@ const isRejectModalOpen =
 
 const rejectionReason =
   ref('')
+
+const isExtendModalOpen =
+  ref(false)
+
+const isExtendingDeadline =
+  ref(false)
+
+const pendingVerificationAction =
+  ref(null)
 
 const editForm =
   ref({
@@ -979,6 +942,15 @@ async function handleVerificationApprove() {
       error
     )
 
+    if (
+      handleQuestDeadlineExpired(
+        error,
+        handleVerificationApprove,
+      )
+    ) {
+      return
+    }
+
     alert(
       error.message ||
       '퀘스트 인증 승인에 실패했습니다.'
@@ -1083,6 +1055,15 @@ async function submitReject() {
       error
     )
 
+    if (
+      handleQuestDeadlineExpired(
+        error,
+        submitReject,
+      )
+    ) {
+      return
+    }
+
     alert(
       error.message ||
       '퀘스트 인증 거절에 실패했습니다.'
@@ -1090,6 +1071,86 @@ async function submitReject() {
 
   } finally {
     isProcessingVerification.value =
+      false
+  }
+}
+
+function handleQuestDeadlineExpired(
+  error,
+  retryAction,
+) {
+  if (
+    !isQuestDeadlineExpiredError(error) ||
+    !quest.value
+  ) {
+    return false
+  }
+
+  pendingVerificationAction.value =
+    retryAction
+
+  isExtendModalOpen.value =
+    true
+
+  return true
+}
+
+function closeExtendModal() {
+  if (isExtendingDeadline.value) {
+    return
+  }
+
+  isExtendModalOpen.value =
+    false
+
+  pendingVerificationAction.value =
+    null
+}
+
+async function confirmExtendDeadline() {
+  const retryAction =
+    pendingVerificationAction.value
+
+  if (
+    !quest.value ||
+    isExtendingDeadline.value
+  ) {
+    return
+  }
+
+  isExtendingDeadline.value =
+    true
+
+  try {
+    await extendQuestDeadline(
+      questId,
+      authStore.accessToken,
+      quest.value.deadline,
+    )
+
+    isExtendModalOpen.value =
+      false
+
+    pendingVerificationAction.value =
+      null
+
+    await loadQuestDetail()
+
+    if (retryAction) {
+      await retryAction()
+    }
+  } catch (error) {
+    console.error(
+      '기한 연장 실패:',
+      error,
+    )
+
+    alert(
+      error.message ||
+      '기한 연장에 실패했습니다.'
+    )
+  } finally {
+    isExtendingDeadline.value =
       false
   }
 }
@@ -1370,13 +1431,6 @@ function getVerificationStatusLabel(
   )
 }
 
-function handleProfileImageError(
-  event
-) {
-  event.target.src =
-    defaultProfileImage
-}
-
 onMounted(() => {
   loadQuestDetail()
 })
@@ -1387,7 +1441,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #f4f5f7;
+  background: white;
   padding-bottom: 90px;
 }
 
@@ -1464,12 +1518,13 @@ onMounted(() => {
 }
 
 .info-card {
+  background-color: white;
+  border-radius: 16px;
+  border: 1px solid #f0f1f3;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-  background: #ffffff;
+  gap: 10px;
 }
 
 .child-row {
@@ -1483,7 +1538,8 @@ onMounted(() => {
   height: 40px;
   flex-shrink: 0;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .child-info {

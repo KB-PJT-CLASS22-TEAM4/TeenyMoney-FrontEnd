@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -5,7 +7,7 @@ const API_BASE_URL = import.meta.env.DEV
 // 자녀 티니 점수 조회
 // GET /api/v1/teeny-score/children/{childId}
 export async function getTeenyScore(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/teeny-score/children/${childId}`,
@@ -35,7 +37,7 @@ export async function getTeenyScore(accessToken, childId) {
 // 자녀 월별 티니 점수 히스토리 조회
 // GET /api/v1/teeny-score/children/{childId}/monthly-history
 export async function getTeenyScoreMonthlyHistory(accessToken, childId) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/teeny-score/children/${childId}/monthly-history`,
@@ -65,7 +67,7 @@ export async function getTeenyScoreMonthlyHistory(accessToken, childId) {
 // 등급 기준 조회
 // GET /api/v1/teeny-score/grades
 export async function getTeenyScoreGrades(accessToken) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/teeny-score/grades`,
@@ -95,7 +97,7 @@ export async function getTeenyScoreGrades(accessToken) {
 // 내(자녀 본인) 티니 점수 변동 내역 조회
 // GET /api/v1/teeny-score/me/history
 export async function getMyHistories(accessToken) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/teeny-score/me/history`,

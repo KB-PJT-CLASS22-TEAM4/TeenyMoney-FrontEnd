@@ -12,11 +12,11 @@
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
 
-      <!-- ────────── 정액적금 ────────── -->
-      <template v-if="productCategory === 'SAVINGS' && !isFreeSaving">
+      <!-- ────────── 적금 ────────── -->
+      <template v-if="productCategory === 'SAVINGS'">
         <section class="section product-info">
           <h2 class="product-name">{{ productTitle }}</h2>
-          <p class="product-type">{{ fixedSavingTypeLine }}</p>
+          <p class="product-type">{{ savingsTypeLine }}</p>
           <p class="rate-info">{{ periodInfo }}, <span class="highlight-blue">{{ productRate }}</span></p>
           <p class="score-requirement" v-if="scoreReq">
             티니점수 <span :class="`highlight-${scoreColor}`">{{ scoreReq }}</span>
@@ -46,7 +46,7 @@
           <label class="input-label">가입기간</label>
           <div class="button-group">
             <button
-              v-for="month in availableTerms"
+              v-for="month in [1, 3, 6, 12]"
               :key="month" type="button" class="chip-btn"
               :class="{ active: savingsForm.period === month }"
               @click="savingsForm.period = month"
@@ -58,7 +58,7 @@
           <div class="auto-transfer-header">
             <div class="text-group">
               <span class="toggle-title">자동이체</span>
-              <span class="toggle-desc">매월 정해진 날짜에 같은 금액을 자동 납입해요</span>
+              <span class="toggle-desc">매월 자동으로 납입해요</span>
             </div>
             <label class="switch">
               <input type="checkbox" v-model="savingsForm.autoTransfer">
@@ -80,65 +80,6 @@
                 </svg>
               </button>
             </div>
-          </div>
-        </section>
-      </template>
-
-      <!-- ────────── 자유적금 ────────── -->
-      <template v-else-if="productCategory === 'SAVINGS' && isFreeSaving">
-        <section class="section product-info">
-          <h2 class="product-name">{{ productTitle }}</h2>
-          <p class="product-type">{{ freeSavingTypeLine }}</p>
-          <p class="rate-info">{{ periodInfo }}, <span class="highlight-blue">{{ productRate }}</span></p>
-          <p class="score-requirement" v-if="scoreReq">
-            티니점수 <span :class="`highlight-${scoreColor}`">{{ scoreReq }}</span>
-          </p>
-          <p class="limit-info limit-info-strong" v-if="limitInfo">{{ limitInfo }}</p>
-        </section>
-
-        <section class="section">
-          <label class="input-label">월 목표금액</label>
-          <div class="amount-display" :class="{ hasValue: savingsForm.amount > 0 }">
-            <span class="amount-value" :class="{ placeholder: savingsForm.amount === 0 }">
-              {{ savingsForm.amount ? savingsForm.amount.toLocaleString() : '0' }}
-            </span>
-            <span class="currency-unit" :class="{ hasValue: savingsForm.amount > 0 }">원</span>
-          </div>
-          <div class="button-group">
-            <button
-              v-for="amt in [10000, 30000, 50000, 100000]"
-              :key="amt" type="button" class="chip-btn"
-              :class="{ active: savingsForm.amount === amt }"
-              @click="savingsForm.amount = amt"
-            >{{ amt / 10000 }}만</button>
-          </div>
-        </section>
-
-        <section class="section">
-          <label class="input-label">가입기간</label>
-          <div class="button-group">
-            <button
-              v-for="month in availableTerms"
-              :key="month" type="button" class="chip-btn"
-              :class="{ active: savingsForm.period === month }"
-              @click="savingsForm.period = month"
-            >{{ month }}개월</button>
-          </div>
-        </section>
-
-        <!-- 자유적금은 자동이체 대신, 원할 때 자유롭게 저축하는 구조 -->
-        <section class="section free-info-section">
-          <div class="free-info-box">
-            <p class="free-info-title">자유롭게 저축해요</p>
-            <p class="free-info-desc">정해진 날짜 없이, 원할 때 원하는 만큼 저축할 수 있어요</p>
-          </div>
-          <div class="score-guide">
-            <p class="score-guide-title">이번 달 목표금액을 채운 만큼 티니점수를 받아요</p>
-            <div class="score-guide-row"><span>0%</span><span>0점</span></div>
-            <div class="score-guide-row"><span>1~29%</span><span>+2점</span></div>
-            <div class="score-guide-row"><span>30~59%</span><span>+4점</span></div>
-            <div class="score-guide-row"><span>60~99%</span><span>+6점</span></div>
-            <div class="score-guide-row highlight"><span>100% 이상</span><span>+8점</span></div>
           </div>
         </section>
       </template>
@@ -177,7 +118,7 @@
           <label class="input-label">가입기간</label>
           <div class="button-group wrap">
             <button
-              v-for="month in availableTerms"
+              v-for="month in [1, 3, 6, 12]"
               :key="month" type="button" class="chip-btn"
               :class="{ active: depositForm.period === month }"
               @click="depositForm.period = month"
@@ -228,7 +169,7 @@
           <label class="input-label">상환기간</label>
           <div class="button-group">
             <button
-              v-for="month in availableTerms"
+              v-for="month in [1, 3, 6, 12]"
               :key="month" type="button" class="chip-btn"
               :class="{ active: loanForm.period === month }"
               @click="loanForm.period = month"
@@ -286,18 +227,11 @@
               (완납하면 티니점수 +{{ calculatedReturn.score }}점)
             </template>
           </template>
-          <template v-else-if="productCategory === 'SAVINGS' && isFreeSaving">
-            목표달성 기준 {{ calculatedReturn.principal.toLocaleString() }}원
-            + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
-            <template v-if="calculatedReturn.score > 0">
-              + 티니점수 {{ calculatedReturn.score }}점(매달 목표 100% 달성 시)
-            </template>
-          </template>
           <template v-else>
             원금 {{ calculatedReturn.principal.toLocaleString() }}원
             + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
             <template v-if="calculatedReturn.score > 0">
-              + 티니점수 {{ calculatedReturn.score }}점<template v-if="productCategory === 'SAVINGS'">(정상 납입 시)</template>
+              + 티니점수 {{ calculatedReturn.score }}점
             </template>
           </template>
         </div>
@@ -338,27 +272,12 @@ const scoreColor      = ref(route.query.scoreColor || 'green')  // 티니점수 
 const interestType    = ref(route.query.interestType || '')     // 단리 / 복리
 const savingsType     = ref(route.query.savingsType  || '')     // 자유적금 / 정액적금
 
-// 상품이 실제로 지원하는 가입기간만 선택지로 제공 (넘어온 값이 없으면 기존 기본값 유지)
-const availableTerms = ref(
-  (route.query.terms || '')
-    .split(',')
-    .map(Number)
-    .filter((n) => Number.isFinite(n) && n > 0)
+// 상품 타입 요약 문구 (실제 선택 상품의 이자방식·적립방식 반영, 값 없으면 기본 문구로 대체)
+const savingsTypeLine = computed(() =>
+  [savingsType.value, interestType.value].filter(Boolean).join(' · ') || '자유적립식 · 매월 자동저축'
 )
-if (availableTerms.value.length === 0) {
-  availableTerms.value = [1, 3, 6, 12]
-}
-
-const isFreeSaving = computed(() => savingsType.value === '자유적금')
-
 const depositTypeLine = computed(() =>
   interestType.value ? `정기예금 · ${interestType.value}` : '정기예금 · 목표까지 안전하게 저축'
-)
-const fixedSavingTypeLine = computed(() =>
-  interestType.value ? `정액적립식 · ${interestType.value}` : '정액적립식 · 매월 자동저축'
-)
-const freeSavingTypeLine = computed(() =>
-  interestType.value ? `자유적립식 · ${interestType.value}` : '자유적립식 · 원할 때 자유롭게 저축'
 )
 
 const isScrolling = ref(false)
@@ -379,7 +298,7 @@ const isSubmitting = ref(false)
 const DEPOSIT_MATURITY_SCORE = { 1: 6, 3: 19, 6: 39, 12: 79 }
 // 정액적립식 적금 만기 시 최대 총점(정상 납입 100% 가정)
 const FIXED_SAVING_MAX_SCORE = { 1: 7, 3: 22, 6: 45, 12: 91 }
-// 자유적립식 적금 만기 시 최대 총점(매월 목표 100% 달성 가정)
+// 자유적립식 적금 만기 시 최대 총점(매월 100% 납입 가정)
 const FREE_SAVING_MAX_SCORE = { 1: 8, 3: 24, 6: 48, 12: 96 }
 // 대출 완납 가점
 const LOAN_COMPLETION_SCORE = 6
@@ -393,9 +312,10 @@ function parseRatePercent(str) {
 }
 
 const isCompound = computed(() => interestType.value.includes('복리'))
+const isFreeSaving = computed(() => savingsType.value === '자유적금')
 
 const pageTitle = computed(() => {
-  if (productCategory.value === 'SAVINGS') return isFreeSaving.value ? '자유적금 가입' : '정액적금 가입'
+  if (productCategory.value === 'SAVINGS') return '적금 가입'
   if (productCategory.value === 'DEPOSIT') return '예금 가입'
   if (productCategory.value === 'LOAN') return '대출 신청'
   return '상품 가입'
@@ -421,13 +341,13 @@ const submitLabel = computed(() =>
 const calculatedReturn = computed(() => {
   const rate = parseRatePercent(productRate.value) / 100  // 소수(예: 0.04)로 환산
 
-  // 적금(정액/자유 공통): 회차별로 만기까지 남은 개월 수만큼 이자를 계산해 합산
+  // 적금: 회차별로 예치기간이 다르므로 회차마다 남은 개월 수만큼 이자를 계산해 합산
   if (productCategory.value === 'SAVINGS' && savingsForm.amount > 0 && savingsForm.period > 0) {
     const monthly = savingsForm.amount
     const n = savingsForm.period
     let interest = 0
     for (let k = 1; k <= n; k++) {
-      const monthsHeld = n - k + 1
+      const monthsHeld = n - k + 1  // k회차 납입금이 만기까지 남아있는 개월 수
       interest += isCompound.value
         ? monthly * (Math.pow(1 + rate / 12, monthsHeld) - 1)
         : monthly * rate * (monthsHeld / 12)
@@ -490,9 +410,8 @@ const handleSubmit = async () => {
         productId: productId.value,
         monthlyAmount: savingsForm.amount,
         termMonths: savingsForm.period,
-        // 자유적금은 자동이체가 없어 항상 false로 전달, paymentDay는 공용 스펙상 필수라 1로 채움
-        autoTransfer: isFreeSaving.value ? false : savingsForm.autoTransfer,
-        paymentDay: isFreeSaving.value ? 1 : savingsForm.transferDay,
+        autoTransfer: savingsForm.autoTransfer,
+        paymentDay: savingsForm.transferDay,
       })
 
       router.push({
@@ -535,7 +454,7 @@ const handleSubmit = async () => {
     }
   } catch (e) {
     alert('신청에 실패했어요. 다시 시도해줄래요?')
-    console.error('대출 신청 실패:', e.message)
+    console.error('가입/대출 신청 실패:', e.message)
   } finally {
     isSubmitting.value = false
   }
@@ -705,52 +624,6 @@ const handleSubmit = async () => {
 }
 .toggle-title { font-weight: 700; font-size: 14px; color: #15171b; }
 .toggle-desc  { display: block; font-weight: 500; font-size: 11.5px; color: #b9bec5; margin-top: 2px; }
-
-.free-info-section { border-bottom: none; }
-
-.free-info-box {
-  background: #fff9e8;
-  border: 1.3px solid #ffe9b3;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-}
-.free-info-title {
-  margin: 0 0 3px;
-  font-weight: 800;
-  font-size: 13.5px;
-  color: #15171b;
-}
-.free-info-desc {
-  margin: 0;
-  font-weight: 500;
-  font-size: 12px;
-  color: #8b7a45;
-}
-
-.score-guide {
-  border: 1.3px solid #f0f1f3;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-.score-guide-title {
-  margin: 0 0 8px;
-  font-weight: 700;
-  font-size: 12.5px;
-  color: #4a4e55;
-}
-.score-guide-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  font-weight: 600;
-  font-size: 12.5px;
-  color: #8b9097;
-}
-.score-guide-row.highlight {
-  color: #b8901f;
-  font-weight: 800;
-}
 
 .switch {
   position: relative;

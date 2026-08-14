@@ -2,7 +2,7 @@
   <div class="processing-screen">
     <div class="center">
       <!-- 캐릭터 -->
-      <img src="@/assets/rabbitrun.png" class="character" alt="결제 진행중" />
+      <img src="@/assets/mascot/teeny-run.png" class="character" alt="결제 진행중" />
 
       <!-- 안내 문구 -->
       <p class="guide-title">결제 정보를 확인하고 있어요</p>
@@ -20,34 +20,26 @@
 
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { usePaymentStore } from '@/stores/payment'
 
-const route = useRoute()
 const router = useRouter()
+const paymentStore = usePaymentStore()
 
-const code = route.query.code || ''
-
-// ============================================================
-//   [API] 결제 실행 (이 화면에서 결제 API 호출)
-//   PayPassword는 비밀번호 입력만 받고 이 화면으로 넘김.
-//   실제 결제 실행은 여기서 하고, 응답을 기다리는 동안 로딩을 보여줌.
-//
-//   POST /api/child/payment/pay
-//   body: { code, pin }
-//     ※ pin은 URL query로 넘기면 안 됨(노출). pinia 스토어 등으로 전달받기.
-//   → 성공: 결제 완료 화면(pay-done)으로 이동
-//   → 실패: 사유별 처리
-//       - 비밀번호 불일치 → 비밀번호 화면으로 되돌리기
-//       - 잔액 부족       → 잔액 부족 안내
-//
-//   ※ 최소 표시 시간: 응답이 너무 빨리 와도 로딩을 최소 1.5초는 유지
-// ============================================================
+// 결제 API는 PayPassword.vue에서 이미 성공적으로 실행되고,
+// 그 결과가 paymentStore.lastResult에 저장된 상태로 이 화면에 도착함.
+// 여기서는 최소 로딩 시간(1.5초)만 채운 뒤 결제 완료 화면으로 이동.
 let timer = null
 onMounted(() => {
-    // UI 확인용 -> 2초 뒤 완료 화면으로 이동 (삭제 예정)
+  // 결과 없이 이 화면에 직접 진입한 경우(새로고침 등) 방어 처리
+  if (!paymentStore.lastResult) {
+    router.replace({ name: 'qr-scan' })
+    return
+  }
+
   timer = setTimeout(() => {
-    router.push({ name: 'pay-done', query: { code } })
-  }, 2000)
+    router.push({ name: 'pay-done' })
+  }, 1500)
 })
 onUnmounted(() => clearTimeout(timer))
 </script>
