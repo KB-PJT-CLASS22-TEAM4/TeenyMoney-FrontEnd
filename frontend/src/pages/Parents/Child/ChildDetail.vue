@@ -212,37 +212,6 @@
 
         <div class="manage-slide">
 
-          <!-- 유해 업소 -->
-          <div class="manage-card">
-
-            <div class="manage-card-content">
-
-              <div class="manage-card-badge danger-badge">
-                이용 관리
-              </div>
-
-              <div class="manage-card-title">
-                유해 업소 시도
-              </div>
-
-              <div class="manage-card-value danger-value">
-                {{ child.harmfulAttemptCount }}건
-              </div>
-
-              <div class="manage-card-sub">
-                최근 이용 시도 내역
-              </div>
-
-            </div>
-
-
-            <div class="manage-decoration danger-decoration">
-              !
-            </div>
-
-          </div>
-
-
           <!-- 소비 리포트 -->
           <div class="manage-card">
 
@@ -484,8 +453,6 @@ const child =
     minScore: 0,
 
     maxScore: 1000,
-
-    harmfulAttemptCount: 2,
   })
 
 
@@ -1323,13 +1290,6 @@ function onScroll() {
 }
 
 
-.danger-badge {
-  color: #e5484d;
-
-  background: #fff0f0;
-}
-
-
 .report-badge {
   color: #d98200;
 
@@ -1351,17 +1311,6 @@ function onScroll() {
 
   font-size: 14px;
   font-weight: 800;
-}
-
-
-.manage-card-value {
-  font-size: 19px;
-  font-weight: 900;
-}
-
-
-.danger-value {
-  color: #e5484d;
 }
 
 
@@ -1399,13 +1348,6 @@ function onScroll() {
 
   font-size: 19px;
   font-weight: 900;
-}
-
-
-.danger-decoration {
-  color: #ef4444;
-
-  background: #fff1f2;
 }
 
 
