@@ -7,14 +7,14 @@
           <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1 class="nav-title">가입 신청 확인</h1>
+      <h1 class="nav-title">{{ pageTitle }}</h1>
     </div>
 
     <!-- 스크롤 영역 -->
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
       <!-- 1. 가입 상품 헤더 -->
       <section class="product-header">
-        <span class="sub-title">가입 상품</span>
+        <span class="sub-title">{{ categoryHeaderLabel }}</span>
         <h2 class="product-title">{{ confirmData.title }}</h2>
         <p class="product-sub">{{ confirmData.productTypeDesc }}</p>
       </section>
@@ -33,16 +33,22 @@
           <span class="row-value">{{ confirmData.period }}개월</span>
         </div>
 
+        <!-- 대출 상환 방식 표시 (대출일 때만) -->
+        <div class="row border-top" v-if="isLoan">
+          <span class="row-label">상환 방식</span>
+          <span class="row-value">{{ confirmData.repaymentTypeDesc }}</span>
+        </div>
+
         <div class="row border-top multiline">
           <span class="row-label">적용금리</span>
           <div class="row-value-group">
-            <span class="row-value">{{ confirmData.appliedRate }}</span>
-            <span class="row-subtext">중도 해지 시 3.0% · 티니점수 하락</span>
+            <span class="row-value highlight-blue">{{ confirmData.appliedRate }}</span>
+            <span class="row-subtext">{{ confirmData.cancelPenaltyNote }}</span>
           </div>
         </div>
 
         <div class="row border-top" v-if="confirmData.autoTransfer">
-          <span class="row-label">자동이체</span>
+          <span class="row-label">{{ isLoan ? '자동상환일' : '자동이체일' }}</span>
           <span class="row-value">매월 {{ confirmData.transferDay }}일</span>
         </div>
 
@@ -52,19 +58,33 @@
         </div>
 
         <div class="row border-top">
-          <span class="row-label">만기일</span>
+          <span class="row-label">{{ isLoan ? '만기 상환일' : '만기일' }}</span>
           <span class="row-value">{{ confirmData.maturityDate }}</span>
         </div>
       </section>
 
-      <!-- 3. 예상 만기 수령액 요약 박스 -->
+      <!-- 3. 예상 만기 수령액/상환액 요약 박스 -->
       <section class="maturity-summary-box">
         <div class="maturity-top">
-          <span class="maturity-title">예상 만기 수령액</span>
+          <span class="maturity-title">{{ isLoan ? '총 상환 예정 금액' : '예상 만기 수령액' }}</span>
           <span class="maturity-total">{{ confirmData.totalReturn.toLocaleString() }}원</span>
         </div>
         <p class="maturity-detail">
-          원금 {{ confirmData.principal.toLocaleString() }}원 + 이자 {{ confirmData.interest.toLocaleString() }}원 + 티니점수 {{ confirmData.score }}점
+          <template v-if="isLoan">
+            원금 {{ confirmData.principal.toLocaleString() }}원 + 총 이자 {{ confirmData.interest.toLocaleString() }}원
+            <template v-if="confirmData.score > 0">
+              <br>(정상 완납 시 티니점수 +{{ confirmData.score }}점)
+            </template>
+          </template>
+          <template v-else>
+            <template v-if="isSavings && isFreeSaving">
+              (매월 입력한 첫 저축액만큼 입금 시)<br>
+            </template>
+            원금 {{ confirmData.principal.toLocaleString() }}원 + 이자 {{ confirmData.interest.toLocaleString() }}원
+            <template v-if="confirmData.score > 0">
+              + 티니점수 {{ confirmData.score }}점
+            </template>
+          </template>
         </p>
       </section>
 
@@ -76,21 +96,27 @@
               <path d="M20 6L9 17l-5-5" stroke="#15171b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <span class="check-label">예상 만기 수령액을 확인했어요 <span class="required">(필수)</span></span>
+          <span class="check-label">
+            {{ isLoan ? '총 상환 예정 금액 및 이자를 확인했어요' : '예상 만기 수령액 및 금리를 확인했어요' }}
+            <span class="required">(필수)</span>
+          </span>
         </div>
 
-        <div class="check-item border-top" @click="agreeAutoTransfer = !agreeAutoTransfer">
+        <div class="check-item border-top" v-if="confirmData.autoTransfer" @click="agreeAutoTransfer = !agreeAutoTransfer">
           <div class="check-circle" :class="{ checked: agreeAutoTransfer }">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M20 6L9 17l-5-5" stroke="#15171b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <span class="check-label">자동이체 출금에 동의해요 <span class="required">(필수)</span></span>
+          <span class="check-label">
+            {{ isLoan ? '자동상환 출금에 동의해요' : '자동이체 출금에 동의해요' }}
+            <span class="required">(필수)</span>
+          </span>
         </div>
       </section>
     </div>
 
-    <!-- 하단 고정 가입완료 버튼 -->
+    <!-- 하단 고정 가입/신청 완료 버튼 -->
     <footer class="footer">
       <div class="submit-wrapper">
         <button 
@@ -100,12 +126,12 @@
           :disabled="!isAllAgreed"
           @click="openModal"
         >
-          가입 완료
+          {{ isLoan ? '대출 신청 완료' : '가입 완료' }}
         </button>
       </div>
     </footer>
 
-    <!-- 가입 완료 모달 (Modal Overlay) -->
+    <!-- 가입/신청 완료 모달 -->
     <Transition name="modal-fade">
       <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeModalAndNavigate">
         <div class="modal-card">
@@ -114,9 +140,9 @@
               <path d="M20 6L9 17l-5-5" stroke="#15171b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <h3 class="modal-title">가입 신청 완료!</h3>
+          <h3 class="modal-title">{{ isLoan ? '대출 신청 완료!' : '가입 신청 완료!' }}</h3>
           <p class="modal-desc">
-            <strong>{{ confirmData.title }}</strong> 가입 신청이 성공적으로 완료되었어요
+            <strong>{{ confirmData.title }}</strong> {{ isLoan ? '신청이 성공적으로 완료되었어요.' : '가입 신청이 성공적으로 완료되었어요.' }}
           </p>
           <button type="button" class="modal-confirm-btn" @click="closeModalAndNavigate">
             확인
@@ -142,46 +168,105 @@ function onScroll() {
   scrollTimer = setTimeout(() => { isScrolling.value = false; }, 800);
 }
 
-const category = route.query.category || '적금'
-const isSavings = category === '적금'
+const rawCategory = route.query.category || '적금'
+const isSavings   = rawCategory === '적금'
+const isDeposit   = rawCategory === '예금'
+const isLoan      = rawCategory === '대출'
+
+const savingsType = route.query.savingsType || ''
+const isFreeSaving = savingsType === '자유적금'
 
 // 만기일 계산
-function calcMaturityDate(period) {
+function calcMaturityDate(periodMonths) {
   const d = new Date()
-  d.setMonth(d.getMonth() + Number(period))
+  d.setMonth(d.getMonth() + Number(periodMonths || 0))
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
-const amount   = Number(route.query.amount)   || 0
-const period   = Number(route.query.period)   || 0
-const total    = Number(route.query.total)    || 0
-const interest = Number(route.query.interest) || 0
+const amount    = Number(route.query.amount)    || 0
+const period    = Number(route.query.period)    || 0
+const total     = Number(route.query.total)     || 0
+const interest  = Number(route.query.interest)  || 0
 const principal = isSavings ? amount * period : amount
 
+// 대출 상환 방식 한글 표기
+const repaymentTypeMap = {
+  'EQUAL_PRINCIPAL_INTEREST': '원리금균등상환',
+  'EQUAL_PRINCIPAL': '원금균등상환',
+  'BULLET': '만기일시상환'
+}
+const repaymentTypeDesc = repaymentTypeMap[route.query.repaymentType] || '원리금균등상환'
+
+// 엑셀 정책 표 기반 예상 티니점수 가점
+const DEPOSIT_SCORE = { 1: 6, 3: 19, 6: 39, 12: 79 }
+const FIXED_SAVING_SCORE = { 1: 7, 3: 22, 6: 45, 12: 91 }
+const FREE_SAVING_SCORE = { 1: 8, 3: 24, 6: 48, 12: 96 }
+
+const expectedScore = computed(() => {
+  if (isLoan) return 6 // 만기 완납 시 +6점
+  if (isDeposit) return DEPOSIT_SCORE[period] || 0
+  if (isSavings) return isFreeSaving ? (FREE_SAVING_SCORE[period] || 0) : (FIXED_SAVING_SCORE[period] || 0)
+  return 0
+})
+
+// 금리 포맷 (백엔드 expectedAppliedRate는 이미 퍼센트 값, 예: 3.5 = 3.5%. ×100 하면 안 됨)
+const appliedRate = route.query.appliedRate 
+  ? `${Number(route.query.appliedRate).toFixed(1)}%` 
+  : (route.query.rate || '')
+
+// 페널티 안내문구 (엑셀 정책 반영)
+const cancelPenaltyNote = computed(() => {
+  if (isLoan) return '상환 지연 시 연체이율 적용 및 티니점수 최대 -20점 감점'
+  if (isSavings) return '중도 해지 시 진행률별 차등 이율 적용 및 티니점수 감점'
+  return '중도 해지 시 약정금리의 10~80% 적용 및 티니점수 감점'
+})
+
+const pageTitle = computed(() => isLoan ? '대출 신청 확인' : '가입 신청 확인')
+const categoryHeaderLabel = computed(() => {
+  if (isLoan) return '신청 상품'
+  return '가입 상품'
+})
+
+// 금액 라벨 분기
+const amountLabel = computed(() => {
+  if (isLoan) return '대출 신청금액'
+  if (isDeposit) return '예치 금액'
+  return isFreeSaving ? '첫 저축액 (첫 입금)' : '월 약정 납입금액'
+})
+
+// 상품 종류 설명 분기
+const productTypeDesc = computed(() => {
+  if (isLoan) return '소액대출 · 필요할 때 빌리고 매월 갚아요'
+  if (isDeposit) return '정기예금 · 목표까지 안전하게 저축'
+  return isFreeSaving ? '자유적립식 · 원할 때 자유롭게 저축' : '정액적립식 · 매월 정기 저축'
+})
+
 const confirmData = reactive({
-  title:           route.query.title || '',
-  productTypeDesc: isSavings ? '자유적립식 · 매월 자동저축' : '정기예금 · 목표까지 안전하게 저축',
-  amountLabel:     isSavings ? '월 납입금액' : '예치 금액',
+  title:            route.query.title || '금융 상품',
+  productTypeDesc,
+  amountLabel,
   amount,
-  periodLabel:     isSavings ? '가입기간' : '예치기간',
+  periodLabel:      isLoan ? '상환기간' : (isDeposit ? '예치기간' : '가입기간'),
   period,
-  appliedRate:     route.query.rate || '',
-  autoTransfer:    isSavings,          // 예금은 자동이체 없음
-  transferDay:     1,
-  debitAccount:    '티니머니 지갑',
-  maturityDate:    calcMaturityDate(period),
+  repaymentTypeDesc,
+  appliedRate,
+  cancelPenaltyNote,
+  autoTransfer:     route.query.autoTransfer === 'true' || route.query.autoTransfer === true,
+  transferDay:      route.query.paymentDay || 1,
+  debitAccount:     '티니머니 지갑',
+  maturityDate:     calcMaturityDate(period),
   principal,
   interest,
-  score:           isSavings ? 3 : 0,
-  totalReturn:     total || principal + interest,
+  score:            expectedScore.value,
+  totalReturn:      total || principal + interest,
 })
 
 const agreeConfirm = ref(false);
 const agreeAutoTransfer = ref(false);
 
-// 예금은 자동이체 동의 없이 가입 가능
+// 자동이체가 미설정되었거나 예금인 경우 1개만 동의하면 제출 가능
 const isAllAgreed = computed(() =>
-  isSavings
+  confirmData.autoTransfer
     ? agreeConfirm.value && agreeAutoTransfer.value
     : agreeConfirm.value
 )
@@ -204,7 +289,7 @@ const closeModalAndNavigate = () => {
 <style scoped>
 /* 메인 프레임 */
 .product-screen {
-   box-sizing: border-box;
+  box-sizing: border-box;
   position: relative;         
   display: flex;
   flex-direction: column;
@@ -285,12 +370,14 @@ const closeModalAndNavigate = () => {
   font-size: 20px;
   color: #15171b;
   margin-bottom: 4px;
+  word-break: keep-all;
 }
 
 .product-sub {
   font-weight: 500;
   font-size: 12px;
   color: #b9bec5;
+  word-break: keep-all;
 }
 
 /* 2. 상세 내역 */
@@ -336,6 +423,10 @@ const closeModalAndNavigate = () => {
   text-align: right;
 }
 
+.row-value.highlight-blue {
+  color: #4d8ad6;
+}
+
 .row-value-group {
   display: flex;
   flex-direction: column;
@@ -348,6 +439,8 @@ const closeModalAndNavigate = () => {
   font-size: 11px;
   color: #8a9099;
   text-align: right;
+  line-height: 1.35;
+  word-break: keep-all;
 }
 
 /* 3. 만기 예상 수령액 박스 */
@@ -384,6 +477,8 @@ const closeModalAndNavigate = () => {
   font-weight: 500;
   font-size: 11px;
   color: #8b9097;
+  line-height: 1.4;
+  word-break: keep-all;
 }
 
 /* 4. 약관 체크박스 */
@@ -424,6 +519,7 @@ const closeModalAndNavigate = () => {
   font-weight: 500;
   font-size: 12.5px;
   color: #15171b;
+  word-break: keep-all;
 }
 
 .required {
@@ -463,7 +559,7 @@ const closeModalAndNavigate = () => {
   cursor: pointer;
 }
 
-/* 🌟 모달 CSS 스타일링 */
+/* 모달 CSS 스타일링 */
 .modal-overlay {
   position: absolute;
   top: 0;
@@ -515,6 +611,7 @@ const closeModalAndNavigate = () => {
   line-height: 19px;
   color: #6b7280;
   margin-bottom: 20px;
+  word-break: keep-all;
 }
 
 .modal-desc strong {

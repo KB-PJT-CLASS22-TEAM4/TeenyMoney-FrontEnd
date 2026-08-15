@@ -1,12 +1,19 @@
+<<<<<<< HEAD
+=======
 import { ensureAccessToken } from '@/utils/authSession'
 
+>>>>>>> 673ebd6f268f2070c21cfb94e51bd5ce6e5e02fd
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
 // ── 목록 공통 ──
 async function fetchProducts(accessToken, path) {
+<<<<<<< HEAD
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+=======
   ensureAccessToken(accessToken)
+>>>>>>> 673ebd6f268f2070c21cfb94e51bd5ce6e5e02fd
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products/${path}`,
@@ -32,7 +39,11 @@ async function fetchProducts(accessToken, path) {
 
 // ── 상세 공통 ──
 async function fetchProductDetail(accessToken, path, productId) {
+<<<<<<< HEAD
+  if (!accessToken) throw new Error('로그인이 필요합니다.')
+=======
   ensureAccessToken(accessToken)
+>>>>>>> 673ebd6f268f2070c21cfb94e51bd5ce6e5e02fd
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/financial-products/${path}/${productId}`,
