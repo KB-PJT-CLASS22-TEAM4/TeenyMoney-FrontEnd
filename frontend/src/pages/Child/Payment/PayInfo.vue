@@ -25,23 +25,26 @@
         </div>
       </div>
 
-      <!-- 카테고리 / 잔액 / 한도 카드 -->
+      <!-- 업종 / 상태 / 잔액 카드 -->
       <div class="card info-card">
         <div class="info-row">
-          <span class="info-label">카테고리</span>
+          <span class="info-label">업종</span>
           <span class="info-value cat-value">
             <span class="cat-dot"></span>
             <span class="cat-name">{{ category }}</span>
-            <span class="cat-auto">자동분류</span>
           </span>
         </div>
+
         <div class="info-row">
+          <span class="info-label">결제 가능 여부</span>
+          <span class="status-badge" :class="categoryStatus">
+            {{ statusLabel }}
+          </span>
+        </div>
+
+        <div class="info-row no-border">
           <span class="info-label">지갑 잔액</span>
           <span class="info-value">{{ balance.toLocaleString() }}원</span>
-        </div>
-        <div class="info-row no-border">
-          <span class="info-label">남은 한도</span>
-          <span class="info-value">{{ limit.toLocaleString() }}원</span>
         </div>
       </div>
     </div>
@@ -64,19 +67,24 @@
           </div>
 
           <p class="modal-title">
-            {{ category }} 카테고리는 {{ categoryStatus === 'block' ? '차단' : '주의' }} 단계입니다
+            {{ category }} 카테고리는<br />{{ categoryStatus === 'block' ? '차단' : '주의' }} 단계입니다
           </p>
           <p class="modal-desc">
-          부모님이 설정한 {{ categoryStatus === 'block' ? '차단' : '주의' }} 카테고리입니다
+            {{ categoryStatus === 'block'
+              ? '부모님이 설정한 차단 카테고리입니다'
+              : '주의 단계에서 결제하면 티니점수가 감소해요!' }}
+              <br v-if="categoryStatus !== 'block'" />
+              <template v-if="categoryStatus !== 'block'">오늘만 허용을 요청해보는 건 어때요?</template>
           </p>
 
           <div class="modal-btns">
             <template v-if="categoryStatus === 'block'">
-              <button class="modal-confirm" @click="showModal = false">확인</button>
+              <button class="modal-cancel" @click="showModal = false">취소</button>
+              <button class="modal-request" @click="requestApproval">부모님에게 요청하기</button>
             </template>
             <template v-else>
-              <button class="modal-cancel" @click="showModal = false">취소</button>
-              <button class="modal-request" @click="requestApproval">보호자에게 요청하기</button>
+              <button class="modal-cancel" @click="proceedAnyway">결제하기</button>
+              <button class="modal-request" @click="requestApproval">부모님에게 요청하기</button>
             </template>
           </div>
         </div>
@@ -87,22 +95,30 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { usePaymentStore } from '@/stores/payment'
+import { useAllowRequestStore } from '@/stores/allowRequest'
 
-const route = useRoute()
 const router = useRouter()
+const paymentStore = usePaymentStore()
+const allowStore = useAllowRequestStore()
 
-// 스캔에서 넘어온 QR 값
-const code = route.query.code || ''
+// QR 검증 단계(qr-scan)에서 저장해둔 결제 정보
+const pending = paymentStore.pending
 
-// [API] 결제 정보 조회
-// 지금은 더미 데이터 
-const store = ref({ name: 'GS25 강남점' })
-const category = ref('식비')
-const amount = ref(3200)
-const balance = ref(342000)
-const limit = ref(50000)
-const categoryStatus = ref('warn')   // 'normal' | 'warn' | 'block'
+const store = ref({ name: pending?.merchantName ?? '' })
+const amount = ref(pending?.amount ?? 0)
+const balance = ref(pending?.balance ?? 0)
+const category = ref(pending?.categoryPolicy?.categoryName ?? '')
+const categoryId = pending?.categoryPolicy?.id ?? null
+
+// ALLOW -> normal, WATCH -> warn, BLOCK -> block
+const POLICY_STATUS = { ALLOW: 'normal', WATCH: 'warn', BLOCK: 'block' }
+const categoryStatus = ref(POLICY_STATUS[pending?.categoryPolicy?.policy] ?? 'normal')
+
+// 상태 뱃지 라벨: 허용 / 주의 / 차단
+const STATUS_LABEL = { normal: '허용', warn: '주의', block: '차단' }
+const statusLabel = computed(() => STATUS_LABEL[categoryStatus.value] ?? '허용')
 
 const showModal = ref(false)
 
@@ -120,14 +136,24 @@ function confirmPay() {
     return
   }
   // 정상이면 비밀번호 화면으로
-  // router.push({ name: 'pay-password', query: { code } })
+  router.push({ name: 'pay-password' })
+}
+
+// 주의 단계에서 "그대로 결제하기" 선택 시 — 비밀번호 화면으로 진행 (백엔드에서 티니점수 감소 처리)
+function proceedAnyway() {
+  showModal.value = false
+  router.push({ name: 'pay-password' })
 }
 
 function requestApproval() {
-  // 보호자에게 승인 요청 (주의 단계에서만)
-  //   예) POST /api/child/payment/approval-request
+  // '오늘만 허용' 요청 화면으로 이 카테고리를 미리 선택한 채 이동
   showModal.value = false
-  // router.push({ name: 'approval-request' })
+  if (categoryId !== null) {
+    allowStore.set([categoryId], [category.value], '')
+  }
+  // 이 결제 시도는 승인 후 다시 스캔해서 진행해야 하므로 초기화
+  paymentStore.reset()
+  router.push({ name: 'child-todayallow-request' })
 }
 </script>
 
@@ -176,7 +202,6 @@ function requestApproval() {
   font-weight: 700;
   font-size: 16px;
   color: #15171b;
-  /* text-align은 취향대로 — 아래 참고 */
 }
 
 /* 본문 */
@@ -245,7 +270,7 @@ function requestApproval() {
   color: #15171b;
 }
 
-/* 카테고리 / 잔액 / 한도 카드 */
+/* 업종 / 상태 / 잔액 카드 */
 .info-card {
   display: flex;
   flex-direction: column;
@@ -273,6 +298,29 @@ function requestApproval() {
   font-weight: 600;
   font-size: 14px;
   color: #15171b;
+}
+
+/* 결제 가능 여부 뱃지 */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.status-badge.normal {
+  background: rgba(76, 175, 80, 0.12);
+  color: #4caf50;
+}
+
+.status-badge.warn {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+}
+
+.status-badge.block {
+  background: rgba(229, 72, 77, 0.12);
+  color: #e5484d;
 }
 
 /* 하단 결제 버튼 */
@@ -386,18 +434,6 @@ function requestApproval() {
   cursor: pointer;
 }
 
-.modal-confirm {
-  width: 100%;
-  padding: 13px 0;
-  border: none;
-  border-radius: 12px;
-  background: #ffbc00;
-  color: #15171b;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-}
-
 /* 팝업 애니메이션 */
 .modal-enter-active, .modal-leave-active {
   transition: opacity 0.2s ease;
@@ -412,7 +448,7 @@ function requestApproval() {
   transform: scale(0.95);
 }
 
-/* 카테고리 값 (점 + 이름 + 자동분류) */
+/* 카테고리 값 (점 + 이름) */
 .cat-value {
   display: flex;
   align-items: center;
@@ -430,11 +466,5 @@ function requestApproval() {
   font-weight: 700;
   font-size: 14px;
   color: #15171b;
-}
-
-.cat-auto {
-  font-weight: 500;
-  font-size: 12px;
-  color: #b9bec5;
 }
 </style>

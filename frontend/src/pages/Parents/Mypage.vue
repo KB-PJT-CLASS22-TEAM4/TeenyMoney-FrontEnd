@@ -58,40 +58,10 @@
         <div class="profile-image-wrapper">
 
           <img
-            v-if="member.profileImageUrl"
-            :src="member.profileImageUrl"
+            :src="PARENT_PROFILE_IMAGE"
             alt="프로필 이미지"
             class="profile-image"
-            @error="handleProfileImageError"
           />
-
-          <div
-            v-else
-            class="default-profile"
-          >
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 52 52"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                cx="26"
-                cy="17"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              />
-
-              <path
-                d="M9 46C9 35.5066 16.6112 29 26 29C35.3888 29 43 35.5066 43 46"
-                stroke="currentColor"
-                stroke-width="4"
-                stroke-linecap="round"
-              />
-            </svg>
-          </div>
         </div>
 
         <div class="profile-text">
@@ -210,17 +180,9 @@
               <div class="child-info">
 
                 <img
-                  :src="
-                    child.profileImageUrl
-                      || '/src/assets/icons/child-profile.svg'
-                  "
+                  :src="CHILD_PROFILE_IMAGE"
                   alt=""
                   class="child-icon"
-                  @error="
-                    (e) =>
-                      e.target.src =
-                        '/src/assets/icons/child-profile.svg'
-                  "
                 />
 
                 <div class="child-text">
@@ -333,64 +295,13 @@
       </section>
     </main>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-
-      <!-- 홈 -->
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <!-- 자녀관리 -->
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <!-- 마이페이지 -->
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-      >
-        <img
-          src="@/assets/icons/icon-mypage-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-
-    </nav>
+    <ParentBottomNav active="mypage" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import {
   computed,
   onMounted,
@@ -403,6 +314,10 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
 import { getChildren } from '@/api/children'
+import {
+  PARENT_PROFILE_IMAGE,
+  CHILD_PROFILE_IMAGE,
+} from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -527,11 +442,7 @@ async function fetchMyInfo() {
     )
 
     if (error.status === 401) {
-      authStore.clearUser()
-
-      errorMessage.value =
-        '로그인이 필요합니다.'
-
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
       return
     }
 
@@ -655,20 +566,11 @@ async function disconnectChild(child) {
 }
 
 /* =========================
-   프로필 이미지 에러
-========================= */
-
-function handleProfileImageError() {
-  member.profileImageUrl = ''
-}
-
-/* =========================
    로그인 이동
 ========================= */
 
 function goToLogin() {
-  authStore.clearUser()
-  router.replace('/login')
+  authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
 }
 
 /* =========================
@@ -724,7 +626,6 @@ function logout() {
   }
 
   authStore.clearUser()
-
   router.replace('/login')
 }
 
@@ -779,25 +680,19 @@ button {
 
   color: #191b1e;
 
-  background-color: #f4f5f7;
+  background-color: white;
 }
 
-/* =========================
-   헤더
-========================= */
 
+/* 헤더 */
 .nav {
   position: relative;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   height: 64px;
-
   padding: 0 20px 4px;
-
-  background-color: #f4f5f7;
+  background-color: white;
 }
 
 .back-icon {
@@ -878,27 +773,12 @@ button {
   height: 86px;
 }
 
-.profile-image,
-.default-profile {
-  width: 100%;
-  height: 100%;
-
-  border-radius: 50%;
-}
-
 .profile-image {
   display: block;
-
-  object-fit: cover;
-}
-
-.default-profile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  color: #b8bdc5;
-
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
   background-color: #f4f5f7;
 }
 
@@ -1126,7 +1006,8 @@ button {
 
   border-radius: 50%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .child-text {
@@ -1241,66 +1122,5 @@ button {
   cursor: pointer;
 }
 
-/* =========================
-   하단 네비게이션
-========================= */
 
-.bottom-nav {
-  position: fixed;
-
-  bottom: 0;
-  left: 50%;
-
-  z-index: 100;
-
-  display: flex;
-
-  justify-content: space-around;
-
-  width: 360px;
-
-  padding: 10px 0 20px;
-
-  border-top: 1px solid #f0f1f3;
-
-  background-color: #ffffff;
-
-  transform: translateX(-50%);
-}
-
-.nav-item {
-  display: flex;
-
-  min-width: 70px;
-
-  flex-direction: column;
-  align-items: center;
-
-  gap: 4px;
-
-  padding: 0;
-
-  border: none;
-
-  background: transparent;
-
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-
-  font-weight: 700;
-}
 </style>

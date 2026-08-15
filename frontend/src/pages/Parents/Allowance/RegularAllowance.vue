@@ -51,13 +51,9 @@
           >
             <div class="selected-avatar">
               <img
-                :src="
-                  selectedChild.profileImageUrl ||
-                  '/src/assets/icons/child-profile.svg'
-                "
+                :src="CHILD_PROFILE_IMAGE"
                 alt=""
                 class="selected-avatar-img"
-                @error="handleChildImageError"
               />
             </div>
 
@@ -162,25 +158,28 @@
         </p>
       </div>
 
-      <!-- 주의사항 -->
-      <div class="notice-card">
-        <div class="notice-header">
-          <img
-            src="@/assets/icons/icon-info.svg"
-            alt=""
-            class="notice-icon"
-          />
+      <!-- 안내 -->
+      <div class="notice-banner">
+        <img
+          src="@/assets/icons/icon-info.svg"
+          alt=""
+          class="info-icon"
+        />
 
-          <p class="notice-title">
-            주의사항
+        <div class="notice-content">
+          <p class="notice-label">
+            안내
           </p>
-        </div>
 
-        <p class="notice-text">
-          결제 수단 미등록 시 설정 할 수 없습니다.
-          <br />
-          계좌를 먼저 연결해 주세요.
-        </p>
+          <ul class="notice-list">
+            <li>
+              결제 수단이 등록되어 있어야 정기 용돈을 설정할 수 있어요.
+            </li>
+            <li>
+              설정 전 결제 수단 메뉴에서 카드를 먼저 등록해 주세요.
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- 설정 저장 -->
@@ -261,13 +260,9 @@
               <div class="modal-child-left">
                 <div class="modal-avatar">
                   <img
-                    :src="
-                      child.profileImageUrl ||
-                      '/src/assets/icons/child-profile.svg'
-                    "
+                    :src="CHILD_PROFILE_IMAGE"
                     alt=""
                     class="modal-avatar-img"
-                    @error="handleModalImageError"
                   />
                 </div>
 
@@ -307,60 +302,13 @@
       </div>
     </Teleport>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/mypage')"
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-    </nav>
+    <ParentBottomNav active="child" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import {
   computed,
   onMounted,
@@ -370,6 +318,7 @@ import {
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -441,7 +390,7 @@ async function fetchChildren() {
 
   try {
     if (!authStore.accessToken) {
-      router.replace('/login')
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
       return
     }
 
@@ -454,8 +403,7 @@ async function fetchChildren() {
         child => ({
           id: child.childId,
           name: child.name,
-          profileImageUrl:
-            child.profileImageUrl || '',
+          profileImageUrl: CHILD_PROFILE_IMAGE,
         })
       )
     }
@@ -466,8 +414,7 @@ async function fetchChildren() {
     )
 
     if (error.status === 401) {
-      authStore.clearUser()
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
     }
   } finally {
     isLoading.value = false
@@ -490,16 +437,6 @@ function selectChild(child) {
 
 
 // 이미지 에러
-function handleChildImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
-function handleModalImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
 
 // 빠른 금액 입력
 function addAmount(value) {
@@ -573,7 +510,7 @@ button {
   flex-direction: column;
   margin: 0 auto;
   padding-bottom: 70px;
-  background-color: #f4f5f7;
+  background-color: white;
 }
 
 /* 헤더 */
@@ -657,7 +594,8 @@ button {
 .selected-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .selected-child-name {
@@ -690,7 +628,7 @@ button {
   border: none;
   border-radius: 12px;
   color: #8b9097;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -709,7 +647,7 @@ button {
   gap: 8px;
   padding: 16px;
   border-radius: 12px;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
 }
 
 .day-input {
@@ -738,7 +676,7 @@ button {
   margin-bottom: 12px;
   padding: 16px;
   border-radius: 12px;
-  background-color: #ffffff;
+  background-color: #f4f5f7;
 }
 
 .amount-input {
@@ -797,40 +735,46 @@ button {
 }
 
 
-/* 주의사항 */
+/* 안내 */
 
-.notice-card {
+.notice-banner {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
   border-radius: 12px;
-  background-color: white;
+  background-color: #fff7d6;
 }
 
-.notice-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.notice-icon {
+.info-icon {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
+  margin-top: 1px;
 }
 
-.notice-title {
-  margin: 0;
-  color : red;
-  font-size: 14px;
+.notice-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice-label {
+  margin: 0 0 6px;
+  color: #8b6e00;
+  font-size: 12px;
   font-weight: 700;
 }
 
-.notice-text {
+.notice-list {
   margin: 0;
-  color: red;
-  font-size: 13px;
-  line-height: 1.6;
+  padding-left: 16px;
+  color: #6c6252;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.notice-list li + li {
+  margin-top: 4px;
 }
 
 /* =========================
@@ -854,49 +798,6 @@ button {
   cursor: not-allowed;
 }
 
-/* =========================
-   하단 네비게이션
-========================= */
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  z-index: 100;
-  display: flex;
-  width: 360px;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  border-top: 1px solid #f0f1f3;
-  background-color: #ffffff;
-  transform: translateX(-50%);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
-}
 
 /* =========================
    Bottom Sheet
@@ -1039,7 +940,8 @@ button {
   width: 100%;
   height: 100%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 :global(.modal-child-name) {
