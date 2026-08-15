@@ -23,20 +23,19 @@ const activeCategory = ref('전체')
 const categories = ['전체', '적금', '예금', '대출']
 
 // 상품 타입 매핑
-const typeMap       = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
+const typeMap = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
 const badgeColorMap = { DEPOSIT: 'blue', SAVING: 'blue', LOAN: 'orange' }
 
-// 등급명 → 색상 (티니점수 등급 체계: 새싹 0~449 / 스타터 450~649 / 플러스 650~749 / 프로 750~899 / 마스터 900~1000)
+// 등급명 → 색상
 const gradeColorMap = {
-  '새싹': 'red',
-  '스타터': 'orange',
-  '플러스': 'yellow',
-  '프로': 'green',
-  '마스터': 'blue',
+  새싹: 'red',
+  스타터: 'orange',
+  플러스: 'yellow',
+  프로: 'green',
+  마스터: 'blue',
 }
 
-// 이자 계산 방식(단리/복리), 적금 적립 방식(자유적금/정액적금)
-// TODO: 실제 enum 값(interestCalculationType, savingsType)을 백엔드에 확인 후 채워넣기 — 매핑에 없으면 원본 값 그대로 표시
+// 이자 계산 방식, 적금 적립 방식 매핑
 const interestTypeMap = {
   SIMPLE: '단리',
   COMPOUND: '복리',
@@ -46,43 +45,59 @@ const savingsTypeMap = {
   FIXED: '정액적금',
 }
 
+// 부모 생성 상품 vs 실제 금융기관 상품 판별 유틸
+function resolveProductOrigin(p) {
+  if (p.isFamilyProduct !== undefined) {
+    return p.isFamilyProduct
+      ? { type: 'family', label: '가족 상품' }
+      : { type: 'bank', label: p.financialCompanyName || '금융기관' }
+  }
+  if (p.creatorType === 'PARENT' || p.creatorType === 'FAMILY') {
+    return { type: 'family', label: '가족 상품' }
+  }
+
+  const comp = (p.financialCompanyName || '').trim()
+  if (!comp || comp === '가족' || comp === '부모' || comp === '우리가족') {
+    return { type: 'family', label: '가족 상품' }
+  }
+
+  return { type: 'bank', label: comp }
+}
+
 // API 데이터 → 기존 구조 변환
 function mapProduct(p) {
   const terms = p.availableTerms ?? []
-  const periodValue = terms.length === 1
-    ? `${terms[0]}개월`
-    : terms.length > 1
-      ? `${Math.min(...terms)}~${Math.max(...terms)}개월`
-      : '-'
+  const periodValue =
+    terms.length === 1
+      ? `${terms[0]}개월`
+      : terms.length > 1
+        ? `${Math.min(...terms)}~${Math.max(...terms)}개월`
+        : '-'
 
-  // rates 배열이 있으면 그 안에서, 없으면 상품 자체의 baseRate/expectedAppliedRate 사용
-  const minRate = p.rates?.length ? Math.min(...p.rates.map(r => r.baseRate)) : p.baseRate
-  const maxRate = p.rates?.length ? Math.max(...p.rates.map(r => r.expectedAppliedRate)) : p.expectedAppliedRate
+  const minRate = p.rates?.length ? Math.min(...p.rates.map((r) => r.baseRate)) : p.baseRate
+  const maxRate = p.rates?.length ? Math.max(...p.rates.map((r) => r.expectedAppliedRate)) : p.expectedAppliedRate
   const rateValue = minRate != null ? `연 ${minRate}~${maxRate}%` : '-'
 
-  const limitLabel = p.productType === 'LOAN' ? '대출한도'
-    : p.productType === 'DEPOSIT' ? '예치한도' : '납입한도'
+  const limitLabel =
+    p.productType === 'LOAN' ? '대출한도' : p.productType === 'DEPOSIT' ? '예치한도' : '납입한도'
   const limitValue = p.maximumAmount ? `${p.maximumAmount.toLocaleString()}원` : '-'
 
-  // 티니등급 가입조건은 대출 상품에만 존재 (예/적금은 조건 없음)
-  // 가입 가능 여부와 무관하게, 요구 등급의 실제 색상을 그대로 반영
   const isLoan = p.productType === 'LOAN'
   const scoreValue = isLoan
-    ? (p.requiredGradeName ? `${p.requiredGradeName} 등급 이상` : '제한 없음')
+    ? p.requiredGradeName
+      ? `${p.requiredGradeName} 등급 이상`
+      : '제한 없음'
     : null
-  const scoreColor = isLoan
-    ? (gradeColorMap[p.requiredGradeName] ?? 'blue')
-    : ''
+  const scoreColor = isLoan ? gradeColorMap[p.requiredGradeName] ?? 'blue' : ''
 
   const isSaving = p.productType === 'SAVING'
 
   const details = [
-    { label: '기간',     value: periodValue, color: '' },
-    { label: limitLabel, value: limitValue,  color: '' },
-    { label: '금리',      value: rateValue,   color: 'blue' },
+    { label: '기간', value: periodValue, color: '' },
+    { label: limitLabel, value: limitValue, color: '' },
+    { label: '금리', value: rateValue, color: 'blue' },
   ]
 
-  // 예금/적금: 단리·복리 표시 (매핑 안 된 값이면 영어 원본이 그대로 보이니 아예 숨김)
   if (!isLoan && interestTypeMap[p.interestCalculationType]) {
     details.push({
       label: '이자방식',
@@ -91,7 +106,6 @@ function mapProduct(p) {
     })
   }
 
-  // 적금만: 자유적금·정액적금 표시 (매핑 안 된 값이면 숨김)
   if (isSaving && savingsTypeMap[p.savingsType]) {
     details.push({
       label: '적립방식',
@@ -104,13 +118,17 @@ function mapProduct(p) {
     details.push({ label: '티니점수 조건', value: scoreValue, color: scoreColor })
   }
 
+  const origin = resolveProductOrigin(p)
+
   return {
     id: `${p.productType}-${p.productId}`,
     productId: p.productId,
+    availableTerms: terms,
     category: typeMap[p.productType] ?? p.productType,
     badgeColor: badgeColorMap[p.productType] ?? 'blue',
+    originType: origin.type, // 'family' | 'bank'
+    originLabel: origin.label, // '가족 상품' | 기관명
     title: p.productName,
-    desc: p.financialCompanyName,
     liked: false,
     eligible: p.eligible,
     ineligibleReason: p.ineligibleReason,
@@ -129,7 +147,6 @@ onMounted(async () => {
     const data = await getFinancialProducts(authStore.accessToken)
     const mapped = data.map(mapProduct)
 
-    // 방어: API 응답에 동일 상품(id 중복)이 섞여 오는 경우 첫 항목만 사용
     const seen = new Set()
     products.value = mapped.filter((p) => {
       if (seen.has(p.id)) {
@@ -146,16 +163,16 @@ onMounted(async () => {
 
 // 필터 + 찜 정렬
 const filteredProducts = computed(() => {
-  const list = activeCategory.value === '전체'
-    ? [...products.value]
-    : products.value.filter((p) => p.category === activeCategory.value)
+  const list =
+    activeCategory.value === '전체'
+      ? [...products.value]
+      : products.value.filter((p) => p.category === activeCategory.value)
   return list.sort((a, b) => Number(b.liked) - Number(a.liked))
 })
 
 // 찜 토글
 function toggleLike(product) {
   product.liked = !product.liked
-  // TODO: POST /api/v1/financial-products/{id}/like
 }
 
 function goBack() {
@@ -163,10 +180,10 @@ function goBack() {
 }
 
 function onTabSelect(key) {
-  if (key === 'home')    router.push({ name: 'child-home' })
-  if (key === 'report')  router.push({ name: 'child-report' })
-  if (key === 'my')      router.push({ name: 'child-mypage' })
-  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'home') router.push({ name: 'child-home' })
+  if (key === 'report') router.push({ name: 'child-report' })
+  if (key === 'my') router.push({ name: 'child-mypage' })
+  if (key === 'q') router.push({ name: 'qr-scan' })
   if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
 }
 
@@ -175,30 +192,39 @@ let scrollTimer = null
 function onScroll() {
   isScrolling.value = true
   clearTimeout(scrollTimer)
-  scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false
+  }, 800)
 }
 
 function goToApply(product) {
-  // 가입 불가 상품은 신청 화면으로 보내지 않고 사유만 안내
   if (!product.eligible) {
     alert('아직은 가입할 수 없는 상품이에요!')
     return
   }
 
   const detail = (label) => product.details.find((d) => d.label === label)
+
   router.push({
     name: 'child-finance-join',
     query: {
-      productId:    product.productId,
-      category:     product.category,
-      title:        product.title,
-      rate:         detail('금리')?.value ?? '',
-      periodInfo:   detail('기간')?.value ?? '',
-      limit:        detail('납입한도')?.value || detail('예치한도')?.value || detail('대출한도')?.value || '',
-      scoreReq:     detail('티니점수 조건')?.value ?? '',
-      scoreColor:   detail('티니점수 조건')?.color ?? 'green',
+      productId: product.productId,
+      category: product.category,
+      title: product.title,
+      originType: product.originType,
+      originLabel: product.originLabel,
+      rate: detail('금리')?.value ?? '',
+      periodInfo: detail('기간')?.value ?? '',
+      limit:
+        detail('납입한도')?.value ||
+        detail('예치한도')?.value ||
+        detail('대출한도')?.value ||
+        '',
+      scoreReq: detail('티니점수 조건')?.value ?? '',
+      scoreColor: detail('티니점수 조건')?.color ?? 'green',
       interestType: detail('이자방식')?.value ?? '',
-      savingsType:  detail('적립방식')?.value ?? '',
+      savingsType: detail('적립방식')?.value ?? '',
+      terms: product.availableTerms.join(','),
     },
   })
 }
@@ -210,8 +236,7 @@ function goToApply(product) {
     <div class="nav">
       <button class="icon-btn" @click="goBack" aria-label="뒤로">
         <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       <h1 class="nav-title">금융 상품</h1>
@@ -243,7 +268,7 @@ function goToApply(product) {
       <!-- 상품 카운트 -->
       <p class="count-row">상품<span class="count-num">{{ filteredProducts.length }}</span></p>
 
-      <!-- 상품 카드 리스트 (찜한 것 위로 정렬 + 부드러운 이동) -->
+      <!-- 상품 카드 리스트 -->
       <TransitionGroup name="card-move" tag="div">
         <div
           v-for="product in filteredProducts"
@@ -259,19 +284,25 @@ function goToApply(product) {
                 <div class="title-row">
                   <span class="badge" :class="product.badgeColor">{{ product.category }}</span>
                   <span class="prod-title">{{ product.title }}</span>
+                  <!-- 가족 상품 / 은행 출처 배지 -->
+                  <span class="origin-badge" :class="product.originType">
+                    {{ product.originLabel }}
+                  </span>
                 </div>
-                <span class="prod-desc">{{ product.desc }}</span>
               </div>
-              <button class="star-btn"  @click.stop="toggleLike(product)" aria-label="찜하기">
+              <button class="star-btn" @click.stop="toggleLike(product)" aria-label="찜하기">
                 <svg
                   class="star"
                   :class="{ on: product.liked }"
                   viewBox="0 0 24 24"
                   :fill="product.liked ? '#ffbc00' : 'none'"
                 >
-                  <path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.3l6-.7z"
-                        :stroke="product.liked ? '#ffbc00' : '#c6cbd2'"
-                        stroke-width="1.6" stroke-linejoin="round"/>
+                  <path
+                    d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6L3.4 9.3l6-.7z"
+                    :stroke="product.liked ? '#ffbc00' : '#c6cbd2'"
+                    stroke-width="1.6"
+                    stroke-linejoin="round"
+                  />
                 </svg>
               </button>
             </div>
@@ -286,7 +317,7 @@ function goToApply(product) {
             </div>
           </div>
 
-          <!-- 티니점수 조건 미달 대출: 카드 전체 위에 큼직한 자물쇠 + 필요 등급 안내 -->
+          <!-- 티니점수 미달 잠금 오버레이 -->
           <div v-if="product.locked" class="lock-hint">
             <svg viewBox="0 0 24 24" width="34" height="34" fill="none">
               <rect x="4" y="10.5" width="16" height="10.5" rx="3.5" fill="#ffffff"/>
@@ -300,7 +331,7 @@ function goToApply(product) {
       </TransitionGroup>
     </div>
 
-    <!-- 하단 탭바 (고정) -->
+    <!-- 하단 탭바 -->
     <BottomTabBar active="finance" @select="onTabSelect" />
   </div>
 </template>
@@ -308,7 +339,7 @@ function goToApply(product) {
 <style scoped>
 .product-screen {
   box-sizing: border-box;
-  position: relative;         
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
@@ -343,7 +374,7 @@ function goToApply(product) {
   color: #15171b;
 }
 
-/* 스크롤 영역 (좌우 20px 통일) */
+/* 스크롤 영역 */
 .scroll {
   flex: 1;
   overflow-y: auto;
@@ -438,17 +469,14 @@ function goToApply(product) {
   transition: border-color 0.3s, background 0.3s;
 }
 
-/* 찜한 카드 강조 (살짝 노란 배경/테두리) */
 .card.liked {
   border-color: #ffe08a;
 }
 
-/* 가입 불가 상품 흐리게 표시 */
 .card.disabled {
   opacity: 0.55;
 }
 
-/* 대출 - 티니점수 조건 미달: 잠금 카드 (제목 포함 전체를 살짝 블러 + 자물쇠 오버레이) */
 .card.locked {
   opacity: 1;
   cursor: default;
@@ -501,12 +529,14 @@ function goToApply(product) {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex: 1;
 }
 
 .title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .badge {
@@ -532,10 +562,29 @@ function goToApply(product) {
   color: #15171b;
 }
 
-.prod-desc {
-  font-weight: 500;
-  font-size: 11.5px;
-  color: #b9bec5;
+/* 출처 배지 스타일 (나의 상품과 통일) */
+.origin-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+/* 1. 가족/부모 상품 (피치/오렌지) */
+.origin-badge.family {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffe0b2;
+}
+
+/* 2. 실제 금융기관 상품 (블루/그레이) */
+.origin-badge.bank {
+  background: #eef4fc;
+  color: #3b74b8;
+  border: 1px solid #dce8f8;
 }
 
 .star-btn {
@@ -552,7 +601,6 @@ function goToApply(product) {
   transition: transform 0.25s;
 }
 
-/* 별 누를 때 통통 튀는 효과 */
 .star.on {
   animation: pop 0.35s ease;
 }
@@ -563,7 +611,6 @@ function goToApply(product) {
   100% { transform: scale(1); }
 }
 
-/* ===== 카드 이동 애니메이션 (찜하면 위로 부드럽게) ===== */
 .card-move-move {
   transition: transform 0.45s ease;
 }
@@ -598,23 +645,9 @@ function goToApply(product) {
   color: #15171b;
 }
 
-.d-value.blue {
-  color: #4d8ad6;
-}
-
-.d-value.green {
-  color: #62b24a;
-}
-
-.d-value.yellow {
-  color: #b8901f;
-}
-
-.d-value.red {
-  color: #e0554f;
-}
-
-.d-value.orange {
-  color: #f57c00;
-}
+.d-value.blue { color: #4d8ad6; }
+.d-value.green { color: #62b24a; }
+.d-value.yellow { color: #b8901f; }
+.d-value.red { color: #e0554f; }
+.d-value.orange { color: #f57c00; }
 </style>

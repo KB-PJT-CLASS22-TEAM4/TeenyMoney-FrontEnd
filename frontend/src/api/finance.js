@@ -135,3 +135,52 @@ export async function createLoanEnrollment(accessToken, payload) {
 
   return body.data;
 }
+
+/**
+ * 예금 가입 요청
+ * @param {string} accessToken
+ * @param {{ productId: number, amount: number, termMonths: number }} payload
+ * @returns {Promise<{ enrollmentId: number, expectedAppliedRate: number, productType: string, status: string }>}
+ */
+export async function createDepositEnrollment(accessToken, payload) {
+  const res = await fetch(`${BASE_URL}/financial-products/deposit-enrollments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '예금 가입에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 대출 상품 상세 조회 (요구 등급명(requiredGradeName) 등 확인용)
+ * @param {string} accessToken
+ * @param {number|string} productId
+ * @returns {Promise<Object>} 상품 상세 데이터
+ */
+export async function getLoanProductDetail(accessToken, productId) {
+  const res = await fetch(`${BASE_URL}/financial-products/loan/${productId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '대출 상품 상세 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
