@@ -153,18 +153,18 @@
 
           <div v-for="(q, i) in group.items" :key="q.id" class="quest-row ongoing-card">
             <div class="ongoing-card-top">
-              <div class="quest-icon" :style="{ background: statusIconColor(ongoingBadge(q.subStatus).class).bg }">
+              <div class="quest-icon" :style="{ background: statusIconColor(ongoingBadge(effectiveStatus(q)).class).bg }">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                  <rect x="6" y="4" width="12" height="16" rx="2" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6"/>
-                  <rect x="9" y="2.5" width="6" height="3" rx="1" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6" fill="#fff"/>
-                  <line x1="9" y1="10.5" x2="15" y2="10.5" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6"/>
-                  <line x1="9" y1="14" x2="15" y2="14" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6"/>
+                  <rect x="6" y="4" width="12" height="16" rx="2" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6"/>
+                  <rect x="9" y="2.5" width="6" height="3" rx="1" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6" fill="#fff"/>
+                  <line x1="9" y1="10.5" x2="15" y2="10.5" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6"/>
+                  <line x1="9" y1="14" x2="15" y2="14" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6"/>
                 </svg>
               </div>
               <div class="quest-row-body">
                 <div class="quest-badges-row">
-                  <span class="inline-badge" :class="ongoingBadge(q.subStatus).class">
-                    {{ ongoingBadge(q.subStatus).label }}
+                  <span class="inline-badge" :class="ongoingBadge(effectiveStatus(q)).class">
+                    {{ ongoingBadge(effectiveStatus(q)).label }}
                   </span>
                 </div>
                 <div class="quest-title-row">
@@ -187,13 +187,13 @@
               </div>
             </div>
 
-            <!-- 진행중: 인증하기 버튼 -->
-            <button v-if="q.subStatus === 'IN_PROGRESS'" class="ongoing-cta" @click="goVerify(q)">
+            <!-- 진행중(거절 이력 없음): 인증하기 버튼 -->
+            <button v-if="effectiveStatus(q) === 'IN_PROGRESS'" class="ongoing-cta" @click="goVerify(q)">
               퀘스트 인증하기
             </button>
 
             <!-- 승인 대기: 안내 + 인증 보기 링크 -->
-            <div v-else-if="q.subStatus === 'PENDING'" class="pending-box">
+            <div v-else-if="effectiveStatus(q) === 'PENDING'" class="pending-box">
               <span class="pending-box-text">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
                   <path d="M7 4h10M7 20h10M7.5 4c0 4 3 5.5 4.5 6.5C10.5 11.5 7.5 13 7.5 20M16.5 4c0 4-3 5.5-4.5 6.5 1.5 1 4.5 2.5 4.5 9.5"
@@ -204,7 +204,7 @@
               <button class="pending-box-link" @click="goVerify(q, true)">인증 보기</button>
             </div>
 
-            <!-- 반려됨: 사유 + 재시도 -->
+            <!-- 반려됨(거절 이력 있음): 사유 + 재시도 -->
             <div v-else class="rejected-box">
               <div class="rejected-box-header">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
@@ -326,13 +326,21 @@ const filteredAvailable = computed(() => {
   return list.sort((a, b) => Number(b.favorited) - Number(a.favorited))
 })
 
+// 서버는 거절돼도 quest의 status를 REJECTED로 바꾸지 않고 IN_PROGRESS로 유지함
+// (재시도하라는 의미). 그래서 lastRejectionReason이 채워져 있으면
+// 화면에서는 "반려됨"으로 취급해서 보여줌
+function effectiveStatus(q) {
+  if (q.subStatus === 'IN_PROGRESS' && q.lastRejectionReason) return 'REJECTED'
+  return q.subStatus
+}
+
 const ONGOING_ORDER = ['IN_PROGRESS', 'PENDING', 'REJECTED']
 const ongoingGroups = computed(() => {
   return ONGOING_ORDER
     .map(status => ({
       status,
       label: ongoingBadge(status).groupLabel,
-      items: ongoingQuests.value.filter(q => q.subStatus === status),
+      items: ongoingQuests.value.filter(q => effectiveStatus(q) === status),
     }))
     .filter(g => g.items.length > 0)
 })
