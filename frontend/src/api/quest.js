@@ -515,15 +515,20 @@ export async function approveQuestVerification(
 //
 // body:
 // {
-//   "rejectionReason": "거절 사유"
+//   "reason": "거절 사유",
+//   "afterDeadlineAction": "EXTEND" | "FAIL",  // 기한이 지난 뒤 반려할 때만 의미 있음
+//   "extendedDeadline": "2026-08-13T20:00:00"  // afterDeadlineAction이 EXTEND일 때 사용
 // }
 // ========================================
-export async function rejectQuestVerification(
-  questId,
-  verificationId,
-  rejectionReason,
-  accessToken
-) {
+export async function rejectQuestVerification(questId, verificationId, reason, accessToken, options) {
+  // 5번째 인자를 아예 안 넘기거나 undefined/null로 넘겨도 안전하게 처리
+  // 기한 전 거절은 afterDeadlineAction 자체가 필요 없어서 기본값을 강제하지 않음
+  // (EXTEND를 보내면서 extendedDeadline을 안 보내면 서버 검증에서 거부됨)
+  const {
+    afterDeadlineAction = null,
+    extendedDeadline = null,
+  } = options || {}
+
   if (!accessToken) {
     throw new Error(
       '로그인이 필요합니다.'
@@ -549,9 +554,9 @@ export async function rejectQuestVerification(
   }
 
   if (
-    typeof rejectionReason !==
+    typeof reason !==
       'string' ||
-    !rejectionReason.trim()
+    !reason.trim()
   ) {
     throw new Error(
       '거절 사유를 입력해주세요.'
@@ -559,8 +564,16 @@ export async function rejectQuestVerification(
   }
 
   const requestBody = {
-    rejectionReason:
-      rejectionReason.trim(),
+    reason:
+      reason.trim(),
+
+    ...(afterDeadlineAction
+      ? { afterDeadlineAction }
+      : {}),
+
+    ...(afterDeadlineAction === 'EXTEND' && extendedDeadline
+      ? { extendedDeadline }
+      : {}),
   }
 
   console.log(
@@ -568,8 +581,7 @@ export async function rejectQuestVerification(
     {
       questId,
       verificationId,
-      rejectionReason:
-        requestBody.rejectionReason,
+      ...requestBody,
     }
   )
 

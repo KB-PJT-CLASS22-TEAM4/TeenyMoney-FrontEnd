@@ -30,9 +30,11 @@ export function setupAuthRouterGuard(router) {
   router.beforeEach((to) => {
     const authStore = useAuthStore()
 
-    if (!isPublicRoute(to) && !authStore.isAuthenticated) {
-      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+    if (isPublicRoute(to) || authStore.isAuthenticated) {
+      return true
     }
-    // 어느 경우든 네비게이션을 막지 않으므로 return 값 없이(undefined) 그대로 통과
+
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+    return true
   })
 }
