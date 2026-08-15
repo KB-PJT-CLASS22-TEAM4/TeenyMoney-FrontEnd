@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -9,9 +11,7 @@ export async function sendAllowance(
   accessToken,
   idempotencyKey
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   if (!childId) {
     throw new Error('자녀 정보가 없습니다.')
