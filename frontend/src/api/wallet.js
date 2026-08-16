@@ -77,38 +77,3 @@ export async function getMyTransactions(
 
   return result
 }
-
-// 월간 머니 리포트 조회
-export async function getMyReportSummary(accessToken, childId, month) {
-  ensureAccessToken(accessToken)
-
-  const params = new URLSearchParams()
-  if (month) params.set('month', month)
-
-  const query = params.toString() ? `?${params.toString()}` : ''
-
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/reports/money/children/${childId}${query}`,
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  )
-
-  const result = await response.json()
-
-  if (!response.ok || result.success === false) {
-    const error = new Error(
-      result.message || '소비 리포트를 불러오지 못했습니다.'
-    )
-
-    error.status = response.status
-
-    throw error
-  }
-
-  return result
-}

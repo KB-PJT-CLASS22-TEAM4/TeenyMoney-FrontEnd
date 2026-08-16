@@ -397,6 +397,11 @@ const router = createRouter({
     component: ChildDetail,
   },
   {
+    path: '/parents/children/:childId/report',
+    name: 'parents-child-report',
+    component: ChildReport,
+  },
+  {
     path: '/parents/children/:childId/finance',
     name: 'parents-child-finance',
     component: ChildFinance,

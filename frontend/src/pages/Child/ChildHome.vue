@@ -84,6 +84,14 @@
             <button class="btn-pill btn-gray" @click="goPayment">결제내역</button>
           </div>
         </div>
+
+        <button class="report-entry" type="button" @click="goReport">
+          <div class="report-entry-text">
+            <span class="report-entry-label">이번 달 머니 리포트</span>
+            <span class="report-entry-title">리포트 보기</span>
+          </div>
+          <span class="report-entry-chev">›</span>
+        </button>
       </section>
 
       <!-- 오늘만 허용 섹션 -->
@@ -286,6 +294,7 @@ function goPayment()      { router.push({ name: 'child-transaction' }) }
 function goScore()        { router.push({ name: 'child-score' }) }
 function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
 function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
+function goReport()       { router.push({ name: 'child-report' }) }
 
 // ==== 오늘만 허용 매핑 정보 ====
 const CATEGORY_LABELS = {
@@ -890,6 +899,44 @@ function onTabSelect(key) {
 .btn-gray {
   background: #f4f4f5;
   color: #27272a;
+}
+
+.report-entry {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 14px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+}
+
+.report-entry-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.report-entry-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #71717a;
+}
+
+.report-entry-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.report-entry-chev {
+  font-size: 20px;
+  color: #a1a1aa;
 }
 
 /* 오늘만 허용 섹션 */
