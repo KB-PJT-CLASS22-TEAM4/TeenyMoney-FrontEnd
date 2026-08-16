@@ -213,7 +213,10 @@
         <div class="manage-slide">
 
           <!-- 소비 리포트 -->
-          <div class="manage-card">
+          <div
+            class="manage-card"
+            @click="goToReport"
+          >
 
             <div class="manage-card-content">
 
@@ -222,12 +225,12 @@
               </div>
 
               <div class="manage-card-title">
-                소비 리포트
+                머니 리포트
               </div>
 
               <div class="manage-card-sub large-sub">
-                자녀의 소비 습관을<br />
-                한눈에 확인해요
+                리포트 보기<br />
+                한 달 소비를 한눈에
               </div>
 
             </div>
@@ -499,6 +502,13 @@ function goToHarmfulCategory() {
       childId:
         childId,
     },
+  })
+}
+
+function goToReport() {
+  router.push({
+    name: 'parents-child-report',
+    params: { childId },
   })
 }
 
