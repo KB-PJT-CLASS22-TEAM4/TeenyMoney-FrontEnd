@@ -1,549 +1,243 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { getChildMoneyReport } from '@/api/report'
-import { getChildren } from '@/api/children'
-
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+ 
 const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
-
-const isParentView = computed(() => route.name === 'parents-child-report')
-
-const childId = computed(() => {
-  if (route.params.childId) return route.params.childId
-  return authStore.memberId
-})
-
-const loading = ref(true)
-const errorMsg = ref('')
-const childName = ref('')
-const report = ref(null)
-const selectedMonth = ref('')
-const showMonthSheet = ref(false)
-
-const CATEGORY_COLORS = [
-  '#f0b352',
-  '#4a90d9',
-  '#8b7dd8',
-  '#d96a94',
-  '#62b24a',
-  '#f97316',
-  '#14b8a6',
-  '#64748b',
+ 
+// 하단 탭 이동
+function onTabSelect(key) {
+  if (key === 'home') router.push({ name: 'child-home' })
+  if (key === 'report') router.push({ name: 'child-report' })
+  if (key === 'my') router.push({ name: 'child-mypage' })
+  if (key === 'q') router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
+}
+ 
+// 스크롤할 때만 스크롤바 보이기
+const isScrolling = ref(false)
+let scrollTimer = null
+function onScroll() {
+  isScrolling.value = true
+  clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
+}
+ 
+// ============================================================
+// [API 연동 필요] 소비 리포트 데이터
+//
+// 현재는 더미 데이터
+// 백엔드 API가 나오면 아래 3개(weekly/monthly/categories)를
+// API 응답으로 교체해야 함.
+//
+// [연동 방법]
+//   1) 아래 데이터를 ref로 바꾸기 (지금은 const 고정값)
+//        const weekly = ref(null)
+//        const monthly = ref(null)
+//        const categories = ref([])
+//   2) api/report.js 에 조회 함수 만들기 (member.js 방식과 동일)
+//        export async function getReport(accessToken, period) {
+//          fetch(`.../api/v1/reports?period=${period}`, {
+//            headers: { Authorization: `Bearer ${accessToken}` }
+//          })
+//        }
+//   3) onMounted에서 조회 → 위 ref에 담기
+//        onMounted(async () => {
+//          const data = await getReport(authStore.accessToken, '2025-07-3')
+//          weekly.value = data.weekly
+//          monthly.value = data.monthly
+//          categories.value = data.categories
+//        })
+//   4) 템플릿에서 weekly → weekly.value 로 접근 (ref로 바뀌므로)
+//   5) 로딩/에러 처리 추가 (try/catch, v-if로 로딩 표시)
+//
+// 참고: 기간 드롭다운(▾)을 누르면 다른 주차/월을 조회하도록
+//          period 파라미터를 바꿔서 재호출해야 함 (지금은 미구현)
+// ============================================================
+ 
+// --- [더미] 주차별 소비 (막대 차트) → API의 weekly로 교체 ---
+const weekly = {
+  title: '7월 3주차 소비리포트',
+  total: 54900,
+  bars: [
+    { label: '7월 2주차', amount: 61000, current: false },
+    { label: '7월 3주차', amount: 54900, current: true },
+  ],
+}
+ 
+// --- [더미] 월별 소비 (도넛 차트) → API의 monthly로 교체 ---
+const monthly = {
+  title: '7월 소비리포트',
+  diffText: '지난달보다 6,100원 덜 썼어요',
+  total: 38200,
+}
+ 
+// --- [더미] 카테고리별 소비 → API의 categories로 교체 ---
+// (color는 프론트에서 지정. API가 색을 안 주면 카테고리명으로 매핑)
+const categories = [
+  { name: '식비', percent: 38, amount: 14500, color: '#f0b352' },
+  { name: '교통', percent: 26, amount: 10000, color: '#4a90d9' },
+  { name: '쇼핑', percent: 21, amount: 8000, color: '#8b7dd8' },
+  { name: '여가', percent: 15, amount: 5700, color: '#d96a94' },
 ]
-
-const INSIGHT_TITLES = {
-  SAVING_PAYMENT_PROGRESS: '적금 납입이 잘 되고 있어요',
-  LOAN_REPAYMENT_PROGRESS: '대출 상환 현황',
-  SPENDING_UP: '이번 달 소비가 늘었어요',
-  SPENDING_DOWN: '이번 달 소비가 줄었어요',
-  WATCH_SPENDING: '눈여겨볼 소비가 있어요',
-  TEENY_SCORE_CHANGE: '티니점수가 변동했어요',
-}
-
+ 
+// ---- 화면 계산 로직 ----
+ 
+// 숫자 → "54,900원"
 function won(n) {
-  return `${Number(n || 0).toLocaleString('ko-KR')}원`
+  return n.toLocaleString('ko-KR') + '원'
 }
-
-function formatYearMonth(yearMonth) {
-  if (!yearMonth) return '이번 달'
-  const [year, month] = String(yearMonth).split('-')
-  return `${year}년 ${Number(month)}월`
+ 
+// 막대 높이 (제일 큰 값 기준으로 비율)
+const maxBar = computed(() => Math.max(...weekly.bars.map((b) => b.amount)))
+function barHeight(amount) {
+  return Math.round((amount / maxBar.value) * 110) + 'px'
 }
-
-function formatShortDate(dateStr) {
-  if (!dateStr) return '-'
-  const parts = String(dateStr).split('-')
-  if (parts.length < 3) return dateStr
-  return `${Number(parts[1])}.${Number(parts[2])}`
-}
-
-function categoryColor(index) {
-  return CATEGORY_COLORS[index % CATEGORY_COLORS.length]
-}
-
-const period = computed(() => report.value?.period ?? null)
-const summary = computed(() => report.value?.summary ?? null)
-const spending = computed(() => report.value?.spending ?? null)
-const watchSpending = computed(() => report.value?.watchSpending ?? null)
-const insights = computed(() => report.value?.insights ?? [])
-const teenyScore = computed(() => report.value?.teenyScore ?? null)
-
-const availableMonths = computed(() => {
-  const months = [...(report.value?.availableMonths ?? [])]
-  const current = period.value?.yearMonth
-  if (current && !months.some((item) => item.yearMonth === current)) {
-    months.push({
-      yearMonth: current,
-      status: period.value?.status || 'IN_PROGRESS',
-    })
-  }
-  return months.sort((a, b) => String(b.yearMonth).localeCompare(String(a.yearMonth)))
-})
-
-const periodCaption = computed(() => {
-  if (!period.value) return ''
-  const range = `${formatShortDate(period.value.startDate)} – ${formatShortDate(period.value.endDate)}`
-  if (period.value.status === 'IN_PROGRESS') {
-    return `${range} · 오늘까지 · 전월 같은 일수와 비교`
-  }
-  return `${range} · 한 달 전체 · 직전 달과 비교`
-})
-
-const comparisonCaption = computed(() => {
-  if (!period.value) return ''
-  return `비교 기간 ${formatShortDate(period.value.comparisonStartDate)} – ${formatShortDate(period.value.comparisonEndDate)}`
-})
-
-const amountDeltaText = computed(() => {
-  const delta = spending.value?.comparisonAmountDelta
-  if (delta == null) return '비교할 소비가 없어요'
-  if (delta === 0) return '지난 기간과 똑같이 썼어요'
-  if (delta > 0) return `지난 기간보다 ${won(delta)} 더 썼어요`
-  return `지난 기간보다 ${won(Math.abs(delta))} 덜 썼어요`
-})
-
-const countDeltaText = computed(() => {
-  const delta = spending.value?.comparisonCountDelta
-  if (delta == null) return ''
-  if (delta === 0) return '결제 횟수는 같아요'
-  if (delta > 0) return `결제가 ${delta}회 늘었어요`
-  return `결제가 ${Math.abs(delta)}회 줄었어요`
-})
-
-const weeklyTrend = computed(() => spending.value?.weeklyTrend ?? [])
-
-const maxWeekAmount = computed(() => {
-  const amounts = weeklyTrend.value
-    .map((week) => week.amount)
-    .filter((amount) => amount != null)
-  return Math.max(1, ...amounts, 0)
-})
-
-function weekBarHeight(week) {
-  if (week.amount == null) return '10px'
-  if (week.amount === 0) return '10px'
-  return `${Math.max(12, Math.round((week.amount / maxWeekAmount.value) * 110))}px`
-}
-
-function isUpcomingWeek(week) {
-  return week.amount == null && week.paymentCount == null
-}
-
-const categories = computed(() => spending.value?.categories ?? [])
-
-const CIRC = 2 * Math.PI * 66
+ 
+// 도넛 차트 세그먼트 계산 (SVG stroke-dasharray)
+const CIRC = 2 * Math.PI * 66 // 반지름 66의 둘레 ≈ 414.7
 const donutSegments = computed(() => {
   let offset = 0
-  return categories.value.map((cat, index) => {
-    const len = ((cat.ratio || 0) / 100) * CIRC
-    const seg = {
-      color: categoryColor(index),
-      dash: `${len} ${CIRC}`,
-      offset: -offset,
-    }
+  return categories.map((c) => {
+    const len = (c.percent / 100) * CIRC
+    const seg = { color: c.color, dash: `${len} ${CIRC}`, offset: -offset }
     offset += len
     return seg
   })
 })
-
-const summaryCards = computed(() => {
-  const s = summary.value
-  if (!s) return []
-  return [
-    { key: 'spent', label: '쓴 돈', value: won(s.spentAmount), hint: `결제 ${s.paymentCount ?? 0}회` },
-    { key: 'saved', label: '모은 돈', value: won(s.savedAmount), hint: `적금 ${won(s.savingAmount)}` },
-    { key: 'earned', label: '번 돈', value: won(s.earnedAmount), hint: `${s.earnedCount ?? 0}건` },
-    { key: 'repaid', label: '갚은 돈', value: won(s.repaidAmount), hint: `이자 ${won(s.repaidInterest)}` },
-  ]
-})
-
-function insightTitle(insight) {
-  return INSIGHT_TITLES[insight.insightCode] || '이번 달 인사이트'
-}
-
-function insightDesc(insight) {
-  const metrics = insight.metrics || {}
-  if (insight.insightCode === 'SAVING_PAYMENT_PROGRESS') {
-    return `${metrics.paidCount ?? 0}/${metrics.totalCount ?? 0}회 납입 · 진행률 ${metrics.progressRate ?? 0}%`
-  }
-  return Object.entries(metrics)
-    .map(([key, value]) => `${key} ${value}`)
-    .join(' · ')
-}
-
-function goInsight(insight) {
-  const path = insight?.deepLink
-  if (!path) return
-
-  const enrollmentMatch = String(path).match(/enrollments\/(\d+)/)
-  if (enrollmentMatch) {
-    if (isParentView.value) {
-      router.push({
-        name: 'parents-child-finance',
-        params: { childId: childId.value },
-      })
-      return
-    }
-    router.push({ name: 'child-finance-myproducts' })
-    return
-  }
-
-  router.push(path)
-}
-
+ 
 function goBack() {
-  if (window.history.length > 1) {
-    router.back()
-    return
-  }
-  if (isParentView.value) {
-    router.push({
-      name: 'parents-child-detail',
-      params: { childId: childId.value },
-    })
-    return
-  }
   router.push({ name: 'child-home' })
 }
-
-async function fetchReport(month) {
-  if (!childId.value) {
-    errorMsg.value = '자녀 정보가 없습니다.'
-    loading.value = false
-    return
-  }
-
-  loading.value = true
-  errorMsg.value = ''
-
-  try {
-    const monthQuery = Array.isArray(month) ? month[0] : month
-    const res = await getChildMoneyReport(
-      authStore.accessToken,
-      childId.value,
-      monthQuery || undefined
-    )
-    report.value = res.data ?? null
-    selectedMonth.value = res.data?.period?.yearMonth || month || ''
-  } catch (e) {
-    report.value = null
-    errorMsg.value = e.message || '머니 리포트를 불러오지 못했습니다.'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function fetchChildName() {
-  if (!isParentView.value) return
-  try {
-    const res = await getChildren(authStore.accessToken)
-    const matched = res.data?.find(
-      (item) => String(item.childId) === String(childId.value)
-    )
-    if (matched?.name) childName.value = matched.name
-  } catch {
-    childName.value = ''
-  }
-}
-
-async function selectMonth(yearMonth) {
-  showMonthSheet.value = false
-  if (!yearMonth || yearMonth === selectedMonth.value) return
-  await fetchReport(yearMonth)
-}
-
-onMounted(async () => {
-  await Promise.all([
-    fetchReport(route.query.month),
-    fetchChildName(),
-  ])
-})
 </script>
-
+ 
 <template>
   <div class="report-screen">
-    <header class="nav">
-      <button class="icon-btn" type="button" aria-label="뒤로" @click="goBack">
+    <!-- 스크롤 영역 (스크롤할 때만 스크롤바 표시) -->
+    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
+    <!-- 상단 네비 -->
+    <div class="nav">
+      <button class="icon-btn" @click="goBack" aria-label="뒤로">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
           <path d="M15 6l-6 6 6 6" stroke="#191b1e" stroke-width="1.9"
                 stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1 class="nav-title">
-        {{ childName ? `${childName} 머니 리포트` : '머니 리포트' }}
-      </h1>
-    </header>
-
-    <div v-if="loading" class="state-box">불러오는 중...</div>
-
-    <div v-else-if="errorMsg" class="state-box">
-      <p class="error-text">{{ errorMsg }}</p>
-      <button class="retry-btn" type="button" @click="fetchReport(selectedMonth)">다시 시도</button>
+      <h1 class="nav-title">소비리포트</h1>
     </div>
-
-    <div v-else-if="report" class="scroll">
-      <section class="month-row">
-        <button class="month-btn" type="button" @click="showMonthSheet = true">
-          <span>{{ formatYearMonth(period?.yearMonth || selectedMonth) }}</span>
-          <span class="caret">▾</span>
-        </button>
-        <span
-          class="status-pill"
-          :class="period?.status === 'COMPLETED' ? 'done' : 'live'"
-        >
-          {{ period?.status === 'COMPLETED' ? '완료된 달' : '진행 중' }}
-        </span>
-      </section>
-      <p class="period-caption">{{ periodCaption }}</p>
-      <p class="period-caption faint">{{ comparisonCaption }}</p>
-
-      <section class="card">
-        <div class="sec-head">
-          <span class="sec-title">이번 달 한눈에</span>
-        </div>
-        <div class="summary-grid">
-          <div v-for="item in summaryCards" :key="item.key" class="summary-item">
-            <span class="summary-label">{{ item.label }}</span>
-            <strong class="summary-value">{{ item.value }}</strong>
-            <span class="summary-hint">{{ item.hint }}</span>
-          </div>
-        </div>
-        <p class="deposit-line">들어온 용돈 {{ won(summary?.depositAmount) }}</p>
-      </section>
-
-      <section class="card">
-        <div class="sec-head">
-          <span class="sec-title">소비 비교</span>
-        </div>
-        <p class="delta-text" :class="{ down: (spending?.comparisonAmountDelta ?? 0) < 0 }">
-          {{ amountDeltaText }}
-        </p>
-        <p class="sec-sub">{{ countDeltaText }}</p>
-        <div class="compare-box">
-          <div class="compare-item">
-            <span class="comp-label">지난 기간</span>
-            <b class="gray">{{ won(spending?.comparisonAmount) }}</b>
-            <span class="comp-hint">{{ spending?.comparisonCount ?? 0 }}회</span>
-          </div>
-          <div class="diff-arrow">→</div>
-          <div class="compare-item">
-            <span class="comp-label">이번 기간</span>
-            <b>{{ won(spending?.totalAmount) }}</b>
-            <span class="comp-hint">{{ spending?.paymentCount ?? 0 }}회</span>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="sec-head">
-          <span class="sec-title">주간 소비 추이</span>
-        </div>
-        <p class="sec-sub compact">월요일~일요일 기준 · 아직 오지 않은 주는 — 로 표시</p>
-
-        <div v-if="weeklyTrend.length" class="bars">
+ 
+    <!-- 주차별 막대 차트 -->
+    <section class="section">
+      <div class="sec-head">
+        <span class="sec-title">{{ weekly.title }}</span>
+        <!-- [API] 드롭다운 클릭 시 다른 주차 조회 → weekly 재요청 (지금은 표시만) -->
+        <span class="caret">▾</span>
+      </div>
+      <p class="sec-sub">총 {{ won(weekly.total) }} 썼어요</p>
+ 
+      <div class="bars">
+        <div class="dashline"></div>
+        <div v-for="bar in weekly.bars" :key="bar.label" class="bar-col">
+          <span class="bar-val" :class="{ current: bar.current }">{{ won(bar.amount) }}</span>
           <div
-            v-for="week in weeklyTrend"
-            :key="week.weekNo"
-            class="bar-col"
-          >
-            <span
-              class="bar-val"
-              :class="{ upcoming: isUpcomingWeek(week) }"
-            >
-              {{ isUpcomingWeek(week) ? '—' : won(week.amount) }}
-            </span>
-            <div
-              class="bar"
-              :class="{
-                upcoming: isUpcomingWeek(week),
-                zero: week.amount === 0,
-              }"
-              :style="{ height: weekBarHeight(week) }"
-            ></div>
-            <span class="bar-label">{{ week.weekNo }}주차</span>
-            <span class="bar-date">
-              {{ formatShortDate(week.startDate) }}–{{ formatShortDate(week.endDate) }}
-            </span>
-          </div>
-        </div>
-        <p v-else class="empty-text">아직 주간 소비가 없어요</p>
-      </section>
-
-      <section class="card">
-        <div class="sec-head">
-          <span class="sec-title">카테고리별 소비</span>
-        </div>
-
-        <div class="donut-wrap">
-          <svg width="180" height="180" viewBox="0 0 180 180">
-            <circle cx="90" cy="90" r="66" fill="none" stroke="#eef1f5" stroke-width="26" />
-            <circle
-              v-for="(seg, i) in donutSegments"
-              :key="i"
-              cx="90" cy="90" r="66"
-              fill="none"
-              :stroke="seg.color"
-              stroke-width="26"
-              :stroke-dasharray="seg.dash"
-              :stroke-dashoffset="seg.offset"
-              transform="rotate(-90 90 90)"
-            />
-            <text x="90" y="84" text-anchor="middle" class="donut-label">이번 달</text>
-            <text x="90" y="110" text-anchor="middle" class="donut-amount">
-              {{ won(spending?.totalAmount) }}
-            </text>
-          </svg>
-        </div>
-
-        <div v-if="categories.length" class="cat-list">
-          <div
-            v-for="(cat, i) in categories"
-            :key="cat.categoryId ?? cat.categoryName"
-            class="cat-row"
-          >
-            <span class="cat-dot" :style="{ background: categoryColor(i) }"></span>
-            <div class="cat-main">
-              <span class="cat-name">{{ cat.categoryName }}</span>
-              <span class="cat-count">{{ cat.paymentCount ?? 0 }}회</span>
-            </div>
-            <span class="cat-pct">{{ cat.ratio ?? 0 }}%</span>
-            <span class="cat-amt">{{ won(cat.amount) }}</span>
-          </div>
-        </div>
-        <p v-else class="empty-text">카테고리 소비가 없어요</p>
-      </section>
-
-      <section class="card">
-        <div class="sec-head">
-          <span class="sec-title">눈여겨볼 소비</span>
-        </div>
-        <p class="watch-lead">
-          전체 {{ watchSpending?.totalPaymentCount ?? 0 }}회 중
-          {{ watchSpending?.paymentCount ?? 0 }}회 · {{ won(watchSpending?.amount) }}
-        </p>
-        <p class="sec-sub">지난 기간 {{ watchSpending?.comparisonCount ?? 0 }}회</p>
-
-        <div v-if="watchSpending?.categories?.length" class="watch-list">
-          <div
-            v-for="cat in watchSpending.categories"
-            :key="cat.categoryId ?? cat.categoryName"
-            class="watch-row"
-          >
-            <div>
-              <strong>{{ cat.categoryName }}</strong>
-              <span>{{ cat.paymentCount ?? 0 }}회</span>
-            </div>
-            <b>{{ won(cat.amount) }}</b>
-          </div>
-        </div>
-        <p v-else class="empty-text">특별히 살펴볼 소비가 없어요</p>
-      </section>
-
-      <section class="card">
-        <div class="sec-head">
-          <span class="sec-title">인사이트</span>
-        </div>
-        <div v-if="insights.length" class="insight-list">
-          <button
-            v-for="(insight, index) in insights"
-            :key="insight.insightCode + index"
-            class="insight-row"
-            type="button"
-            @click="goInsight(insight)"
-          >
-            <div>
-              <strong>{{ insightTitle(insight) }}</strong>
-              <span>{{ insightDesc(insight) }}</span>
-            </div>
-            <span class="chev">›</span>
-          </button>
-        </div>
-        <p v-else class="empty-text">이번 달 인사이트가 아직 없어요</p>
-      </section>
-
-      <section class="card last-card">
-        <div class="sec-head">
-          <span class="sec-title">티니점수 변동</span>
-          <span
-            class="score-pill"
-            :class="{ minus: (teenyScore?.netChange ?? 0) < 0 }"
-          >
-            {{ (teenyScore?.netChange ?? 0) > 0 ? '+' : '' }}{{ teenyScore?.netChange ?? 0 }}점
-          </span>
-        </div>
-        <p class="sec-sub">
-          상승 {{ teenyScore?.increaseEventCount ?? 0 }}건 ·
-          하락 {{ teenyScore?.decreaseEventCount ?? 0 }}건
-        </p>
-        <div v-if="teenyScore?.topReasons?.length" class="reason-list">
-          <div
-            v-for="(reason, index) in teenyScore.topReasons"
-            :key="reason.eventCode + index"
-            class="reason-row"
-          >
-            <div>
-              <strong>{{ reason.description }}</strong>
-              <span>{{ reason.eventCode }}</span>
-            </div>
-            <b :class="{ minus: reason.amount < 0 }">
-              {{ reason.amount > 0 ? '+' : '' }}{{ reason.amount }}점
-            </b>
-          </div>
-        </div>
-        <p v-else class="empty-text">이번 달 점수 변동 사유가 없어요</p>
-      </section>
-    </div>
-
-    <transition name="sheet">
-      <div v-if="showMonthSheet" class="sheet-dim" @click.self="showMonthSheet = false">
-        <div class="sheet">
-          <div class="sheet-handle"></div>
-          <p class="sheet-title">조회할 달을 선택하세요</p>
-          <button
-            v-for="item in availableMonths"
-            :key="item.yearMonth"
-            class="month-option"
-            :class="{ on: item.yearMonth === selectedMonth }"
-            type="button"
-            @click="selectMonth(item.yearMonth)"
-          >
-            <span>{{ formatYearMonth(item.yearMonth) }}</span>
-            <span class="month-status">
-              {{ item.status === 'COMPLETED' ? '완료' : '진행 중' }}
-            </span>
-          </button>
-          <p v-if="!availableMonths.length" class="empty-text">선택 가능한 달이 없어요</p>
+            class="bar"
+            :class="{ current: bar.current }"
+            :style="{ height: barHeight(bar.amount) }"
+          ></div>
+          <span class="bar-label">{{ bar.label }}</span>
         </div>
       </div>
-    </transition>
+    </section>
+ 
+    <!-- 월별 도넛 카드 -->
+    <section class="card">
+      <div class="sec-head">
+        <span class="sec-title">{{ monthly.title }}</span>
+        <!-- [API] 드롭다운 클릭 시 다른 월 조회 → monthly 재요청 (지금은 표시만) -->
+        <span class="caret">▾</span>
+      </div>
+      <p class="sec-sub compact">{{ monthly.diffText }}</p>
+ 
+      <div class="donut-wrap">
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <circle
+            v-for="(seg, i) in donutSegments"
+            :key="i"
+            cx="90" cy="90" r="66"
+            fill="none"
+            :stroke="seg.color"
+            stroke-width="26"
+            :stroke-dasharray="seg.dash"
+            :stroke-dashoffset="seg.offset"
+            transform="rotate(-90 90 90)"
+          />
+          <text x="90" y="84" text-anchor="middle" class="donut-label">이번 달</text>
+          <text x="90" y="110" text-anchor="middle" class="donut-amount">{{ won(monthly.total) }}</text>
+        </svg>
+      </div>
+    </section>
+ 
+    <!-- 카테고리 리스트 -->
+    <section class="cat-list">
+      <div
+        v-for="(cat, i) in categories"
+        :key="cat.name"
+        class="cat-row"
+        :class="{ last: i === categories.length - 1 }"
+      >
+        <span class="cat-dot" :style="{ background: cat.color }"></span>
+        <span class="cat-name">{{ cat.name }}</span>
+        <span class="cat-pct">{{ cat.percent }}%</span>
+        <span class="cat-amt">{{ won(cat.amount) }}</span>
+      </div>
+    </section>
+    </div>
+ 
+    <!-- 하단 탭바 (고정) -->
+    <BottomTabBar active="report" @select="onTabSelect" />
   </div>
 </template>
-
+ 
 <style scoped>
 .report-screen {
-  box-sizing: border-box;
-  position: relative;
+ box-sizing: border-box;
+  position: relative;         
   display: flex;
   flex-direction: column;
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  background: #f8fafc;
+  padding-top: 50px;
+  background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
-
+ 
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 20px 20px;
+}
+.scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  transition: background 0.3s;
+}
+.scroll.scrolling::-webkit-scrollbar-thumb {
+  background: #d8dbdf;
+}
+ 
+/* 상단 네비 */
 .nav {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 28px 18px 12px;
-  background: #f8fafc;
+  gap: 16px;
+  padding: 8px 0 20px;
 }
-
+ 
 .icon-btn {
   border: none;
   background: transparent;
@@ -551,457 +245,173 @@ onMounted(async () => {
   cursor: pointer;
   display: flex;
 }
-
+ 
 .nav-title {
   margin: 0;
-  font-weight: 800;
-  font-size: 17px;
+  font-weight: 700;
+  font-size: 18px;
   color: #191b1e;
 }
-
-.scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 16px 24px;
-  scrollbar-width: none;
-}
-
-.scroll::-webkit-scrollbar {
-  display: none;
-}
-
-.state-box {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.error-text {
-  margin: 0;
-  color: #e5484d;
-}
-
-.retry-btn {
-  border: none;
-  background: #facc15;
-  color: #18181b;
-  border-radius: 10px;
-  padding: 8px 14px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.month-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.month-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: transparent;
+ 
+/* 섹션 공통 */
+.section {
   padding: 0;
-  font-size: 20px;
-  font-weight: 900;
-  color: #0f172a;
-  cursor: pointer;
 }
-
-.caret {
-  color: #94a3b8;
-  font-size: 14px;
-}
-
-.status-pill {
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.status-pill.live {
-  background: #fff8e5;
-  color: #d97706;
-}
-
-.status-pill.done {
-  background: #eef8ee;
-  color: #2e8540;
-}
-
-.period-caption {
-  margin: 0 0 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.period-caption.faint {
-  margin-bottom: 14px;
-  color: #94a3b8;
-}
-
-.card {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.last-card {
-  margin-bottom: 8px;
-}
-
+ 
 .sec-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 4px;
+  margin-left: 20px; 
 }
-
+ 
 .sec-title {
-  font-weight: 800;
-  font-size: 15px;
-  color: #0f172a;
+  font-weight: 700;
+  font-size: 17px;
+  color: #191b1e;
 }
-
+ 
+.caret {
+  color: #b9bec5;
+  font-size: 12px;
+}
+ 
 .sec-sub {
-  margin: 0 0 12px;
-  font-size: 12px;
   font-weight: 600;
-  color: #64748b;
-}
-
-.sec-sub.compact {
-  margin-bottom: 16px;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.summary-item {
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 12px;
-}
-
-.summary-label,
-.summary-hint,
-.comp-label,
-.comp-hint,
-.cat-count,
-.watch-row span,
-.insight-row span,
-.reason-row span,
-.bar-date,
-.month-status {
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.summary-value,
-.compare-item b,
-.cat-amt,
-.watch-row b,
-.reason-row b {
-  display: block;
-  margin-top: 4px;
-  color: #0f172a;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.deposit-line {
-  margin: 12px 0 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: #475569;
-}
-
-.delta-text {
-  margin: 0 0 4px;
   font-size: 14px;
-  font-weight: 800;
-  color: #2563eb;
+  color: #3b82f6;
+  margin: 0 0 24px;
+  margin-left: 20px; 
 }
-
-.delta-text.down {
-  color: #16a34a;
+ 
+.sec-sub.compact {
+  margin-bottom: 0;
 }
-
-.compare-box {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 12px;
-}
-
-.compare-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.compare-item b.gray {
-  color: #64748b;
-}
-
-.reason-row b.minus,
-.score-pill.minus {
-  color: #e5484d;
-}
-
-.diff-arrow {
-  color: #cbd5e1;
-  font-weight: 800;
-}
-
+ 
+/* 막대 차트 */
 .bars {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: flex-end;
-  gap: 6px;
-  min-height: 160px;
+  height: 150px;
+  position: relative;
+  padding: 0 10px;
 }
-
+ 
+.dashline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 78px;
+  border-top: 1.5px dashed #ffbc00;
+}
+ 
 .bar-col {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
-
+ 
 .bar-val {
-  font-size: 9.5px;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: #b9bec5;
 }
-
-.bar-val.upcoming {
-  color: #cbd5e1;
+ 
+.bar-val.current {
+  color: #ffbc00;
 }
-
+ 
 .bar {
-  width: 100%;
-  max-width: 36px;
-  border-radius: 10px;
-  background: #facc15;
+  width: 46px;
+  border-radius: 12px;
+  background: #e8eaed;
 }
-
-.bar.zero {
-  background: #e2e8f0;
+ 
+.bar.current {
+  background: #ffbc00;
 }
-
-.bar.upcoming {
-  background: transparent;
-  border: 1.5px dashed #cbd5e1;
-}
-
+ 
 .bar-label {
-  font-size: 11px;
-  font-weight: 800;
-  color: #475569;
+  font-size: 12px;
+  color: #8b9097;
+  font-weight: 500;
+  margin-top: 6px;
 }
-
+ 
+/* 도넛 카드 */
+.card {
+  margin: 28px 0 0;
+  padding: 24px 20px;
+  border: 1px solid #eceef1;
+  border-radius: 18px;
+}
+ 
 .donut-wrap {
   display: flex;
   justify-content: center;
-  margin: 8px 0 4px;
+  margin-top: 20px;
 }
-
+ 
 .donut-label {
   font-size: 12px;
   fill: #8b9097;
 }
-
+ 
 .donut-amount {
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 700;
   fill: #191b1e;
 }
-
-.cat-list,
-.watch-list,
-.insight-list,
-.reason-list {
-  display: flex;
-  flex-direction: column;
+ 
+/* 카테고리 리스트 */
+.cat-list {
+  padding: 20px 0 0;
 }
-
-.cat-row,
-.watch-row,
-.insight-row,
-.reason-row {
+ 
+.cat-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 0;
-  border-top: 1px solid #f1f5f9;
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f1f3;
 }
-
-.cat-row:first-child,
-.watch-row:first-child,
-.insight-row:first-child,
-.reason-row:first-child {
-  border-top: none;
+ 
+.cat-row.last {
+  border-bottom: none;
 }
-
+ 
 .cat-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  margin-right: 12px;
+}
+ 
+.cat-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: #191b1e;
+  flex: 1;
+}
+ 
+.cat-pct {
+  font-size: 14px;
+  color: #b9bec5;
+  font-weight: 500;
+  margin-right: 16px;
+}
+ 
+.cat-amt {
+  font-weight: 700;
+  font-size: 16px;
+  color: #191b1e;
+}
+ 
+/* 하단 탭바 고정 */
+.report-screen :deep(.tabbar) {
   flex-shrink: 0;
 }
-
-.cat-main,
-.watch-row div,
-.insight-row div,
-.reason-row div {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.cat-name,
-.watch-row strong,
-.insight-row strong,
-.reason-row strong {
-  font-size: 13px;
-  font-weight: 800;
-  color: #15171b;
-}
-
-.cat-pct {
-  font-size: 12px;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.watch-lead {
-  margin: 0 0 4px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.insight-row {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding-left: 0;
-  padding-right: 0;
-  text-align: left;
-  cursor: pointer;
-}
-
-.chev {
-  color: #cbd5e1;
-  font-size: 18px;
-}
-
-.score-pill {
-  background: #eff6ff;
-  color: #2563eb;
-  border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.score-pill.minus {
-  background: #fff0f0;
-}
-
-.empty-text {
-  margin: 8px 0 0;
-  text-align: center;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.sheet-dim {
-  position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  display: flex;
-  align-items: flex-end;
-  z-index: 20;
-}
-
-.sheet {
-  width: 100%;
-  background: #fff;
-  border-radius: 22px 22px 0 0;
-  padding: 12px 18px 24px;
-}
-
-.sheet-handle {
-  width: 40px;
-  height: 4px;
-  border-radius: 999px;
-  background: #e2e8f0;
-  margin: 4px auto 16px;
-}
-
-.sheet-title {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.month-option {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid #eef1f5;
-  background: #fff;
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #0f172a;
-  cursor: pointer;
-}
-
-.month-option.on {
-  border-color: #facc15;
-  background: #fffbeb;
-}
-
-.sheet-enter-active,
-.sheet-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.sheet-enter-from,
-.sheet-leave-to {
-  opacity: 0;
-}
 </style>
+ 
