@@ -1,9 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import { useAuthStore } from '@/stores/auth'
+import { getChildMoneyReport } from '@/api/report'
+import { getMyEnrolledFinancialProducts } from '@/api/finance'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // 하단 탭 이동
 function onTabSelect(key) {
@@ -15,7 +19,7 @@ function onTabSelect(key) {
 }
 
 function goBack() {
-  router.push({ name: 'child-home' })
+  router.push({ name: 'child-transaction' })
 }
 
 function goToScore() {
@@ -23,135 +27,39 @@ function goToScore() {
 }
 
 // ============================================================
-// [API 연동 필요] 머니 리포트 데이터
+// 머니 리포트 API 연동 — GET /api/v1/reports/money/children/{childId}
 //
-// 현재는 더미 데이터. 백엔드 API가 나오면 아래 데이터들을
-// ref로 바꾸고 onMounted에서 API 응답으로 채우면 됨.
-//
-// [연동 방법]
-//   1) 아래 const를 ref(null) / ref([])로 변경
-//   2) api/report.js 에 조회 함수 작성 (finance.js 방식과 동일)
-//        export async function getMoneyReport(accessToken, period) {
-//          fetch(`.../api/v1/reports/money?period=${period}`, {
-//            headers: { Authorization: `Bearer ${accessToken}` }
-//          })
-//        }
-//   3) onMounted에서 조회 → 각 ref에 담기
-//   4) 월 선택 pill(monthPill) 클릭 시 period 파라미터 바꿔 재호출
+// [참고] insightCode별 metrics 형식은 SAVING_PAYMENT_PROGRESS만 스펙 예시가 있어서
+// 그 카드만 정확한 문구로 채웠고, 나머지 3개(SPENDING_TOP_CATEGORY /
+// PERMISSION_STATUS_SUMMARY / QUEST_COMPLETED)는 metrics 필드명이 아직 확인 안 돼서
+// 일반 문구 + deepLink 링크로만 처리해뒀어요. 필드명 확인되면 mapInsight()에 채우면 됨.
 // ============================================================
 
-const report = ref({
-  period: { label: '8월 1일~13일', status: '진행 중' },
-  compare: '비교 기간 2026-07-01 ~ 2026-07-13 (같은 일수 기준)',
-})
+const isLoading = ref(true)
+const loadError = ref(null)
 
-const summary = ref([
-  { icon: 'wallet', label: '사용한 돈', value: 38200, colorClass: '', desc: '7번 결제했어요.' },
-  { icon: 'trending', label: '모은 돈', value: 20000, colorClass: 'green', desc: '예금과 적금에 넣었어요.' },
-  { icon: 'coin', label: '직접 얻은 돈', value: 5000, colorClass: 'blue', desc: '퀘스트를 완료해서 받았어요.' },
-  { icon: 'check', label: '갚은 돈', value: 10000, colorClass: '', desc: '대출을 1번 갚았어요.' },
-])
-
-const habits = ref([
-  {
-    dot: '#f0b352',
-    title: '소비',
-    desc: ['이번 달에는 7번 결제해서 모두 38,200원을 사용했어요.', '카페·디저트에서 가장 많이 사용했어요.'],
-  },
-  {
-    dot: '#4a90d9',
-    title: '소통 · 오늘만 허용',
-    desc: ['게임 업종을 이용하려고 오늘만 허용을 1번 요청했어요.', '이유를 적어서 보냈고 부모님이 승인했어요.'],
-  },
-  {
-    dot: '#4caf82',
-    title: '저축 · 상환',
-    desc: ['이번 달 적금 납입은 아직 완료하지 않았어요.', '대출은 5번 중 2번 갚았어요.'],
-    checks: { done: 0, total: 6 },
-    footer: '적금 6회 중 0회 완료 · 다음 납입일 8월 25일',
-  },
-  {
-    dot: '#8b7dd8',
-    title: '책임 · 퀘스트',
-    desc: ['퀘스트 2개를 완료하고 5,000원을 받았어요.', '지금 1개를 하고 있어요.'],
-  },
-])
-
+const report = ref({ period: { label: '', status: '' }, compare: '', yearMonth: '' })
+const summary = ref([])
+const habits = ref([])
 const spend = ref({
   label: '이번 달에 사용한 돈',
-  amount: 38200,
-  diffText: '+6,100원 증가',
-  compareText: '전월 같은 기간 32,100원 · 횟수 +1회',
-  weeks: [
-    { label: '1주', amount: 10000, display: '10,000원', active: false },
-    { label: '2주', amount: 16000, display: '16,000원', active: false },
-    { label: '3주', amount: 13000, display: '13,000원', active: false },
-    { label: '4주', amount: 9000, display: '9,000원', active: true },
-  ],
-  categories: [
-    { name: '카페·디저트', amount: 9500, percent: 25, times: 3, color: '#f0b352' },
-    { name: '편의점', amount: 8700, percent: 23, times: 1, color: '#4a90d9' },
-    { name: '문구·도서·완구', amount: 7000, percent: 18, times: 1, color: '#4caf82' },
-    { name: '게임', amount: 6500, percent: 17, times: 1, color: '#8b7dd8' },
-    { name: '온라인쇼핑', amount: 6500, percent: 17, times: 1, color: '#3aa7a0' },
-  ],
-  topCategory: '카페·디저트',
+  amount: 0,
+  diffText: '',
+  compareText: '',
+  weeks: [],
+  categories: [],
+  topCategory: '',
 })
+const score = ref({ change: 0, up: 0, down: 0, reasons: [] })
 
-const products = ref([
-  {
-    name: '티니 자유적금',
-    tag: '가족 상품',
-    tagClass: 'family',
-    type: '적금',
-    status: '유지 중',
-    statusClass: '',
-    period: '2026.05.25 ~ 2026.11.25',
-    progress: { done: 3, total: 6, percent: 50, colorClass: 'green' },
-    desc: '다음 납입일은 8월 25일이에요.',
-  },
-  {
-    name: '튼튼 정기예금',
-    tag: '금융기관 상품',
-    tagClass: 'institution',
-    type: '예금',
-    status: '유지 중',
-    statusClass: '',
-    period: '2026.03.02 ~ 2026.09.02',
-    desc: '지금 120,000원이 들어 있고 9월 2일에 만기가 돼요.',
-  },
-  {
-    name: '자전거 대출',
-    tag: '가족 상품',
-    tagClass: 'family',
-    type: '대출',
-    status: '상환 진행 중',
-    statusClass: 'blue',
-    period: '2026.04.20 ~ 2026.09.20',
-    progress: { done: 2, total: 5, percent: 40, colorClass: 'blue' },
-    desc: '앞으로 갚을 돈은 30,000원이에요.',
-  },
-])
-
-const score = ref({
-  change: 3,
-  up: 1,
-  down: 0,
-  detailLabel: '적금 정기 납입 완료',
-  detailValue: '+3',
-})
-
-const schedules = ref([
-  { dday: 'D-7', date: '8/20', title: '자전거 대출 상환', desc: '10,000원 낼 예정이에요', type: 'loan', theme: 'red', tagLabel: '대출' },
-  { dday: 'D-12', date: '8/25', title: '티니 자유적금 납입', desc: '10,000원 넣을 예정이에요', type: 'saving', theme: 'yellow', tagLabel: '자유적금' },
-  { dday: 'D-20', date: '9/2', title: '튼튼 정기예금 만기', desc: '120,000원 받을 예정이에요', type: 'deposit', theme: 'green', tagLabel: '예금' },
-  { dday: 'D-25', date: '9/7', title: '반짝반짝 저금통 적금 납입', desc: '15,000원 넣을 예정이에요', type: 'saving', theme: 'yellow', tagLabel: '정액적금' },
-])
+// 금융상품 진행 상태 / 다가오는 금융 일정 — GET /api/v1/financial-products/me/enrollments
+const products = ref([])
+const schedules = ref([])
 
 // ---- 화면 계산 로직 ----
 
 function won(n) {
-  return n.toLocaleString('ko-KR') + '원'
+  return (n ?? 0).toLocaleString('ko-KR') + '원'
 }
 
 // 요약 카드 아이콘별 배경/글자색
@@ -165,6 +73,340 @@ function iconStyle(icon) {
   const s = ICON_STYLE[icon] || ICON_STYLE.wallet
   return { background: s.bg, color: s.fg }
 }
+
+// ---- API 응답 → 화면 데이터 매핑 ----
+
+function formatMonthLabel(yearMonth) {
+  if (!yearMonth) return '이번 달'
+  const [y, m] = yearMonth.split('-')
+  return `${y}년 ${Number(m)}월`
+}
+
+function formatPeriodLabel(startDate, endDate) {
+  if (!startDate || !endDate) return ''
+  const [, sm, sd] = startDate.split('-')
+  const [, em, ed] = endDate.split('-')
+  if (sm === em) return `${Number(sm)}월 ${Number(sd)}일~${Number(ed)}일`
+  return `${Number(sm)}월 ${Number(sd)}일~${Number(em)}월 ${Number(ed)}일`
+}
+
+const PERIOD_STATUS_LABEL = { IN_PROGRESS: '진행 중', COMPLETED: '완료' }
+
+function mapPeriod(period) {
+  const compareSuffix = period.status === 'IN_PROGRESS' ? '(같은 일수 기준)' : '(전월 전체 기준)'
+  return {
+    label: formatPeriodLabel(period.startDate, period.endDate),
+    status: PERIOD_STATUS_LABEL[period.status] || period.status,
+    yearMonth: period.yearMonth,
+    compare: `비교 기간 ${period.comparisonStartDate} ~ ${period.comparisonEndDate} ${compareSuffix}`,
+  }
+}
+
+function mapSummary(summaryData) {
+  return [
+    { icon: 'wallet', label: '사용한 돈', value: summaryData.spentAmount, colorClass: '', desc: `${summaryData.paymentCount}번 결제했어요.` },
+    { icon: 'trending', label: '모은 돈', value: summaryData.savedAmount, colorClass: 'green', desc: '예금과 적금에 넣었어요.' },
+    { icon: 'coin', label: '직접 얻은 돈', value: summaryData.earnedAmount, colorClass: 'blue', desc: `${summaryData.earnedCount}번 받았어요.` },
+    { icon: 'check', label: '갚은 돈', value: summaryData.repaidAmount, colorClass: '', desc: `대출을 ${summaryData.repaidCount}번 갚았어요.` },
+  ]
+}
+
+// insightCode → 카드 제목/점 색 (metrics 값 자체는 코드별로 아래 mapInsight에서 처리)
+const INSIGHT_META = {
+  SPENDING_TOP_CATEGORY: { dot: '#f0b352', title: '소비' },
+  PERMISSION_STATUS_SUMMARY: { dot: '#4a90d9', title: '소통 · 오늘만 허용' },
+  SAVING_PAYMENT_PROGRESS: { dot: '#4caf82', title: '저축 · 상환' },
+  QUEST_COMPLETED: { dot: '#8b7dd8', title: '책임 · 퀘스트' },
+}
+
+// insightCode → "자세히 보기" 클릭 시 이동할 실제 라우트
+const INSIGHT_ROUTE = {
+  SPENDING_TOP_CATEGORY: { name: 'child-transaction' },
+  PERMISSION_STATUS_SUMMARY: { name: 'child-todayallow-request' },
+  QUEST_COMPLETED: { name: 'child-quest-list' },
+}
+
+function mapInsight(insight, spendingData) {
+  const meta = INSIGHT_META[insight.insightCode] || { dot: '#9aa1ab', title: insight.insightCode }
+  const base = {
+    dot: meta.dot,
+    title: meta.title,
+    route: INSIGHT_ROUTE[insight.insightCode] || null,
+    deepLink: insight.deepLink,
+  }
+
+  if (insight.insightCode === 'SAVING_PAYMENT_PROGRESS') {
+    const { paidCount = 0, totalCount = 0, progressRate = 0 } = insight.metrics || {}
+    return {
+      ...base,
+      desc: [`${totalCount}번 중 ${paidCount}번의 적금 납입을 완료했어요.`, `진행률 ${progressRate}%예요.`],
+      checks: { done: paidCount, total: totalCount },
+      footer: `적금 ${totalCount}회 중 ${paidCount}회 완료`,
+    }
+  }
+
+  if (insight.insightCode === 'SPENDING_TOP_CATEGORY' && spendingData?.categories?.length) {
+    const top = [...spendingData.categories].sort((a, b) => b.amount - a.amount)[0]
+    return {
+      ...base,
+      desc: [
+        `이번 달에는 ${spendingData.paymentCount}번 결제해서 모두 ${won(spendingData.totalAmount)}을 사용했어요.`,
+        `${top.categoryName}에서 가장 많이 사용했어요.`,
+      ],
+    }
+  }
+
+  // [연동 필요] PERMISSION_STATUS_SUMMARY / QUEST_COMPLETED metrics 형식 확인되면 문구 채우기
+  return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
+}
+
+function mapWeeklyTrend(weeklyTrend) {
+  const today = new Date().toISOString().slice(0, 10)
+  return (weeklyTrend || []).map((w) => ({
+    label: `${w.weekNo}주`,
+    amount: w.amount ?? 0,
+    display: w.amount == null ? '-' : won(w.amount),
+    active: w.startDate <= today && today <= w.endDate,
+    empty: w.amount == null,
+  }))
+}
+
+const CATEGORY_COLORS = ['#f0b352', '#4a90d9', '#4caf82', '#8b7dd8', '#3aa7a0', '#e07a9e']
+
+function mapCategories(categories) {
+  return [...(categories || [])]
+    .sort((a, b) => b.amount - a.amount)
+    .map((c, i) => ({
+      name: c.categoryName,
+      amount: c.amount,
+      percent: c.ratio,
+      times: c.paymentCount,
+      color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+    }))
+}
+
+function mapSpending(spendingData) {
+  const categories = mapCategories(spendingData.categories)
+  const amountDelta = spendingData.comparisonAmountDelta ?? 0
+  const countDelta = spendingData.comparisonCountDelta ?? 0
+  return {
+    label: '이번 달에 사용한 돈',
+    amount: spendingData.totalAmount,
+    diffText: `${amountDelta >= 0 ? '+' : ''}${won(amountDelta)} ${amountDelta >= 0 ? '증가' : '감소'}`,
+    compareText: `전월 같은 기간 ${won(spendingData.comparisonAmount)} · 횟수 ${countDelta >= 0 ? '+' : ''}${countDelta}회`,
+    weeks: mapWeeklyTrend(spendingData.weeklyTrend),
+    categories,
+    topCategory: categories[0]?.name || '',
+  }
+}
+
+function mapTeenyScore(teenyScoreData) {
+  return {
+    change: teenyScoreData.netChange,
+    up: teenyScoreData.increaseEventCount,
+    down: teenyScoreData.decreaseEventCount,
+    reasons: (teenyScoreData.topReasons || []).map((r) => ({
+      label: r.description,
+      value: `${r.amount >= 0 ? '+' : ''}${r.amount}`,
+      positive: r.amount >= 0,
+    })),
+  }
+}
+
+// ---- 금융상품 목록 → 진행 상태 카드 / 다가오는 금융 일정 매핑 ----
+// (GET /api/v1/financial-products/me/enrollments, status가 PENDING인 건 제외)
+
+function parseDateParts(raw) {
+  if (!raw) return null
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+}
+
+function formatDateDot(raw) {
+  const p = typeof raw === 'string' || raw instanceof Date ? parseDateParts(raw) : null
+  if (!p) return ''
+  return `${p.y}.${String(p.m).padStart(2, '0')}.${String(p.d).padStart(2, '0')}`
+}
+
+function addMonthsToDate(startRaw, months) {
+  const p = parseDateParts(startRaw)
+  if (!p) return null
+  const d = new Date(p.y, p.m - 1, p.d)
+  d.setMonth(d.getMonth() + (months ?? 0))
+  return d
+}
+
+// 다음 납입/상환일: 시작일 + (납입 완료 횟수 + 1)개월
+function calcNextDueDate(startRaw, paidCount) {
+  const p = parseDateParts(startRaw)
+  if (!p) return null
+  const d = new Date(p.y, p.m - 1, p.d)
+  d.setMonth(d.getMonth() + (paidCount ?? 0) + 1)
+  return d
+}
+
+// [연동 필요] productType 실제 값이 SAVING인지 SAVINGS인지 문서마다 달라서 방어적으로 정규화
+function normalizeProductType(rawType) {
+  const t = (rawType || '').toUpperCase()
+  if (t.startsWith('DEPOSIT')) return 'DEPOSIT'
+  if (t.startsWith('SAVING')) return 'SAVING'
+  if (t.startsWith('LOAN')) return 'LOAN'
+  return t
+}
+
+const PRODUCT_TYPE_LABEL = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
+
+function mapProduct(p) {
+  const productType = normalizeProductType(p.productType)
+  const isDeposit = productType === 'DEPOSIT'
+  const isSaving = productType === 'SAVING'
+  const isLoan = productType === 'LOAN'
+  const type = PRODUCT_TYPE_LABEL[productType] || p.productType
+
+  // [연동 필요] "가족 상품"/"금융기관 상품" 구분 필드가 API에 없어서 일단 회사명을 태그로 표시
+  const tag = p.financialCompanyName || type
+  const tagClass = 'institution'
+
+  const endRaw = p.maturityDate || addMonthsToDate(p.startDate, p.termMonths)
+  const endLabel = formatDateDot(endRaw)
+  const period = `${formatDateDot(p.startDate)} ~ ${endLabel}`
+
+  let progress = null
+  let desc = ''
+
+  if (isDeposit) {
+    desc = `지금 ${won(p.currentAmount)}이 들어 있고 ${endLabel} 만기가 돼요.`
+  } else if (isSaving) {
+    const total = p.totalPaymentCount ?? 0
+    const done = p.paidCount ?? 0
+    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'green' }
+    const next = calcNextDueDate(p.startDate, done)
+    desc = next ? `다음 납입일은 ${formatDateDot(next)}이에요.` : '다음 납입 일정을 확인해보세요.'
+  } else if (isLoan) {
+    const total = p.totalPaymentCount ?? 0
+    const done = p.paidCount ?? 0
+    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'blue' }
+    // [연동 필요] 정확한 잔여 상환액 필드가 없어서 월 납입액 × 남은 회차로 추정 계산
+    const remaining = (p.monthlyAmount ?? 0) * Math.max(total - done, 0)
+    desc = `앞으로 갚을 돈은 ${won(remaining)}이에요.`
+  }
+
+  return {
+    name: p.productName,
+    tag,
+    tagClass,
+    type,
+    status: isLoan ? '상환 진행 중' : '유지 중',
+    statusClass: isLoan ? 'blue' : '',
+    period,
+    progress,
+    desc,
+  }
+}
+
+const SCHEDULE_THEME = { LOAN: 'red', SAVING: 'yellow', DEPOSIT: 'green' }
+
+function mapSchedule(p) {
+  const productType = normalizeProductType(p.productType)
+  const isDeposit = productType === 'DEPOSIT'
+  const isSaving = productType === 'SAVING'
+  const isLoan = productType === 'LOAN'
+  const isFreeSaving = isSaving && p.savingsType === 'FREE'
+
+  let targetDate = null
+  if (isDeposit) {
+    const parts = parseDateParts(p.maturityDate)
+    targetDate = parts ? new Date(parts.y, parts.m - 1, parts.d) : null
+  } else {
+    targetDate = calcNextDueDate(p.startDate, p.paidCount)
+  }
+  if (!targetDate) return null
+
+  const today = new Date()
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const diffDays = Math.round((targetDate - todayOnly) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return null // 이미 지난 일정은 제외
+
+  const dday = diffDays === 0 ? 'D-Day' : `D-${diffDays}`
+  const date = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+  const amount = p.monthlyAmount || p.currentAmount || 0
+
+  let title = ''
+  let desc = ''
+  let tagLabel = ''
+
+  if (isLoan) {
+    title = `${p.productName} 상환`
+    desc = `${won(amount)} 낼 예정이에요`
+    tagLabel = '대출'
+  } else if (isSaving) {
+    title = isFreeSaving ? `${p.productName} 입금` : `${p.productName} 납입`
+    desc = `${won(amount)} 넣을 예정이에요`
+    tagLabel = isFreeSaving ? '자유적금' : '정액적금'
+  } else if (isDeposit) {
+    title = `${p.productName} 만기`
+    desc = `${won(p.currentAmount)} 받을 예정이에요`
+    tagLabel = '예금'
+  }
+
+  return {
+    dday,
+    date,
+    title,
+    desc,
+    type: productType.toLowerCase(),
+    theme: SCHEDULE_THEME[productType] || 'yellow',
+    tagLabel,
+    diffDays,
+  }
+}
+
+onMounted(async () => {
+  try {
+    const childId = authStore.memberId
+    const result = await getChildMoneyReport(authStore.accessToken, childId)
+    const data = result.data
+
+    const mappedPeriod = mapPeriod(data.period)
+    report.value = {
+      period: { label: mappedPeriod.label, status: mappedPeriod.status },
+      compare: mappedPeriod.compare,
+      yearMonth: mappedPeriod.yearMonth,
+    }
+
+    summary.value = mapSummary(data.summary)
+    habits.value = (data.insights || []).map((insight) => mapInsight(insight, data.spending))
+    spend.value = mapSpending(data.spending)
+    score.value = mapTeenyScore(data.teenyScore)
+  } catch (e) {
+    console.error('머니 리포트 조회 실패:', e.message)
+    loadError.value = '리포트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
+  } finally {
+    isLoading.value = false
+  }
+
+  // 금융상품 진행 상태 / 다가오는 금융 일정 — 리포트 조회 실패와 무관하게 별도로 시도
+  try {
+    const enrolledResult = await getMyEnrolledFinancialProducts(authStore.accessToken)
+    const enrolled = Array.isArray(enrolledResult) ? enrolledResult : enrolledResult?.data ?? []
+    console.log('[ChildReport] 가입 금융상품 원본 응답:', enrolled)
+
+    const active = enrolled.filter((p) => p.status !== 'PENDING')
+    console.log('[ChildReport] PENDING 제외 후 개수:', active.length, active)
+
+    products.value = active.map(mapProduct)
+    schedules.value = active
+      .map(mapSchedule)
+      .filter(Boolean)
+      .sort((a, b) => a.diffDays - b.diffDays)
+  } catch (e) {
+    // [디버깅] 여기서 잡히는 에러가 있으면 콘솔에 스택까지 그대로 찍힘 — 내용 공유해주면 바로 원인 확인 가능
+    console.error('금융상품 목록 조회 실패:', e)
+  }
+})
+
+const monthLabel = computed(() => formatMonthLabel(report.value.yearMonth))
 
 // 저축 습관 카드의 회차 체크칩
 function checkChips(h) {
@@ -257,14 +499,19 @@ function toggleAllSchedules() {
           </button>
           <span class="nav-title">머니리포트</span>
         </div>
-        <!-- [API] 클릭 시 월 선택 시트 오픈 → period 재요청 (지금은 표시만) -->
+        <!-- [연동 필요] 클릭 시 월 선택 시트 오픈 → 선택한 month로 getChildMoneyReport 재호출 (지금은 표시만) -->
         <button class="month-pill">
-          {{ '2026년 8월' }}
+          {{ monthLabel }}
           <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#392b00" stroke-width="2.5"
                stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
       </div>
 
+      <!-- 로딩/에러 상태 -->
+      <div v-if="isLoading" class="state-msg">리포트를 불러오는 중이에요...</div>
+      <div v-else-if="loadError" class="state-msg state-msg--error">{{ loadError }}</div>
+
+      <template v-else>
       <div class="date-row">
         <span class="date-text">{{ report.period.label }}</span>
         <span class="status-badge">{{ report.period.status }}</span>
@@ -313,6 +560,15 @@ function toggleAllSchedules() {
             </div>
             <div class="habit-footer">{{ h.footer }}</div>
           </template>
+          <button
+            v-if="(h.route || h.deepLink) && !h.checks"
+            type="button"
+            class="habit-link"
+            @click="router.push(h.route || h.deepLink)"
+          >
+            자세히 보기
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
         </div>
       </section>
 
@@ -416,12 +672,12 @@ function toggleAllSchedules() {
         <div class="score-card">
           <div class="score-head">
             <div class="score-head-left">
-              <div class="score-icon">
+              <div class="score-icon" :class="{ negative: score.change < 0 }">
                 <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
               </div>
               <div class="score-head-text">
                 <span class="score-label">이번 달 점수 변화</span>
-                <span class="score-value">+{{ score.change }}점</span>
+                <span class="score-value" :class="{ negative: score.change < 0 }">{{ score.change >= 0 ? '+' : '' }}{{ score.change }}점</span>
               </div>
             </div>
             <div class="score-stats">
@@ -429,9 +685,9 @@ function toggleAllSchedules() {
               <span class="score-stat down"><span class="stat-dot"></span>감소 {{ score.down }}건</span>
             </div>
           </div>
-          <div class="score-detail-row">
-            <span class="score-detail-label">{{ score.detailLabel }}</span>
-            <span class="score-detail-value">{{ score.detailValue }}</span>
+          <div class="score-detail-row" v-for="(r, i) in score.reasons" :key="i">
+            <span class="score-detail-label">{{ r.label }}</span>
+            <span class="score-detail-value" :class="{ negative: !r.positive }">{{ r.value }}</span>
           </div>
           <button type="button" class="score-link" @click="goToScore">
             티니점수 자세히 보기
@@ -477,6 +733,7 @@ function toggleAllSchedules() {
           {{ showAllSchedules ? '접기' : `전체 보기 (일정 ${hiddenScheduleCount}개 더보기)` }}
         </button>
       </section>
+      </template>
 
     </div>
 
@@ -552,6 +809,15 @@ function toggleAllSchedules() {
 }
 .icon-btn:hover { background: #f2f3f5; }
 .nav-title { font-weight: 900; font-size: 18px; letter-spacing: -0.01em; color: var(--ink); margin-left: 2px; }
+
+.state-msg {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-sub);
+}
+.state-msg--error { color: #e5484d; }
 .month-pill {
   background: var(--yellow);
   border: none;
@@ -576,8 +842,8 @@ function toggleAllSchedules() {
   font-weight: 700;
   padding: 3px 9px;
   border-radius: 999px;
-  background: var(--green-tag-bg);
-  color: var(--green-tag-fg);
+  background: var(--yellow);
+  color: #ffffff;
 }
 .compare-line { margin: 4px 0 0; font-size: 12px; color: var(--ink-faint); margin-bottom: 28px; }
 
@@ -660,6 +926,20 @@ section { margin-bottom: 30px; }
   color: var(--ink-faint);
 }
 .habit-footer { font-size: 12px; color: var(--ink-sub); font-weight: 500; }
+.habit-link {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-sub);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
 
 /* 소비 명세 카드 */
 .spend-card {
@@ -673,8 +953,8 @@ section { margin-bottom: 30px; }
 .spend-amount { font-size: 25px; font-weight: 900; color: var(--ink); margin: 2px 0 10px; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
 .spend-diff {
   display: inline-block;
-  background: var(--orange-tag-bg);
-  color: var(--orange-tag-fg);
+  background: var(--yellow);
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   padding: 4px 10px;
@@ -765,8 +1045,13 @@ section { margin-bottom: 30px; }
 }
 .tag.family { background: var(--green-tag-bg); color: var(--green-tag-fg); }
 .tag.institution { background: var(--blue-tag-bg); color: var(--blue-tag-fg); }
-.product-sub { font-size: 13px; color: var(--ink-sub); margin-bottom: 2px; font-weight: 500; }
-.product-sub .status { color: var(--green-tag-fg); font-weight: 700; }
+.product-sub {
+  font-size: 13px;
+  color: var(--ink-sub);
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+.product-sub .status { color: var(--yellow); font-weight: 700; }
 .product-sub .status.blue { color: var(--blue-tag-fg); }
 .product-period { font-size: 11.5px; color: var(--ink-faint); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
 
@@ -799,20 +1084,22 @@ section { margin-bottom: 30px; }
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--green-tag-bg);
-  color: var(--green-tag-fg);
+  background: var(--blue-tag-bg);
+  color: var(--blue-tag-fg);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
+.score-icon.negative { background: #fde7ea; color: #e5484d; }
 .score-head-text { display: flex; flex-direction: column; gap: 3px; }
 .score-label { font-size: 12.5px; color: var(--ink-sub); font-weight: 600; }
-.score-value { font-size: 20px; font-weight: 900; color: var(--green-tag-fg); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.score-value { font-size: 20px; font-weight: 900; color: var(--blue-tag-fg); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.score-value.negative { color: #e5484d; }
 
 .score-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; padding-top: 2px; }
 .score-stat { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
-.score-stat.up { color: var(--green-tag-fg); }
+.score-stat.up { color: var(--blue-tag-fg); }
 .score-stat.down { color: var(--ink-faint); }
 .stat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: currentColor; }
 
@@ -827,7 +1114,8 @@ section { margin-bottom: 30px; }
   font-size: 13px;
 }
 .score-detail-label { color: var(--ink); font-weight: 600; }
-.score-detail-value { color: var(--green-tag-fg); font-weight: 800; font-variant-numeric: tabular-nums; }
+.score-detail-value { color: var(--blue-tag-fg); font-weight: 800; font-variant-numeric: tabular-nums; }
+.score-detail-value.negative { color: #e5484d; }
 
 .score-link {
   display: flex;
