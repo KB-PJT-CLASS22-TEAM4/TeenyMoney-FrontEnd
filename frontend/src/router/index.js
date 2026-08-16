@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomePage from '@/pages/HomePage.vue';
 import LoginView from '@/pages/Login.vue';
 import Signup from '@/pages/Signup.vue';
 // 자녀 연동 코드 입력 페이지
@@ -50,39 +49,69 @@ import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 // 자녀 금융상품 중도해지
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
+// QR스캔
+import QrScan from '@/pages/Child/Payment/QRscan.vue';
+// 자녀 티니점수
+import TeenyScore from '@/pages/Child/TeenyScore.vue';
+// 자녀 티니점수 등급 상세
+import TeenyScoreGrade from '@/pages/Child/TeenyScoreGrade.vue';
+// 자녀 퀘스트 목록
+import QuestList from '@/pages/Child/Quest/QuestList.vue';
+// 자녀 퀘스트 인증하기
+import QuestDetail from '@/pages/Child/Quest/QuestDetail.vue';
+// 자녀 오늘만 허용 수정 페이지
+import Edit from '@/pages/Child/TodayAllow/Edit.vue';
 
 import ParentsHome from '@/pages/Parents/Home.vue';
 import Transaction from '@/pages/Parents/Transaction.vue';
-import ChildList from '@/pages/Parents/ChildList.vue';
-import LinkCode from '@/pages/Parents/LinkCode.vue';
+import ChildList from '@/pages/Parents/Child/ChildList.vue';
+import LinkCode from '@/pages/Parents/Link/LinkCode.vue';
 
-import Charge from '@/pages/Parents/Charge.vue'
-import AutoCharge from '@/pages/Parents/AutoCharge.vue'
-import Charging from '@/pages/Parents/Charging.vue'
-import ChargeComplete from '@/pages/Parents/ChargeComplete.vue'
+import Charge from '@/pages/Parents/Charge/Charge.vue'
+import Charging from '@/pages/Parents/Charge/Charging.vue'
+import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
-import HarmfulCategory from '@/pages/Parents/HarmfulCategory.vue'
-import PlaceList from '@/pages/Parents/PlaceList.vue'
+import HarmfulCategory from '@/pages/Parents/Harmful/HarmfulCategory.vue'
+import PlaceList from '@/pages/Parents/Harmful/PlaceList.vue'
+import SendAllowance from '@/pages/Parents/Allowance/SendAllowance.vue'
+import SendingAllowance from '@/pages/Parents/Allowance/SendingAllowance.vue'
+import SendFail from '@/pages/Parents/Allowance/SendFail.vue'
+import SendComplete from '@/pages/Parents/Allowance/SendComplete.vue'
+import PaymentChange from '@/pages/Parents/Payment/PaymentChange.vue'
+import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete.vue'
+import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
+import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
+import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
+import MoneyReport from '@/pages/Parents/Child/MoneyReport.vue'
+import ChildFinance from '@/pages/Parents/Child/ChildFinance.vue'
+import FinanceProductCreate from '@/pages/Parents/Child/FinanceProductCreate.vue'
+import FinanceApprovalDetail from '@/pages/Parents/Child/FinanceApprovalDetail.vue'
+import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
+import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
+import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
+import QuestDetails from '@/pages/Parents/Quest/QuestDetail.vue'
+import QuestApproval from '@/pages/Parents/Quest/QuestApproval.vue';'@/pages/Parents/QuestApproval.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomePage,
+      name: 'login',
+      component: LoginView,
+      meta: { public: true },
     },
-    // 로그인 페이지
+    // 로그인 페이지 (기존 경로 호환)
     {
-    path: '/login',
-    name: 'login',
-    component: LoginView
+      path: '/login',
+      redirect: '/',
     },
     // 회원가입 페이지
     {
       path: '/signup',
       name: 'signup',
       component: Signup,
+      meta: { public: true },
     },
     // 자녀 연동 코드 입력 페이지
     {
@@ -142,11 +171,6 @@ const router = createRouter({
     { path: '/parents/charge', 
       name: 'charge', 
       component:Charge 
-    },
-    // 자동 충전 페이지
-    { path: '/parents/charge/auto', 
-      name: 'auto-charge', 
-      component: AutoCharge 
     },
     // 충전 진행 중 페이지
     { path: '/parents/charge/charging', 
@@ -235,8 +259,8 @@ const router = createRouter({
   path: '/child/passwordchange',
   name: 'child-password-change',
   component: PasswordChange,
-},
-// 자녀 소비 리포트
+  },
+  // 자녀 소비 리포트
   {
   path: '/child/report',
   name: 'child-report',
@@ -295,6 +319,209 @@ const router = createRouter({
     name: 'product-cancel',
     component: ProductsCancel,
   },
+  // 자녀 티니점수
+  {
+    path: '/child/score',
+    name: 'child-score',
+    component: TeenyScore,
+  },
+  // 자녀 티니점수 등급 상세
+  {
+    path: '/child/score/grade',
+    name: 'child-score-grade',
+    component: TeenyScoreGrade,
+  },
+  // 자녀 퀘스트 목록
+  { 
+    path: '/child/quest', 
+    name: 'child-quest-list', 
+    component: QuestList
+  },
+  // 자녀 퀘스트 인증하기
+  { 
+  path: '/child/questdetail/:questId',   // :questId 추가
+  name: 'child-quest-detail', 
+  component: QuestDetail
+  },
+  // 자녀 오늘만 허용 수정 페이지 
+  {
+    path: '/child/todayallow/edit',
+    name: 'child-todayallow-edit',
+    component: Edit
+  },
+  // QR스캔
+  {
+    path: '/child/payment/scan',
+    name: 'qr-scan',
+    component: QrScan,
+  },
+  { path: '/parents/send-allowance', 
+    name: 'send-allowance', 
+    component: SendAllowance 
+  },
+  {
+    path: '/parents/sending-allowance',
+    name: 'sending-allowance',
+    component: SendingAllowance,
+  },
+  { path: '/parents/send/fail', 
+    name: 'send-fail', 
+    component: SendFail 
+  },
+  { path: '/parents/send/complete', 
+    name: 'send-complete', 
+    component: SendComplete 
+  },
+  { 
+    path: '/parents/payment/change',
+    name: 'payment-change', 
+    component: PaymentChange 
+  },
+  { 
+    path: '/parents/payment/change-complete', 
+    name: 'payment-change-complete', 
+    component: PaymentChangeComplete 
+  },
+  { 
+    path: '/parents/regular-allowance', 
+    name: 'regular-allowance', 
+    component: RegularAllowance 
+  },
+  { 
+    path: '/parents/regular-allowance/complete', 
+    name: 'regular-allowance-complete', 
+    component: RegularAllowanceComplete 
+  },
+  {
+    path: '/parents/children/:childId',
+    name: 'parents-child-detail',
+    component: ChildDetail,
+  },
+  {
+    path: '/parents/children/:childId/report',
+    name: 'parents-child-report',
+    component: MoneyReport,
+  },
+  {
+    path: '/parents/children/:childId/finance',
+    name: 'parents-child-finance',
+    component: ChildFinance,
+  },
+  {
+    path: '/parents/children/:childId/finance/create',
+    name: 'parents-child-finance-create',
+    component: FinanceProductCreate,
+  },
+  {
+    path: '/parents/children/:childId/finance/approval/:productType/:enrollmentId',
+    name: 'parents-finance-approval-detail',
+    component: FinanceApprovalDetail,
+  },
+  { 
+    path: '/parents/children/:childId/teeny-score', 
+    name: 'teeny-score', 
+    component: TeenyScoring 
+  },
+  {
+    path: '/parents/quest',
+    name: 'parents-quest-list',
+    component: QuestLists,
+  },
+  {
+    path : '/parents/quest/create',
+    name : 'parents-quest-create',
+    component : QuestCreate
+  },
+  { 
+    path: '/parents/quest/:questId', 
+    name: 'quest-detail', 
+    component: QuestDetails 
+  },
+  {
+  path: '/parents/quest/:questId/verifications/:verificationId',
+  name: 'ParentQuestApproval',
+  component: QuestApproval,
+  },
+  // 자녀 퀘스트 목록
+  { 
+    path: '/child/quest', 
+    name: 'child-quest-list', 
+    component: QuestList 
+  },
+  // 자녀 퀘스트 인증하기
+{ 
+  path: '/child/questdetail/:questId',   // :questId 추가
+  name: 'child-quest-detail', 
+  component: QuestDetail
+},
+    // QR스캔
+    {
+      path: '/child/payment/scan',
+      name: 'qr-scan',
+      component: QrScan,
+    },
+    { path: '/parents/send-allowance', 
+      name: 'send-allowance', 
+      component: SendAllowance 
+    },
+    {
+      path: '/parents/sending-allowance',
+      name: 'sending-allowance',
+      component: SendingAllowance,
+    },
+    { path: '/parents/send/fail', 
+      name: 'send-fail', 
+      component: SendFail 
+    },
+    { path: '/parents/send/complete', 
+      name: 'send-complete', 
+      component: SendComplete 
+    },
+    { 
+      path: '/parents/payment/change',
+     name: 'payment-change', 
+     component: PaymentChange 
+    },
+{ 
+  path: '/parents/payment/change-complete', 
+  name: 'payment-change-complete', 
+  component: PaymentChangeComplete 
+},
+{ 
+  path: '/parents/regular-allowance', 
+  name: 'regular-allowance', 
+  component: RegularAllowance 
+},
+{ 
+  path: '/parents/regular-allowance/complete', 
+  name: 'regular-allowance-complete', 
+  component: RegularAllowanceComplete 
+},
+{
+  path: '/parents/children/:childId',
+  name: 'parents-child-detail',
+  component: ChildDetail,
+},
+{
+  path: '/parents/children/:childId/finance',
+  name: 'parents-child-finance',
+  component: ChildFinance,
+},
+{
+  path: '/parents/children/:childId/finance/create',
+  name: 'parents-child-finance-create',
+  component: FinanceProductCreate,
+},
+{
+  path: '/parents/children/:childId/finance/approval/:productType/:enrollmentId',
+  name: 'parents-finance-approval-detail',
+  component: FinanceApprovalDetail,
+},
+{ 
+  path: '/parents/children/:childId/teeny-score', 
+  name: 'teeny-score', 
+  component: TeenyScoring 
+}
   ],
 });
 

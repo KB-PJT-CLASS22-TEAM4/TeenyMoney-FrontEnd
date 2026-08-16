@@ -15,7 +15,7 @@
         <div v-for="child in children" :key="child.id" class="child-card">
           <div class="child-info">
             <img
-              :src="child.profileImageUrl || '/src/assets/icons/child-profile.svg'"
+              :src="CHILD_PROFILE_IMAGE"
               alt=""
               class="child-avatar"
             />
@@ -61,29 +61,18 @@
       </div>
     </div>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-      <button class="nav-item" type="button" @click="router.push('/parents/home')">
-        <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
-        <span class="nav-label">홈</span>
-      </button>
-      <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child-alive.svg" alt="" class="nav-icon" />
-        <span class="nav-label">자녀관리</span>
-      </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
-        <span class="nav-label">마이페이지</span>
-      </button>
-    </nav>
+    <ParentBottomNav active="child" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -100,7 +89,7 @@ onMounted(async () => {
         email: child.email,
         balance: child.balance,
         points: child.teenyScore,
-        profileImageUrl: child.profileImageUrl,
+        profileImageUrl: CHILD_PROFILE_IMAGE,
       }))
     }
   } catch (error) {
@@ -129,7 +118,7 @@ function goToDetail(id) {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #f4f5f7;
+  background-color: white;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -189,8 +178,9 @@ function goToDetail(id) {
 }
 
 .child-card {
-  background-color: #ffffff;
+  background-color: white;
   border-radius: 16px;
+  border: 1px solid #f0f1f3;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -207,7 +197,8 @@ function goToDetail(id) {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .child-name {

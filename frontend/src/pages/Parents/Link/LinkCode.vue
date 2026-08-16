@@ -12,7 +12,8 @@
       <div class="code-card">
         <p class="code-label">자녀 기기에 입력할 코드</p>
         <div class="code-digits">
-          <span v-for="digit in linkCode.split('')" :key="digit" class="digit">{{ digit }}</span>
+          <!-- data.code 문자열로 그대로 사용 (앞자리 0 손실 방지) -->
+          <span v-for="(digit, index) in linkCode.split('')" :key="index" class="digit">{{ digit }}</span>
         </div>
         <p class="timer-row">
           <img src="@/assets/icons/icon-clock.svg" alt="" class="clock-icon" />
@@ -24,6 +25,16 @@
       <p class="notice">
         <img src="@/assets/icons/icon-shield.svg" alt="" class="shield-icon" />
         이 코드는 발급 후 <strong>10분간</strong> 유효합니다
+      </p>
+
+      <!-- 재발급 안내 -->
+      <p class="reissue-notice">
+        ⚠ 새 코드를 발급하면 이전 코드는 즉시 무효화됩니다
+      </p>
+
+      <!-- 429 에러 안내 -->
+      <p v-if="rateLimitError" class="rate-limit-error">
+        요청이 너무 많습니다. 잠시 후 다시 시도해주세요.
       </p>
 
       <!-- 연동 방법 -->
@@ -42,28 +53,52 @@
           <p>연결 완료! 바로 관리할 수 있어요</p>
         </div>
         <div class="remaker">
-          <button class="btn btn-secondary" :disabled="isExpired" @click="copyCode">
+          <!-- 만료되거나 요청 중이면 복사 버튼 비활성화 -->
+          <button
+            class="btn btn-secondary"
+            :disabled="isExpired || isLoading"
+            @click="copyCode"
+          >
             코드 복사
           </button>
-          <button class="btn btn-primary" :disabled="!isExpired" @click="generateCode">
-            새 코드 발급
+          <!-- 만료 전이거나 요청 중이면 재발급 버튼 비활성화 -->
+          <button
+            class="btn btn-primary"
+            :disabled="isLoading"
+            @click="generateCode"
+          >
+            {{ isLoading ? '발급 중...' : '새 코드 발급' }}
           </button>
         </div>
       </div>
     </div>
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { makeFamilyCode } from '@/api/families'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const alertModal = useAlertModal()
+
+// data.code 는 문자열로 다룸 (앞자리 0 손실 방지)
 const linkCode = ref('000000')
 const timerSeconds = ref(600)
 const isExpired = ref(false)
+const isLoading = ref(false)      // 요청 진행 중 여부
+const rateLimitError = ref(false) // 429 에러 여부
+
 let timerInterval = null
-let pollingInterval = null
+// let pollingInterval = null
+let currentIdempotencyKey = null  // 재시도 시 같은 키 재사용
+let abortController = null        // AbortController로 이전 요청 취소
 
 const formattedTimer = computed(() => {
   const minutes = Math.floor(timerSeconds.value / 60)
@@ -72,18 +107,58 @@ const formattedTimer = computed(() => {
 })
 
 async function generateCode() {
-  // TODO: API 연동
-  // POST /children/link-code → res.data.code
-  // linkCode.value = res.data.code
-  linkCode.value = '482913'
+  if (isLoading.value) return  // 요청 진행 중 중복 요청 방지
 
-  isExpired.value = false
-  startTimer()
-  startPolling()
+  // 이전 요청 취소
+  if (abortController) {
+    abortController.abort()
+  }
+  abortController = new AbortController()
+
+  // 새 코드 발급 시 새로운 Idempotency-Key 생성
+  currentIdempotencyKey = crypto.randomUUID()
+
+  isLoading.value = true
+  rateLimitError.value = false
+
+  try {
+    const res = await makeFamilyCode(
+      authStore.accessToken,
+      currentIdempotencyKey,
+      abortController.signal
+    )
+
+    if (res.success) {
+      // data.code 문자열로 그대로 저장 (숫자 변환 금지)
+      linkCode.value = String(res.data.code)
+
+      // expiresAt 으로 남은 시간 계산 (클라이언트에서 10분 계산 금지)
+      const expiresAt = new Date(res.data.expiresAt)
+      const now = new Date()
+      const remainSeconds = Math.floor((expiresAt - now) / 1000)
+      timerSeconds.value = remainSeconds > 0 ? remainSeconds : 0
+
+      isExpired.value = false
+      startTimer()
+      // startPolling()
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') return  // 취소된 요청은 무시
+
+    if (error.status === 429) {
+      // 429는 재시도하지 않고 안내만
+      rateLimitError.value = true
+      return
+    }
+
+    console.error('연동 코드 발급 실패:', error)
+    alertModal.showAlert('연동 코드 발급에 실패했습니다.')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 function startTimer() {
-  timerSeconds.value = 600
   if (timerInterval) clearInterval(timerInterval)
 
   timerInterval = setInterval(() => {
@@ -91,46 +166,49 @@ function startTimer() {
       clearInterval(timerInterval)
       timerInterval = null
       isExpired.value = true
-      stopPolling()
+      // stopPolling()
       return
     }
     timerSeconds.value -= 1
   }, 1000)
 }
 
-function startPolling() {
-  if (pollingInterval) clearInterval(pollingInterval)
+// function startPolling() {
+//   if (pollingInterval) clearInterval(pollingInterval)
 
-  pollingInterval = setInterval(async () => {
-    // TODO: API 연동
-    // GET /children/link-status
-    // if (res.data.linked) {
-    //   stopPolling()
-    //   router.push('/parents/link-complete')
-    // }
-  }, 3000)
-}
+//   pollingInterval = setInterval(async () => {
+//     // TODO: 연동 완료 확인 API 연동
+//     // const res = await checkLinkStatus(authStore.accessToken)
+//     // if (res.data.linked) {
+//     //   stopPolling()
+//     //   router.push('/parents/link-complete')
+//     // }
+//   }, 3000)
+// }
 
-function stopPolling() {
-  if (pollingInterval) {
-    clearInterval(pollingInterval)
-    pollingInterval = null
-  }
-}
+// function stopPolling() {
+//   if (pollingInterval) {
+//     clearInterval(pollingInterval)
+//     pollingInterval = null
+//   }
+// }
 
 function copyCode() {
+  // data.code 문자열 그대로 복사
   navigator.clipboard.writeText(linkCode.value)
-  alert('코드가 복사되었습니다!')
+  alertModal.showAlert('코드가 복사되었습니다!')
 }
 
 onMounted(() => {
   generateCode()
 })
 
-onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval)
-  stopPolling()
-})
+// onUnmounted(() => {
+//   if (timerInterval) clearInterval(timerInterval)
+//   if (abortController) abortController.abort()  // 페이지 벗어날 때 요청 취소
+//   stopPolling()
+// })
+
 </script>
 
 <style scoped>
@@ -248,6 +326,22 @@ onUnmounted(() => {
   height: 16px;
 }
 
+/* 재발급 안내 */
+.reissue-notice {
+  margin: 0;
+  font-size: 12px;
+  color: #ff9500;
+  text-align: center;
+}
+
+/* 429 에러 안내 */
+.rate-limit-error {
+  margin: 0;
+  font-size: 12px;
+  color: #ff3b30;
+  text-align: center;
+}
+
 .guide {
   display: flex;
   flex-direction: column;
@@ -288,12 +382,9 @@ onUnmounted(() => {
 }
 
 .remaker {
-  width: 360px;
   display: flex;
   gap: 10px;
-  padding: 10px 16px 28px 0px;
   margin-top: 35px;
-  background-color: #ffffff;
 }
 
 .btn {
