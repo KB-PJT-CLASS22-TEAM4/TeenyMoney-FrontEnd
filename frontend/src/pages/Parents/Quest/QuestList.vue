@@ -454,13 +454,16 @@
       @confirm="confirmExtendDeadline"
       @cancel="closeExtendModal"
     />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   ref,
@@ -494,6 +497,7 @@ const router =
 
 const authStore =
   useAuthStore()
+const alertModal = useAlertModal()
 
 
 /* =========================
@@ -877,7 +881,7 @@ async function handleApprove(
     quest?.questId === undefined
   ) {
 
-    alert(
+    alertModal.showAlert(
       '퀘스트 ID를 찾을 수 없습니다.'
     )
 
@@ -885,9 +889,9 @@ async function handleApprove(
   }
 
   if (
-    !window.confirm(
+    !(await alertModal.showConfirm(
       `"${quest.title}" 인증을 승인하시겠습니까?`
-    )
+    ))
   ) {
     return
   }
@@ -918,7 +922,7 @@ async function handleApprove(
       authStore.accessToken
     )
 
-    alert(
+    alertModal.showAlert(
       '퀘스트 인증이 승인되었습니다.'
     )
 
@@ -944,7 +948,7 @@ async function handleApprove(
       return
     }
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '퀘스트 인증 승인에 실패했습니다.'
     )
@@ -978,7 +982,7 @@ function openRejectModal(
     quest.questId === undefined
   ) {
 
-    alert(
+    alertModal.showAlert(
       '퀘스트 정보를 찾을 수 없습니다.'
     )
 
@@ -1045,7 +1049,7 @@ async function submitReject() {
 
   if (!reason) {
 
-    alert(
+    alertModal.showAlert(
       '거절 사유를 입력해주세요.'
     )
 
@@ -1093,7 +1097,7 @@ async function submitReject() {
     rejectionReason.value =
       ''
 
-    alert(
+    alertModal.showAlert(
       '퀘스트 인증이 거절되었습니다.'
     )
 
@@ -1116,7 +1120,7 @@ async function submitReject() {
       return
     }
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '퀘스트 인증 거절에 실패했습니다.'
     )
@@ -1212,7 +1216,7 @@ async function confirmExtendDeadline() {
       error,
     )
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '기한 연장에 실패했습니다.'
     )

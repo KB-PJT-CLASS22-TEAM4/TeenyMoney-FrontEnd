@@ -658,12 +658,15 @@
         </div>
       </div>
     </div>
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   ref,
@@ -700,6 +703,8 @@ const router =
 
 const route =
   useRoute()
+
+const alertModal = useAlertModal()
 
 const authStore =
   useAuthStore()
@@ -910,9 +915,9 @@ async function handleVerificationApprove() {
   }
 
   if (
-    !window.confirm(
+    !(await alertModal.showConfirm(
       '이 퀘스트 인증을 승인하시겠습니까?'
-    )
+    ))
   ) {
     return
   }
@@ -930,7 +935,7 @@ async function handleVerificationApprove() {
       authStore.accessToken
     )
 
-    alert(
+    alertModal.showAlert(
       '퀘스트 인증이 승인되었습니다.'
     )
 
@@ -951,7 +956,7 @@ async function handleVerificationApprove() {
       return
     }
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '퀘스트 인증 승인에 실패했습니다.'
     )
@@ -1043,7 +1048,7 @@ async function submitReject() {
     rejectionReason.value =
       ''
 
-    alert(
+    alertModal.showAlert(
       '퀘스트 인증이 거절되었습니다.'
     )
 
@@ -1064,7 +1069,7 @@ async function submitReject() {
       return
     }
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '퀘스트 인증 거절에 실패했습니다.'
     )
@@ -1145,7 +1150,7 @@ async function confirmExtendDeadline() {
       error,
     )
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '기한 연장에 실패했습니다.'
     )
@@ -1218,7 +1223,7 @@ async function handleUpdate() {
   if (
     !editForm.value.title.trim()
   ) {
-    alert(
+    alertModal.showAlert(
       '제목을 입력해주세요.'
     )
     return
@@ -1227,7 +1232,7 @@ async function handleUpdate() {
   if (
     !editForm.value.deadline
   ) {
-    alert(
+    alertModal.showAlert(
       '기한을 입력해주세요.'
     )
     return
@@ -1268,7 +1273,7 @@ async function handleUpdate() {
       authStore.accessToken
     )
 
-    alert(
+    alertModal.showAlert(
       '퀘스트가 수정되었습니다.'
     )
 
@@ -1283,7 +1288,7 @@ async function handleUpdate() {
       error
     )
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '퀘스트 수정에 실패했습니다.'
     )
@@ -1296,9 +1301,9 @@ async function handleUpdate() {
 
 async function handleDelete() {
   if (
-    !window.confirm(
+    !(await alertModal.showConfirm(
       '퀘스트를 삭제하시겠습니까?'
-    )
+    ))
   ) {
     return
   }
@@ -1309,7 +1314,7 @@ async function handleDelete() {
       authStore.accessToken
     )
 
-    alert(
+    alertModal.showAlert(
       '퀘스트가 삭제되었습니다.'
     )
 
@@ -1321,7 +1326,7 @@ async function handleDelete() {
       error
     )
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '퀘스트 삭제에 실패했습니다.'
     )

@@ -209,6 +209,7 @@
         </div>
       </section>
     </div>
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
@@ -218,10 +219,13 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { createFinancialProduct } from '@/api/financialProducts'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 const childId = Number(route.params.childId)
 
@@ -314,7 +318,7 @@ function buildPayload() {
 
 async function handleSubmit() {
   if (!form.productName.trim()) {
-    alert('상품 이름을 입력해 주세요.')
+    alertModal.showAlert('상품 이름을 입력해 주세요.')
     return
   }
 
@@ -326,10 +330,10 @@ async function handleSubmit() {
       buildPayload()
     )
 
-    alert('금융 상품이 등록되었습니다.')
+    alertModal.showAlert('금융 상품이 등록되었습니다.')
     router.replace(`/parents/children/${childId}/finance`)
   } catch (error) {
-    alert(error.message || '상품 등록에 실패했습니다.')
+    alertModal.showAlert(error.message || '상품 등록에 실패했습니다.')
   } finally {
     isSubmitting.value = false
   }

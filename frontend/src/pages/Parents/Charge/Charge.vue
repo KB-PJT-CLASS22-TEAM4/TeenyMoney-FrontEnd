@@ -276,11 +276,14 @@
     </div>
 
     <ParentBottomNav active="home" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   ref,
@@ -300,6 +303,7 @@ import { getMyWallet } from '@/api/wallet'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 const walletBalance = ref(0)
 
@@ -459,7 +463,7 @@ function selectPaymentMethod(methodId) {
     )
 
   if (!method) {
-    alert(
+    alertModal.showAlert(
       '사용할 수 없는 카드입니다.'
     )
     return
@@ -484,14 +488,14 @@ async function handleCharge() {
     !chargeAmount.value ||
     Number(chargeAmount.value) <= 0
   ) {
-    alert(
+    alertModal.showAlert(
       '충전할 금액을 입력해주세요.'
     )
     return
   }
 
   if (!selectedMethodId.value) {
-    alert(
+    alertModal.showAlert(
       '충전에 사용할 카드를 선택해주세요.'
     )
     return
@@ -505,7 +509,7 @@ async function handleCharge() {
     )
 
   if (!selectedMethod) {
-    alert(
+    alertModal.showAlert(
       '선택한 카드를 찾을 수 없습니다.'
     )
 
@@ -517,7 +521,7 @@ async function handleCharge() {
     selectedMethod.type !== 'CARD' ||
     selectedMethod.status !== 'ACTIVE'
   ) {
-    alert(
+    alertModal.showAlert(
       '사용할 수 없는 카드입니다.'
     )
 
@@ -553,7 +557,7 @@ async function handleCharge() {
 
     await loadPaymentMethods()
 
-    alert(
+    alertModal.showAlert(
       error.message ||
         '충전에 실패했습니다.'
     )
