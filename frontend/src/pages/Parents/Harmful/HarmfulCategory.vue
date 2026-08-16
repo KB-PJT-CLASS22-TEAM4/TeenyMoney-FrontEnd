@@ -304,6 +304,7 @@
     </div>
 
     <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
 
   </div>
 </template>
@@ -311,6 +312,8 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -333,6 +336,7 @@ const router = useRouter()
 const route = useRoute()
 
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 
 // ========================================
@@ -623,7 +627,7 @@ async function fetchCategoryPolicies() {
 function goToPlaceList() {
 
   if (!childId.value) {
-    alert('선택된 자녀 정보가 없습니다.')
+    alertModal.showAlert('선택된 자녀 정보가 없습니다.')
     return
   }
 
@@ -692,7 +696,7 @@ async function handleAccept(id) {
     await fetchCategoryPolicies()
   } catch (error) {
     console.error('승인 실패:', error)
-    alert(error.message || '승인에 실패했습니다.')
+    alertModal.showAlert(error.message || '승인에 실패했습니다.')
   } finally {
     processingId.value = null
   }
@@ -706,7 +710,7 @@ async function handleReject(id) {
     await fetchPermissions()
   } catch (error) {
     console.error('거절 실패:', error)
-    alert(error.message || '거절에 실패했습니다.')
+    alertModal.showAlert(error.message || '거절에 실패했습니다.')
   } finally {
     processingId.value = null
   }

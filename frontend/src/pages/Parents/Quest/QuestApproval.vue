@@ -112,6 +112,7 @@
         </button>
       </div>
     </main>
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
@@ -119,6 +120,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 import {
   getQuests,
   approveQuestVerification,
@@ -128,6 +131,7 @@ import {
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 const questId = route.params.questId
 const verificationId = route.params.verificationId
@@ -164,7 +168,7 @@ onMounted(async () => {
 async function handleApprove() {
   if (isSubmitting.value) return
 
-  const confirmed = window.confirm(
+  const confirmed = await alertModal.showConfirm(
     '자녀의 퀘스트 인증을 승인하시겠습니까?'
   )
 
@@ -181,7 +185,7 @@ async function handleApprove() {
     )
 
     if (res.success) {
-      alert('퀘스트 인증이 승인되었습니다.')
+      alertModal.showAlert('퀘스트 인증이 승인되었습니다.')
 
       router.replace('/parents/quest')
     }
@@ -198,7 +202,7 @@ async function handleApprove() {
 async function handleReject() {
   if (isSubmitting.value) return
 
-  const confirmed = window.confirm(
+  const confirmed = await alertModal.showConfirm(
     '자녀의 퀘스트 인증을 반려하시겠습니까?'
   )
 
@@ -215,7 +219,7 @@ async function handleReject() {
     )
 
     if (res.success) {
-      alert('퀘스트 인증이 반려되었습니다.')
+      alertModal.showAlert('퀘스트 인증이 반려되었습니다.')
 
       router.replace('/parents/quest')
     }

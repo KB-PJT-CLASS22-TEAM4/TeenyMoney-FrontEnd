@@ -646,12 +646,15 @@
 
 
     <ParentBottomNav active="quest" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   ref,
@@ -685,6 +688,7 @@ const router =
 
 const authStore =
   useAuthStore()
+const alertModal = useAlertModal()
 
 
 // =========================
@@ -1006,7 +1010,7 @@ function confirmCalendar() {
     Date.now()
   ) {
 
-    alert(
+    alertModal.showAlert(
       '현재 시간 이후의 기한을 선택해주세요.'
     )
 
@@ -1395,7 +1399,7 @@ async function handleCreate() {
       res.success
     ) {
 
-      alert(
+      alertModal.showAlert(
         '퀘스트가 생성됐어요!'
       )
 
@@ -1409,7 +1413,7 @@ async function handleCreate() {
       error
     )
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '퀘스트 생성에 실패했습니다.'
     )
