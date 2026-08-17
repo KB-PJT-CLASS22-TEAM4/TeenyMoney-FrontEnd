@@ -184,3 +184,106 @@ export async function getLoanProductDetail(accessToken, productId) {
 
   return body.data;
 }
+
+/**
+ * 예·적금 중도해지 예상 조회 (진행률/적용금리/원금/이자/최종지급액/점수변화)
+ * @param {string} accessToken
+ * @param {string} productType - 'saving' | 'deposit' (소문자, 경로 세그먼트)
+ * @param {number|string} enrollmentId
+ * @returns {Promise<{
+ *   appliedEarlyTerminationRate: number,
+ *   enrollmentId: number,
+ *   finalAmount: number,
+ *   interestAmount: number,
+ *   principalAmount: number,
+ *   productType: string,
+ *   progressPercent: number,
+ *   scoreChange: number,
+ *   terminated: boolean,
+ * }>}
+ */
+export async function getTerminationQuote(accessToken, productType, enrollmentId) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/${productType}-enrollments/${enrollmentId}/termination-quote`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '중도해지 예상 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 예·적금 중도해지 실행 (부모 승인 없이 즉시 처리, 원금+이자 지급 및 티니점수 1회 반영)
+ * @param {string} accessToken
+ * @param {string} productType - 'saving' | 'deposit' (소문자, 경로 세그먼트)
+ * @param {number|string} enrollmentId
+ * @returns {Promise<object>} termination-quote와 동일한 응답 구조(data)
+ */
+export async function terminateEnrollment(accessToken, productType, enrollmentId) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/${productType}-enrollments/${enrollmentId}/terminate`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    // 409: 비활성 또는 만기 도달 계약, 404: 본인 가입 계약 아님 등
+    const error = new Error(body.message || '중도해지 처리에 실패했습니다.');
+    error.status = res.status;
+    throw error;
+  }
+
+  return body.data;
+}
+
+/**
+ * 자유적금 직접납입 (자녀 지갑 → 자유적금으로 이체)
+ * idempotencyKey는 호출부에서 매 요청마다 새로 생성해서 넘겨야 함(재시도 시 같은 키를 쓰면
+ * 서버가 중복 출금을 막아줌 — 같은 이체를 두 번 보내려는 게 아니라면 항상 새 UUID를 써야 함).
+ * @param {string} accessToken
+ * @param {number|string} enrollmentId
+ * @param {{ amount: number, idempotencyKey: string }} payload
+ * @returns {Promise<{ accumulatedAmount: number, paidAmount: number, transferId: number }>}
+ */
+export async function createSavingPayment(accessToken, enrollmentId, payload) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/saving-enrollments/${enrollmentId}/payments`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    // 400: 정기적금이거나 월 한도 초과, 409: 비활성 가입 또는 멱등성 키 충돌
+    const error = new Error(body.message || '적금 납입에 실패했습니다.');
+    error.status = res.status;
+    throw error;
+  }
+
+  return body.data;
+}
