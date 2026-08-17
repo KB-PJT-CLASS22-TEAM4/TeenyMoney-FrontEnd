@@ -262,7 +262,7 @@
 
     </div>
 
-    <BottomTabBar active="home" @select="onTabSelect" />
+    <BottomTabBar active="quest" @select="onTabSelect" />
 
     <!-- 탭 상태에 따라 안내 문구 분기 -->
     <Chatbot :hint-text="currentHintText" />

@@ -345,10 +345,11 @@ function goBack() {
 }
 
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' })
-  if (key === 'report') router.push({ name: 'child-report' })
-  if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' })
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
+  if (key === 'quest')   router.push({ name: 'child-quest-list' })
 }
 
 const isScrolling = ref(false)
