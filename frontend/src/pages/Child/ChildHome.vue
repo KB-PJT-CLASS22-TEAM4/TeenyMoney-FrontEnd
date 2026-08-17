@@ -249,12 +249,15 @@
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
+
+    <Chatbot />
   </div>
 </template>
 
 <script setup>
 import FinanceCard from '@/components/Child/FinanceCard.vue'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -620,6 +623,7 @@ function onTabSelect(key) {
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
+  position: relative;
 }
 
 .scroll-area {
