@@ -1,7 +1,8 @@
 <template>
   <!-- 진입 버튼 (FAB) + 화면별 안내 말풍선 -->
   <div v-if="!isOpen" class="fab-wrap">
-    <div v-if="showHint" class="fab-hint">
+    <!-- hintText가 있을 때만 말풍선 표시 -->
+    <div v-if="showHint && hintText" class="fab-hint">
       <button
         class="fab-hint-close"
         type="button"
@@ -127,7 +128,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import { sendChatbotMessage } from '@/api/chatbot'
 import { useAuthStore } from '@/stores/auth'
 
@@ -150,6 +151,12 @@ const isSending = ref(false)
 const messages = ref([])
 const conversationId = ref(null)
 const scrollArea = ref(null)
+
+watch(() => props.hintText, (newVal) => {
+  if (newVal) {
+    showHint.value = true
+  }
+})
 
 function dismissHint() {
   showHint.value = false

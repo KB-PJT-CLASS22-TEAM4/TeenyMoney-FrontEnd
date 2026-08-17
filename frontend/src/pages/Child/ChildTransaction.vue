@@ -83,6 +83,9 @@
       </div>
     </div>
 
+    <!-- 챗봇 -->
+    <Chatbot hint-text="" />
+
     <!-- 조회 필터 바텀시트 -->
     <transition name="sheet">
       <div v-if="showFilter" class="sheet-dim" @click.self="showFilter = false">
@@ -115,8 +118,9 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet, getMyTransactions } from '@/api/wallet'
+import Chatbot from '@/components/Child/Chatbot.vue'
 
-const router    = useRouter()
+const router = useRouter()
 const authStore = useAuthStore()
 
 // 거래유형
@@ -125,20 +129,25 @@ const filters = ['전체', '입금', '출금']
 
 // 기간·정렬
 const activePeriod = ref('최근 1개월')
-const activeSort   = ref('최신순')
+const activeSort = ref('최신순')
 
 const periods = ['최근 1주일', '최근 1개월', '최근 3개월', '최근 6개월']
-const sorts   = ['최신순', '과거순']
+const sorts = ['최신순', '과거순']
 
 // 바텀시트
 const showFilter = ref(false)
 const tempPeriod = ref(activePeriod.value)
-const tempSort   = ref(activeSort.value)
+const tempSort = ref(activeSort.value)
 
 // UI값 → API값 매핑
-const periodMap = { '최근 1주일': 'WEEK', '최근 1개월': 'MONTH', '최근 3개월': 'THREE_MONTHS', '최근 6개월': 'SIX_MONTHS' }
-const sortMap   = { '최신순': 'DESC', '과거순': 'ASC' }
-const typeMap   = { '전체': 'ALL', '입금': 'CREDIT', '출금': 'DEBIT' }
+const periodMap = {
+  '최근 1주일': 'WEEK',
+  '최근 1개월': 'MONTH',
+  '최근 3개월': 'THREE_MONTHS',
+  '최근 6개월': 'SIX_MONTHS',
+}
+const sortMap = { 최신순: 'DESC', 과거순: 'ASC' }
+const typeMap = { 전체: 'ALL', 입금: 'CREDIT', 출금: 'DEBIT' }
 
 // createdAt → "2026.08.14" 형태의 날짜 포맷
 function toGroup(createdAt) {
@@ -157,13 +166,13 @@ function toTime(createdAt) {
 // API 응답 → 뷰 구조 변환
 function mapTransaction(t) {
   return {
-    id:      t.id,
-    group:   toGroup(t.createdAt),
-    time:    toTime(t.createdAt),
-    name:    t.description,
-    amount:  t.direction === 'CREDIT' ? t.amount : -t.amount,
+    id: t.id,
+    group: toGroup(t.createdAt),
+    time: toTime(t.createdAt),
+    name: t.description,
+    amount: t.direction === 'CREDIT' ? t.amount : -t.amount,
     balance: t.balanceAfter,
-    type:    t.direction === 'CREDIT' ? '입금' : '출금',
+    type: t.direction === 'CREDIT' ? '입금' : '출금',
   }
 }
 
@@ -177,10 +186,10 @@ async function fetchTransactions() {
   try {
     const res = await getMyTransactions(authStore.accessToken, {
       period: periodMap[activePeriod.value],
-      sort:   sortMap[activeSort.value],
-      type:   typeMap[activeFilter.value],
+      sort: sortMap[activeSort.value],
+      type: typeMap[activeFilter.value],
     })
-    transactions.value = res.data.map(mapTransaction)
+    transactions.value = (res.data || []).map(mapTransaction)
   } catch (e) {
     console.error('거래내역 조회 실패:', e.message)
   }
@@ -201,49 +210,56 @@ watch(activeFilter, fetchTransactions)
 
 function openFilter() {
   tempPeriod.value = activePeriod.value
-  tempSort.value   = activeSort.value
+  tempSort.value = activeSort.value
   showFilter.value = true
 }
 
 async function applyFilter() {
   activePeriod.value = tempPeriod.value
-  activeSort.value   = tempSort.value
-  showFilter.value   = false
+  activeSort.value = tempSort.value
+  showFilter.value = false
   await fetchTransactions()
 }
 
 // 날짜 그룹핑
 const groupedList = computed(() => {
   const groups = {}
-  transactions.value.forEach(t => {
+  transactions.value.forEach((t) => {
     if (!groups[t.group]) groups[t.group] = []
     groups[t.group].push(t)
   })
-  return Object.keys(groups).map(date => ({ date, items: groups[date] }))
+  return Object.keys(groups).map((date) => ({ date, items: groups[date] }))
 })
 
-function goBack()   { router.push({ name: 'child-home' }) }
-function goReport() { router.push({ name: 'child-report' }) }
+function goBack() {
+  router.push({ name: 'child-home' })
+}
+
+function goReport() {
+  router.push({ name: 'child-report' })
+}
 
 const isScrolling = ref(false)
 let scrollTimer = null
 function onScroll() {
   isScrolling.value = true
   clearTimeout(scrollTimer)
-  scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
+  scrollTimer = setTimeout(() => {
+    isScrolling.value = false
+  }, 800)
 }
 </script>
 
 <style scoped>
 .history-screen {
   box-sizing: border-box;
-  position: relative;         
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 20px; 
+  padding-top: 20px;
   background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
@@ -263,7 +279,8 @@ function onScroll() {
   gap: 20px;
 }
 
-.back-btn, .search-btn {
+.back-btn,
+.search-btn {
   border: none;
   background: transparent;
   cursor: pointer;
@@ -497,12 +514,10 @@ function onScroll() {
   white-space: nowrap;
 }
 
-/* 출금: 부드러운 코랄 레드 (톤다운) */
 .tx-amount.minus {
   color: #dd494e;
 }
 
-/* 입금: 차분하고 세련된 미디엄 블루 (톤다운) */
 .tx-amount.plus {
   color: #3d70c2;
 }
@@ -589,16 +604,20 @@ function onScroll() {
 }
 
 /* 애니메이션 */
-.sheet-enter-active, .sheet-leave-active {
+.sheet-enter-active,
+.sheet-leave-active {
   transition: opacity 0.25s ease;
 }
-.sheet-enter-active .sheet, .sheet-leave-active .sheet {
+.sheet-enter-active .sheet,
+.sheet-leave-active .sheet {
   transition: transform 0.25s ease;
 }
-.sheet-enter-from, .sheet-leave-to {
+.sheet-enter-from,
+.sheet-leave-to {
   opacity: 0;
 }
-.sheet-enter-from .sheet, .sheet-leave-to .sheet {
+.sheet-enter-from .sheet,
+.sheet-leave-to .sheet {
   transform: translateY(100%);
 }
 </style>
