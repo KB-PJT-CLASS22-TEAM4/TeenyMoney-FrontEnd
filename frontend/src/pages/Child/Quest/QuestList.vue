@@ -43,15 +43,6 @@
         <input v-if="searchOpen" v-model="searchText" class="search-input"
                placeholder="퀘스트 이름으로 검색" autofocus>
 
-        <!-- 티니 코치 말풍선 -->
-        <div class="coach-block">
-          <img src="@/assets/mascot/teeny-coach.png" alt="티니 코치" class="coach-avatar" />
-          <div class="coach-bubble">
-            <span class="coach-name">티니 코치</span>
-            <p class="coach-text">수락한 퀘스트를 해내면 티니점수가 3점 올라가요.</p>
-          </div>
-        </div>
-
         <div v-if="filteredAvailable.length === 0" class="empty-state">
           <p>지금은 받을 수 있는 퀘스트가 없어요</p>
         </div>
@@ -151,7 +142,7 @@
         <div v-for="group in ongoingGroups" :key="group.status" class="completed-group">
           <span class="completed-date">{{ group.label }} {{ group.items.length }}</span>
 
-          <div v-for="(q, i) in group.items" :key="q.id" class="quest-row ongoing-card">
+          <div v-for="q in group.items" :key="q.id" class="quest-row ongoing-card">
             <div class="ongoing-card-top">
               <div class="quest-icon" :style="{ background: statusIconColor(ongoingBadge(effectiveStatus(q)).class).bg }">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
@@ -232,7 +223,7 @@
         <div v-for="group in completedGroups" :key="group.date" class="completed-group">
           <span class="completed-date">{{ group.date }}</span>
 
-          <div v-for="(q, i) in group.items" :key="q.id" class="quest-row static">
+          <div v-for="q in group.items" :key="q.id" class="quest-row static">
             <div class="quest-icon" :style="{ background: statusIconColor(resultBadge(q.resultStatus).class).bg }">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
                 <rect x="6" y="4" width="12" height="16" rx="2" :stroke="statusIconColor(resultBadge(q.resultStatus).class).stroke" stroke-width="1.6"/>
@@ -272,6 +263,9 @@
     </div>
 
     <BottomTabBar active="home" @select="onTabSelect" />
+
+    <!-- 탭 상태에 따라 안내 문구 분기 -->
+    <Chatbot :hint-text="currentHintText" />
   </div>
 </template>
 
@@ -279,6 +273,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 
@@ -292,6 +287,14 @@ const tabs = [
   { key: 'completed', label: '완료' },
 ]
 const activeTab = ref('available')
+
+// 탭별 챗봇 말풍선 안내 문구
+const currentHintText = computed(() => {
+  if (activeTab.value === 'ongoing') {
+    return '퀘스트 인증하기를 누르면 취소나 수정이 어려워요!'
+  }
+  return '메달이 있는 퀘스트를 완료하면 티니점수가 올라가요!'
+})
 
 // 스토어 상태를 그대로 참조
 const availableQuests = computed(() => questStore.availableQuests)
@@ -312,7 +315,6 @@ onMounted(() => {
 watch(activeTab, (key) => loadTab(key))
 
 function toggleFavorite(q) {
-  // 찜 기능은 백엔드 API 미지원 - 로컬 상태로만 토글
   q.favorited = !q.favorited
 }
 
@@ -326,9 +328,6 @@ const filteredAvailable = computed(() => {
   return list.sort((a, b) => Number(b.favorited) - Number(a.favorited))
 })
 
-// 서버는 거절돼도 quest의 status를 REJECTED로 바꾸지 않고 IN_PROGRESS로 유지함
-// (재시도하라는 의미). 그래서 lastRejectionReason이 채워져 있으면
-// 화면에서는 "반려됨"으로 취급해서 보여줌
 function effectiveStatus(q) {
   if (q.subStatus === 'IN_PROGRESS' && q.lastRejectionReason) return 'REJECTED'
   return q.subStatus
@@ -408,7 +407,6 @@ async function toggleExpand(id) {
   expandedId.value = id
   cancelDecline()
 
-  // 목록 API엔 content가 없어서 펼칠 때 상세 조회로 채움
   const q = availableQuests.value.find((item) => item.id === id)
   if (q && !q.content) {
     try {
@@ -441,7 +439,6 @@ async function acceptQuest(q) {
   try {
     await questStore.accept(authStore.accessToken, q.id)
     expandedId.value = null
-    // 진행중 개수 배지를 탭 이동 없이 바로 갱신
     loadTab('ongoing')
   } catch (e) {
     alert(e.message)
@@ -453,7 +450,6 @@ async function confirmDecline(q) {
     await questStore.decline(authStore.accessToken, q.id, declineReasonCode.value, declineDetail.value)
     cancelDecline()
     expandedId.value = null
-    // 완료 개수 배지를 탭 이동 없이 바로 갱신
     loadTab('completed')
   } catch (e) {
     alert(e.message)
@@ -650,76 +646,6 @@ function onTabSelect(key) {
   padding: 10px 12px;
   font-size: 13px;
   font-family: inherit;
-}
-
-/* 티니 코치 말풍선 */
-.coach-block {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-}
-
-.coach-avatar {
-  flex: 0 0 auto;
-  width: 48px;
-  height: 50px;
-  object-fit: contain;
-}
-
-.coach-bubble {
-  position: relative;
-  flex: 1 1 0%;
-  min-width: 0;
-  background: #fff9ec;
-  border: 1.4px solid #ffe6a3;
-  border-radius: 4px 16px 16px 16px;
-  padding: 8px 10px 10px;
-  box-shadow: 0 2px 5px rgba(242, 180, 0, 0.12);
-}
-
-.coach-bubble::before,
-.coach-bubble::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-style: solid;
-}
-
-.coach-bubble::before {
-  left: -11px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-width: 5px 11px 5px 0;
-  border-color: transparent #ffe6a3 transparent transparent;
-}
-
-.coach-bubble::after {
-  left: -8.5px;
-  top: 50%;
-  transform: translateY(-50%);
-  border-width: 4px 9px 4px 0;
-  border-color: transparent #fff9ec transparent transparent;
-}
-
-.coach-name {
-  display: block;
-  font-weight: 800;
-  font-size: 11px;
-  color: #b9861a;
-  margin-bottom: 2px;
-}
-
-.coach-text {
-  margin: 0;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #6b5a2e;
-  line-height: 15px;
-  white-space: nowrap;
-  letter-spacing: -0.3px;
 }
 
 /* 빈 상태 */

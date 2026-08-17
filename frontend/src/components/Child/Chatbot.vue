@@ -132,7 +132,6 @@ import { sendChatbotMessage } from '@/api/chatbot'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
-  // 화면(페이지)마다 다르게 보여줄 안내 말풍선 문구
   hintText: {
     type: String,
     default: '궁금한 게 있으면 티니코치에게 물어보세요!',
@@ -141,16 +140,14 @@ const props = defineProps({
 
 const authStore = useAuthStore()
 
-// 플로팅 버튼용 마스코트
 const fabMascotImg = new URL('../../assets/mascot/teeny-chatbot.png', import.meta.url).href
-// 대화창 내부용 마스코트
 const panelMascotImg = new URL('../../assets/mascot/teeny-coach.png', import.meta.url).href
 
 const isOpen = ref(false)
 const showHint = ref(true)
 const draft = ref('')
 const isSending = ref(false)
-const messages = ref([]) // { role: 'user' | 'bot', text, status?: 'loading' | 'error', query? }
+const messages = ref([])
 const conversationId = ref(null)
 const scrollArea = ref(null)
 
@@ -158,7 +155,6 @@ function dismissHint() {
   showHint.value = false
 }
 
-// 자주 묻는 질문 퀵리플라이 (자유 입력 전에 탭으로 바로 물어볼 수 있게)
 const quickQuestions = [
   '이자가 뭐야?',
   '적금이랑 예금 차이는?',
@@ -175,7 +171,6 @@ function openChat() {
 
 function closeChat() {
   isOpen.value = false
-  // 다시 열면 초기 화면부터 시작하도록 대화 상태 초기화
   messages.value = []
   conversationId.value = null
   draft.value = ''
@@ -188,8 +183,6 @@ async function scrollToBottom() {
   }
 }
 
-// 답변을 줄 단위로 표시 (백엔드가 보낸 줄바꿈/목록 구조를 그대로 살림)
-// "- "로 시작하는 줄은 리스트 항목으로 표시
 function splitAnswer(text) {
   if (!text) return [{ text: '', isBullet: false }]
   return text
@@ -211,9 +204,6 @@ async function askQuickQuestion(question) {
   await handleSubmit()
 }
 
-// 서버 code/status 기준 에러 메시지 매핑
-// (백엔드가 실패 시 HTTP status를 어떻게 내려주는지에 따라
-//  result.code 또는 별도 status 필드 확인 후 조건 조정 필요)
 function errorMessageFor(result) {
   switch (result.code) {
     case 'EMPTY_QUERY':
@@ -244,7 +234,6 @@ async function askBot(query) {
 
     if (!result.success) {
       if (result.code === 'UNAUTHORIZED') {
-        // 로그인 만료/미로그인 → 공통 처리(모달 오픈 + 토큰 정리)로 위임
         messages.value.splice(loadingIndex, 1)
         authStore.handleUnauthorized('로그인이 필요해요.\n다시 로그인해 주세요.')
         return
@@ -262,7 +251,6 @@ async function askBot(query) {
     conversationId.value = result.data.conversationId
     messages.value[loadingIndex] = { role: 'bot', text: result.data.answer }
   } catch (err) {
-    // 네트워크 실패 등 fetch 자체가 실패한 경우
     messages.value[loadingIndex] = {
       role: 'bot',
       text: '네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.',
@@ -363,11 +351,10 @@ async function retryMessage(idx) {
   font-weight: 600;
   line-height: 1.4;
   color: #334155;
-  white-space: nowrap;
+  word-break: keep-all;
   cursor: pointer;
 }
 
-/* 원형 배경 (버튼) */
 .fab-hint-close {
   position: absolute;
   top: -8px;
@@ -384,7 +371,6 @@ async function retryMessage(idx) {
   cursor: pointer;
 }
 
-/* X 아이콘 (svg) — 원형을 꽉 채우도록 */
 .fab-hint-close svg {
   width: 16px;
   height: 16px;
@@ -396,10 +382,10 @@ async function retryMessage(idx) {
 
 .chatbot-panel {
   position: absolute;
-  right: 20px;
+  right: 16px;
   bottom: 78px;
-  width: min(320px, calc(100% - 24px));
-  height: min(480px, calc(100% - 90px));
+  width: min(330px, calc(100% - 24px));
+  height: min(490px, calc(100% - 90px));
   background: #fffaf0;
   border: 1px solid #eaedf1;
   border-radius: 20px;
@@ -419,6 +405,7 @@ async function retryMessage(idx) {
   padding: 14px 16px;
   background: #fff;
   border-bottom: 1px solid #eaedf1;
+  flex-shrink: 0;
 }
 
 .header-title {
@@ -441,7 +428,7 @@ async function retryMessage(idx) {
 .chatbot-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -458,6 +445,7 @@ async function retryMessage(idx) {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
+  width: 100%;
 }
 
 .intro-avatar {
@@ -468,11 +456,15 @@ async function retryMessage(idx) {
 }
 
 .intro-bubble {
+  max-width: 90%;
+  min-width: 0;
   background: #fff;
   border-radius: 14px;
   border-bottom-left-radius: 4px;
   padding: 12px 14px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .intro-bubble p {
@@ -480,12 +472,15 @@ async function retryMessage(idx) {
   font-size: 12.5px;
   line-height: 1.6;
   color: #334155;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .quick-reply-list {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  width: 100%;
 }
 
 .quick-reply-chip {
@@ -514,6 +509,8 @@ async function retryMessage(idx) {
   display: flex;
   align-items: flex-start;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
 }
 
 .msg-row.user {
@@ -525,26 +522,31 @@ async function retryMessage(idx) {
 }
 
 .msg-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
+/* 글자 잘림 방지: word-break & overflow-wrap 개선 */
 .msg-bubble {
   position: relative;
-  max-width: 80%;
-  padding: 9px 12px;
+  max-width: 85%;
+  min-width: 0;
+  padding: 10px 13px;
   border-radius: 14px;
   font-size: 13px;
   line-height: 1.55;
-  word-break: keep-all;
-  overflow-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
 }
 
 .msg-bubble p {
   margin: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .msg-bubble p + p {
@@ -565,7 +567,7 @@ async function retryMessage(idx) {
 }
 
 .msg-bubble.user {
-  max-width: 68%;
+  max-width: 78%;
   background: #ffbc00;
   color: #0f172a;
   border-radius: 16px;
@@ -610,6 +612,8 @@ async function retryMessage(idx) {
 .error-text {
   color: #e0554f;
   margin: 0 0 6px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .retry-btn {
@@ -629,6 +633,7 @@ async function retryMessage(idx) {
   padding: 10px 12px;
   background: #fff;
   border-top: 1px solid #eaedf1;
+  flex-shrink: 0;
 }
 
 .input-hash {
@@ -646,10 +651,11 @@ async function retryMessage(idx) {
 
 .chatbot-input {
   flex: 1;
+  min-width: 0;
   border: 1px solid #dbe0e6;
   border-radius: 999px;
   padding: 10px 16px;
-  font-size: 13.5px;
+  font-size: 13px;
   outline: none;
   background: #f8fafc;
 }
@@ -687,7 +693,7 @@ async function retryMessage(idx) {
   transform: translateY(8px);
 }
 
-/* 다크모드 */
+/* 다크모드 대응 */
 :global(.dark) .chatbot-panel {
   background: #1e1e24;
   border-color: #33333a;
