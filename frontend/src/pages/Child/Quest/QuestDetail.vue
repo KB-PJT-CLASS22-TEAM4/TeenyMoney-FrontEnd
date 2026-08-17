@@ -200,7 +200,7 @@ function formatShortDate(value) {
 async function loadQuest() {
   loadError.value = ''
   try {
-    const result = await getQuestDetail(authStore.accessToken, route.params.questId)
+    const result = await getQuestDetail(route.params.questId, authStore.accessToken)
     const d = result.data
     quest.value = {
       id: d.questId,

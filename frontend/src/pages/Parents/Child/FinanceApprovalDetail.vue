@@ -103,6 +103,7 @@
       @confirm="handleConfirm"
       @cancel="closeConfirm"
     />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
@@ -110,7 +111,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AlertHost from '@/components/AlertHost.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 import {
   approveFinancialProductApprovalRequest,
   getFinancialProductApprovalRequestDetail,
@@ -122,6 +125,7 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 const childId = Number(route.params.childId)
 const productType = route.params.productType
@@ -236,14 +240,14 @@ async function handleConfirm() {
         productType,
         enrollmentId,
       )
-      alert('가입 신청을 승인했습니다.')
+      alertModal.showAlert('가입 신청을 승인했습니다.')
     } else {
       await rejectFinancialProductApprovalRequest(
         authStore.accessToken,
         productType,
         enrollmentId,
       )
-      alert('가입 신청을 거절했습니다.')
+      alertModal.showAlert('가입 신청을 거절했습니다.')
     }
 
     router.push({
@@ -251,7 +255,7 @@ async function handleConfirm() {
       params: { childId: String(childId) },
     })
   } catch (error) {
-    alert(error.message || '처리에 실패했습니다.')
+    alertModal.showAlert(error.message || '처리에 실패했습니다.')
   } finally {
     isProcessing.value = false
   }

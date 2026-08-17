@@ -53,7 +53,7 @@ function mapListItem(raw) {
     dDay: calcDDay(raw.deadline),
     endedAt: formatDate(raw.endedAt),
     submittedAt: '', // 상세 조회로 보완
-    lastRejectionReason: '', // 상세 조회로 보완
+    lastRejectionReason: '', // 상세 조회로 보완 (ONGOING 탭의 IN_PROGRESS 항목은 fetchTab에서 채움)
     favorited: false, // 백엔드 미지원 - 로컬 전용 상태
     content: '', // 상세 조회로 보완
   }
@@ -81,12 +81,31 @@ export const useQuestStore = defineStore('quest', () => {
 
   async function fetchTab(accessToken, tabKey, { childId, more = false } = {}) {
     const tab = TAB_MAP[tabKey]
-    const params = { tab }
-    if (childId) params.childId = childId
-    if (more && nextCursor.value[tab]) params.cursor = nextCursor.value[tab]
+    const cursor = more && nextCursor.value[tab] ? nextCursor.value[tab] : null
 
-    const result = await getQuests(accessToken, params)
+    // getQuests(accessToken, tab, childId, cursor) — questApi.js는 개별 인자를 순서대로 받음
+    const result = await getQuests(accessToken, tab, childId ?? null, cursor)
     const items = (result.data?.items ?? []).map(mapListItem)
+
+    // ONGOING 탭의 IN_PROGRESS 항목은 "처음 시작"인지 "거절당해서 재시도 대기"인지
+    // 목록 API만으로는 구분이 안 돼서(거절 사유 필드가 없음), 상세 조회로 보완함
+    if (tab === 'ONGOING') {
+      const inProgressItems = items.filter((q) => q.subStatus === 'IN_PROGRESS')
+      await Promise.all(
+        inProgressItems.map(async (item) => {
+          try {
+            const detail = await getQuestDetail(item.id, accessToken)
+            const latest = detail.data?.latestVerification
+            if (latest?.rejectionReason) {
+              item.lastRejectionReason = latest.rejectionReason
+            }
+          } catch (e) {
+            // 상세 조회 실패해도 목록 자체는 그대로 보여줌
+            console.error(e)
+          }
+        })
+      )
+    }
 
     const target = TARGET[tab]
     target.value = more ? [...target.value, ...items] : items
@@ -106,7 +125,8 @@ export const useQuestStore = defineStore('quest', () => {
   // 목록 API에 없는 content 등을 채우기 위한 상세 조회
   // targetList는 스토어 인스턴스에서 꺼낸 배열(예: questStore.availableQuests)이라 이미 unwrap된 상태
   async function fetchDetailInto(accessToken, questId, targetList) {
-    const result = await getQuestDetail(accessToken, questId)
+    // getQuestDetail(questId, accessToken) — questApi.js는 questId가 먼저, accessToken이 나중
+    const result = await getQuestDetail(questId, accessToken)
     const detail = result.data
     const item = targetList.find((q) => q.id === questId)
     if (item) {

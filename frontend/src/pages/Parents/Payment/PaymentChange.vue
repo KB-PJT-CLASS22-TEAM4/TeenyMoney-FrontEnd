@@ -333,11 +333,14 @@
     </div>
 
     <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   ref,
@@ -357,6 +360,7 @@ import {
 
 const router = useRouter()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 /* =========================
    결제수단 상태
@@ -487,7 +491,7 @@ async function loadPaymentMethods() {
 
     selectedId.value = null
 
-    alert(
+    alertModal.showAlert(
       error.message ||
         '결제수단을 불러오지 못했습니다.'
     )
@@ -580,7 +584,7 @@ async function handleAddPayment() {
       )
 
     if (res.success) {
-      alert(
+      alertModal.showAlert(
         '결제수단이 등록되었습니다.'
       )
 
@@ -596,7 +600,7 @@ async function handleAddPayment() {
       error
     )
 
-    alert(
+    alertModal.showAlert(
       error.message ||
         '결제수단 등록에 실패했습니다.'
     )
@@ -631,7 +635,7 @@ async function handleDeletePayment(payment) {
   }
 
   const confirmed =
-    window.confirm(
+    await alertModal.showConfirm(
       `${getPaymentName(payment)} 결제수단을 삭제하시겠습니까?`
     )
 
@@ -685,7 +689,7 @@ async function handleDeletePayment(payment) {
         }
       }
 
-      alert(
+      alertModal.showAlert(
         '결제수단이 삭제되었습니다.'
       )
 
@@ -712,7 +716,7 @@ async function handleDeletePayment(payment) {
         )
 
       if (!stillExists) {
-        alert(
+        alertModal.showAlert(
           '결제수단이 삭제되었습니다.'
         )
 
@@ -725,7 +729,7 @@ async function handleDeletePayment(payment) {
       )
     }
 
-    alert(
+    alertModal.showAlert(
       error.message ||
         '결제수단 삭제에 실패했습니다.'
     )
@@ -753,7 +757,7 @@ async function handleChange() {
       )
 
     if (res.success) {
-      alert(
+      alertModal.showAlert(
         '주 결제수단이 변경되었습니다.'
       )
 
@@ -765,7 +769,7 @@ async function handleChange() {
       error
     )
 
-    alert(
+    alertModal.showAlert(
       error.message ||
         '주 결제수단 변경에 실패했습니다.'
     )

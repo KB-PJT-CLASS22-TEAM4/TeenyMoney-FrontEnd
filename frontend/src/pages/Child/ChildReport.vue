@@ -1,417 +1,1392 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
- 
+import { useAuthStore } from '@/stores/auth'
+import { getChildMoneyReport } from '@/api/report'
+import { getMyEnrolledFinancialProducts } from '@/api/finance'
+
 const router = useRouter()
- 
+const authStore = useAuthStore()
+
 // 하단 탭 이동
 function onTabSelect(key) {
   if (key === 'home') router.push({ name: 'child-home' })
   if (key === 'report') router.push({ name: 'child-report' })
   if (key === 'my') router.push({ name: 'child-mypage' })
   if (key === 'q') router.push({ name: 'qr-scan' })
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
 }
- 
-// 스크롤할 때만 스크롤바 보이기
-const isScrolling = ref(false)
-let scrollTimer = null
-function onScroll() {
-  isScrolling.value = true
-  clearTimeout(scrollTimer)
-  scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
+
+function goBack() {
+  router.push({ name: 'child-transaction' })
 }
- 
+
+function goToScore() {
+  router.push({ name: 'child-score' })
+}
+
 // ============================================================
-// [API 연동 필요] 소비 리포트 데이터
+// 머니 리포트 API 연동 — GET /api/v1/reports/money/children/{childId}
 //
-// 현재는 더미 데이터
-// 백엔드 API가 나오면 아래 3개(weekly/monthly/categories)를
-// API 응답으로 교체해야 함.
-//
-// [연동 방법]
-//   1) 아래 데이터를 ref로 바꾸기 (지금은 const 고정값)
-//        const weekly = ref(null)
-//        const monthly = ref(null)
-//        const categories = ref([])
-//   2) api/report.js 에 조회 함수 만들기 (member.js 방식과 동일)
-//        export async function getReport(accessToken, period) {
-//          fetch(`.../api/v1/reports?period=${period}`, {
-//            headers: { Authorization: `Bearer ${accessToken}` }
-//          })
-//        }
-//   3) onMounted에서 조회 → 위 ref에 담기
-//        onMounted(async () => {
-//          const data = await getReport(authStore.accessToken, '2025-07-3')
-//          weekly.value = data.weekly
-//          monthly.value = data.monthly
-//          categories.value = data.categories
-//        })
-//   4) 템플릿에서 weekly → weekly.value 로 접근 (ref로 바뀌므로)
-//   5) 로딩/에러 처리 추가 (try/catch, v-if로 로딩 표시)
-//
-// 참고: 기간 드롭다운(▾)을 누르면 다른 주차/월을 조회하도록
-//          period 파라미터를 바꿔서 재호출해야 함 (지금은 미구현)
+// insightCode 4종(SAVING_PAYMENT_PROGRESS / SPENDING_TOP_CATEGORY /
+// PERMISSION_STATUS_SUMMARY / QUEST_COMPLETED) 전부 실제 metrics 필드명 확인해서
+// mapInsight()에 반영 완료. 새로운 insightCode가 추가되면 INSIGHT_META에 제목/점 색만
+// 추가하고, mapInsight()에 분기 하나 더 넣으면 됨 (없으면 일반 문구로 자동 폴백).
 // ============================================================
- 
-// --- [더미] 주차별 소비 (막대 차트) → API의 weekly로 교체 ---
-const weekly = {
-  title: '7월 3주차 소비리포트',
-  total: 54900,
-  bars: [
-    { label: '7월 2주차', amount: 61000, current: false },
-    { label: '7월 3주차', amount: 54900, current: true },
-  ],
-}
- 
-// --- [더미] 월별 소비 (도넛 차트) → API의 monthly로 교체 ---
-const monthly = {
-  title: '7월 소비리포트',
-  diffText: '지난달보다 6,100원 덜 썼어요',
-  total: 38200,
-}
- 
-// --- [더미] 카테고리별 소비 → API의 categories로 교체 ---
-// (color는 프론트에서 지정. API가 색을 안 주면 카테고리명으로 매핑)
-const categories = [
-  { name: '식비', percent: 38, amount: 14500, color: '#f0b352' },
-  { name: '교통', percent: 26, amount: 10000, color: '#4a90d9' },
-  { name: '쇼핑', percent: 21, amount: 8000, color: '#8b7dd8' },
-  { name: '여가', percent: 15, amount: 5700, color: '#d96a94' },
-]
- 
+
+const isLoading = ref(true)
+const loadError = ref(null)
+
+const report = ref({ period: { label: '', status: '' }, compare: '', yearMonth: '' })
+const summary = ref([])
+const habits = ref([])
+const spend = ref({
+  label: '이번 달에 사용한 돈',
+  amount: 0,
+  diffText: '',
+  compareText: '',
+  weeks: [],
+  categories: [],
+  topCategory: '',
+})
+const score = ref({ change: 0, up: 0, down: 0, reasons: [] })
+
+// 금융상품 진행 상태 / 다가오는 금융 일정 — GET /api/v1/financial-products/me/enrollments
+const products = ref([])
+const schedules = ref([])
+
 // ---- 화면 계산 로직 ----
- 
-// 숫자 → "54,900원"
+
 function won(n) {
-  return n.toLocaleString('ko-KR') + '원'
+  return (n ?? 0).toLocaleString('ko-KR') + '원'
 }
- 
-// 막대 높이 (제일 큰 값 기준으로 비율)
-const maxBar = computed(() => Math.max(...weekly.bars.map((b) => b.amount)))
-function barHeight(amount) {
-  return Math.round((amount / maxBar.value) * 110) + 'px'
+
+// 요약 카드 아이콘별 배경/글자색
+const ICON_STYLE = {
+  wallet: { bg: '#f2f3f5', fg: '#6b7280' },
+  trending: { bg: '#e6f6ec', fg: '#2f9e5b' },
+  coin: { bg: '#eaf2fc', fg: '#2e72c7' },
+  check: { bg: '#f2f3f5', fg: '#6b7280' },
 }
- 
-// 도넛 차트 세그먼트 계산 (SVG stroke-dasharray)
-const CIRC = 2 * Math.PI * 66 // 반지름 66의 둘레 ≈ 414.7
+function iconStyle(icon) {
+  const s = ICON_STYLE[icon] || ICON_STYLE.wallet
+  return { background: s.bg, color: s.fg }
+}
+
+// ---- API 응답 → 화면 데이터 매핑 ----
+
+function formatMonthLabel(yearMonth) {
+  if (!yearMonth) return '이번 달'
+  const [, m] = yearMonth.split('-')
+  return `${Number(m)}월`
+}
+
+// 드롭다운 목록에서는 연도가 헷갈리지 않게 "2026년 8월" 형태로 그대로 표시
+function formatMonthLabelFull(yearMonth) {
+  if (!yearMonth) return '이번 달'
+  const [y, m] = yearMonth.split('-')
+  return `${y}년 ${Number(m)}월`
+}
+
+function formatPeriodLabel(startDate, endDate) {
+  if (!startDate || !endDate) return ''
+  const [, sm, sd] = startDate.split('-')
+  const [, em, ed] = endDate.split('-')
+  if (sm === em) return `${Number(sm)}월 ${Number(sd)}일~${Number(ed)}일`
+  return `${Number(sm)}월 ${Number(sd)}일~${Number(em)}월 ${Number(ed)}일`
+}
+
+const PERIOD_STATUS_LABEL = { IN_PROGRESS: '진행 중', COMPLETED: '완료' }
+
+function mapPeriod(period) {
+  const compareSuffix = period.status === 'IN_PROGRESS' ? '(같은 일수 기준)' : '(전월 전체 기준)'
+  return {
+    label: formatPeriodLabel(period.startDate, period.endDate),
+    status: PERIOD_STATUS_LABEL[period.status] || period.status,
+    yearMonth: period.yearMonth,
+    compare: `비교 기간 ${period.comparisonStartDate} ~ ${period.comparisonEndDate} ${compareSuffix}`,
+  }
+}
+
+function mapSummary(summaryData) {
+  return [
+    { icon: 'wallet', label: '사용한 돈', value: summaryData.spentAmount, colorClass: '', desc: `${summaryData.paymentCount}번 결제했어요.` },
+    { icon: 'trending', label: '모은 돈', value: summaryData.savedAmount, colorClass: 'green', desc: '예금과 적금에 넣었어요.' },
+    { icon: 'coin', label: '직접 얻은 돈', value: summaryData.earnedAmount, colorClass: 'blue', desc: `${summaryData.earnedCount}번 받았어요.` },
+    { icon: 'check', label: '갚은 돈', value: summaryData.repaidAmount, colorClass: '', desc: `대출을 ${summaryData.repaidCount}번 갚았어요.` },
+  ]
+}
+
+// insightCode → 카드 제목/점 색 (metrics 값 자체는 코드별로 아래 mapInsight에서 처리)
+const INSIGHT_META = {
+  SPENDING_TOP_CATEGORY: { dot: '#f0b352', title: '소비' },
+  PERMISSION_STATUS_SUMMARY: { dot: '#4a90d9', title: '오늘만 허용' },
+  SAVING_PAYMENT_PROGRESS: { dot: '#4caf82', title: '저축 · 상환' },
+  QUEST_COMPLETED: { dot: '#8b7dd8', title: '퀘스트' },
+}
+
+// insightCode → "자세히 보기" 클릭 시 이동할 실제 라우트
+const INSIGHT_ROUTE = {
+  SPENDING_TOP_CATEGORY: { name: 'child-transaction' },
+  PERMISSION_STATUS_SUMMARY: { name: 'child-todayallow-request' },
+  QUEST_COMPLETED: { name: 'child-quest-list' },
+}
+
+function mapInsight(insight, data) {
+  const teenyScoreData = data.teenyScore
+  const meta = INSIGHT_META[insight.insightCode] || { dot: '#9aa1ab', title: insight.insightCode }
+  const base = {
+    dot: meta.dot,
+    title: meta.title,
+    route: INSIGHT_ROUTE[insight.insightCode] || null,
+    deepLink: insight.deepLink,
+  }
+  const m = insight.metrics || {}
+
+  if (insight.insightCode === 'SAVING_PAYMENT_PROGRESS') {
+    const { paidCount = 0, totalCount = 0, progressRate = 0 } = m
+    return {
+      ...base,
+      desc: [`${totalCount}번 중 ${paidCount}번의 적금 납입을 완료했어요.`, `진행률 ${progressRate}%예요.`],
+      checks: { done: paidCount, total: totalCount },
+      footer: `적금 ${totalCount}회 중 ${paidCount}회 완료`,
+    }
+  }
+
+  if (insight.insightCode === 'SPENDING_TOP_CATEGORY') {
+    return {
+      ...base,
+      desc: [
+        `이번 달에는 ${m.paymentCount ?? 0}번 결제해서 모두 ${won(m.totalAmount)}을 사용했어요.`,
+        `${m.topCategoryName}에서 가장 많이 사용했어요 (${m.topCategoryCount ?? 0}회 · ${m.topCategoryRatio ?? 0}%).`,
+      ],
+    }
+  }
+
+  if (insight.insightCode === 'PERMISSION_STATUS_SUMMARY') {
+    // [연동 필요] 주의/차단 단계별 요청 횟수, 가장 많이 요청한 업종 정보는
+    // 현재 metrics에 없음 — 백엔드에 watchCount/blockCount, topCategoryName 같은
+    // 필드 추가되면 아래에 문장 추가하면 됨
+    const requestCount = m.requestCount ?? 0
+    const desc = [`이번 달에 오늘만 허용을 ${requestCount}번 요청했어요.`]
+
+    if (requestCount > 0) {
+      let hasResult = false
+      if (m.approvedCount) {
+        desc.push(`그중 ${m.approvedCount}건은 승인됐어요.`)
+        hasResult = true
+      }
+      if (m.rejectedCount) {
+        desc.push(`${m.rejectedCount}건은 반려됐어요.`)
+        hasResult = true
+      }
+      if (m.pendingCount) {
+        desc.push(`${m.pendingCount}건은 아직 답변 대기 중이에요.`)
+        hasResult = true
+      }
+      if (m.expiredCount) {
+        desc.push(`${m.expiredCount}건은 기간이 만료됐어요.`)
+        hasResult = true
+      }
+      if (!hasResult) desc.push('아직 결과가 안 나왔어요.')
+    }
+
+    return { ...base, desc }
+  }
+
+  if (insight.insightCode === 'QUEST_COMPLETED') {
+    // 티니점수 변화 사유(topReasons)에서 퀘스트 완료로 오른 점수를 찾아서 같이 보여줌
+    const questScoreReason = (teenyScoreData?.topReasons || []).find(
+      (r) => r.eventCode === 'QUEST_COMPLETED'
+    )
+
+    const desc = [`퀘스트 ${m.completedCount ?? 0}개를 인증 완료했어요.`]
+    if (questScoreReason) {
+      desc.push(`티니점수 ${questScoreReason.amount >= 0 ? '+' : ''}${questScoreReason.amount}점을 올렸어요.`)
+    }
+    desc.push(`${won(m.rewardAmount ?? 0)}을 받았어요.`)
+
+    return { ...base, desc }
+  }
+
+  return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
+}
+
+function mapWeeklyTrend(weeklyTrend) {
+  const today = new Date().toISOString().slice(0, 10)
+  return (weeklyTrend || []).map((w) => ({
+    label: `${w.weekNo}주`,
+    amount: w.amount ?? 0,
+    display: w.amount == null ? '-' : won(w.amount),
+    active: w.startDate <= today && today <= w.endDate,
+    empty: w.amount == null,
+  }))
+}
+
+const CATEGORY_COLORS = ['#f0b352', '#4a90d9', '#4caf82', '#8b7dd8', '#3aa7a0', '#e07a9e']
+
+function mapCategories(categories) {
+  return [...(categories || [])]
+    .sort((a, b) => b.amount - a.amount)
+    .map((c, i) => ({
+      name: c.categoryName,
+      amount: c.amount,
+      percent: c.ratio,
+      times: c.paymentCount,
+      color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+    }))
+}
+
+function mapSpending(spendingData) {
+  const categories = mapCategories(spendingData.categories)
+  const amountDelta = spendingData.comparisonAmountDelta ?? 0
+  const countDelta = spendingData.comparisonCountDelta ?? 0
+  return {
+    label: '이번 달에 사용한 돈',
+    amount: spendingData.totalAmount,
+    diffText: `${amountDelta >= 0 ? '+' : ''}${won(amountDelta)} ${amountDelta >= 0 ? '증가' : '감소'}`,
+    compareText: `전월 같은 기간 ${won(spendingData.comparisonAmount)} · 횟수 ${countDelta >= 0 ? '+' : ''}${countDelta}회`,
+    weeks: mapWeeklyTrend(spendingData.weeklyTrend),
+    categories,
+    topCategory: categories[0]?.name || '',
+  }
+}
+
+function mapTeenyScore(teenyScoreData) {
+  return {
+    change: teenyScoreData.netChange,
+    up: teenyScoreData.increaseEventCount,
+    down: teenyScoreData.decreaseEventCount,
+    reasons: (teenyScoreData.topReasons || []).map((r) => ({
+      label: r.description,
+      value: `${r.amount >= 0 ? '+' : ''}${r.amount}`,
+      positive: r.amount >= 0,
+    })),
+  }
+}
+
+// ---- 금융상품 목록 → 진행 상태 카드 / 다가오는 금융 일정 매핑 ----
+// (GET /api/v1/financial-products/me/enrollments, status가 PENDING인 건 제외)
+
+function parseDateParts(raw) {
+  if (!raw) return null
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+}
+
+function formatDateDot(raw) {
+  const p = typeof raw === 'string' || raw instanceof Date ? parseDateParts(raw) : null
+  if (!p) return ''
+  return `${p.y}.${String(p.m).padStart(2, '0')}.${String(p.d).padStart(2, '0')}`
+}
+
+function addMonthsToDate(startRaw, months) {
+  const p = parseDateParts(startRaw)
+  if (!p) return null
+  const d = new Date(p.y, p.m - 1, p.d)
+  d.setMonth(d.getMonth() + (months ?? 0))
+  return d
+}
+
+// 다음 납입/상환일: 시작일 + (납입 완료 횟수 + 1)개월
+function calcNextDueDate(startRaw, paidCount) {
+  const p = parseDateParts(startRaw)
+  if (!p) return null
+  const d = new Date(p.y, p.m - 1, p.d)
+  d.setMonth(d.getMonth() + (paidCount ?? 0) + 1)
+  return d
+}
+
+// [연동 필요] productType 실제 값이 SAVING인지 SAVINGS인지 문서마다 달라서 방어적으로 정규화
+function normalizeProductType(rawType) {
+  const t = (rawType || '').toUpperCase()
+  if (t.startsWith('DEPOSIT')) return 'DEPOSIT'
+  if (t.startsWith('SAVING')) return 'SAVING'
+  if (t.startsWith('LOAN')) return 'LOAN'
+  return t
+}
+
+const PRODUCT_TYPE_LABEL = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
+
+function mapProduct(p) {
+  const productType = normalizeProductType(p.productType)
+  const isDeposit = productType === 'DEPOSIT'
+  const isSaving = productType === 'SAVING'
+  const isLoan = productType === 'LOAN'
+  const type = PRODUCT_TYPE_LABEL[productType] || p.productType
+
+  // [연동 필요] "가족 상품"/"금융기관 상품" 구분 필드가 API에 없어서 일단 회사명을 태그로 표시
+  const tag = p.financialCompanyName || type
+  const tagClass = 'institution'
+
+  const endRaw = p.maturityDate || addMonthsToDate(p.startDate, p.termMonths)
+  const endLabel = formatDateDot(endRaw)
+  const period = `${formatDateDot(p.startDate)} ~ ${endLabel}`
+
+  let progress = null
+  let desc = ''
+
+  if (isDeposit) {
+    desc = `지금 ${won(p.currentAmount)}이 들어 있고 ${endLabel} 만기가 돼요.`
+  } else if (isSaving) {
+    const total = p.totalPaymentCount ?? 0
+    const done = p.paidCount ?? 0
+    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'green' }
+    const next = calcNextDueDate(p.startDate, done)
+    desc = next ? `다음 납입일은 ${formatDateDot(next)}이에요.` : '다음 납입 일정을 확인해보세요.'
+  } else if (isLoan) {
+    const total = p.totalPaymentCount ?? 0
+    const done = p.paidCount ?? 0
+    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'blue' }
+    // currentAmount가 대출에서는 "지금 남아있는 대출 잔액"을 의미함 (적금의 누적액과 같은 자리의 필드)
+    desc = `앞으로 갚을 돈은 ${won(p.currentAmount ?? 0)}이에요.`
+  }
+
+  return {
+    name: p.productName,
+    tag,
+    tagClass,
+    type,
+    status: isLoan ? '상환 진행 중' : '유지 중',
+    statusClass: isLoan ? 'blue' : '',
+    period,
+    progress,
+    desc,
+  }
+}
+
+const SCHEDULE_THEME = { LOAN: 'red', SAVING: 'yellow', DEPOSIT: 'green' }
+
+function mapSchedule(p) {
+  const productType = normalizeProductType(p.productType)
+  const isDeposit = productType === 'DEPOSIT'
+  const isSaving = productType === 'SAVING'
+  const isLoan = productType === 'LOAN'
+  const isFreeSaving = isSaving && p.savingsType === 'FREE'
+
+  let targetDate = null
+  if (isDeposit) {
+    const parts = parseDateParts(p.maturityDate)
+    targetDate = parts ? new Date(parts.y, parts.m - 1, parts.d) : null
+  } else {
+    targetDate = calcNextDueDate(p.startDate, p.paidCount)
+  }
+  if (!targetDate) return null
+
+  const today = new Date()
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const diffDays = Math.round((targetDate - todayOnly) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) return null // 이미 지난 일정은 제외
+
+  const dday = diffDays === 0 ? 'D-Day' : `D-${diffDays}`
+  const date = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+  const amount = p.monthlyAmount || p.currentAmount || 0
+
+  let title = ''
+  let desc = ''
+  let tagLabel = ''
+
+  if (isLoan) {
+    title = `${p.productName} 상환`
+    desc = `${won(amount)} 낼 예정이에요`
+    tagLabel = '대출'
+  } else if (isSaving) {
+    title = isFreeSaving ? `${p.productName} 입금` : `${p.productName} 납입`
+    desc = `${won(amount)} 넣을 예정이에요`
+    tagLabel = isFreeSaving ? '자유적금' : '정액적금'
+  } else if (isDeposit) {
+    title = `${p.productName} 만기`
+    desc = `${won(p.currentAmount)} 받을 예정이에요`
+    tagLabel = '예금'
+  }
+
+  return {
+    dday,
+    date,
+    title,
+    desc,
+    type: productType.toLowerCase(),
+    theme: SCHEDULE_THEME[productType] || 'yellow',
+    tagLabel,
+    diffDays,
+  }
+}
+
+const selectedMonth = ref('')
+const showMonthPicker = ref(false)
+
+// UI에서는 백엔드가 준 availableMonths 개수와 무관하게 최근 N개월을 항상 선택지로 보여줌.
+// 실제로 데이터/가입 이전인 달을 고르면 API가 에러를 주는데, 그건 아래 loadReport에서 처리.
+function generateMonthOptions(count = 12) {
+  const now = new Date()
+  const months = []
+  for (let i = 0; i < count; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
+  return months
+}
+const monthOptions = ref(generateMonthOptions())
+
+// insights에 SAVING_PAYMENT_PROGRESS가 없어도(이번 달 납입 활동이 없으면 백엔드가 아예
+// 안 줌), 가입한 적금 상품이 있으면 그 데이터로 "저축 · 상환" 카드를 직접 만들어 보여줌.
+// activeProducts는 아래 onMounted에서 채워지고, 월을 바꿔도 유지됨 — 다만 이 fallback은
+// "지금 가입 상태" 기준이라 과거 달을 조회해도 항상 현재 진행률이 나온다는 점은 감안 필요.
+const activeProducts = ref([])
+
+function buildFallbackSavingHabit(product) {
+  const paidCount = product.paidCount ?? 0
+  const totalCount = product.totalPaymentCount ?? 0
+  const progressRate = totalCount ? Math.round((paidCount / totalCount) * 100) : 0
+  return {
+    dot: INSIGHT_META.SAVING_PAYMENT_PROGRESS.dot,
+    title: INSIGHT_META.SAVING_PAYMENT_PROGRESS.title,
+    route: null,
+    deepLink: null,
+    desc: [`${product.productName}은 ${totalCount}번 중 ${paidCount}번 납입했어요.`, `진행률 ${progressRate}%예요.`],
+    checks: { done: paidCount, total: totalCount },
+    footer: `적금 ${totalCount}회 중 ${paidCount}회 완료`,
+  }
+}
+
+function applySavingFallback() {
+  if (!activeProducts.value.length) return
+  const hasSavingHabit = habits.value.some((h) => h.title === INSIGHT_META.SAVING_PAYMENT_PROGRESS.title)
+  if (hasSavingHabit) return
+
+  const savingProduct = activeProducts.value.find((p) => normalizeProductType(p.productType) === 'SAVING')
+  if (!savingProduct) return
+
+  const fallbackCard = buildFallbackSavingHabit(savingProduct)
+  const questIdx = habits.value.findIndex((h) => h.title === INSIGHT_META.QUEST_COMPLETED.title)
+  if (questIdx === -1) habits.value.push(fallbackCard)
+  else habits.value.splice(questIdx, 0, fallbackCard)
+}
+
+async function loadReport(month) {
+  isLoading.value = true
+  loadError.value = null
+  try {
+    const childId = authStore.memberId
+    const result = await getChildMoneyReport(authStore.accessToken, childId, month)
+    const data = result.data
+
+    const mappedPeriod = mapPeriod(data.period)
+    report.value = {
+      period: { label: mappedPeriod.label, status: mappedPeriod.status },
+      compare: mappedPeriod.compare,
+      yearMonth: mappedPeriod.yearMonth,
+    }
+    selectedMonth.value = mappedPeriod.yearMonth
+
+    summary.value = mapSummary(data.summary)
+    habits.value = (data.insights || []).map((insight) => mapInsight(insight, data))
+    applySavingFallback()
+    spend.value = mapSpending(data.spending)
+    score.value = mapTeenyScore(data.teenyScore)
+  } catch (e) {
+    console.error('소비 리포트 조회 실패:', e)
+    if (month) selectedMonth.value = month // 실패해도 방금 고른 달이 드롭다운에서 선택 표시되도록
+    loadError.value =
+      e.status === 400
+        ? ['이 달은 아직 데이터가 없어요', '다른 달을 선택해보세요']
+        : ['리포트를 불러오지 못했어요', '잠시 후 다시 시도해주세요']
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function toggleMonthPicker() {
+  showMonthPicker.value = !showMonthPicker.value
+}
+
+function selectMonth(yearMonth) {
+  showMonthPicker.value = false
+  if (yearMonth === selectedMonth.value) return
+  loadReport(yearMonth)
+}
+
+onMounted(async () => {
+  await loadReport()
+
+  // 금융상품 진행 상태 / 다가오는 금융 일정 — 리포트 조회 실패와 무관하게 별도로 시도
+  try {
+    const enrolledResult = await getMyEnrolledFinancialProducts(authStore.accessToken)
+    const enrolled = Array.isArray(enrolledResult) ? enrolledResult : enrolledResult?.data ?? []
+    console.log('[ChildReport] 가입 금융상품 원본 응답:', enrolled)
+
+    const active = enrolled.filter((p) => p.status !== 'PENDING')
+    console.log('[ChildReport] PENDING 제외 후 개수:', active.length, active)
+    activeProducts.value = active
+
+    products.value = active.map(mapProduct)
+    schedules.value = active
+      .map(mapSchedule)
+      .filter(Boolean)
+      .sort((a, b) => a.diffDays - b.diffDays)
+    applySavingFallback()
+  } catch (e) {
+    // [디버깅] 여기서 잡히는 에러가 있으면 콘솔에 스택까지 그대로 찍힘 — 내용 공유해주면 바로 원인 확인 가능
+    console.error('금융상품 목록 조회 실패:', e)
+  }
+})
+
+const monthLabel = computed(() => formatMonthLabel(report.value.yearMonth))
+
+// 저축 습관 카드의 회차 체크칩
+function checkChips(h) {
+  if (!h.checks) return []
+  const arr = []
+  for (let i = 1; i <= h.checks.total; i++) {
+    arr.push({ n: i, done: i <= h.checks.done })
+  }
+  return arr
+}
+
+// 막대 차트 높이 (제일 큰 값 기준으로 비율)
+const maxWeek = computed(() => Math.max(...spend.value.weeks.map((w) => w.amount), 1))
+function barHeight(week) {
+  if (week.empty) return '4px'
+  return Math.max(Math.round((week.amount / maxWeek.value) * 76), 6) + 'px'
+}
+
+// 도넛 세그먼트 계산 (SVG stroke-dasharray)
+const CIRC = 2 * Math.PI * 44 // 반지름 44의 둘레
 const donutSegments = computed(() => {
   let offset = 0
-  return categories.map((c) => {
+  return spend.value.categories.map((c) => {
     const len = (c.percent / 100) * CIRC
     const seg = { color: c.color, dash: `${len} ${CIRC}`, offset: -offset }
     offset += len
     return seg
   })
 })
- 
-function goBack() {
-  router.push({ name: 'child-home' })
+
+// 가장 많이 쓴 카테고리 색상 (도넛 밖 캡션의 컬러 점에 사용)
+const topCategoryColor = computed(() => {
+  const found = spend.value.categories.find((c) => c.name === spend.value.topCategory)
+  return found ? found.color : 'var(--ink-faint)'
+})
+
+// 카테고리 목록: 기본은 많이 쓴 순서로 상위 3개만, "전체 보기" 클릭 시 나머지도 펼침
+const CATEGORY_PREVIEW_COUNT = 3
+const showAllCategories = ref(false)
+const sortedCategories = computed(() =>
+  [...spend.value.categories].sort((a, b) => b.amount - a.amount)
+)
+const visibleCategories = computed(() =>
+  showAllCategories.value
+    ? sortedCategories.value
+    : sortedCategories.value.slice(0, CATEGORY_PREVIEW_COUNT)
+)
+const hiddenCategoryCount = computed(() =>
+  Math.max(0, sortedCategories.value.length - CATEGORY_PREVIEW_COUNT)
+)
+function toggleAllCategories() {
+  showAllCategories.value = !showAllCategories.value
+}
+
+// 다가오는 금융 일정: 3개까지만 먼저 보여주고 "전체 보기" 클릭 시 나머지도 펼침
+const SCHEDULE_PREVIEW_COUNT = 3
+const showAllSchedules = ref(false)
+const visibleSchedules = computed(() =>
+  showAllSchedules.value
+    ? schedules.value
+    : schedules.value.slice(0, SCHEDULE_PREVIEW_COUNT)
+)
+const hiddenScheduleCount = computed(() =>
+  Math.max(0, schedules.value.length - SCHEDULE_PREVIEW_COUNT)
+)
+function toggleAllSchedules() {
+  showAllSchedules.value = !showAllSchedules.value
 }
 </script>
- 
+
 <template>
   <div class="report-screen">
-    <!-- 스크롤 영역 (스크롤할 때만 스크롤바 표시) -->
-    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#191b1e" stroke-width="1.9"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">소비리포트</h1>
-    </div>
- 
-    <!-- 주차별 막대 차트 -->
-    <section class="section">
-      <div class="sec-head">
-        <span class="sec-title">{{ weekly.title }}</span>
-        <!-- [API] 드롭다운 클릭 시 다른 주차 조회 → weekly 재요청 (지금은 표시만) -->
-        <span class="caret">▾</span>
-      </div>
-      <p class="sec-sub">총 {{ won(weekly.total) }} 썼어요</p>
- 
-      <div class="bars">
-        <div class="dashline"></div>
-        <div v-for="bar in weekly.bars" :key="bar.label" class="bar-col">
-          <span class="bar-val" :class="{ current: bar.current }">{{ won(bar.amount) }}</span>
-          <div
-            class="bar"
-            :class="{ current: bar.current }"
-            :style="{ height: barHeight(bar.amount) }"
-          ></div>
-          <span class="bar-label">{{ bar.label }}</span>
+    <div class="scroll">
+
+      <!-- 상단 네비 -->
+      <div class="nav">
+        <div class="nav-left">
+          <button class="icon-btn" @click="goBack" aria-label="뒤로">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+              <path d="M15 6l-6 6 6 6" stroke="#16181c" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <span class="nav-title">소비 리포트</span>
         </div>
       </div>
-    </section>
- 
-    <!-- 월별 도넛 카드 -->
-    <section class="card">
-      <div class="sec-head">
-        <span class="sec-title">{{ monthly.title }}</span>
-        <!-- [API] 드롭다운 클릭 시 다른 월 조회 → monthly 재요청 (지금은 표시만) -->
-        <span class="caret">▾</span>
+
+      <!-- 로딩/에러 상태 -->
+      <div v-if="isLoading" class="state-msg">리포트를 불러오는 중이에요...</div>
+      <div v-else-if="loadError" class="state-msg state-msg--error">
+        <span v-for="(line, i) in loadError" :key="i">{{ line }}<br v-if="i < loadError.length - 1" /></span>
       </div>
-      <p class="sec-sub compact">{{ monthly.diffText }}</p>
- 
-      <div class="donut-wrap">
-        <svg width="180" height="180" viewBox="0 0 180 180">
-          <circle
-            v-for="(seg, i) in donutSegments"
-            :key="i"
-            cx="90" cy="90" r="66"
-            fill="none"
-            :stroke="seg.color"
-            stroke-width="26"
-            :stroke-dasharray="seg.dash"
-            :stroke-dashoffset="seg.offset"
-            transform="rotate(-90 90 90)"
-          />
-          <text x="90" y="84" text-anchor="middle" class="donut-label">이번 달</text>
-          <text x="90" y="110" text-anchor="middle" class="donut-amount">{{ won(monthly.total) }}</text>
-        </svg>
+
+      <template v-else>
+      <div class="date-row">
+        <div class="date-row-left">
+          <span class="date-text">{{ report.period.label }}</span>
+          <span class="status-badge">{{ report.period.status }}</span>
+        </div>
+        <div class="month-picker">
+          <button class="month-pill" @click="toggleMonthPicker">
+            {{ monthLabel }}
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#392b00" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="month-dropdown" v-if="showMonthPicker">
+            <button
+              v-for="ym in monthOptions"
+              :key="ym"
+              type="button"
+              class="month-option"
+              :class="{ active: ym === selectedMonth }"
+              @click="selectMonth(ym)"
+            >
+              {{ formatMonthLabelFull(ym) }}
+            </button>
+          </div>
+        </div>
       </div>
-    </section>
- 
-    <!-- 카테고리 리스트 -->
-    <section class="cat-list">
-      <div
-        v-for="(cat, i) in categories"
-        :key="cat.name"
-        class="cat-row"
-        :class="{ last: i === categories.length - 1 }"
-      >
-        <span class="cat-dot" :style="{ background: cat.color }"></span>
-        <span class="cat-name">{{ cat.name }}</span>
-        <span class="cat-pct">{{ cat.percent }}%</span>
-        <span class="cat-amt">{{ won(cat.amount) }}</span>
-      </div>
-    </section>
+      <p class="compare-line">{{ report.compare }}</p>
+
+      <!-- 이번 달 한눈에 보기 -->
+      <section>
+        <h2 class="sec-heading">이번 달 한눈에 보기</h2>
+        <div class="stat-grid">
+          <div class="stat-card" v-for="s in summary" :key="s.label">
+            <div class="stat-icon" :style="iconStyle(s.icon)">
+              <svg v-if="s.icon === 'wallet'" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M16 12.3h.01"/><path d="M3 10h18"/></svg>
+              <svg v-else-if="s.icon === 'trending'" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+              <svg v-else-if="s.icon === 'coin'" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M9.6 9.7c0-1.1 1-1.9 2.4-1.9s2.4.8 2.4 1.8c0 2.3-4.8 1.8-4.8 4.1 0 1 1 1.8 2.4 1.8s2.4-.8 2.4-1.8"/></svg>
+              <svg v-else viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.2l2.5 2.5 5-5.2"/></svg>
+            </div>
+            <div class="stat-label">{{ s.label }}</div>
+            <div class="stat-value" :class="s.colorClass">{{ won(s.value) }}</div>
+            <div class="stat-desc">{{ s.desc }}</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 이번 달 금융 습관 -->
+      <section>
+        <h2 class="sec-heading">이번 달 금융 습관</h2>
+        <div class="habit-card" v-for="h in habits" :key="h.title">
+          <div class="habit-head">
+            <div class="habit-title"><span class="habit-dot" :style="{ background: h.dot }"></span>{{ h.title }}</div>
+          </div>
+          <div class="habit-desc">
+            <span v-for="(line, i) in h.desc" :key="i">{{ line }}<br v-if="i < h.desc.length - 1" /></span>
+          </div>
+          <template v-if="h.checks">
+            <div class="checks-row">
+              <span
+                v-for="c in checkChips(h)"
+                :key="c.n"
+                class="check-chip"
+                :class="{ pending: !c.done }"
+                :aria-label="`${c.n}회차 ${c.done ? '완료' : '예정'}`"
+              >{{ c.done ? '✓' : '·' }} {{ c.n }}회</span>
+            </div>
+            <div class="habit-footer">{{ h.footer }}</div>
+          </template>
+          <button
+            v-if="(h.route || h.deepLink) && !h.checks"
+            type="button"
+            class="habit-link"
+            @click="router.push(h.route || h.deepLink)"
+          >
+            자세히 보기
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- 소비 명세 -->
+      <section>
+        <h2 class="sec-heading">소비 분석</h2>
+        <div class="spend-card">
+          <p class="spend-label">{{ spend.label }}</p>
+          <p class="spend-amount">{{ won(spend.amount) }}</p>
+          <span class="spend-diff">{{ spend.diffText }}</span>
+          <p class="spend-compare">{{ spend.compareText }}</p>
+
+          <div class="bar-chart">
+            <div class="bar-col" v-for="w in spend.weeks" :key="w.label">
+              <span class="bar-amt">{{ w.display }}</span>
+              <div
+                class="bar"
+                :class="{ active: w.active, empty: w.empty }"
+                :style="{ height: barHeight(w) }"
+              ></div>
+              <span class="bar-week" :class="{ active: w.active }">{{ w.label }}</span>
+            </div>
+          </div>
+
+          <div class="top-cat-row">
+            <span class="top-cat-label">이번 달 가장 많이 쓴 카테고리</span>
+            <span class="top-cat-name">
+              <span class="top-cat-dot" :style="{ background: topCategoryColor }"></span>
+              {{ spend.topCategory }}
+            </span>
+          </div>
+
+          <div class="donut-section">
+            <svg width="98" height="98" viewBox="0 0 120 120">
+              <circle
+                v-for="(seg, i) in donutSegments"
+                :key="i"
+                cx="60" cy="60" r="44"
+                fill="none"
+                :stroke="seg.color"
+                stroke-width="17"
+                :stroke-dasharray="seg.dash"
+                :stroke-dashoffset="seg.offset"
+                transform="rotate(-90 60 60)"
+              />
+              <text x="60" y="57" text-anchor="middle" font-size="9" font-weight="600" fill="#94a3b8">총 사용</text>
+              <text x="60" y="73" text-anchor="middle" font-size="13" font-weight="800" fill="#0f172a">{{ won(spend.amount) }}</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-row" v-for="c in visibleCategories" :key="c.name">
+                <span class="legend-dot" :style="{ background: c.color }"></span>
+                <span class="legend-name">{{ c.name }}</span>
+                <span class="legend-amt">{{ won(c.amount) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-list">
+            <div class="cat-row" v-for="c in visibleCategories" :key="c.name + '-row'">
+              <span class="legend-dot" :style="{ background: c.color }"></span>
+              <span class="cat-name">{{ c.name }}</span>
+              <span class="cat-stat">{{ c.times }}회 · {{ c.percent }}%</span>
+            </div>
+          </div>
+
+          <button class="btn-outline" v-if="sortedCategories.length > CATEGORY_PREVIEW_COUNT" @click="toggleAllCategories">
+            {{ showAllCategories ? '접기' : `전체 보기 (카테고리 ${hiddenCategoryCount}개 더보기)` }}
+          </button>
+        </div>
+      </section>
+
+      <!-- 금융상품 진행 상태 -->
+      <section>
+        <h2 class="sec-heading">금융상품 진행 상태</h2>
+        <div class="product-card" v-for="p in products" :key="p.name">
+          <div class="product-head">
+            <span class="product-name">{{ p.name }}</span>
+            <span class="tag" :class="p.tagClass">{{ p.tag }}</span>
+          </div>
+          <div class="product-sub">{{ p.type }} · <span class="status" :class="p.statusClass">{{ p.status }}</span></div>
+          <div class="product-period">{{ p.period }}</div>
+          <template v-if="p.progress">
+            <div class="progress-track">
+              <div class="progress-fill" :class="p.progress.colorClass" :style="{ width: p.progress.percent + '%' }"></div>
+            </div>
+            <div class="progress-label">
+              {{ p.type === '대출' ? '상환' : '납입' }} {{ p.progress.done }}/{{ p.progress.total }}회 · {{ p.progress.percent }}%
+            </div>
+          </template>
+          <div class="product-desc">{{ p.desc }}</div>
+          <div class="product-link">
+            상품 자세히 보기
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 이달의 티니점수 변화 -->
+      <section>
+        <h2 class="sec-heading">이달의 티니점수 변화</h2>
+        <div class="score-card">
+          <div class="score-head">
+            <div class="score-head-left">
+              <div class="score-icon" :class="{ negative: score.change < 0 }">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+              </div>
+              <div class="score-head-text">
+                <span class="score-label">이번 달 점수 변화</span>
+                <span class="score-value" :class="{ negative: score.change < 0 }">{{ score.change >= 0 ? '+' : '' }}{{ score.change }}점</span>
+              </div>
+            </div>
+            <div class="score-stats">
+              <span class="score-stat up"><span class="stat-dot"></span>증가 {{ score.up }}건</span>
+              <span class="score-stat down"><span class="stat-dot"></span>감소 {{ score.down }}건</span>
+            </div>
+          </div>
+          <div class="score-detail-row" v-for="(r, i) in score.reasons" :key="i">
+            <span class="score-detail-label">{{ r.label }}</span>
+            <span class="score-detail-value" :class="{ negative: !r.positive }">{{ r.value }}</span>
+          </div>
+          <button type="button" class="score-link" @click="goToScore">
+            티니점수 자세히 보기
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- 다가오는 금융 일정 -->
+      <section>
+        <div class="sec-head-row">
+          <h2 class="sec-heading">다가오는 금융 일정</h2>
+          <span class="sec-count">{{ schedules.length }}</span>
+        </div>
+        <div class="schedule-box" v-if="schedules.length > 0">
+          <div
+            class="schedule-row"
+            :class="{ 'border-top': i > 0 }"
+            v-for="(s, i) in visibleSchedules"
+            :key="s.title"
+          >
+            <div class="schedule-date-tile" :class="`tile--${s.theme}`">
+              <span class="tile-dday">{{ s.dday }}</span>
+              <span class="tile-date">{{ s.date }}</span>
+            </div>
+            <div class="schedule-detail">
+              <div class="schedule-detail-top">
+                <span class="schedule-name">{{ s.title }}</span>
+                <span class="schedule-type-badge" :class="`badge-text--${s.theme}`">{{ s.tagLabel }}</span>
+              </div>
+              <p class="schedule-desc">{{ s.desc }}</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="schedule-empty">
+          <p class="empty-text">예정된 금융 일정이 없어요</p>
+        </div>
+        <button
+          class="btn-outline schedule-more-btn"
+          v-if="schedules.length > SCHEDULE_PREVIEW_COUNT"
+          @click="toggleAllSchedules"
+        >
+          {{ showAllSchedules ? '접기' : `전체 보기 (일정 ${hiddenScheduleCount}개 더보기)` }}
+        </button>
+      </section>
+      </template>
+
     </div>
- 
+
     <!-- 하단 탭바 (고정) -->
     <BottomTabBar active="report" @select="onTabSelect" />
   </div>
 </template>
- 
+
 <style scoped>
 .report-screen {
- box-sizing: border-box;
-  position: relative;         
+  --card: #ffffff;
+  --card-border: #eaedf1;
+  --card-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  --ink: #0f172a;
+  --ink-sub: #64748b;
+  --ink-faint: #94a3b8;
+  --yellow: #ffbc00;
+  --orange: #f0b352;
+  --orange-tag-bg: #fdf0dd;
+  --orange-tag-fg: #b5793a;
+  --blue: #4a90d9;
+  --green: #4caf82;
+  --green-tag-bg: #e6f6ec;
+  --green-tag-fg: #2f9e5b;
+  --blue-tag-bg: #eaf2fc;
+  --blue-tag-fg: #2e72c7;
+  --line: #f1f5f9;
+  --radius-lg: 20px;
+  --radius-md: 20px;
+  --radius-sm: 12px;
+
+  box-sizing: border-box;
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
   background: #ffffff;
-  border: 1px solid #eceef1;
+  border: 1px solid var(--card-border);
   overflow: hidden;
+  color: var(--ink);
 }
- 
+
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 20px 20px;
+  padding: 16px 18px 40px;
 }
-.scroll::-webkit-scrollbar {
-  width: 3px;
-}
-.scroll::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 999px;
-  transition: background 0.3s;
-}
-.scroll.scrolling::-webkit-scrollbar-thumb {
-  background: #d8dbdf;
-}
- 
+.scroll::-webkit-scrollbar { width: 4px; }
+.scroll::-webkit-scrollbar-thumb { background: #e2e4e8; border-radius: 999px; }
+
 /* 상단 네비 */
 .nav {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 0 20px;
+  justify-content: space-between;
+  padding: 6px 0 18px;
 }
- 
+.nav-left { display: flex; align-items: center; gap: 6px; }
 .icon-btn {
   border: none;
   background: transparent;
-  padding: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  transition: background 0.15s ease;
 }
- 
-.nav-title {
-  margin: 0;
+.icon-btn:hover { background: #f2f3f5; }
+.nav-title { font-weight: 900; font-size: 18px; letter-spacing: -0.01em; color: var(--ink); margin-left: 2px; }
+
+.state-msg {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-sub);
+}
+.state-msg--error { color: #e5484d; }
+.month-pill {
+  background: var(--yellow);
+  border: none;
+  border-radius: 999px;
+  padding: 8px 12px 8px 14px;
   font-weight: 700;
-  font-size: 18px;
-  color: #191b1e;
+  font-size: 13.5px;
+  color: #392b00;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255,188,0,0.35);
+  transition: transform 0.12s ease;
 }
- 
-/* 섹션 공통 */
-.section {
+.month-pill:active { transform: scale(0.97); }
+
+.month-picker { position: relative; }
+.month-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 10;
+  min-width: 160px;
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(16,24,40,0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.month-dropdown::-webkit-scrollbar { display: none; }
+.month-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.month-option:hover { background: #f8f9fa; }
+.month-option.active { background: var(--yellow); color: #392b00; font-weight: 800; }
+
+.date-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.date-row-left { display: flex; align-items: center; gap: 8px; }
+.date-text { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: #ffffff;
+}
+.compare-line { margin: 4px 0 0; font-size: 12px; color: var(--ink-faint); margin-bottom: 28px; }
+
+h2.sec-heading {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+section { margin-bottom: 30px; }
+
+/* 2x2 요약 카드 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-md);
+  padding: 16px 14px;
+}
+.stat-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.stat-label { font-size: 12.5px; color: var(--ink-sub); margin-bottom: 4px; font-weight: 600; }
+.stat-value { font-size: 19px; font-weight: 800; color: var(--ink); margin-bottom: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.stat-value.green { color: var(--green-tag-fg); }
+.stat-value.blue { color: var(--blue-tag-fg); }
+.stat-desc { font-size: 11.5px; color: var(--ink-faint); line-height: 1.4; }
+
+/* 금융 습관 카드 */
+.habit-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.habit-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.habit-title { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 14.5px; color: var(--ink); }
+.habit-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.habit-desc { font-size: 13.5px; color: #3d3f44; line-height: 1.7; word-break: keep-all; overflow-wrap: break-word; }
+
+.checks-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 8px;
+  margin: 12px 0 8px;
+}
+.check-chip {
+  display: block;
+  background: var(--green-tag-bg);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 9px 0;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--green-tag-fg);
+}
+.check-chip.pending {
+  background: #f5f6f8;
+  color: var(--ink-faint);
+}
+.habit-footer { font-size: 12px; color: var(--ink-sub); font-weight: 500; }
+.habit-link {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-sub);
+  background: none;
+  border: none;
   padding: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
- 
-.sec-head {
+
+/* 소비 명세 카드 */
+.spend-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-lg);
+  padding: 20px 18px;
+}
+.spend-label { font-size: 13px; color: var(--ink-sub); margin: 0; font-weight: 600; }
+.spend-amount { font-size: 25px; font-weight: 900; color: var(--ink); margin: 2px 0 10px; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.spend-diff {
+  display: inline-block;
+  background: var(--yellow);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+.spend-compare { margin: 4px 0 0; font-size: 12px; color: var(--ink-faint); margin-bottom: 20px; }
+
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 92px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.bar { width: 100%; max-width: 34px; border-radius: 8px 8px 3px 3px; background: var(--yellow); transition: height 0.25s ease; }
+.bar.empty { background: transparent; border: 1.5px dashed #d7d9dd; }
+.bar-week { font-size: 11px; color: var(--ink-sub); font-weight: 600; text-align: center; }
+.bar-week.active { color: #a67300; font-weight: 800; }
+.bar-amt { font-size: 10px; color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; }
+
+.top-cat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 18px;
+}
+.top-cat-label { font-size: 12.5px; color: var(--ink-sub); font-weight: 600; }
+.top-cat-name {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
-  margin-left: 20px; 
-}
- 
-.sec-title {
-  font-weight: 700;
-  font-size: 17px;
-  color: #191b1e;
-}
- 
-.caret {
-  color: #b9bec5;
-  font-size: 12px;
-}
- 
-.sec-sub {
-  font-weight: 600;
   font-size: 14px;
-  color: #3b82f6;
-  margin: 0 0 24px;
-  margin-left: 20px; 
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
 }
- 
-.sec-sub.compact {
-  margin-bottom: 0;
+.top-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.donut-section { display: flex; align-items: center; gap: 14px; margin: 14px 0 16px; }
+.donut-legend { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.legend-row { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.legend-name { flex: 1; min-width: 0; color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; }
+.legend-amt { flex-shrink: 0; min-width: 54px; text-align: right; color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.cat-list { display: flex; flex-direction: column; margin-bottom: 18px; }
+.cat-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.cat-row:last-child { border-bottom: none; }
+.cat-row .legend-dot { width: 8px; height: 8px; }
+.cat-row .cat-name { flex: 1; min-width: 0; color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; }
+.cat-row .cat-stat { flex-shrink: 0; min-width: 66px; text-align: right; color: var(--ink-sub); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+.btn-outline {
+  width: 100%;
+  background: transparent;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-sub);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
- 
-/* 막대 차트 */
-.bars {
+.btn-outline:hover { background: #f8f9fa; border-color: #e2e4e8; }
+
+/* 금융상품 카드 */
+.product-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.product-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.product-name { font-weight: 800; font-size: 15px; color: var(--ink); letter-spacing: -0.01em; }
+.tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.tag.family { background: var(--green-tag-bg); color: var(--green-tag-fg); }
+.tag.institution { background: var(--blue-tag-bg); color: var(--blue-tag-fg); }
+.product-sub {
+  font-size: 13px;
+  color: var(--ink-sub);
+  margin-bottom: 2px;
+  font-weight: 500;
+}
+.product-sub .status { color: var(--yellow); font-weight: 700; }
+.product-sub .status.blue { color: var(--blue-tag-fg); }
+.product-period { font-size: 11.5px; color: var(--ink-faint); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+
+.progress-track {
+  width: 100%;
+  height: 7px;
+  background: #f0f1f3;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.progress-fill { height: 100%; border-radius: 999px; }
+.progress-fill.green { background: var(--green); }
+.progress-fill.blue { background: var(--blue); }
+.progress-label { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+.product-desc { font-size: 13px; color: var(--ink-sub); margin-bottom: 10px; }
+.product-link { display: flex; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 700; color: var(--ink-sub); }
+
+/* 티니점수 카드 */
+.score-card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+}
+.score-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.score-head-left { display: flex; align-items: center; gap: 10px; }
+.score-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--blue-tag-bg);
+  color: var(--blue-tag-fg);
   display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  height: 150px;
-  position: relative;
-  padding: 0 10px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
- 
-.dashline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 78px;
-  border-top: 1.5px dashed #ffbc00;
+.score-icon.negative { background: #fde7ea; color: #e5484d; }
+.score-head-text { display: flex; flex-direction: column; gap: 3px; }
+.score-label { font-size: 12.5px; color: var(--ink-sub); font-weight: 600; }
+.score-value { font-size: 20px; font-weight: 900; color: var(--blue-tag-fg); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.score-value.negative { color: #e5484d; }
+
+.score-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; padding-top: 2px; }
+.score-stat { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.score-stat.up { color: var(--blue-tag-fg); }
+.score-stat.down { color: var(--ink-faint); }
+.stat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: currentColor; }
+
+.score-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
 }
- 
-.bar-col {
+.score-detail-label { color: var(--ink); font-weight: 600; }
+.score-detail-value { color: var(--blue-tag-fg); font-weight: 800; font-variant-numeric: tabular-nums; }
+.score-detail-value.negative { color: #e5484d; }
+
+.score-link {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-sub);
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* 다가오는 금융 일정 */
+.sec-head-row { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.sec-head-row .sec-heading { margin: 0; }
+.sec-count {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--yellow);
+  background: #fff8e5;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.schedule-box {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-lg);
+  padding: 4px 16px;
+}
+.schedule-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+}
+.schedule-row.border-top { border-top: 1px solid var(--line); }
+
+.schedule-date-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-}
- 
-.bar-val {
-  font-weight: 700;
-  font-size: 12px;
-  color: #b9bec5;
-}
- 
-.bar-val.current {
-  color: #ffbc00;
-}
- 
-.bar {
-  width: 46px;
-  border-radius: 12px;
-  background: #e8eaed;
-}
- 
-.bar.current {
-  background: #ffbc00;
-}
- 
-.bar-label {
-  font-size: 12px;
-  color: #8b9097;
-  font-weight: 500;
-  margin-top: 6px;
-}
- 
-/* 도넛 카드 */
-.card {
-  margin: 28px 0 0;
-  padding: 24px 20px;
-  border: 1px solid #eceef1;
-  border-radius: 18px;
-}
- 
-.donut-wrap {
-  display: flex;
   justify-content: center;
-  margin-top: 20px;
-}
- 
-.donut-label {
-  font-size: 12px;
-  fill: #8b9097;
-}
- 
-.donut-amount {
-  font-size: 22px;
-  font-weight: 700;
-  fill: #191b1e;
-}
- 
-/* 카테고리 리스트 */
-.cat-list {
-  padding: 20px 0 0;
-}
- 
-.cat-row {
-  display: flex;
-  align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f1f3;
-}
- 
-.cat-row.last {
-  border-bottom: none;
-}
- 
-.cat-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
   margin-right: 12px;
+  flex-shrink: 0;
 }
- 
-.cat-name {
+.tile-dday { font-size: 11.5px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile-date { font-size: 9.5px; font-weight: 700; line-height: 1; margin-top: 3px; font-variant-numeric: tabular-nums; }
+
+.tile--green { background: #eef8ee; color: #2e8540; }
+.tile--yellow { background: #fff8e5; color: #d97706; }
+.tile--red { background: #fff0f0; color: #e5484d; }
+
+.schedule-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.schedule-detail-top { display: flex; align-items: center; gap: 6px; }
+.schedule-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.schedule-type-badge {
+  flex-shrink: 0;
+  font-size: 9.5px;
   font-weight: 700;
-  font-size: 16px;
-  color: #191b1e;
-  flex: 1;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
- 
-.cat-pct {
-  font-size: 14px;
-  color: #b9bec5;
-  font-weight: 500;
-  margin-right: 16px;
+.badge-text--green { background: #eef8ee; color: #2e8540; }
+.badge-text--yellow { background: #fff8e5; color: #d97706; }
+.badge-text--red { background: #fff0f0; color: #e5484d; }
+.schedule-desc { margin: 0; font-size: 11.5px; font-weight: 600; color: var(--ink-sub); line-height: 1.2; }
+
+.schedule-empty {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  text-align: center;
 }
- 
-.cat-amt {
-  font-weight: 700;
-  font-size: 16px;
-  color: #191b1e;
-}
- 
+.schedule-empty .empty-text { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--ink-faint); }
+.schedule-more-btn { margin-top: 10px; }
+
 /* 하단 탭바 고정 */
 .report-screen :deep(.tabbar) {
   flex-shrink: 0;
 }
 </style>
- 

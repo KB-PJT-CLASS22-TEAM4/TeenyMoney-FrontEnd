@@ -76,7 +76,7 @@
       <section class="wallet-section">
         <div class="balance-row">
           <div class="balance-info">
-            <span class="balance-label">티니머니 잔액</span>
+            <span class="balance-label">티니머니</span>
             <p class="balance-amount">{{ balance.toLocaleString() }}원</p>
           </div>
           <div class="action-btns">
@@ -235,7 +235,8 @@
               <span class="tx-date">{{ t.date }}</span>
               <span class="tx-name">{{ t.name }}</span>
             </div>
-            <span class="tx-amount" :class="{ plus: t.amount > 0 }">
+            <!-- 입금/출금 클래스 바인딩 및 부호 처리 -->
+            <span class="tx-amount" :class="t.amount > 0 ? 'plus' : 'minus'">
               {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}원
             </span>
           </div>
@@ -864,6 +865,7 @@ function onTabSelect(key) {
   font-size: 21px;
   font-weight: 900;
   color: #0f172a;
+  white-space: nowrap;
 }
 
 .action-btns {
@@ -1004,7 +1006,7 @@ function onTabSelect(key) {
 .allow-card-msg {
   font-size: 10.5px;
   font-weight: 700;
-  color: #d98200;
+  color: #ffbc00;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -1390,11 +1392,17 @@ function onTabSelect(key) {
 .tx-amount {
   font-weight: 800;
   font-size: 14px;
-  color: #18181b;
+  white-space: nowrap;
 }
 
+/* 입금: 블루 */
 .tx-amount.plus {
-  color: #2563eb;
+  color: #3d70c2;
+}
+
+/* 출금: 소프트 코랄 레드 */
+.tx-amount.minus {
+  color: #dd494e;
 }
 
 .tx-empty {

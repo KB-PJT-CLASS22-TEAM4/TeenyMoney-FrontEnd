@@ -181,6 +181,7 @@
     </div>
 
     <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
 
   </div>
 </template>
@@ -188,6 +189,8 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   computed,
@@ -212,6 +215,7 @@ const router = useRouter()
 const route = useRoute()
 
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 
 // ========================================
@@ -446,7 +450,7 @@ async function handleSave() {
 
   if (!childId.value) {
 
-    alert(
+    alertModal.showAlert(
       '선택된 자녀 정보가 없습니다.'
     )
 
@@ -502,7 +506,7 @@ async function handleSave() {
     )
 
 
-    alert(
+    alertModal.showAlert(
       '설정이 저장되었습니다!'
     )
 
@@ -539,7 +543,7 @@ async function handleSave() {
     }
 
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '설정을 저장하지 못했습니다.'
     )

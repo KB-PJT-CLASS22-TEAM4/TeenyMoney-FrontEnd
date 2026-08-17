@@ -296,11 +296,14 @@
     </main>
 
     <ParentBottomNav active="mypage" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   computed,
@@ -321,6 +324,7 @@ import {
 
 const router = useRouter()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 /* =========================
    회원 정보 상태
@@ -521,7 +525,7 @@ function goToChildDetail(childId) {
 
 async function disconnectChild(child) {
 
-  const confirmed = window.confirm(
+  const confirmed = await alertModal.showConfirm(
     `${child.name} 자녀와의 연동을 해제하시겠습니까?`
   )
 
@@ -558,7 +562,7 @@ async function disconnectChild(child) {
       error
     )
 
-    window.alert(
+    alertModal.showAlert(
       error.message
       || '자녀 연동을 해제하지 못했습니다.'
     )
@@ -615,9 +619,9 @@ function goToPolicy() {
    로그아웃
 ========================= */
 
-function logout() {
+async function logout() {
 
-  const confirmed = window.confirm(
+  const confirmed = await alertModal.showConfirm(
     '로그아웃하시겠습니까?'
   )
 
@@ -633,9 +637,9 @@ function logout() {
    회원 탈퇴
 ========================= */
 
-function withdraw() {
+async function withdraw() {
 
-  const confirmed = window.confirm(
+  const confirmed = await alertModal.showConfirm(
     '회원 탈퇴 화면으로 이동하시겠습니까?'
   )
 
