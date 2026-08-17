@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport } from '@/api/report'
@@ -9,15 +8,6 @@ import { getMyEnrolledFinancialProducts } from '@/api/finance'
 
 const router = useRouter()
 const authStore = useAuthStore()
-
-// 하단 탭 이동
-function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' })
-  if (key === 'report') router.push({ name: 'child-report' })
-  if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' })
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
-}
 
 function goBack() {
   router.push({ name: 'child-transaction' })
@@ -117,7 +107,6 @@ const INSIGHT_ROUTE = {
 }
 
 function mapInsight(insight, data) {
-  // SAVING_PAYMENT_PROGRESS는 화면에서 표시하지 않음
   if (insight.insightCode === 'SAVING_PAYMENT_PROGRESS') {
     return null
   }
@@ -301,7 +290,6 @@ function mapProduct(p) {
   } else if (isSaving) {
     const total = p.totalPaymentCount ?? 0
     const done = p.paidCount ?? 0
-    // 적금 진행바 색상을 yellow로 설정
     progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'yellow' }
     const next = calcNextDueDate(p.startDate, done)
     desc = next ? `다음 납입일은 ${formatDateDot(next)}이에요.` : '다음 납입 일정을 확인해보세요.'
@@ -415,7 +403,6 @@ async function loadReport(month) {
     selectedMonth.value = mappedPeriod.yearMonth
 
     summary.value = mapSummary(data.summary)
-    // SAVING_PAYMENT_PROGRESS는 mapInsight 내부에서 null을 반환하여 필터링
     habits.value = (data.insights || []).map((insight) => mapInsight(insight, data)).filter(Boolean)
     spend.value = mapSpending(data.spending)
     score.value = mapTeenyScore(data.teenyScore)
@@ -773,10 +760,7 @@ function toggleAllSchedules() {
     </div>
 
     <!-- 소비 리포트용 안내 말풍선 포함 챗봇 플로팅 버튼 -->
-    <Chatbot hint-text="이번 달 소비 분석에 대해서 물어봐!" />
-
-    <!-- 하단 탭바 (고정) -->
-    <BottomTabBar active="report" @select="onTabSelect" />
+    <Chatbot hint-text="이번 달 소비 분석이나 금융 습관에 대해 물어보세요!" />
   </div>
 </template>
 
@@ -810,6 +794,7 @@ function toggleAllSchedules() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
+  padding-top: 20px;
   background: #ffffff;
   border: 1px solid var(--card-border);
   overflow: hidden;
@@ -1265,9 +1250,4 @@ section { margin-bottom: 30px; }
 }
 .schedule-empty .empty-text { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--ink-faint); }
 .schedule-more-btn { margin-top: 10px; }
-
-/* 하단 탭바 고정 */
-.report-screen :deep(.tabbar) {
-  flex-shrink: 0;
-}
 </style>
