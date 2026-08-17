@@ -270,7 +270,7 @@ const router    = useRouter()
 const authStore  = useAuthStore()
 const allowStore = useAllowRequestStore()
 
-const teenyScoreMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
+const teenyScoreMascot = new URL('@/assets/mascot/teeny-run.png', import.meta.url).href
 
 const activeCard = ref(0)
 const scrollRef  = ref(null)
