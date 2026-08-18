@@ -60,6 +60,7 @@
               :key="q"
               type="button"
               class="quick-reply-chip"
+              :disabled="isSending"
               @click="askQuickQuestion(q)"
             >
               {{ q }}
@@ -172,15 +173,17 @@ const quickQuestions = [
 ]
 
 function openChat() {
+  isSending.value = false
   isOpen.value = true
   scrollToBottom()
 }
 
 function closeChat() {
   isOpen.value = false
-  messages.value = []
-  conversationId.value = null
-  draft.value = ''
+  isSending.value = false
+  messages.value = []           // 대화 기록 초기화 -> 다시 열었을 때 첫 화면 노출
+  conversationId.value = null   // 세션 초기화
+  draft.value = ''              // 인풋 초기화
 }
 
 async function scrollToBottom() {
@@ -265,6 +268,7 @@ async function askBot(query) {
       query,
     }
   } finally {
+    isSending.value = false
     scrollToBottom()
   }
 }
@@ -279,7 +283,6 @@ async function handleSubmit() {
   scrollToBottom()
 
   await askBot(query)
-  isSending.value = false
 }
 
 async function retryMessage(idx) {
@@ -291,7 +294,6 @@ async function retryMessage(idx) {
   scrollToBottom()
 
   await askBot(target.query)
-  isSending.value = false
 }
 </script>
 
@@ -536,7 +538,6 @@ async function retryMessage(idx) {
   margin-top: 2px;
 }
 
-/* 글자 잘림 방지: word-break & overflow-wrap 개선 */
 .msg-bubble {
   position: relative;
   max-width: 85%;
@@ -693,6 +694,9 @@ async function retryMessage(idx) {
 .chat-pop-enter-active,
 .chat-pop-leave-active {
   transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.chat-pop-leave-active {
+  pointer-events: none;
 }
 .chat-pop-enter-from,
 .chat-pop-leave-to {
