@@ -1,164 +1,607 @@
 <template>
   <div class="child-home">
-    <!-- 상단 헤더 -->
-    <header class="header">
-      <span class="username">{{ userName }}님</span>
-      <button class="bell-btn"  @click="goNotification">
-        <svg viewBox="0 0 24 24" width="23" height="23" fill="none">
-          <path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#4a4e55" stroke-width="1.7" stroke-linejoin="round"/>
-          <path d="M10 20a2 2 0 0 0 4 0" stroke="#4a4e55" stroke-width="1.7" stroke-linecap="round"/>
-        </svg>
-        <!-- 안 읽은 알림 있으면 빨간 점 -->
-        <span v-if="hasUnread" class="bell-dot"></span>
-      </button>
-    </header>
-
     <div class="scroll-area">
 
-    <!-- 잔액 영역 -->
-    <section class="balance">
-      <img src="@/assets/logo.svg" class="wallet" alt="지갑" />
-      <div class="balance-text">
-        <p class="balance-label">티니머니</p>
-        <p class="balance-amount">{{ balance }}원</p>
-      </div>
-    </section>
+      <!-- 상단 히어로 영역 (일러스트 배경 + 인사말 + 캐릭터 + 통합 점수카드) -->
+      <section class="hero-section">
+        <!-- 상단 네비바 -->
+        <header class="top-nav">
+          <div class="brand">
+            <img src="@/assets/logo.svg" class="brand-logo" alt="티니머니" />
+            <span class="brand-title">티니머니</span>
+          </div>
+          <ChildNavActions />
+        </header>
 
-    <!-- 송금 / 결제내역 버튼 -->
-    <div class="actions">
-      <button class="pill primary">송금</button>
-      <button class="pill" @click="goPayment">결제내역</button>
-    </div>
-
-    <!-- 티니 점수 -->
-    <section class="score">
-      <div class="score-head" @click="goScore" style="cursor: pointer;">
-        <span class="score-title">티니 점수</span>
-        <span class="chev">›</span>
-      </div>
-      <div class="score-row">
-        <b class="score-value">{{ score }}점</b>
-        <span class="score-grade">{{ grade }} 등급</span>
-      </div>
-      <div class="score-bar">
-        <div class="score-fill" :style="{ width: scorePercent + '%' }"></div>
-      </div>
-    </section>
-
-<!-- 내 금융 -->
-<section class="finance">
-  <div class="finance-head" @click="goFinance" style="cursor: pointer;">
-    <span class="finance-title">내 금융</span>
-    <span class="finance-all">전체보기</span>
-  </div>
-  <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
-  <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
-</div>
-
-<!-- 페이지 인디케이터 -->
-<div class="indicator">
-  <span
-    v-for="(f, i) in finances"
-    :key="f.id"
-    class="dot"
-    :class="{ active: i === activeCard }"
-  ></span>
-</div>
-</section>
-
-    <!-- 최근 이용내역 -->
-    <section class="history">
-      <div class="history-head" @click="goPayment" style="cursor: pointer;">
-        <span class="history-title">최근 이용내역</span>
-        <span class="chev">›</span>
-      </div>
-      <div v-for="t in transactions" :key="t.id" class="tx-item">
-        <div class="tx-info">
-          <span class="tx-date">{{ t.date }}</span>
-          <span class="tx-name">{{ t.name }}</span>
+        <!-- 인사말 텍스트 -->
+        <div class="hero-text">
+          <h2 class="hero-title">
+            오늘도 반가워요!<br />
+            <span class="highlight-blue">{{ userName || '김티니' }}님</span>
+          </h2>
+          <p class="hero-sub">티니와 함께 금융 모험을 시작해 볼까요?</p>
         </div>
-        <span class="tx-amount" :class="{ plus: t.amount > 0 }">
-          {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}
-        </span>
-      </div>
-    </section>
+
+        <!-- 티니 캐릭터 -->
+        <div class="hero-mascot-wrap">
+          <img :src="teenyScoreMascot" class="hero-mascot" alt="티니" />
+          <div class="mascot-shadow"></div>
+        </div>
+
+        <!-- 티니점수 카드 -->
+        <div class="hero-score-card" @click="goScore">
+          <div class="score-card-top">
+            <div class="score-card-left">
+              <span class="score-card-title">티니점수</span>
+              <div class="score-value-row">
+                <span class="score-num">{{ score }}</span>
+                <span class="score-unit">점</span>
+              </div>
+            </div>
+
+            <!-- 등급 배지 -->
+            <div class="score-card-right">
+              <div
+                class="grade-badge"
+                :style="{ backgroundColor: gradeColor + '18', borderColor: gradeColor + '55' }"
+              >
+                <span class="badge-icon">🎖️</span>
+                <span class="badge-text" :style="{ color: gradeColor }">{{ grade }} 티니</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 티니 점수 프로그레스 게이지 -->
+          <div class="score-progress-wrap">
+            <div class="progress-text-row">
+              <span class="progress-label">다음 등급까지 <strong class="hl-blue" :style="{ color: gradeColor }">{{ remainingScore }}점</strong></span>
+              <span class="progress-target">{{ nextGradeMinScore ?? maxScore }}점</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" :style="{ width: progressPercent + '%', background: gradeColor }"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 잔액 & 송금/결제 영역 -->
+      <section class="wallet-section">
+        <div class="balance-row">
+          <div class="balance-info">
+            <span class="balance-label">티니머니</span>
+            <p class="balance-amount">{{ balance.toLocaleString() }}원</p>
+          </div>
+          <div class="action-btns">
+            <button class="btn-pill btn-yellow">송금</button>
+            <button class="btn-pill btn-gray" @click="goPayment">결제내역</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 오늘만 허용 섹션 -->
+      <section class="allow-section">
+        <div class="allow-head">
+          <span class="allow-title">오늘만 허용</span>
+          <span class="allow-expire">오늘 밤 11:59까지</span>
+        </div>
+
+        <div class="allow-slide">
+          <!-- 요청한 업종 카드 목록 -->
+          <div
+            v-for="item in allowRequests"
+            :key="item.id"
+            class="allow-card"
+            :class="{ 'clickable': item.status === 'PENDING' }"
+            @click="onClickAllowCard(item)"
+          >
+            <div class="allow-card-content">
+              <div class="allow-card-badge" :class="`status-badge--${item.status.toLowerCase()}`">
+                {{ getAllowStatusText(item.status) }}
+              </div>
+
+              <div class="allow-card-name">{{ item.label }}</div>
+              
+              <!-- 안내 메시지 및 남은 시간 표시 -->
+              <div class="allow-card-sub">
+                <template v-if="item.status === 'APPROVED'">
+                  <div class="allow-time-box">
+                    <div class="allow-time-bar">
+                      <div class="allow-time-fill" :style="{ width: '62%' }"></div>
+                    </div>
+                    <span class="allow-card-remain">{{ getRemainingTime() }}</span>
+                  </div>
+                </template>
+
+                <template v-else-if="item.status === 'PENDING'">
+                  <div class="allow-card-msg">부모님이 확인 중이에요</div>
+                </template>
+
+                <template v-else-if="item.status === 'REJECTED'">
+                  <div class="allow-card-msg msg--rejected">
+                    부모님이 허락하지 않았어요!<br />오늘은 이용할 수 없어요
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- 상태별 캐릭터 이미지 -->
+            <img 
+              v-if="getMascotImage(item.status)"
+              :src="getMascotImage(item.status)" 
+              class="allow-mascot" 
+              alt="티니" 
+            />
+          </div>
+
+          <!-- 새로 요청하기 카드 -->
+          <div class="allow-card allow-card--new" @click="goAllowRequest">
+            <div class="plus-icon-wrapper">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="#8b9097" stroke-width="2.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span class="allow-card-label">허용 요청하기</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ────────── 다가오는 금융 일정 (타임라인 카드 형태) ────────── -->
+      <section class="schedule-section">
+        <div class="schedule-head">
+          <div class="schedule-head-left">
+            <span class="schedule-title">다가오는 금융 일정</span>
+            <span class="schedule-count">{{ upcomingSchedules.length }}</span>
+          </div>
+        </div>
+
+        <div class="schedule-box" v-if="upcomingSchedules.length > 0">
+          <div
+            v-for="(item, idx) in upcomingSchedules"
+            :key="item.id"
+            class="schedule-row"
+            :class="{ 'border-top': idx > 0 }"
+          >
+            <!-- 캘린더형 날짜 타일 (신호등 테마) -->
+            <div class="schedule-date-tile" :class="`tile--${item.badgeTheme}`">
+              <span class="tile-dday">{{ item.dday }}</span>
+              <span class="tile-date">{{ item.dateStr }}</span>
+            </div>
+
+            <!-- 일정 상세 내용 -->
+            <div class="schedule-detail">
+              <div class="schedule-detail-top">
+                <span class="schedule-name">{{ item.title }}</span>
+                <span class="schedule-type-badge" :class="`badge-text--${item.badgeTheme}`">
+                  {{ item.typeLabel }}
+                </span>
+              </div>
+              <p class="schedule-desc">{{ item.desc }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 일정이 없을 때 -->
+        <div v-else class="schedule-empty">
+          <p class="empty-text">예정된 금융 일정이 없어요</p>
+        </div>
+      </section>
+
+      <!-- 내 금융 -->
+      <section class="finance">
+        <div class="finance-head" @click="goFinance" style="cursor: pointer;">
+          <span class="finance-title">내 금융</span>
+          <span class="finance-all">전체보기 ›</span>
+        </div>
+        
+        <template v-if="finances.length > 0">
+          <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
+            <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
+          </div>
+
+          <div class="indicator" v-if="finances.length > 1">
+            <span
+              v-for="(f, i) in finances"
+              :key="f.id"
+              class="dot"
+              :class="{ active: i === activeCard }"
+            ></span>
+          </div>
+        </template>
+        
+        <div v-else class="finance-empty" @click="goFinance" style="cursor: pointer;">
+          <p class="empty-title">가입된 금융 상품이 없어요</p>
+          <span class="empty-link">새로운 금융 상품 둘러보기 ›</span>
+        </div>
+      </section>
+
+      <!-- 최근 이용내역 -->
+      <section class="history">
+        <div class="history-head" @click="goPayment" style="cursor: pointer;">
+          <span class="history-title">최근 이용내역</span>
+          <span class="chev">›</span>
+        </div>
+        
+        <template v-if="transactions.length > 0">
+          <div v-for="t in transactions" :key="t.id" class="tx-item">
+            <div class="tx-info">
+              <span class="tx-date">{{ t.date }}</span>
+              <span class="tx-name">{{ t.name }}</span>
+            </div>
+            <!-- 입금/출금 클래스 바인딩 및 부호 처리 -->
+            <span class="tx-amount" :class="t.amount > 0 ? 'plus' : 'minus'">
+              {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}원
+            </span>
+          </div>
+        </template>
+        <div v-else class="tx-empty">
+          최근 이용 내역이 없습니다.
+        </div>
+      </section>
     </div>
+
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
+
+    <Chatbot />
   </div>
 </template>
 
-
-
 <script setup>
-import FinanceCard from '@/components/Child/FinanceCard.vue';
-import BottomTabBar from '@/components/Child/BottomTabBar.vue';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-const router = useRouter();
+import FinanceCard from '@/components/Child/FinanceCard.vue'
+import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useAllowRequestStore } from '@/stores/allowRequest'
+import { getMyWallet } from '@/api/wallet'
+import { getTeenyScore, getTeenyScoreGrades } from '@/api/teenyScore'
+import { getMyEnrolledFinancialProducts } from '@/api/finance'
 
-const activeCard = ref(0);
-const scrollRef = ref(null);
-const hasUnread = ref(true); 
+const router    = useRouter()
+const authStore  = useAuthStore()
+const allowStore = useAllowRequestStore()
+
+const teenyScoreMascot = new URL('@/assets/mascot/teeny-run.png', import.meta.url).href
+
+const activeCard = ref(0)
+const scrollRef  = ref(null)
 
 function onScroll() {
-  const el = scrollRef.value;
-  if (!el) return;
-  const maxScroll = el.scrollWidth - el.clientWidth;
-  const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0;
-  activeCard.value = Math.round(ratio * (finances.length - 1));
+  const el = scrollRef.value
+  if (!el || finances.value.length === 0) return
+  const maxScroll = el.scrollWidth - el.clientWidth
+  const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0
+  activeCard.value = Math.round(ratio * (finances.value.length - 1))
 }
 
-function goNotification() {
-  router.push({ name: 'child-notification' });
+function goPayment()      { router.push({ name: 'child-transaction' }) }
+function goScore()        { router.push({ name: 'child-score' }) }
+function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
+function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
+
+// ==== 오늘만 허용 매핑 정보 ====
+const CATEGORY_LABELS = {
+  1: '편의점',
+  2: '카페·디저트',
+  3: '문구·도서·완구',
+  4: '게임',
+  5: 'PC방·노래방',
+  6: '패션·뷰티',
+  7: '대중교통',
+  8: '통신',
+  9: '영화·공연·테마파크',
+  10: '온라인쇼핑',
+  11: '학원·교육',
+  12: '유흥·성인업소',
+  13: '사행성·도박',
+  14: '성인숙박업',
+  15: '일반숙박업',
+  16: '생활용품·잡화',
+  17: '외식·숙박',
+  18: '의료·건강',
+  19: '문화·여가',
+  20: '생활서비스',
+  21: '기타',
 }
 
+const allowRequests = computed(() => {
+  const permission = allowStore.todayPermission
+  if (!permission) return []
+  return permission.categories.map(categoryId => ({
+    id: categoryId,
+    label: CATEGORY_LABELS[categoryId] ?? `${categoryId}`,
+    status: permission.status,
+  }))
+})
 
-function goPayment() {
-  router.push({ name: 'child-transaction' })
+function onClickAllowCard(item) {
+  if (item.status === 'PENDING') {
+    router.push({
+      name: 'child-todayallow-edit',
+      query: { id: allowStore.todayPermission?.id, label: item.label },
+    })
+  }
 }
 
-
-function goScore() {
-  router.push({ name: 'child-score' });
+function getMascotImage(status) {
+  if (status === 'PENDING')  return new URL('@/assets/mascot/teeny-pending.png', import.meta.url).href
+  if (status === 'APPROVED') return new URL('@/assets/mascot/teeny-approved.png', import.meta.url).href
+  if (status === 'REJECTED') return new URL('@/assets/mascot/teeny-rejected.png', import.meta.url).href
+  return ''
 }
 
-function goFinance() {
-  router.push({ name: 'child-finance-myproducts' })
+function getAllowStatusText(status) {
+  if (status === 'PENDING')  return '승인 대기 중'
+  if (status === 'APPROVED') return '승인 완료'
+  if (status === 'REJECTED') return '승인 거부'
+  return ''
 }
 
+function getRemainingTime() {
+  const now      = new Date()
+  const midnight = new Date()
+  midnight.setHours(23, 59, 0, 0)
+  const diff = midnight - now
+  const h = Math.floor(diff / (1000 * 60 * 60))
+  const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  return `${h}시간 ${m}분 남음`
+}
 
-// ==== API 연동 필요 (지금은 더미 데이터) ====
-// [API] 사용자 정보 (이름)
-const userName = '김첫째';
-// [API] 잔액 조회
-const balance = '42,500';
-// [API] 티니 점수 조회 (점수 + 등급 + 진척도)
-const score = 850;
-const grade = '우수';
-const scorePercent = 70;
-// [API] 내 금융 상품 목록 (적금/예금/대출)
-const finances = [
-  { id: 1, type: '적금', rate: '연 4.5%', name: '티니 꿈나무 적금', amount: '90,000원', sub: '3 / 24개월', progress: 13, amountColor: '#15171b' },
-  { id: 2, type: '예금', rate: '연 2.8%', name: '용돈 모으기 예금', amount: '35,000원', sub: '자유 입출금', progress: 60, amountColor: '#15171b' },
-];
-// [API] 최근 이용내역 (최근 3건)
-const transactions = [
-  { id: 1, date: '07.15  21:17', name: 'GS25 강남점', amount: -3200 },
-  { id: 2, date: '07.14  16:07', name: '교통카드 충전', amount: -10000 },
-  { id: 3, date: '07.13  15:50', name: '정기 용돈', amount: 15000 },
-];
+// ==== 유저 및 잔액/점수 정보 ====
+const userName     = ref('')
+const balance      = ref(0)
+const transactions = ref([])
+
+const score             = ref(0)
+const grade             = ref('')
+const minScore          = ref(0)
+const maxScore          = ref(0)
+const gradeColor        = ref('#facc15')
+const nextGradeMinScore = ref(null)
+
+const remainingScore = computed(() => {
+  if (nextGradeMinScore.value === null) return 0
+  return Math.max(0, nextGradeMinScore.value - score.value)
+})
+
+const progressPercent = computed(() => {
+  const target = nextGradeMinScore.value ?? maxScore.value
+  const total = target - minScore.value
+  if (total <= 0) return 0
+  const current = score.value - minScore.value
+  return Math.min(100, Math.max(0, (current / total) * 100))
+})
+
+// ==== 내 금융 상품 및 다가오는 일정 목록 ====
+const finances = ref([])
+const upcomingSchedules = ref([])
+
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+
+function formatTxDate(dateVal) {
+  if (!dateVal) return '-'
+  if (Array.isArray(dateVal)) {
+    const [, month, day, hour = 0, minute = 0] = dateVal
+    return `${pad2(month)}-${pad2(day)}  ${pad2(hour)}:${pad2(minute)}`
+  }
+  if (typeof dateVal === 'string' && dateVal.length >= 16) {
+    return dateVal.slice(5, 16).replace('T', '  ')
+  }
+  const d = new Date(dateVal)
+  if (isNaN(d.getTime())) return '-'
+  return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}  ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+}
+
+function parseDateParts(raw) {
+  if (!raw) return null
+  if (Array.isArray(raw)) {
+    const [y, m, d] = raw
+    return { y, m, d }
+  }
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+}
+
+function formatDateCompact(raw) {
+  const parts = parseDateParts(raw)
+  if (!parts) return '-'
+  return `${parts.y}.${pad2(parts.m)}.${pad2(parts.d)}`
+}
+
+function getLocalBonusDeposit(enrollmentId) {
+  const saved = localStorage.getItem(`mock_deposit_${enrollmentId}`)
+  return saved ? Number(saved) : 0
+}
+
+function calcNextDueDate(startRaw, paidCount) {
+  const parts = parseDateParts(startRaw)
+  if (!parts) return null
+  const next = new Date(parts.y, parts.m - 1, parts.d)
+  next.setMonth(next.getMonth() + (paidCount ?? 0) + 1)
+  return next
+}
+
+// 금융상품 API 응답 → 다가오는 일정 아이템 매핑 (🚦 신호등 색상 매핑)
+function mapToScheduleItem(p) {
+  const isLoan = p.productType === 'LOAN'
+  const isSaving = p.productType === 'SAVING'
+  const isDeposit = p.productType === 'DEPOSIT'
+  const isFreeSaving = isSaving && p.savingsType === 'FREE'
+
+  let targetDate = null
+  if (isDeposit) {
+    const parts = parseDateParts(p.maturityDate)
+    if (parts) targetDate = new Date(parts.y, parts.m - 1, parts.d)
+  } else {
+    targetDate = calcNextDueDate(p.startDate, p.paidCount ?? 0)
+  }
+
+  if (!targetDate) return null
+
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffTime = targetDate.getTime() - today.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`
+  const dateStr = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+
+  let title = ''
+  let desc = ''
+  let typeLabel = ''
+  let badgeTheme = 'green'
+
+  const amountStr = p.monthlyAmount || p.currentAmount
+    ? `${(p.monthlyAmount || p.currentAmount).toLocaleString()}원`
+    : '10,000원'
+
+  if (isLoan) {
+    title = `${p.productName} 상환`
+    desc = `${amountStr} 낼 예정이에요`
+    typeLabel = '대출'
+    badgeTheme = 'red' // 🔴 대출: 빨간색
+  } else if (isSaving) {
+    title = isFreeSaving ? `${p.productName} 입금` : `${p.productName} 납입`
+    desc = `${amountStr} 넣을 예정이에요`
+    typeLabel = isFreeSaving ? '자유적금' : '정액적금'
+    badgeTheme = 'yellow' // 🟡 적금: 노란색
+  } else if (isDeposit) {
+    title = `${p.productName} 만기`
+    desc = `${(p.currentAmount ?? 0).toLocaleString()}원 수령 예정이에요`
+    typeLabel = '예금'
+    badgeTheme = 'green' // 🟢 예금: 초록색
+  }
+
+  return {
+    id: p.enrollmentId,
+    dday,
+    dateStr,
+    title,
+    desc,
+    typeLabel,
+    badgeTheme,
+    diffDays,
+  }
+}
+
+// 금융상품 API 응답 → FinanceCard props 매핑 함수
+function mapToFinanceCard(p) {
+  const isLoan = p.productType === 'LOAN'
+  const isSaving = p.productType === 'SAVING'
+  const isDeposit = p.productType === 'DEPOSIT'
+  const isFreeSaving = isSaving && p.savingsType === 'FREE'
+
+  const paidCount = p.paidCount ?? 0
+  const totalCount = p.totalPaymentCount ?? 0
+  const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0
+
+  const bonus = isFreeSaving ? getLocalBonusDeposit(p.enrollmentId) : 0
+  const currentTotal = (p.currentAmount ?? 0) + bonus
+
+  let typeLabel = '적금'
+  if (isDeposit) typeLabel = '예금'
+  else if (isLoan) typeLabel = '대출'
+  else if (isFreeSaving) typeLabel = '자유적금'
+  else if (isSaving) typeLabel = '정액적금'
+
+  let subText = ''
+  let progress = 0
+
+  if (isDeposit) {
+    subText = p.maturityDate ? `${formatDateCompact(p.maturityDate)} 만기` : '만기 유지 중'
+    progress = 100
+  } else if (isFreeSaving) {
+    subText = '자유 납입'
+    progress = 100
+  } else if (isSaving) {
+    subText = `${paidCount} / ${totalCount}회차`
+    progress = progressPercent
+  } else if (isLoan) {
+    subText = `상환 ${paidCount} / ${totalCount}회`
+    progress = progressPercent
+  }
+
+  return {
+    id: p.enrollmentId,
+    type: typeLabel,
+    rate: `연 ${p.appliedRate ?? 0}%`,
+    name: p.productName,
+    amount: `${currentTotal.toLocaleString()}원`,
+    sub: subText,
+    progress: progress,
+    amountColor: '#15171b',
+  }
+}
+
+onMounted(async () => {
+  try {
+    userName.value = authStore.name ?? ''
+
+    const [walletRes, scoreRes, gradesRes, enrolledRes] = await Promise.all([
+      getMyWallet(authStore.accessToken),
+      getTeenyScore(authStore.accessToken, authStore.memberId),
+      getTeenyScoreGrades(authStore.accessToken),
+      getMyEnrolledFinancialProducts(authStore.accessToken).catch(() => []),
+    ])
+
+    // 지갑 및 거래내역
+    balance.value = walletRes.data.balance
+    transactions.value = walletRes.data.recentTransactions.map(t => ({
+      id:     t.id,
+      date:   formatTxDate(t.createdAt),
+      name:   t.description,
+      amount: t.direction === 'CREDIT' ? t.amount : -t.amount,
+    }))
+
+    // 티니 점수 및 등급
+    const d = scoreRes.data
+    score.value      = d.teenyScore
+    grade.value      = d.gradeName
+    minScore.value   = d.minScore
+    maxScore.value   = d.maxScore
+    gradeColor.value = d.color
+
+    const gradesAsc = [...gradesRes.data].sort((a, b) => a.minScore - b.minScore)
+    const currentIdx = gradesAsc.findIndex((g) => g.gradeId === d.gradeId)
+    const next = currentIdx >= 0 && currentIdx < gradesAsc.length - 1
+      ? gradesAsc[currentIdx + 1]
+      : null
+    nextGradeMinScore.value = next ? next.minScore : null
+
+    // 내 금융 상품 목록 매핑
+    if (Array.isArray(enrolledRes)) {
+      const activeProducts = enrolledRes.filter(p => p.status !== 'PENDING')
+      finances.value = activeProducts.map(mapToFinanceCard)
+
+      // 가장 가까운 일정 순으로 3개 추출
+      const schedules = activeProducts
+        .map(mapToScheduleItem)
+        .filter(Boolean)
+        .sort((a, b) => a.diffDays - b.diffDays)
+
+      upcomingSchedules.value = schedules.slice(0, 3)
+    }
+
+    // 오늘만 허용 상태 데이터 패치
+    await allowStore.fetchTodayPermission(authStore.accessToken)
+  } catch (e) {
+    console.error('홈 데이터 조회 실패:', e.message)
+  }
+})
 
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' });
-  if (key === 'my') router.push({ name: 'child-mypage' });
-  if (key === 'q') router.push({ name: 'qr-scan' });
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' }) 
-  if (key === 'report') router.push({ name: 'child-report' })           
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
+  if (key === 'quest')   router.push({ name: 'child-quest-list' })
 }
 </script>
-
-
 
 <style scoped>
 .child-home {
@@ -166,253 +609,685 @@ function onTabSelect(key) {
   display: flex;
   flex-direction: column;
   width: 360px;
-  height: 730px;           /* min-height → height */
+  height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
+  overflow: hidden;
+  position: relative;
+}
+
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.scroll-area::-webkit-scrollbar { display: none; }
+
+/* 히어로 영역 */
+.hero-section {
+  position: relative;
+  background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
+  padding: 36px 18px 24px;
+  border-bottom-left-radius: 28px;
+  border-bottom-right-radius: 28px;
   overflow: hidden;
 }
 
-/* 상단 헤더 */
-.header {
+.top-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
+  margin-bottom: 14px;
 }
 
-.username {
-  font-weight: 700;
-  font-size: 16px;
-  color: #191b1e;
-}
-
-.bell-btn {
-  position: relative;  
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-}
-.bell-dot {
-  position: absolute;
-  top: -2px;
-  right: 1px;
-  width: 7px;
-  height: 7px;
-  background: #ff4d4f;  
-  border-radius: 50%;
-  border: 1.5px solid #fff;  
-}
-
-/* 잔액 */
-.balance {
+.brand {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 20px;
+  gap: 6px;
 }
 
-.wallet {
-  width: 64px;
-  height: 64px;
+.brand-logo {
+  width: 26px;
+  height: 26px;
+}
+
+.brand-title {
+  font-size: 17px;
+  font-weight: 900;
+  color: #1c1e22;
+}
+
+.hero-text {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  margin: 0 0 6px;
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1.35;
+  color: #191b1e;
+  letter-spacing: -0.5px;
+}
+
+.highlight-blue { color: #2563eb; }
+
+.hero-sub {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #71717a;
+}
+
+.hero-mascot-wrap {
+  position: absolute;
+  right: -8px;
+  top: 125px;
+  z-index: 1;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-mascot {
+  width: 165px;
+  height: 165px;
   object-fit: contain;
 }
 
+.mascot-shadow {
+  width: 105px;
+  height: 12px;
+  background: rgba(220, 190, 80, 0.32);
+  border-radius: 50%;
+  margin-top: -18px;
+  filter: blur(5px);
+}
+
+/* 티니점수 카드 */
+.hero-score-card {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  width: 170px;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+}
+
+.score-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.score-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.score-card-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #27272a;
+}
+
+.score-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-top: 1px;
+}
+
+.score-num {
+  font-size: 26px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.score-unit {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.score-card-right {
+  display: flex;
+  align-items: center;
+}
+
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+}
+
+.badge-icon { font-size: 9px; }
+
+.badge-text {
+  font-size: 9.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.score-progress-wrap {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.progress-text-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.hl-blue { font-weight: 800; }
+
+.progress-bar-bg {
+  width: 100%;
+  height: 7px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease-out;
+}
+
+/* 잔액 영역 카드 */
+.wallet-section {
+  padding: 14px 18px 0;
+}
+
+.balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
 .balance-label {
-  margin: 0;
-  font-weight: 600;
   font-size: 11.5px;
-  color: #8b9097;
+  font-weight: 700;
+  color: #71717a;
 }
 
 .balance-amount {
   margin: 2px 0 0;
-  font-weight: 800;
-  font-size: 24px;
-  letter-spacing: -0.875px;
-  color: #191b1e;
+  font-size: 21px;
+  font-weight: 900;
+  color: #0f172a;
+  white-space: nowrap;
 }
 
-/* 송금/결제 버튼 */
-.actions {
+.action-btns {
   display: flex;
-  gap: 14px;
-  padding: 16px 20px 0;
+  gap: 8px;
 }
 
-.pill {
-  flex: 1;
-  padding: 9px 16px;
+.btn-pill {
+  padding: 9px 15px;
+  border-radius: 12px;
   border: none;
-  border-radius: 4px;
-  background: #f2f4f6;
-  font-weight: 700;
-  font-size: 12px;
-  color: #191b1e;
+  font-size: 12.5px;
+  font-weight: 800;
   cursor: pointer;
 }
 
-.pill.primary {
-  background: #ffbc00;
+.btn-yellow {
+  background: #facc15;
+  color: #18181b;
 }
 
-/* 티니 점수 */
-.score {
-  padding: 20px 20px 0;
+.btn-gray {
+  background: #f4f4f5;
+  color: #27272a;
 }
 
-.score-head {
+/* 오늘만 허용 섹션 */
+.allow-section {
+  padding: 20px 0 0;
+}
+
+.allow-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0 20px;
+  margin-bottom: 10px;
 }
 
-.score-title {
-  font-weight: 700;
-  font-size: 13px;
-  color: #191b1e;
+.allow-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
+  line-height: 1;
 }
 
-.chev {
-  font-size: 18px;
-  color: #b9bec5;
-}
-
-.score-row {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
-}
-
-.score-value {
+.allow-expire {
   font-weight: 600;
-  font-size: 13px;
-  color: #191b1e;
+  font-size: 11px;
+  color: #a0a5b1;
+  line-height: 1;
 }
 
-.score-grade {
+.allow-slide {
+  display: flex;
+  gap: 10px;
+  padding: 2px 18px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.allow-slide::-webkit-scrollbar {
+  display: none;
+}
+
+.allow-card {
+  flex-shrink: 0;
+  width: 175px;
+  height: 124px;
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease;
+  overflow: hidden;
+}
+
+.allow-card.clickable {
+  cursor: pointer;
+}
+
+.allow-card:active {
+  transform: scale(0.97);
+}
+
+.allow-card-content {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+.allow-card-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 8px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.status-badge--pending {
+  background: #fff8e6;
+  color: #d98200;
+}
+
+.status-badge--approved {
+  background: #eef9eb;
+  color: #3b8e27;
+}
+
+.status-badge--rejected {
+  background: #fff0f0;
+  color: #e5484d;
+}
+
+.allow-card-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #22252a;
+  line-height: 1.1;
+  white-space: nowrap;
+  margin-bottom: 12px;
+}
+
+.allow-card-sub {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.allow-card-msg {
+  font-size: 10.5px;
   font-weight: 700;
-  font-size: 12px;
-  color: #191b1e;
+  color: #ffbc00;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.score-bar {
+.allow-card-msg.msg--rejected {
+  color: #d94b4f;
+}
+
+.allow-time-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100px;
+}
+
+.allow-time-bar {
   width: 100%;
-  height: 6px;
-  margin-top: 8px;
-  background: #e9ecef;
+  height: 5px;
+  background: #f0f2f5;
   border-radius: 999px;
   overflow: hidden;
 }
 
-.score-fill {
+.allow-time-fill {
   height: 100%;
-  background: #ffbc00;
+  background: #62b24a;
   border-radius: 999px;
+}
+
+.allow-card-remain {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #43962d;
+  line-height: 1;
+}
+
+.allow-mascot {
+  position: absolute;
+  right: -6px;
+  bottom: -10px;
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+}
+
+.allow-card--new {
+  width: 100px;
+  height: 124px;
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 20px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.allow-card--new:active {
+  background: #f1f5f9;
+}
+
+.plus-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.allow-card-label {
+  font-weight: 700;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1;
+}
+
+/* ────────── 다가오는 금융 일정 (타임라인 카드 형태) ────────── */
+.schedule-section {
+  padding: 16px 18px 0;
+}
+
+.schedule-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.schedule-head-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.schedule-count {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ffbc00;
+  background: #fff8e5;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.schedule-box {
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
+  padding: 4px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.schedule-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.schedule-row.border-top {
+  border-top: 1px solid #f1f5f9;
+}
+
+/* 캘린더형 날짜 타일 */
+.schedule-date-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.tile-dday {
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tile-date {
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 3px;
+}
+
+/* 🚦 신호등 테마 색상 (타일 배경/텍스트) */
+.tile--green {
+  background: #eef8ee;
+  color: #2e8540;
+}
+
+.tile--yellow {
+  background: #fff8e5;
+  color: #d97706;
+}
+
+.tile--red {
+  background: #fff0f0;
+  color: #e5484d;
+}
+
+/* 상세 내용 영역 */
+.schedule-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.schedule-detail-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #15171b;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-type-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* 🚦 신호등 뱃지 텍스트 테마 */
+.badge-text--green {
+  background: #eef8ee;
+  color: #2e8540;
+}
+
+.badge-text--yellow {
+  background: #fff8e5;
+  color: #d97706;
+}
+
+.badge-text--red {
+  background: #fff0f0;
+  color: #e5484d;
+}
+
+.schedule-desc {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.schedule-empty {
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 18px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.schedule-empty .empty-text {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #94a3b8;
 }
 
 /* 내 금융 */
 .finance {
-  padding: 24px 0 0;
+  margin: 12px 18px 0;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px 0 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .finance-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
 .finance-title {
-  font-weight: 700;
-  font-size: 13.5px;
-  color: #15171b;
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
 }
 
 .finance-all {
-  font-weight: 600;
-  font-size: 12.3px;
-  color: #b9bec5;
+  font-weight: 700;
+  font-size: 12px;
+  color: #a1a1aa;
 }
 
 .finance-scroll {
   display: flex;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 12px 16px;
   overflow-x: auto;
-  scrollbar-width: none;       
-  -ms-overflow-style: none;   
+  scrollbar-width: none;
 }
+.finance-scroll::-webkit-scrollbar { display: none; }
 
-/* Chrome/Safari 스크롤바 숨김 */
-.finance-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-/* 최근 이용내역 */
-.history {
-  padding: 12px 20px 0;
-}
-
-.history-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px; 
-}
-
-.history-title {
-  font-weight: 700;
-  font-size: 13px;
-  color: #191b1e;
-}
-
-.tx-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-top: 1px solid #f0f1f3;
-}
-
-.tx-item:first-of-type {
-  border-top: none;
-}
-
-.tx-info {
+.finance-empty {
+  padding: 24px 16px 16px;
+  text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  align-items: center;
+  gap: 4px;
 }
 
-.tx-date {
-  font-weight: 500;
-  font-size: 10.5px;
-  color: #b9bec5;
-}
-
-.tx-name {
-  font-weight: 600;
-  font-size: 12.8px;
-  color: #191b1e;
-}
-
-.tx-amount {
-  font-weight: 600;
+.empty-title {
+  margin: 0;
   font-size: 13.5px;
-  color: #191b1e;
+  font-weight: 700;
+  color: #71717a;
 }
 
-.tx-amount.plus {
-  color: #4d8ad6; 
-}
-
-/* 하단 탭바 하단 고정 */
-.child-home :deep(.tabbar) {
-  margin-top: auto;
+.empty-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffbc00;
 }
 
 .indicator {
@@ -420,27 +1295,100 @@ function onTabSelect(key) {
   justify-content: center;
   align-items: center;
   gap: 6px;
-  padding: 6px 0 4px;
 }
 
 .dot {
   width: 6px;
   height: 6px;
-  background: #d8dbdf;  
+  background: #e2e8f0;
   border-radius: 3px;
   transition: all 0.2s;
 }
 
 .dot.active {
-  width: 16px;    
-  background: #15171b;   
+  width: 16px;
+  background: #0f172a;
 }
-.scroll-area {
-  flex: 1;
-  overflow-y: auto;
-  scrollbar-width: none;
+
+/* 최근 이용내역 */
+.history {
+  margin: 12px 18px 16px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
-.scroll-area::-webkit-scrollbar {
-  display: none;
+
+.history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.history-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.chev {
+  font-size: 18px;
+  color: #a1a1aa;
+}
+
+.tx-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid #f8fafc;
+}
+.tx-item:first-of-type { border-top: none; }
+
+.tx-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tx-date {
+  font-weight: 600;
+  font-size: 10.5px;
+  color: #a1a1aa;
+}
+
+.tx-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #18181b;
+}
+
+.tx-amount {
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* 입금: 블루 */
+.tx-amount.plus {
+  color: #3d70c2;
+}
+
+/* 출금: 소프트 코랄 레드 */
+.tx-amount.minus {
+  color: #dd494e;
+}
+
+.tx-empty {
+  padding: 20px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: #a1a1aa;
+  font-weight: 600;
+}
+
+.child-home :deep(.tabbar) {
+  margin-top: auto;
 }
 </style>

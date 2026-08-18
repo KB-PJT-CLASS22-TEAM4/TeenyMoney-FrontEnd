@@ -24,48 +24,103 @@
       </div>
     </div>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-      <button class="nav-item" type="button" @click="router.push('/parents/home')">
-        <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
-        <span class="nav-label">홈</span>
-      </button>
-      <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child-alive.svg" alt="" class="nav-icon" />
-        <span class="nav-label">자녀관리</span>
-      </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
-        <span class="nav-label">마이페이지</span>
-      </button>
-    </nav>
+    <ParentBottomNav active="child" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+
+import { useAuthStore } from '@/stores/auth'
+import { sendAllowance } from '@/api/allowance'
 
 const router = useRouter()
 const route = useRoute()
 
-onMounted(async () => {
-  // TODO: API 연동
-  // POST /api/v1/allowance/send
-  // body: { childId: route.query.childId, amount: route.query.amount }
-  // 성공 시 → SendComplete
-  // 실패(잔액부족) 시 → SendFail
+const authStore = useAuthStore()
 
-  // 임시: 2초 후 완료 페이지로
-  setTimeout(() => {
-    router.push({
-      path: '/parents/send/complete',
+onMounted(async () => {
+  const childId =
+    Number(route.query.childId)
+
+  const amount =
+    Number(route.query.amount)
+
+  const childName =
+    route.query.childName
+
+  const idempotencyKey =
+    route.query.idempotencyKey
+
+  if (
+    !childId ||
+    !amount ||
+    !idempotencyKey
+  ) {
+    router.replace({
+      path: '/parents/send/fail',
+
       query: {
-        amount: route.query.amount,
-        childName: route.query.childName,
+        message:
+          '송금 정보가 올바르지 않습니다.',
       },
     })
-  }, 2000)
+
+    return
+  }
+
+  try {
+    const res =
+      await sendAllowance(
+        childId,
+        amount,
+        authStore.accessToken,
+        idempotencyKey
+      )
+
+    router.replace({
+      path: '/parents/send/complete',
+
+      query: {
+        amount,
+        childName,
+
+        createdAt:
+          res?.data?.createdAt || '',
+      },
+    })
+
+  } catch (error) {
+    console.error(
+      '용돈 보내기 실패:',
+      error
+    )
+
+    if (error.status === 401) {
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
+
+      return
+    }
+
+    router.replace({
+      path: '/parents/send/fail',
+
+      query: {
+        amount,
+        childName,
+
+        message:
+          error.message ||
+          '용돈 보내기에 실패했습니다.',
+
+        code:
+          error.code || '',
+      },
+    })
+  }
 })
 </script>
 
@@ -156,40 +211,5 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 700;
   color: #191b1e;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.nav-icon { width: 24px; height: 24px; }
-
-.nav-label {
-  font-size: 11px;
-  color: #8b9097;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
 }
 </style>

@@ -30,6 +30,22 @@ export async function sendPhoneVerificationCode(phoneNumber) {
   return res.json()
 }
 
+// 휴대폰 인증 번호 확인
+export async function confirmPhoneVerificationCode(phoneNumber, verificationCode) {
+  const res = await fetch(`${BASE_URL}/phone-verification/confirm`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      phoneNumber,
+      verificationCode,
+    }),
+  })
+
+  return res.json()
+}
+
 // 회원가입
 export async function signup(form) {
   const res = await fetch(`${BASE_URL}/signup`, {

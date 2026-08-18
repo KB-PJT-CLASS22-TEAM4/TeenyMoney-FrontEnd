@@ -5,6 +5,7 @@
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
       <h1 class="nav-title">연동 코드</h1>
+      <ParentNavActions />
     </header>
 
     <div class="content">
@@ -72,6 +73,7 @@
         </div>
       </div>
     </div>
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
@@ -80,9 +82,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { makeFamilyCode } from '@/api/families'
+import AlertHost from '@/components/AlertHost.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 // data.code 는 문자열로 다룸 (앞자리 0 손실 방지)
 const linkCode = ref('000000')
@@ -148,7 +154,7 @@ async function generateCode() {
     }
 
     console.error('연동 코드 발급 실패:', error)
-    alert('연동 코드 발급에 실패했습니다.')
+    alertModal.showAlert('연동 코드 발급에 실패했습니다.')
   } finally {
     isLoading.value = false
   }
@@ -192,7 +198,7 @@ function startTimer() {
 function copyCode() {
   // data.code 문자열 그대로 복사
   navigator.clipboard.writeText(linkCode.value)
-  alert('코드가 복사되었습니다!')
+  alertModal.showAlert('코드가 복사되었습니다!')
 }
 
 onMounted(() => {

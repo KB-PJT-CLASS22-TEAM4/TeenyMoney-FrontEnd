@@ -8,6 +8,7 @@
         </svg>
       </button>
       <h1 class="nav-title">결제 비밀번호 변경</h1>
+      <ChildNavActions />
     </div>
 
     <!-- 자물쇠 + 안내 -->
@@ -56,6 +57,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 

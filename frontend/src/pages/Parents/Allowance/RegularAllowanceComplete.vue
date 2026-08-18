@@ -22,12 +22,19 @@
         <div class="info-row">
           <span class="info-label">지급 주기</span>
           <span class="info-value">
-            {{ route.query.cycle === 'MONTHLY' ? '매월' : '매주' }} {{ route.query.day }}일
+            {{ cycleLabel }}
           </span>
         </div>
         <div class="info-row">
           <span class="info-label">지급 금액</span>
           <span class="info-value">{{ Number(route.query.amount).toLocaleString() }}원</span>
+        </div>
+        <div
+          v-if="nextPaymentDate"
+          class="info-row"
+        >
+          <span class="info-label">다음 지급일</span>
+          <span class="info-value">{{ nextPaymentDate }}</span>
         </div>
       </div>
 
@@ -36,29 +43,62 @@
       </button>
     </div>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-      <button class="nav-item" type="button" @click="router.push('/parents/home')">
-        <img src="@/assets/icons/icon-home.svg" alt="" class="nav-icon" />
-        <span class="nav-label">홈</span>
-      </button>
-      <button class="nav-item nav-item-active" type="button">
-        <img src="@/assets/icons/icon-child.svg" alt="" class="nav-icon" />
-        <span class="nav-label">자녀관리</span>
-      </button>
-      <button class="nav-item" type="button" @click="router.push('/parents/mypage')">
-        <img src="@/assets/icons/icon-mypage.svg" alt="" class="nav-icon" />
-        <span class="nav-label">마이페이지</span>
-      </button>
-    </nav>
+    <ParentBottomNav active="child" />
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import { useRouter, useRoute } from 'vue-router'
+
+const WEEKDAY_LABELS = [
+  '',
+  '월요일',
+  '화요일',
+  '수요일',
+  '목요일',
+  '금요일',
+  '토요일',
+  '일요일',
+]
 
 const router = useRouter()
 const route = useRoute()
+
+const cycleLabel = computed(() => {
+  if (route.query.cycleLabel) {
+    return route.query.cycleLabel
+  }
+
+  const day = Number(route.query.day)
+
+  if (route.query.cycle === 'WEEKLY') {
+    return `매주 ${WEEKDAY_LABELS[day] || `${day}요일`}`
+  }
+
+  return `매월 ${day || ''}일`
+})
+
+const nextPaymentDate = computed(() => {
+  const value = route.query.nextPaymentDate
+
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}.${month}.${day}`
+})
 </script>
 
 <style scoped>
@@ -159,40 +199,5 @@ const route = useRoute()
 .btn-primary {
   background-color: #ffbc00;
   color: #191b1e;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.nav-icon { width: 24px; height: 24px; }
-
-.nav-label {
-  font-size: 11px;
-  color: #8b9097;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
 }
 </style>
