@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
+import ChildNavActions from '@/components/Child/ChildNavActions.vue';
 import { getMyInfo, getLinkedParent } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 import { logout as logoutApi } from '@/api/auth';
@@ -128,7 +129,10 @@ function onScroll() {
 <template>
   <div class="mypage-screen">
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <h1 class="page-title">마이페이지</h1>
+      <div class="page-title-row">
+        <h1 class="page-title">마이페이지</h1>
+        <ChildNavActions />
+      </div>
 
       <!-- 프로필 -->
       <section class="profile">
@@ -268,8 +272,16 @@ function onScroll() {
   background: #d8dbdf;
 }
 
-.page-title {
+.page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0 0 20px;
+}
+
+.page-title {
+  margin: 0;
   font-weight: 700;
   font-size: 19px;
   color: #191b1e;

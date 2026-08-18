@@ -11,7 +11,7 @@
           </svg>
         </button>
         <h1 class="nav-title">티니 점수 등급</h1>
-        <span class="nav-spacer"></span>
+        <ChildNavActions />
       </div>
 
       <div v-if="loading" class="state-text">불러오는 중...</div>
@@ -122,6 +122,7 @@ import { getTeenyScore, getTeenyScoreGrades, getMyHistories } from '@/api/teenyS
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

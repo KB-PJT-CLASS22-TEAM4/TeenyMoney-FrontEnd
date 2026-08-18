@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import LoginRequiredModal from '@/components/LoginRequiredModal.vue'
 import ParentMenu from '@/components/Parents/ParentMenu.vue'
+import ChildMenu from '@/components/Child/ChildMenu.vue'
 
 const route = useRoute()
 const isParentRoute = computed(() => route.path.startsWith('/parents'))
@@ -14,6 +15,7 @@ const isChildRoute = computed(() => route.path.startsWith('/child'))
     <RouterView />
   </div>
   <ParentMenu v-if="isParentRoute" />
+  <ChildMenu v-if="isChildRoute" />
   <LoginRequiredModal />
 </template>
 

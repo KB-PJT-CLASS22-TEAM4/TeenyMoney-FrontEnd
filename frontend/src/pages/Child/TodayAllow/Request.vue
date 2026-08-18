@@ -12,6 +12,7 @@
           </svg>
         </button>
         <h1 class="nav-title">오늘만 허용 요청</h1>
+        <ChildNavActions />
       </nav>
 
       <!-- 🐥 티니 코치 말풍선 카드 -->
@@ -157,6 +158,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

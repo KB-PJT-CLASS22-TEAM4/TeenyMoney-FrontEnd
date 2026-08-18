@@ -10,6 +10,7 @@
           </svg>
         </button>
         <h1 class="nav-title">오늘만 허용 수정하기</h1>
+        <ChildNavActions />
       </nav>
 
       <section class="teeny-coach-card">
@@ -157,6 +158,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const route = useRoute()

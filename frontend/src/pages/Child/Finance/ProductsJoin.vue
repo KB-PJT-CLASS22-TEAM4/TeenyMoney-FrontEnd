@@ -7,6 +7,7 @@
         </svg>
       </button>
       <h1 class="nav-title">{{ pageTitle }}</h1>
+      <ChildNavActions />
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
@@ -335,6 +336,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createSavingEnrollment, createLoanEnrollment, createDepositEnrollment } from '@/api/finance'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const route  = useRoute()

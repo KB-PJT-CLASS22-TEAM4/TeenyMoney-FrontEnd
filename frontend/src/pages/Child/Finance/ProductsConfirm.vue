@@ -8,6 +8,7 @@
         </svg>
       </button>
       <h1 class="nav-title">{{ pageTitle }}</h1>
+      <ChildNavActions />
     </div>
 
     <!-- 스크롤 영역 -->
@@ -160,6 +161,7 @@
 import { ref, computed, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter();
 const route = useRoute();
