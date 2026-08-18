@@ -214,54 +214,6 @@
         </div>
       </section>
 
-      <!-- 알림 설정 -->
-      <section class="section-block">
-        <h2 class="section-title">
-          알림 설정
-        </h2>
-
-        <div class="menu-card">
-          <div class="toggle-row menu-border">
-            <span>금융상품 알림</span>
-            <label class="switch">
-              <input
-                type="checkbox"
-                :checked="notificationSettings.notificationFinance"
-                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationFinance'"
-                @change="onToggleNotification('notificationFinance', $event.target.checked)"
-              >
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="toggle-row menu-border">
-            <span>결제 알림</span>
-            <label class="switch">
-              <input
-                type="checkbox"
-                :checked="notificationSettings.notificationPayment"
-                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationPayment'"
-                @change="onToggleNotification('notificationPayment', $event.target.checked)"
-              >
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <div class="toggle-row">
-            <span>퀘스트 알림</span>
-            <label class="switch">
-              <input
-                type="checkbox"
-                :checked="notificationSettings.notificationQuest"
-                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationQuest'"
-                @change="onToggleNotification('notificationQuest', $event.target.checked)"
-              >
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-      </section>
-
       <!-- 고객지원 -->
       <section class="section-block">
 
@@ -353,10 +305,6 @@ import { getMyInfo } from '@/api/member'
 import { getChildren } from '@/api/children'
 import { unlinkFamily } from '@/api/families'
 import {
-  getNotificationSetting,
-  updateNotificationSetting,
-} from '@/api/notification'
-import {
   PARENT_PROFILE_IMAGE,
   CHILD_PROFILE_IMAGE,
 } from '@/utils/profileImages'
@@ -391,14 +339,6 @@ const children = ref([])
 const isChildrenLoading = ref(false)
 const childrenError = ref('')
 const unlinkingId = ref(null)
-
-const notificationSettings = reactive({
-  notificationFinance: true,
-  notificationPayment: true,
-  notificationQuest: true,
-})
-const notificationSettingLoading = ref(true)
-const notificationSavingKey = ref('')
 
 /* =========================
    생년월일 포맷
@@ -567,49 +507,6 @@ function goToChildDetail(childId) {
   )
 }
 
-async function loadNotificationSetting() {
-  if (!authStore.accessToken) {
-    notificationSettingLoading.value = false
-    return
-  }
-
-  notificationSettingLoading.value = true
-
-  try {
-    const res = await getNotificationSetting(authStore.accessToken)
-    const data = res.data || {}
-
-    notificationSettings.notificationFinance = data.notificationFinance ?? true
-    notificationSettings.notificationPayment = data.notificationPayment ?? true
-    notificationSettings.notificationQuest = data.notificationQuest ?? true
-  } catch (error) {
-    console.error('알림 설정 조회 실패:', error)
-  } finally {
-    notificationSettingLoading.value = false
-  }
-}
-
-async function onToggleNotification(key, value) {
-  const prevValue = notificationSettings[key]
-  notificationSettings[key] = value
-  notificationSavingKey.value = key
-
-  try {
-    await updateNotificationSetting(authStore.accessToken, {
-      notificationFinance: notificationSettings.notificationFinance,
-      notificationPayment: notificationSettings.notificationPayment,
-      notificationQuest: notificationSettings.notificationQuest,
-    })
-  } catch (error) {
-    notificationSettings[key] = prevValue
-    alertModal.showAlert(
-      error.message || '알림 설정을 변경하지 못했습니다.'
-    )
-  } finally {
-    notificationSavingKey.value = ''
-  }
-}
-
 /* =========================
    자녀 연동 해제
 ========================= */
@@ -700,7 +597,6 @@ async function logout() {
 onMounted(() => {
   fetchMyInfo()
   fetchChildren()
-  loadNotificationSetting()
 })
 </script>
 
@@ -998,66 +894,6 @@ button {
 
 .menu-border {
   border-bottom: 1px solid #f0f1f3;
-}
-
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 58px;
-  padding: 0 16px;
-  color: #191b1e;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 42px;
-  height: 25px;
-  flex: none;
-}
-
-.switch input {
-  width: 0;
-  height: 0;
-  opacity: 0;
-}
-
-.slider {
-  position: absolute;
-  inset: 0;
-  cursor: pointer;
-  background: #e7e9ec;
-  border-radius: 25px;
-  transition: 0.3s;
-}
-
-.slider:before {
-  position: absolute;
-  content: '';
-  width: 19px;
-  height: 19px;
-  left: 3px;
-  bottom: 3px;
-  background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: 0.3s;
-}
-
-.switch input:checked + .slider {
-  background: #ffbc00;
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(17px);
-}
-
-.switch input:disabled + .slider {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .chevron {
