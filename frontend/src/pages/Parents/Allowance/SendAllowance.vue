@@ -103,7 +103,7 @@
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="amount = quick.value"
+            @click="addAmount(quick.value)"
           >
             {{ quick.label }}
           </button>

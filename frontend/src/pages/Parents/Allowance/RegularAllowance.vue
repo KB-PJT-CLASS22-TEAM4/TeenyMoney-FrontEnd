@@ -242,7 +242,7 @@
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="amount = quick.value"
+            @click="addAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
@@ -629,6 +629,10 @@ function startEdit(schedule) {
   cycle.value = schedule.cycleType === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY'
   dayOfCycle.value = schedule.paymentDay
   amount.value = schedule.amount
+}
+
+function addAmount(value) {
+  amount.value = (Number(amount.value) || 0) + value
 }
 
 function resetForm() {
