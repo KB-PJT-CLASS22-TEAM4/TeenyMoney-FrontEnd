@@ -215,6 +215,10 @@ async function fetchChildren() {
 }
 
 function isActive(item) {
+  if (selectingFor.value) {
+    return false
+  }
+
   if (item.path) {
     if (item.path === '/parents/home') {
       return route.path === item.path
