@@ -22,12 +22,19 @@
         <div class="info-row">
           <span class="info-label">지급 주기</span>
           <span class="info-value">
-            {{ route.query.cycle === 'MONTHLY' ? '매월' : '매주' }} {{ route.query.day }}일
+            {{ cycleLabel }}
           </span>
         </div>
         <div class="info-row">
           <span class="info-label">지급 금액</span>
           <span class="info-value">{{ Number(route.query.amount).toLocaleString() }}원</span>
+        </div>
+        <div
+          v-if="nextPaymentDate"
+          class="info-row"
+        >
+          <span class="info-label">다음 지급일</span>
+          <span class="info-value">{{ nextPaymentDate }}</span>
         </div>
       </div>
 
@@ -41,12 +48,57 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
-
 import { useRouter, useRoute } from 'vue-router'
+
+const WEEKDAY_LABELS = [
+  '',
+  '월요일',
+  '화요일',
+  '수요일',
+  '목요일',
+  '금요일',
+  '토요일',
+  '일요일',
+]
 
 const router = useRouter()
 const route = useRoute()
+
+const cycleLabel = computed(() => {
+  if (route.query.cycleLabel) {
+    return route.query.cycleLabel
+  }
+
+  const day = Number(route.query.day)
+
+  if (route.query.cycle === 'WEEKLY') {
+    return `매주 ${WEEKDAY_LABELS[day] || `${day}요일`}`
+  }
+
+  return `매월 ${day || ''}일`
+})
+
+const nextPaymentDate = computed(() => {
+  const value = route.query.nextPaymentDate
+
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}.${month}.${day}`
+})
 </script>
 
 <style scoped>
