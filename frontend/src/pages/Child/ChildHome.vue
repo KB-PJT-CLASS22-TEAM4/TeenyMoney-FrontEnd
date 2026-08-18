@@ -620,8 +620,7 @@ function onTabSelect(key) {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  background: #f8fafc;
-  border: 1px solid #eceef1;
+  background: #ffffff;
   overflow: hidden;
   position: relative;
 }
@@ -637,9 +636,7 @@ function onTabSelect(key) {
 .hero-section {
   position: relative;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
-  padding: 36px 18px 24px;
-  border-bottom-left-radius: 28px;
-  border-bottom-right-radius: 28px;
+  padding: 0 18px 24px;
   overflow: hidden;
 }
 
@@ -853,6 +850,7 @@ function onTabSelect(key) {
   justify-content: space-between;
   align-items: center;
   background: #ffffff;
+  border: 1px solid #eaedf1;
   border-radius: 20px;
   padding: 16px 18px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
@@ -1264,6 +1262,7 @@ function onTabSelect(key) {
 .finance {
   margin: 12px 18px 0;
   background: #ffffff;
+  border: 1px solid #eaedf1;
   border-radius: 20px;
   padding: 16px 0 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
@@ -1343,6 +1342,7 @@ function onTabSelect(key) {
 .history {
   margin: 12px 18px 16px;
   background: #ffffff;
+  border: 1px solid #eaedf1;
   border-radius: 20px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
