@@ -17,7 +17,7 @@
 
       <h1 class="nav-title">퀘스트 인증</h1>
 
-      <div class="nav-space"></div>
+      <ParentNavActions />
     </header>
 
     <main class="content">
@@ -121,6 +121,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AlertHost from '@/components/AlertHost.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 import {
   getQuests,

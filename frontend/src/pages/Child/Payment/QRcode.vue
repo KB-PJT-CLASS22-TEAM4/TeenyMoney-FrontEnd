@@ -3,6 +3,7 @@
     <!-- 상단 네비 -->
     <div class="nav">
       <h1 class="nav-title">QR 결제</h1>
+      <ChildNavActions />
     </div>
 
     <!-- QR 카드 -->
@@ -73,6 +74,7 @@ import { useRouter } from 'vue-router'
 import QrcodeVue from 'qrcode.vue'
 import { getMyWallet } from '@/api/wallet'
 import { useAuthStore } from '@/stores/auth'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

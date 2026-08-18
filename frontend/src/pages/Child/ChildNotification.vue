@@ -10,7 +10,10 @@
     </button>
     <h1 class="nav-title">알림</h1>
   </div>
-  <span class="mark-read" @click="markAllRead">모두 읽음</span>
+  <div class="nav-right">
+    <span class="mark-read" @click="markAllRead">모두 읽음</span>
+    <ChildNavActions />
+  </div>
 </div>
 
     <div class="scroll">
@@ -43,6 +46,7 @@
 import { ref, computed } from 'vue';
 
 import { useRouter } from 'vue-router';
+import ChildNavActions from '@/components/Child/ChildNavActions.vue';
 const router = useRouter();
 
 function goBack() {
@@ -240,6 +244,11 @@ function readOne(id) {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
 }
 
 .back-btn {

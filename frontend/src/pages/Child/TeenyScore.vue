@@ -16,6 +16,7 @@
             </svg>
           </button>
           <h1 class="nav-title">티니점수</h1>
+          <ChildNavActions />
         </header>
 
         <!-- 히어로 점수 카드 -->
@@ -218,6 +219,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import {
   getTeenyScore,
   getTeenyScoreGrades,

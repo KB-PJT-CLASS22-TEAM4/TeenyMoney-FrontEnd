@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
+import ChildNavActions from '@/components/Child/ChildNavActions.vue';
 import { getMyInfo, getLinkedParent } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 import { logout as logoutApi } from '@/api/auth';
@@ -48,6 +49,10 @@ onMounted(async () => {
     console.log('연동된 부모 조회 실패:', e.message);
   }
 });
+
+function goBack() {
+  router.back();
+}
 
 function editContact() {
   // 연락처 수정
@@ -127,8 +132,18 @@ function onScroll() {
 
 <template>
   <div class="mypage-screen">
+    <header class="nav">
+      <button class="back-btn" type="button" aria-label="뒤로가기" @click="goBack">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">마이페이지</h1>
+      <ChildNavActions />
+    </header>
+
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <h1 class="page-title">마이페이지</h1>
 
       <!-- 프로필 -->
       <section class="profile">
@@ -239,13 +254,39 @@ function onScroll() {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  height: 730px;
+  width: 100%;
+  min-height: 100dvh;
   margin: 0 auto;
-  padding-top: 50px;
   background: #ffffff;
-  border: 1px solid #eceef1;
   overflow: hidden;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 64px;
+  padding: 0 20px 4px;
+  background: #ffffff;
+}
+
+.nav-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 18px;
+  color: #191b1e;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 .scroll {
@@ -266,13 +307,6 @@ function onScroll() {
 
 .scroll.scrolling::-webkit-scrollbar-thumb {
   background: #d8dbdf;
-}
-
-.page-title {
-  margin: 0 0 20px;
-  font-weight: 700;
-  font-size: 19px;
-  color: #191b1e;
 }
 
 /* 프로필 */

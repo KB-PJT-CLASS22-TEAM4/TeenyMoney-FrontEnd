@@ -10,12 +10,15 @@
         </button>
         <h1 class="nav-title">거래내역조회</h1>
       </div>
+      <div class="nav-right">
       <button class="search-btn">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
           <circle cx="11" cy="11" r="7" stroke="#15171b" stroke-width="1.8"/>
           <path d="M20 20l-3.5-3.5" stroke="#15171b" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </button>
+      <ChildNavActions />
+      </div>
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
@@ -119,6 +122,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet, getMyTransactions } from '@/api/wallet'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -277,6 +281,11 @@ function onScroll() {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
 }
 
 .back-btn,

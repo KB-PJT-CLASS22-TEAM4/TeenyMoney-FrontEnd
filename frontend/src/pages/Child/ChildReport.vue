@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport } from '@/api/report'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
@@ -604,6 +605,7 @@ function toggleAllSchedules() {
           </button>
           <span class="nav-title">소비 리포트</span>
         </div>
+        <ChildNavActions />
       </div>
 
       <!-- 로딩/에러 상태 -->

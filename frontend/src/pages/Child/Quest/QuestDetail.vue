@@ -11,6 +11,7 @@
           </svg>
         </button>
         <h1 class="nav-title">{{ isViewOnly ? '제출한 인증' : '퀘스트 인증하기' }}</h1>
+        <ChildNavActions />
       </div>
 
       <!-- 퀘스트 요약 카드 -->
@@ -147,6 +148,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 import { getQuestDetail, submitQuestVerification } from '@/api/quest'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const route = useRoute()
 const router = useRouter()
