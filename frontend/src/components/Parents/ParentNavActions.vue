@@ -4,6 +4,7 @@
       class="action-btn"
       type="button"
       aria-label="알림"
+      @click="goNotification"
     >
       <svg
         class="action-icon"
@@ -45,9 +46,15 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useParentMenu } from '@/composables/useParentMenu'
 
+const router = useRouter()
 const { isOpen, toggleMenu } = useParentMenu()
+
+function goNotification() {
+  router.push({ name: 'parents-notification' })
+}
 </script>
 
 <style scoped>
