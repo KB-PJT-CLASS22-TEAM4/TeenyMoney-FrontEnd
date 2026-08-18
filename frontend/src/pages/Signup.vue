@@ -174,14 +174,32 @@
         <div class="field">
           <label class="label" for="password">비밀번호</label>
 
-          <input
-            id="password"
-            v-model="form.password"
-            class="input"
-            type="password"
-            autocomplete="new-password"
-            placeholder="비밀번호 입력 (10자 이상, 영문+숫자+특수문자)"
-          />
+          <div class="input-row">
+            <input
+              id="password"
+              v-model="form.password"
+              class="input input-inline"
+              :type="isPasswordVisible ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="비밀번호 입력 (10자 이상, 영문+숫자+특수문자)"
+            />
+            <button
+              class="toggle-password"
+              type="button"
+              :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
+              @click="isPasswordVisible = !isPasswordVisible"
+            >
+              <svg v-if="isPasswordVisible" viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M4 4l16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
 
           <p
             v-if="errors.password"
@@ -200,14 +218,32 @@
             비밀번호 확인
           </label>
 
-          <input
-            id="passwordConfirm"
-            v-model="form.passwordConfirm"
-            class="input"
-            type="password"
-            autocomplete="new-password"
-            placeholder="비밀번호 재입력"
-          />
+          <div class="input-row">
+            <input
+              id="passwordConfirm"
+              v-model="form.passwordConfirm"
+              class="input input-inline"
+              :type="isPasswordConfirmVisible ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="비밀번호 재입력"
+            />
+            <button
+              class="toggle-password"
+              type="button"
+              :aria-label="isPasswordConfirmVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
+              @click="isPasswordConfirmVisible = !isPasswordConfirmVisible"
+            >
+              <svg v-if="isPasswordConfirmVisible" viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+              </svg>
+              <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.6"/>
+                <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M4 4l16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
 
           <p
             v-if="errors.passwordConfirm"
@@ -483,6 +519,9 @@ const relationshipOptions = [
     label: '기타',
   },
 ]
+
+const isPasswordVisible = ref(false)
+const isPasswordConfirmVisible = ref(false)
 
 const showGuardianModal = ref(false)
 const guardianVerified = ref(false)
@@ -1667,6 +1706,18 @@ onUnmounted(() => {
   min-width: 0;
   padding-bottom: 0;
   border-bottom: none;
+}
+
+.toggle-password {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #b9bec5;
+  cursor: pointer;
 }
 
 .verify-btn {

@@ -12,6 +12,7 @@ const authStore = useAuthStore()
 
 const email = ref('')
 const password = ref('')
+const isPasswordVisible = ref(false)
 const showLoginErrorModal = ref(false)
 const loginErrorMessage = ref('')
  
@@ -109,11 +110,27 @@ function handleGoogleLogin() {
               <input
                 id="password"
                 v-model="password"
-                type="password"
+                :type="isPasswordVisible ? 'text' : 'password'"
                 placeholder="비밀번호를 입력하세요"
                 autocomplete="current-password"
                 @keyup.enter="handleLogin"
               />
+              <button
+                class="toggle-password"
+                type="button"
+                :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
+                @click="isPasswordVisible = !isPasswordVisible"
+              >
+                <svg v-if="isPasswordVisible" viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.6"/>
+                  <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+                </svg>
+                <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="1.6"/>
+                  <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.6"/>
+                  <path d="M4 4l16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+              </button>
             </div>
             <!-- 8자 미만일 때만 경고 문구 (아이콘 + 빨간 글씨) -->
             <p v-if="showPasswordHint" class="hint">
@@ -248,6 +265,9 @@ function handleGoogleLogin() {
 }
  
 .input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding-bottom: 12px;
   border-bottom: 1px solid #eceef1;
 }
@@ -260,6 +280,8 @@ function handleGoogleLogin() {
 }
  
 .input-wrap input {
+  flex: 1;
+  min-width: 0;
   width: 100%;
   border: none;
   outline: none;
@@ -270,6 +292,18 @@ function handleGoogleLogin() {
   line-height: 1.5;
   color: #191b1e;
   background: transparent;
+}
+
+.toggle-password {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #b9bec5;
+  cursor: pointer;
 }
  
 .input-wrap input::placeholder {
