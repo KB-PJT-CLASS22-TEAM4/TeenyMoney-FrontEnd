@@ -1,22 +1,10 @@
 <template>
   <Teleport to="body">
-    <div class="parent-menu">
-      <button
-        class="menu-toggle"
-        type="button"
-        :aria-expanded="isOpen"
-        aria-label="전체 메뉴"
-        @click="toggleMenu"
-      >
-        <span class="burger" :class="{ open: isOpen }">
-          <i></i>
-          <i></i>
-          <i></i>
-        </span>
-      </button>
-
+    <div
+      v-if="isOpen"
+      class="menu-frame"
+    >
       <div
-        v-if="isOpen"
         class="menu-overlay"
         @click.self="closeMenu"
       >
@@ -128,12 +116,13 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { useParentMenu } from '@/composables/useParentMenu'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const { isOpen, closeMenu: closeDrawer } = useParentMenu()
 
-const isOpen = ref(false)
 const isChildrenLoading = ref(false)
 const childrenError = ref('')
 const children = ref([])
@@ -203,13 +192,9 @@ onUnmounted(() => {
   document.body.style.overflow = ''
 })
 
-function toggleMenu() {
-  isOpen.value = !isOpen.value
-}
-
 function closeMenu() {
-  isOpen.value = false
   selectingFor.value = null
+  closeDrawer()
 }
 
 async function fetchChildren() {
@@ -321,85 +306,33 @@ function goWithChild(childId) {
 </script>
 
 <style scoped>
-.menu-toggle {
+.menu-frame {
   position: fixed;
-  top: 14px;
-  right: calc(50% - 168px);
-  z-index: 150;
-  display: flex;
-  width: 36px;
-  height: 36px;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  border-radius: 10px;
-  background: #ffbc00;
-  box-shadow: 0 4px 12px rgba(25, 27, 30, 0.12);
-  cursor: pointer;
-}
-
-.burger {
-  position: relative;
-  display: block;
-  width: 16px;
-  height: 12px;
-}
-
-.burger i {
-  position: absolute;
-  left: 0;
-  display: block;
-  width: 16px;
-  height: 2px;
-  border-radius: 2px;
-  background: #191b1e;
-  transition: transform 0.2s ease, opacity 0.2s ease, top 0.2s ease;
-}
-
-.burger i:nth-child(1) {
   top: 0;
-}
-
-.burger i:nth-child(2) {
-  top: 5px;
-}
-
-.burger i:nth-child(3) {
-  top: 10px;
-}
-
-.burger.open i:nth-child(1) {
-  top: 5px;
-  transform: rotate(45deg);
-}
-
-.burger.open i:nth-child(2) {
-  opacity: 0;
-}
-
-.burger.open i:nth-child(3) {
-  top: 5px;
-  transform: rotate(-45deg);
+  left: 50%;
+  z-index: 140;
+  width: 360px;
+  height: 100dvh;
+  margin-left: -180px;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .menu-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 140;
-  background: rgba(0, 0, 0, 0.38);
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
 }
 
 .menu-drawer {
   display: flex;
-  width: 280px;
-  height: 100dvh;
-  max-width: 78vw;
+  width: 260px;
+  height: 100%;
   flex-direction: column;
-  margin-left: calc(50% - 180px);
   background: #ffffff;
-  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.08);
-  animation: drawer-in 0.2s ease-out;
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.12);
+  animation: sidebar-in 0.22s ease-out;
 }
 
 .drawer-header {
@@ -493,6 +426,10 @@ function goWithChild(childId) {
   font-size: 12px;
 }
 
+.picker-state p {
+  margin: 0 0 8px;
+}
+
 .child-pick-btn {
   display: flex;
   align-items: center;
@@ -513,24 +450,20 @@ function goWithChild(childId) {
   font-size: 11px;
 }
 
-@keyframes drawer-in {
+@keyframes sidebar-in {
   from {
-    transform: translateX(-16px);
-    opacity: 0.6;
+    transform: translateX(-100%);
   }
 
   to {
     transform: translateX(0);
-    opacity: 1;
   }
 }
 
 @media (max-width: 360px) {
-  .menu-toggle {
-    right: 12px;
-  }
-
-  .menu-drawer {
+  .menu-frame {
+    left: 0;
+    width: 100%;
     margin-left: 0;
   }
 }

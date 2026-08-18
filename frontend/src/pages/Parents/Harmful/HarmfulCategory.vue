@@ -18,6 +18,8 @@
       <h1 class="nav-title">
         유해 업소 설정
       </h1>
+
+      <ParentNavActions />
     </header>
 
 
@@ -312,6 +314,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 

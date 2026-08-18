@@ -5,7 +5,7 @@
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
       <h1 class="nav-title">가입 신청 상세</h1>
-      <div class="nav-placeholder"></div>
+      <ParentNavActions />
     </header>
 
     <div v-if="isLoading" class="state-box">불러오는 중입니다...</div>
@@ -112,6 +112,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import AlertHost from '@/components/AlertHost.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 import {
