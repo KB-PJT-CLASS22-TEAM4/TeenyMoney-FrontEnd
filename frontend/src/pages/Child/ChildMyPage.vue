@@ -50,6 +50,10 @@ onMounted(async () => {
   }
 });
 
+function goBack() {
+  router.back();
+}
+
 function editContact() {
   // 연락처 수정
 }
@@ -129,6 +133,12 @@ function onScroll() {
 <template>
   <div class="mypage-screen">
     <header class="nav">
+      <button class="back-btn" type="button" aria-label="뒤로가기" @click="goBack">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <h1 class="nav-title">마이페이지</h1>
       <ChildNavActions />
     </header>
@@ -267,6 +277,16 @@ function onScroll() {
   font-weight: 700;
   font-size: 18px;
   color: #191b1e;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 .scroll {
