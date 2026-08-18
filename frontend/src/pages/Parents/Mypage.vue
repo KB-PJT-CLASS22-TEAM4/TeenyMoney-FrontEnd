@@ -228,7 +228,6 @@
           <button
             type="button"
             class="menu-button menu-border"
-            @click="goToFaq"
           >
             <span>자주 묻는 질문</span>
             <span class="chevron">›</span>
@@ -237,7 +236,6 @@
           <button
             type="button"
             class="menu-button menu-border"
-            @click="goToInquiry"
           >
             <span>문의하기</span>
             <span class="chevron">›</span>
@@ -246,7 +244,6 @@
           <button
             type="button"
             class="menu-button"
-            @click="goToPolicy"
           >
             <span>약관 및 정책</span>
             <span class="chevron">›</span>
@@ -276,7 +273,6 @@
           <button
             type="button"
             class="menu-button"
-            @click="withdraw"
           >
             <span>회원 탈퇴</span>
             <span class="chevron">›</span>
@@ -595,22 +591,6 @@ function goToPasswordChange() {
 }
 
 /* =========================
-   고객지원
-========================= */
-
-function goToFaq() {
-  router.push('/faq')
-}
-
-function goToInquiry() {
-  router.push('/inquiry')
-}
-
-function goToPolicy() {
-  router.push('/policy')
-}
-
-/* =========================
    로그아웃
 ========================= */
 
@@ -626,25 +606,6 @@ async function logout() {
 
   authStore.clearUser()
   router.replace('/login')
-}
-
-/* =========================
-   회원 탈퇴
-========================= */
-
-async function withdraw() {
-
-  const confirmed = await alertModal.showConfirm(
-    '회원 탈퇴 화면으로 이동하시겠습니까?'
-  )
-
-  if (!confirmed) {
-    return
-  }
-
-  router.push(
-    '/parents/mypage/withdraw'
-  )
 }
 
 /* =========================
