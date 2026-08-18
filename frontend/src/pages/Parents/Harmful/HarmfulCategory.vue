@@ -345,7 +345,6 @@ import {
 
 import {
   getPermissions,
-  getPermissionHistory,
   approvePermission,
   rejectPermission
 } from '@/api/permissions'
@@ -659,10 +658,10 @@ function matchesSelectedChild(permission) {
   return Number(permissionChildId) === Number(childId.value)
 }
 
-function mergePermissionRequests(currentList, historyList) {
+function mergePermissionRequests(list) {
   const merged = new Map()
 
-  ;[...currentList, ...historyList].forEach((permission) => {
+  list.forEach((permission) => {
     if (!permission?.id || !matchesSelectedChild(permission)) return
 
     const categories = extractCategories(permission)
@@ -796,28 +795,13 @@ async function fetchPermissions() {
   isPermissionLoading.value = true
 
   try {
-    const [currentResult, historyResult] = await Promise.allSettled([
-      getPermissions(
-        authStore.accessToken,
-        childId.value
-      ),
-      getPermissionHistory(
-        authStore.accessToken,
-        childId.value
-      ),
-    ])
-
-    const currentList = currentResult.status === 'fulfilled'
-      ? extractPermissionsList(currentResult.value.data)
-      : []
-
-    const historyList = historyResult.status === 'fulfilled'
-      ? extractPermissionsList(historyResult.value.data)
-      : []
+    const result = await getPermissions(
+      authStore.accessToken,
+      childId.value
+    )
 
     permissionRequests.value = mergePermissionRequests(
-      currentList,
-      historyList
+      extractPermissionsList(result.data)
     )
 
   } catch (error) {
