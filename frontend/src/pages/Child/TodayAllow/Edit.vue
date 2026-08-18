@@ -342,7 +342,7 @@ async function processDelete() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 50px 0 12px;
+  padding: 12px 0;
 }
 
 .back-btn {

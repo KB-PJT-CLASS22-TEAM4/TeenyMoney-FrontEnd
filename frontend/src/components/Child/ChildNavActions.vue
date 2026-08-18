@@ -64,6 +64,7 @@ function goNotification() {
   flex-shrink: 0;
   gap: 2px;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .action-btn {

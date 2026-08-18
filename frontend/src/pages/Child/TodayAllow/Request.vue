@@ -301,7 +301,7 @@ async function processSubmit() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 55px 0 12px;
+  padding: 12px 0;
 }
 
 .back-btn {

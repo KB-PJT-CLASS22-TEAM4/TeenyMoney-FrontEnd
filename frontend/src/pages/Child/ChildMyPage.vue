@@ -128,11 +128,12 @@ function onScroll() {
 
 <template>
   <div class="mypage-screen">
+    <header class="nav">
+      <h1 class="nav-title">마이페이지</h1>
+      <ChildNavActions />
+    </header>
+
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <div class="page-title-row">
-        <h1 class="page-title">마이페이지</h1>
-        <ChildNavActions />
-      </div>
 
       <!-- 프로필 -->
       <section class="profile">
@@ -243,13 +244,29 @@ function onScroll() {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  height: 730px;
+  width: 100%;
+  min-height: 100dvh;
   margin: 0 auto;
-  padding-top: 50px;
   background: #ffffff;
-  border: 1px solid #eceef1;
   overflow: hidden;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 64px;
+  padding: 0 20px 4px;
+  background: #ffffff;
+}
+
+.nav-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 18px;
+  color: #191b1e;
 }
 
 .scroll {
@@ -270,21 +287,6 @@ function onScroll() {
 
 .scroll.scrolling::-webkit-scrollbar-thumb {
   background: #d8dbdf;
-}
-
-.page-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 0 0 20px;
-}
-
-.page-title {
-  margin: 0;
-  font-weight: 700;
-  font-size: 19px;
-  color: #191b1e;
 }
 
 /* 프로필 */
