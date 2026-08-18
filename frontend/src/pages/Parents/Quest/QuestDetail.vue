@@ -299,14 +299,24 @@
             검토 일시
           </p>
 
-          <p class="info-value">
-            {{
-              formatDate(
-                getVerificationReviewedAt(
-                  quest.latestVerification
-                )
-              )
-            }}
+          <div
+            v-if="reviewHistory.length"
+            class="review-history"
+          >
+            <p
+              v-for="item in reviewHistory"
+              :key="item.attempt"
+              class="info-value"
+            >
+              {{ item.attempt }}회 {{ formatDate(item.reviewedAt) }}
+            </p>
+          </div>
+
+          <p
+            v-else
+            class="info-value"
+          >
+            -
           </p>
         </div>
 
@@ -674,6 +684,7 @@ import {
 
 import {
   getQuestDetail,
+  getQuestVerifications,
   updateQuest,
   deleteQuest,
   approveQuestVerification,
@@ -703,6 +714,9 @@ const questId =
 
 const quest =
   ref(null)
+
+const verificationList =
+  ref([])
 
 const isLoading =
   ref(false)
@@ -857,6 +871,26 @@ async function loadQuestDetail() {
 
     quest.value =
       res.data
+
+    try {
+      const historyRes =
+        await getQuestVerifications(
+          questId,
+          authStore.accessToken
+        )
+
+      verificationList.value =
+        extractVerificationList(
+          historyRes.data
+        )
+    } catch (error) {
+      console.error(
+        '인증 내역 조회 실패:',
+        error
+      )
+      verificationList.value =
+        []
+    }
 
   } catch (error) {
     console.error(
@@ -1454,6 +1488,177 @@ function getVerificationReviewedAt(
   )
 }
 
+function getHistoryReviewedAt(
+  verification
+) {
+  const explicit =
+    verification?.reviewedAt ??
+    verification?.processedAt ??
+    verification?.reviewedDate ??
+    null
+
+  if (explicit) {
+    return explicit
+  }
+
+  const status =
+    String(
+      verification?.status ||
+      ''
+    ).toUpperCase()
+
+  if (
+    status === 'APPROVED' ||
+    status === 'REJECTED' ||
+    status === 'DECLINED'
+  ) {
+    return (
+      verification?.updatedAt ??
+      null
+    )
+  }
+
+  return null
+}
+
+function getVerificationAttemptNo(
+  verification,
+  fallback
+) {
+  const count =
+    verification?.attemptNo ??
+    verification?.attemptCount ??
+    verification?.attempt ??
+    fallback
+
+  const number =
+    Number(count)
+
+  return Number.isFinite(number)
+    ? number
+    : fallback
+}
+
+function extractVerificationList(
+  data
+) {
+  if (Array.isArray(data)) {
+    return data
+  }
+
+  if (
+    !data ||
+    typeof data !== 'object'
+  ) {
+    return []
+  }
+
+  const candidates = [
+    data.content,
+    data.verifications,
+    data.verificationHistory,
+    data.verificationList,
+    data.list,
+    data.items,
+  ]
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate
+    }
+  }
+
+  return []
+}
+
+const reviewHistory =
+  computed(() => {
+    const questData =
+      quest.value
+
+    const latest =
+      questData?.latestVerification
+        ? [questData.latestVerification]
+        : []
+
+    const mergedByKey =
+      new Map()
+
+    const sources = [
+      ...verificationList.value,
+      ...extractVerificationList(
+        questData
+      ),
+      ...latest,
+    ]
+
+    sources.forEach((item, index) => {
+      if (
+        !item ||
+        typeof item !== 'object'
+      ) {
+        return
+      }
+
+      const id =
+        item.verificationId ??
+        item.id
+
+      const attempt =
+        getVerificationAttemptNo(
+          item,
+          index + 1
+        )
+
+      const key =
+        id !== null &&
+        id !== undefined
+          ? `id:${id}`
+          : `attempt:${attempt}`
+
+      const existing =
+        mergedByKey.get(key)
+
+      if (!existing) {
+        mergedByKey.set(key, item)
+        return
+      }
+
+      if (
+        !getHistoryReviewedAt(
+          existing
+        ) &&
+        getHistoryReviewedAt(item)
+      ) {
+        mergedByKey.set(key, item)
+      }
+    })
+
+    return [...mergedByKey.values()]
+      .map((item, index) => {
+        const attempt =
+          getVerificationAttemptNo(
+            item,
+            index + 1
+          )
+
+        return {
+          attempt,
+          reviewedAt:
+            getHistoryReviewedAt(
+              item
+            ),
+        }
+      })
+      .filter((item) =>
+        item.reviewedAt
+      )
+      .sort(
+        (a, b) =>
+          a.attempt - b.attempt
+      )
+  })
+
 function toLocalDatetime(
   value
 ) {
@@ -1700,6 +1905,12 @@ onMounted(() => {
   font-size: 14px;
   line-height: 1.5;
   word-break: break-word;
+}
+
+.review-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .reward {
