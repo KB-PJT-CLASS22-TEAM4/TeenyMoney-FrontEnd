@@ -95,6 +95,15 @@
           <span class="won">
             원
           </span>
+
+          <button
+            type="button"
+            class="clear-amount-btn"
+            aria-label="금액 초기화"
+            @click="clearAmount"
+          >
+            초기화
+          </button>
         </div>
 
         <!-- 빠른 금액 -->
@@ -389,6 +398,10 @@ function addAmount(value) {
     (Number(amount.value) || 0) + value
 }
 
+function clearAmount() {
+  amount.value = 0
+}
+
 // 용돈 보내기
 function handleSend() {
   if (!canSubmit.value) {
@@ -593,6 +606,19 @@ button {
   color: #191b1e;
   font-size: 16px;
   font-weight: 600;
+}
+
+.clear-amount-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: #e8eaed;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 /* 빠른 금액 */
