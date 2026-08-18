@@ -117,6 +117,43 @@ jobs:
           echo "rule_id=$rule_id" >> "$GITHUB_OUTPUT"
           echo "러너 IP $runner_ip/32 를 $EC2_PORT 번 포트에 허용했습니다. (rule: $rule_id)"
 
+      - name: SSH 연결 준비 확인
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+      
+          runner_ip="$(curl -fsS --max-time 5 https://checkip.amazonaws.com)"
+      
+          echo "Runner IP: ${runner_ip}"
+          echo "EC2 HOST: ${EC2_HOST}"
+          echo "EC2 PORT: ${EC2_PORT}"
+          echo "Security Group: ${EC2_SECURITY_GROUP_ID}"
+          echo "Rule ID: ${{ steps.sg.outputs.rule_id }}"
+      
+          echo "=== 등록된 Security Group Rule 확인 ==="
+      
+          aws ec2 describe-security-group-rules \
+            --security-group-rule-ids "${{ steps.sg.outputs.rule_id }}" \
+            --query 'SecurityGroupRules[0].{RuleId:SecurityGroupRuleId,CIDR:CidrIpv4,FromPort:FromPort,ToPort:ToPort}' \
+            --output table
+      
+          echo "=== EC2 SSH 포트 연결 대기 ==="
+      
+          for attempt in $(seq 1 10); do
+            if timeout 3 bash -c \
+              "cat < /dev/null > /dev/tcp/${EC2_HOST}/${EC2_PORT}" 2>/dev/null; then
+              echo "SSH TCP 연결 확인 완료"
+              exit 0
+            fi
+      
+            echo "SSH 포트 연결 대기 중... (${attempt}/10)"
+            sleep 3
+          done
+      
+          echo "30초 동안 EC2 SSH 포트에 연결할 수 없었습니다."
+          exit 1
+
+
       - name: EC2 배포
         shell: bash
         env:
