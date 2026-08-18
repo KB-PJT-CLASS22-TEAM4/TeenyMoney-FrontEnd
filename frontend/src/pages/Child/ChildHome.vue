@@ -10,15 +10,7 @@
             <img src="@/assets/logo.svg" class="brand-logo" alt="티니머니" />
             <span class="brand-title">티니머니</span>
           </div>
-          <div class="nav-actions">
-            <button class="bell-btn" @click="goNotification">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-                <path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#333" stroke-width="1.8" stroke-linejoin="round"/>
-                <path d="M10 20a2 2 0 0 0 4 0" stroke="#333" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-              <span v-if="hasUnread" class="bell-dot"></span>
-            </button>
-          </div>
+          <ChildNavActions />
         </header>
 
         <!-- 인사말 텍스트 -->
@@ -249,12 +241,16 @@
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
+
+    <Chatbot />
   </div>
 </template>
 
 <script setup>
 import FinanceCard from '@/components/Child/FinanceCard.vue'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -267,11 +263,10 @@ const router    = useRouter()
 const authStore  = useAuthStore()
 const allowStore = useAllowRequestStore()
 
-const teenyScoreMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
+const teenyScoreMascot = new URL('@/assets/mascot/teeny-run.png', import.meta.url).href
 
 const activeCard = ref(0)
 const scrollRef  = ref(null)
-const hasUnread  = ref(true)
 
 function onScroll() {
   const el = scrollRef.value
@@ -281,7 +276,6 @@ function onScroll() {
   activeCard.value = Math.round(ratio * (finances.value.length - 1))
 }
 
-function goNotification() { router.push({ name: 'child-notification' }) }
 function goPayment()      { router.push({ name: 'child-transaction' }) }
 function goScore()        { router.push({ name: 'child-score' }) }
 function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
@@ -620,6 +614,7 @@ function onTabSelect(key) {
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
+  position: relative;
 }
 
 .scroll-area {
@@ -661,26 +656,6 @@ function onTabSelect(key) {
   font-size: 17px;
   font-weight: 900;
   color: #1c1e22;
-}
-
-.bell-btn {
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-}
-
-.bell-dot {
-  position: absolute;
-  top: 2px;
-  right: 3px;
-  width: 7px;
-  height: 7px;
-  background: #ff4d4f;
-  border-radius: 50%;
-  border: 1.5px solid #fff;
 }
 
 .hero-text {

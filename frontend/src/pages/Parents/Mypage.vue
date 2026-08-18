@@ -12,17 +12,7 @@
 
       <h1 class="nav-title">마이페이지</h1>
 
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
-      </button>
+      <ParentNavActions />
     </header>
 
     <!-- 로딩 -->
@@ -80,44 +70,42 @@
 
         <!-- 연락처 -->
         <div class="info-item">
-          <div class="info-heading">
-            <span class="info-label">
-              연락처
-            </span>
+          <span class="info-label">
+            연락처
+          </span>
+
+          <div class="info-row">
+            <p class="info-value">
+              {{ formattedPhoneNumber || '-' }}
+            </p>
 
             <button
               type="button"
               class="edit-button"
-              @click="goToPhoneEdit"
             >
               수정
             </button>
           </div>
-
-          <p class="info-value">
-            {{ formattedPhoneNumber || '-' }}
-          </p>
         </div>
 
         <!-- 이메일 -->
         <div class="info-item">
-          <div class="info-heading">
-            <span class="info-label">
-              이메일
-            </span>
+          <span class="info-label">
+            이메일
+          </span>
+
+          <div class="info-row">
+            <p class="info-value email-value">
+              {{ member.email || '-' }}
+            </p>
 
             <button
               type="button"
               class="edit-button"
-              @click="goToEmailEdit"
             >
               수정
             </button>
           </div>
-
-          <p class="info-value email-value">
-            {{ member.email || '-' }}
-          </p>
         </div>
       </section>
 
@@ -203,9 +191,10 @@
                 <button
                   type="button"
                   class="disconnect-button"
+                  :disabled="unlinkingId === child.childId"
                   @click.stop="disconnectChild(child)"
                 >
-                  연동 해제
+                  {{ unlinkingId === child.childId ? '해제 중...' : '연동 해제' }}
                 </button>
 
                 <span class="child-chevron">
@@ -237,7 +226,6 @@
           <button
             type="button"
             class="menu-button menu-border"
-            @click="goToFaq"
           >
             <span>자주 묻는 질문</span>
             <span class="chevron">›</span>
@@ -246,7 +234,6 @@
           <button
             type="button"
             class="menu-button menu-border"
-            @click="goToInquiry"
           >
             <span>문의하기</span>
             <span class="chevron">›</span>
@@ -255,7 +242,6 @@
           <button
             type="button"
             class="menu-button"
-            @click="goToPolicy"
           >
             <span>약관 및 정책</span>
             <span class="chevron">›</span>
@@ -285,7 +271,6 @@
           <button
             type="button"
             class="menu-button"
-            @click="withdraw"
           >
             <span>회원 탈퇴</span>
             <span class="chevron">›</span>
@@ -302,6 +287,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
@@ -317,6 +303,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
 import { getChildren } from '@/api/children'
+import { unlinkFamily } from '@/api/families'
 import {
   PARENT_PROFILE_IMAGE,
   CHILD_PROFILE_IMAGE,
@@ -351,6 +338,7 @@ const children = ref([])
 
 const isChildrenLoading = ref(false)
 const childrenError = ref('')
+const unlinkingId = ref(null)
 
 /* =========================
    생년월일 포맷
@@ -524,6 +512,9 @@ function goToChildDetail(childId) {
 ========================= */
 
 async function disconnectChild(child) {
+  if (unlinkingId.value) {
+    return
+  }
 
   const confirmed = await alertModal.showConfirm(
     `${child.name} 자녀와의 연동을 해제하시겠습니까?`
@@ -533,27 +524,23 @@ async function disconnectChild(child) {
     return
   }
 
+  unlinkingId.value = child.childId
+
   try {
-
-    /*
-     * TODO:
-     * 자녀 연동 해제 API가 생기면 여기서 호출
-     *
-     * await unlinkChild(
-     *   child.childId,
-     *   authStore.accessToken
-     * )
-     */
-
-    /*
-     * API 성공 후 화면에서도 제거
-     */
+    await unlinkFamily(
+      authStore.accessToken,
+      child.childId
+    )
 
     children.value =
       children.value.filter(
         (item) =>
           item.childId !== child.childId
       )
+
+    alertModal.showAlert(
+      '자녀 연동이 해제되었습니다.'
+    )
 
   } catch (error) {
 
@@ -566,6 +553,8 @@ async function disconnectChild(child) {
       error.message
       || '자녀 연동을 해제하지 못했습니다.'
     )
+  } finally {
+    unlinkingId.value = null
   }
 }
 
@@ -577,42 +566,10 @@ function goToLogin() {
   authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
 }
 
-/* =========================
-   수정 화면 이동
-========================= */
-
-function goToPhoneEdit() {
-  router.push(
-    '/parents/mypage/phone'
-  )
-}
-
-function goToEmailEdit() {
-  router.push(
-    '/parents/mypage/email'
-  )
-}
-
 function goToPasswordChange() {
   router.push(
     '/parents/mypage/password'
   )
-}
-
-/* =========================
-   고객지원
-========================= */
-
-function goToFaq() {
-  router.push('/faq')
-}
-
-function goToInquiry() {
-  router.push('/inquiry')
-}
-
-function goToPolicy() {
-  router.push('/policy')
 }
 
 /* =========================
@@ -631,25 +588,6 @@ async function logout() {
 
   authStore.clearUser()
   router.replace('/login')
-}
-
-/* =========================
-   회원 탈퇴
-========================= */
-
-async function withdraw() {
-
-  const confirmed = await alertModal.showConfirm(
-    '회원 탈퇴 화면으로 이동하시겠습니까?'
-  )
-
-  if (!confirmed) {
-    return
-  }
-
-  router.push(
-    '/parents/mypage/withdraw'
-  )
 }
 
 /* =========================
@@ -673,7 +611,6 @@ button {
 
 .page {
   position: relative;
-  top: -8px;
 
   width: 360px;
   min-height: 100dvh;
@@ -835,12 +772,6 @@ button {
   width: 100%;
 }
 
-.info-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .info-label {
   color: #8b9097;
 
@@ -848,8 +779,18 @@ button {
   font-weight: 700;
 }
 
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+}
+
 .info-value {
-  margin: 9px 0 0;
+  margin: 0;
+  min-width: 0;
+  flex: 1;
 
   color: #191b1e;
 
@@ -879,9 +820,10 @@ button {
 }
 
 .edit-button {
+  flex-shrink: 0;
   padding: 5px 10px;
-
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .disconnect-button {

@@ -4,6 +4,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getTeenyScore } from '@/api/teenyScore'
 import { getTerminationQuote, terminateEnrollment } from '@/api/finance'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -138,6 +140,7 @@ function closeModalAndNavigate() {
         </svg>
       </button>
       <h1 class="nav-title">중도해지</h1>
+      <ChildNavActions />
     </div>
 
     <!-- 스크롤 영역 -->
@@ -296,6 +299,9 @@ function closeModalAndNavigate() {
         </div>
       </div>
     </Transition>
+
+    <!-- 해지는 되돌리기 어려운 결정이라 말풍선 없이 캐릭터만 노출 -->
+    <Chatbot v-if="!showSuccessModal" hint-text="" />
   </div>
 </template>
 

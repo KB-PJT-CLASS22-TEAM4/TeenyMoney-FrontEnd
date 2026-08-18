@@ -1,22 +1,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport } from '@/api/report'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
 
 const router = useRouter()
 const authStore = useAuthStore()
-
-// 하단 탭 이동
-function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' })
-  if (key === 'report') router.push({ name: 'child-report' })
-  if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' })
-  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
-}
 
 function goBack() {
   router.push({ name: 'child-transaction' })
@@ -25,15 +17,6 @@ function goBack() {
 function goToScore() {
   router.push({ name: 'child-score' })
 }
-
-// ============================================================
-// 머니 리포트 API 연동 — GET /api/v1/reports/money/children/{childId}
-//
-// insightCode 4종(SAVING_PAYMENT_PROGRESS / SPENDING_TOP_CATEGORY /
-// PERMISSION_STATUS_SUMMARY / QUEST_COMPLETED) 전부 실제 metrics 필드명 확인해서
-// mapInsight()에 반영 완료. 새로운 insightCode가 추가되면 INSIGHT_META에 제목/점 색만
-// 추가하고, mapInsight()에 분기 하나 더 넣으면 됨 (없으면 일반 문구로 자동 폴백).
-// ============================================================
 
 const isLoading = ref(true)
 const loadError = ref(null)
@@ -52,17 +35,20 @@ const spend = ref({
 })
 const score = ref({ change: 0, up: 0, down: 0, reasons: [] })
 
-// 금융상품 진행 상태 / 다가오는 금융 일정 — GET /api/v1/financial-products/me/enrollments
+// 금융상품 진행 상태 / 다가오는 금융 일정
 const products = ref([])
 const schedules = ref([])
-
-// ---- 화면 계산 로직 ----
 
 function won(n) {
   return (n ?? 0).toLocaleString('ko-KR') + '원'
 }
 
-// 요약 카드 아이콘별 배경/글자색
+// 괄호 안 문구가 중간에서 줄바꿈되지 않도록, 괄호 안의 일반 공백을
+// 줄바꿈 없는 공백(non-breaking space)으로 치환
+function noWrap(text) {
+  return text.replace(/\(([^)]*)\)/g, (_, inner) => `(${inner.replace(/ /g, '\u00A0')})`)
+}
+
 const ICON_STYLE = {
   wallet: { bg: '#f2f3f5', fg: '#6b7280' },
   trending: { bg: '#e6f6ec', fg: '#2f9e5b' },
@@ -74,15 +60,12 @@ function iconStyle(icon) {
   return { background: s.bg, color: s.fg }
 }
 
-// ---- API 응답 → 화면 데이터 매핑 ----
-
 function formatMonthLabel(yearMonth) {
   if (!yearMonth) return '이번 달'
   const [, m] = yearMonth.split('-')
   return `${Number(m)}월`
 }
 
-// 드롭다운 목록에서는 연도가 헷갈리지 않게 "2026년 8월" 형태로 그대로 표시
 function formatMonthLabelFull(yearMonth) {
   if (!yearMonth) return '이번 달'
   const [y, m] = yearMonth.split('-')
@@ -118,19 +101,18 @@ function mapSummary(summaryData) {
   ]
 }
 
-// insightCode → 카드 제목/점 색 (metrics 값 자체는 코드별로 아래 mapInsight에서 처리)
 const INSIGHT_META = {
   SPENDING_TOP_CATEGORY: { dot: '#f0b352', title: '소비' },
   PERMISSION_STATUS_SUMMARY: { dot: '#4a90d9', title: '오늘만 허용' },
-  SAVING_PAYMENT_PROGRESS: { dot: '#4caf82', title: '저축 · 상환' },
   QUEST_COMPLETED: { dot: '#8b7dd8', title: '퀘스트' },
+  SAVING_PAYMENT: { dot: '#4caf82', title: '저축' },
 }
 
-// insightCode → "자세히 보기" 클릭 시 이동할 실제 라우트
 const INSIGHT_ROUTE = {
   SPENDING_TOP_CATEGORY: { name: 'child-transaction' },
   PERMISSION_STATUS_SUMMARY: { name: 'child-todayallow-request' },
   QUEST_COMPLETED: { name: 'child-quest-list' },
+  SAVING_PAYMENT: { name: 'child-finance-myproducts' },
 }
 
 function mapInsight(insight, data) {
@@ -144,30 +126,17 @@ function mapInsight(insight, data) {
   }
   const m = insight.metrics || {}
 
-  if (insight.insightCode === 'SAVING_PAYMENT_PROGRESS') {
-    const { paidCount = 0, totalCount = 0, progressRate = 0 } = m
-    return {
-      ...base,
-      desc: [`${totalCount}번 중 ${paidCount}번의 적금 납입을 완료했어요.`, `진행률 ${progressRate}%예요.`],
-      checks: { done: paidCount, total: totalCount },
-      footer: `적금 ${totalCount}회 중 ${paidCount}회 완료`,
-    }
-  }
-
   if (insight.insightCode === 'SPENDING_TOP_CATEGORY') {
     return {
       ...base,
       desc: [
         `이번 달에는 ${m.paymentCount ?? 0}번 결제해서 모두 ${won(m.totalAmount)}을 사용했어요.`,
-        `${m.topCategoryName}에서 가장 많이 사용했어요 (${m.topCategoryCount ?? 0}회 · ${m.topCategoryRatio ?? 0}%).`,
+        noWrap(`${m.topCategoryName}에서 가장 많이 사용했어요 (${m.topCategoryCount ?? 0}회 · ${m.topCategoryRatio ?? 0}%).`),
       ],
     }
   }
 
   if (insight.insightCode === 'PERMISSION_STATUS_SUMMARY') {
-    // [연동 필요] 주의/차단 단계별 요청 횟수, 가장 많이 요청한 업종 정보는
-    // 현재 metrics에 없음 — 백엔드에 watchCount/blockCount, topCategoryName 같은
-    // 필드 추가되면 아래에 문장 추가하면 됨
     const requestCount = m.requestCount ?? 0
     const desc = [`이번 달에 오늘만 허용을 ${requestCount}번 요청했어요.`]
 
@@ -196,7 +165,6 @@ function mapInsight(insight, data) {
   }
 
   if (insight.insightCode === 'QUEST_COMPLETED') {
-    // 티니점수 변화 사유(topReasons)에서 퀘스트 완료로 오른 점수를 찾아서 같이 보여줌
     const questScoreReason = (teenyScoreData?.topReasons || []).find(
       (r) => r.eventCode === 'QUEST_COMPLETED'
     )
@@ -208,6 +176,45 @@ function mapInsight(insight, data) {
     desc.push(`${won(m.rewardAmount ?? 0)}을 받았어요.`)
 
     return { ...base, desc }
+  }
+
+  if (insight.insightCode === 'SAVING_PAYMENT') {
+    const savingAmount = m.savingAmount ?? 0
+    const savingProductCount = m.savingProductCount ?? 0
+    const savingPaymentCount = m.savingPaymentCount ?? 0
+    const depositAmount = m.depositAmount ?? 0
+    const depositProductCount = m.depositProductCount ?? 0
+
+    // ⚠️ 백엔드 응답에 상품별 내역 배열(breakdown) 필드 추가 필요
+    // 예상 형태: [{ productName, amount, paymentCount }, ...]
+    const savingBreakdown = m.savingBreakdown ?? m.breakdown ?? []
+    const depositBreakdown = m.depositBreakdown ?? []
+
+    const desc = []
+
+    if (savingAmount > 0) {
+      desc.push(
+        noWrap(`이번 달에 적금 ${savingProductCount}개에 총 ${won(savingAmount)}을 넣었어요 (${savingPaymentCount}회 납입).`)
+      )
+      savingBreakdown.forEach((item) => {
+        desc.push(noWrap(`· ${item.productName} — ${won(item.amount)} (${item.paymentCount ?? 0}회)`))
+      })
+    }
+
+    if (depositAmount > 0) {
+      desc.push(`예금 ${depositProductCount}개에는 ${won(depositAmount)}을 예치했어요.`)
+      depositBreakdown.forEach((item) => {
+        desc.push(`· ${item.productName} — ${won(item.amount)}`)
+      })
+    }
+
+    if (desc.length === 0) {
+      desc.push('이번 달엔 아직 적금이나 예금에 넣은 돈이 없어요.')
+    }
+
+    // type: 'savingRepayment' → 템플릿에서 회차 체크 배지가 있는 특수 카드로 렌더링.
+    // desc는 가입 상품 데이터(activeProducts)를 못 불러왔을 때의 폴백 텍스트로 사용.
+    return { ...base, desc, type: 'savingRepayment' }
   }
 
   return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
@@ -266,9 +273,6 @@ function mapTeenyScore(teenyScoreData) {
   }
 }
 
-// ---- 금융상품 목록 → 진행 상태 카드 / 다가오는 금융 일정 매핑 ----
-// (GET /api/v1/financial-products/me/enrollments, status가 PENDING인 건 제외)
-
 function parseDateParts(raw) {
   if (!raw) return null
   const parsed = new Date(raw)
@@ -290,7 +294,6 @@ function addMonthsToDate(startRaw, months) {
   return d
 }
 
-// 다음 납입/상환일: 시작일 + (납입 완료 횟수 + 1)개월
 function calcNextDueDate(startRaw, paidCount) {
   const p = parseDateParts(startRaw)
   if (!p) return null
@@ -299,7 +302,6 @@ function calcNextDueDate(startRaw, paidCount) {
   return d
 }
 
-// [연동 필요] productType 실제 값이 SAVING인지 SAVINGS인지 문서마다 달라서 방어적으로 정규화
 function normalizeProductType(rawType) {
   const t = (rawType || '').toUpperCase()
   if (t.startsWith('DEPOSIT')) return 'DEPOSIT'
@@ -317,7 +319,6 @@ function mapProduct(p) {
   const isLoan = productType === 'LOAN'
   const type = PRODUCT_TYPE_LABEL[productType] || p.productType
 
-  // [연동 필요] "가족 상품"/"금융기관 상품" 구분 필드가 API에 없어서 일단 회사명을 태그로 표시
   const tag = p.financialCompanyName || type
   const tagClass = 'institution'
 
@@ -333,14 +334,13 @@ function mapProduct(p) {
   } else if (isSaving) {
     const total = p.totalPaymentCount ?? 0
     const done = p.paidCount ?? 0
-    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'green' }
+    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'yellow' }
     const next = calcNextDueDate(p.startDate, done)
     desc = next ? `다음 납입일은 ${formatDateDot(next)}이에요.` : '다음 납입 일정을 확인해보세요.'
   } else if (isLoan) {
     const total = p.totalPaymentCount ?? 0
     const done = p.paidCount ?? 0
     progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'blue' }
-    // currentAmount가 대출에서는 "지금 남아있는 대출 잔액"을 의미함 (적금의 누적액과 같은 자리의 필드)
     desc = `앞으로 갚을 돈은 ${won(p.currentAmount ?? 0)}이에요.`
   }
 
@@ -378,7 +378,7 @@ function mapSchedule(p) {
   const today = new Date()
   const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const diffDays = Math.round((targetDate - todayOnly) / (1000 * 60 * 60 * 24))
-  if (diffDays < 0) return null // 이미 지난 일정은 제외
+  if (diffDays < 0) return null
 
   const dday = diffDays === 0 ? 'D-Day' : `D-${diffDays}`
   const date = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
@@ -417,8 +417,6 @@ function mapSchedule(p) {
 const selectedMonth = ref('')
 const showMonthPicker = ref(false)
 
-// UI에서는 백엔드가 준 availableMonths 개수와 무관하게 최근 N개월을 항상 선택지로 보여줌.
-// 실제로 데이터/가입 이전인 달을 고르면 API가 에러를 주는데, 그건 아래 loadReport에서 처리.
 function generateMonthOptions(count = 12) {
   const now = new Date()
   const months = []
@@ -430,40 +428,50 @@ function generateMonthOptions(count = 12) {
 }
 const monthOptions = ref(generateMonthOptions())
 
-// insights에 SAVING_PAYMENT_PROGRESS가 없어도(이번 달 납입 활동이 없으면 백엔드가 아예
-// 안 줌), 가입한 적금 상품이 있으면 그 데이터로 "저축 · 상환" 카드를 직접 만들어 보여줌.
-// activeProducts는 아래 onMounted에서 채워지고, 월을 바꿔도 유지됨 — 다만 이 fallback은
-// "지금 가입 상태" 기준이라 과거 달을 조회해도 항상 현재 진행률이 나온다는 점은 감안 필요.
 const activeProducts = ref([])
 
-function buildFallbackSavingHabit(product) {
-  const paidCount = product.paidCount ?? 0
-  const totalCount = product.totalPaymentCount ?? 0
-  const progressRate = totalCount ? Math.round((paidCount / totalCount) * 100) : 0
-  return {
-    dot: INSIGHT_META.SAVING_PAYMENT_PROGRESS.dot,
-    title: INSIGHT_META.SAVING_PAYMENT_PROGRESS.title,
-    route: null,
-    deepLink: null,
-    desc: [`${product.productName}은 ${totalCount}번 중 ${paidCount}번 납입했어요.`, `진행률 ${progressRate}%예요.`],
-    checks: { done: paidCount, total: totalCount },
-    footer: `적금 ${totalCount}회 중 ${paidCount}회 완료`,
+// "저축·상환" 카드용: 가입 상품 목록에서 정액적금 1개 + 대출 1개를 뽑아
+// 회차 진행 상황(1회~N회 체크)과 합산 문장을 만든다.
+// 정액적금(FIXED)을 우선 사용 — 자유적금(FREE)은 회차 개념이 없어서 제외
+const savingRepaymentDetail = computed(() => {
+  const list = activeProducts.value || []
+  const saving = list.find(
+    (p) => normalizeProductType(p.productType) === 'SAVING' && p.savingsType === 'FIXED' && p.totalPaymentCount
+  )
+  const loan = list.find((p) => normalizeProductType(p.productType) === 'LOAN' && p.totalPaymentCount)
+
+  if (!saving && !loan) return null
+
+  const parts = []
+  if (saving) {
+    const paid = saving.paidCount ?? 0
+    parts.push(`${saving.totalPaymentCount}번 중 ${paid}번의 적금 납입을 완료했어요.`)
+    parts.push(`지금까지 ${won(saving.currentAmount ?? 0)}을 모았${loan ? '고, ' : '어요.'}`)
   }
-}
+  if (loan) {
+    const loanPaid = loan.paidCount ?? 0
+    parts.push(`대출도 ${loan.totalPaymentCount}번 중 ${loanPaid}번 갚았어요.`)
+  }
 
-function applySavingFallback() {
-  if (!activeProducts.value.length) return
-  const hasSavingHabit = habits.value.some((h) => h.title === INSIGHT_META.SAVING_PAYMENT_PROGRESS.title)
-  if (hasSavingHabit) return
+  const rounds = saving
+    ? Array.from({ length: saving.totalPaymentCount }, (_, i) => ({
+        n: i + 1,
+        label: `${i + 1}회`,
+        done: i < (saving.paidCount ?? 0),
+      }))
+    : []
 
-  const savingProduct = activeProducts.value.find((p) => normalizeProductType(p.productType) === 'SAVING')
-  if (!savingProduct) return
+  let summaryLine = ''
+  if (saving) {
+    const nextDue = calcNextDueDate(saving.startDate, saving.paidCount)
+    summaryLine = noWrap(
+      `적금 ${saving.totalPaymentCount}번 중 ${saving.paidCount ?? 0}번 완료` +
+        (nextDue ? ` · 다음 납입일 ${nextDue.getMonth() + 1}월 ${nextDue.getDate()}일` : '')
+    )
+  }
 
-  const fallbackCard = buildFallbackSavingHabit(savingProduct)
-  const questIdx = habits.value.findIndex((h) => h.title === INSIGHT_META.QUEST_COMPLETED.title)
-  if (questIdx === -1) habits.value.push(fallbackCard)
-  else habits.value.splice(questIdx, 0, fallbackCard)
-}
+  return { desc: [noWrap(parts.join(' '))], rounds, summaryLine }
+})
 
 async function loadReport(month) {
   isLoading.value = true
@@ -482,13 +490,12 @@ async function loadReport(month) {
     selectedMonth.value = mappedPeriod.yearMonth
 
     summary.value = mapSummary(data.summary)
-    habits.value = (data.insights || []).map((insight) => mapInsight(insight, data))
-    applySavingFallback()
+    habits.value = (data.insights || []).map((insight) => mapInsight(insight, data)).filter(Boolean)
     spend.value = mapSpending(data.spending)
     score.value = mapTeenyScore(data.teenyScore)
   } catch (e) {
     console.error('소비 리포트 조회 실패:', e)
-    if (month) selectedMonth.value = month // 실패해도 방금 고른 달이 드롭다운에서 선택 표시되도록
+    if (month) selectedMonth.value = month
     loadError.value =
       e.status === 400
         ? ['이 달은 아직 데이터가 없어요', '다른 달을 선택해보세요']
@@ -511,14 +518,10 @@ function selectMonth(yearMonth) {
 onMounted(async () => {
   await loadReport()
 
-  // 금융상품 진행 상태 / 다가오는 금융 일정 — 리포트 조회 실패와 무관하게 별도로 시도
   try {
     const enrolledResult = await getMyEnrolledFinancialProducts(authStore.accessToken)
     const enrolled = Array.isArray(enrolledResult) ? enrolledResult : enrolledResult?.data ?? []
-    console.log('[ChildReport] 가입 금융상품 원본 응답:', enrolled)
-
     const active = enrolled.filter((p) => p.status !== 'PENDING')
-    console.log('[ChildReport] PENDING 제외 후 개수:', active.length, active)
     activeProducts.value = active
 
     products.value = active.map(mapProduct)
@@ -526,34 +529,20 @@ onMounted(async () => {
       .map(mapSchedule)
       .filter(Boolean)
       .sort((a, b) => a.diffDays - b.diffDays)
-    applySavingFallback()
   } catch (e) {
-    // [디버깅] 여기서 잡히는 에러가 있으면 콘솔에 스택까지 그대로 찍힘 — 내용 공유해주면 바로 원인 확인 가능
     console.error('금융상품 목록 조회 실패:', e)
   }
 })
 
 const monthLabel = computed(() => formatMonthLabel(report.value.yearMonth))
 
-// 저축 습관 카드의 회차 체크칩
-function checkChips(h) {
-  if (!h.checks) return []
-  const arr = []
-  for (let i = 1; i <= h.checks.total; i++) {
-    arr.push({ n: i, done: i <= h.checks.done })
-  }
-  return arr
-}
-
-// 막대 차트 높이 (제일 큰 값 기준으로 비율)
 const maxWeek = computed(() => Math.max(...spend.value.weeks.map((w) => w.amount), 1))
 function barHeight(week) {
   if (week.empty) return '4px'
   return Math.max(Math.round((week.amount / maxWeek.value) * 76), 6) + 'px'
 }
 
-// 도넛 세그먼트 계산 (SVG stroke-dasharray)
-const CIRC = 2 * Math.PI * 44 // 반지름 44의 둘레
+const CIRC = 2 * Math.PI * 44
 const donutSegments = computed(() => {
   let offset = 0
   return spend.value.categories.map((c) => {
@@ -564,13 +553,11 @@ const donutSegments = computed(() => {
   })
 })
 
-// 가장 많이 쓴 카테고리 색상 (도넛 밖 캡션의 컬러 점에 사용)
 const topCategoryColor = computed(() => {
   const found = spend.value.categories.find((c) => c.name === spend.value.topCategory)
   return found ? found.color : 'var(--ink-faint)'
 })
 
-// 카테고리 목록: 기본은 많이 쓴 순서로 상위 3개만, "전체 보기" 클릭 시 나머지도 펼침
 const CATEGORY_PREVIEW_COUNT = 3
 const showAllCategories = ref(false)
 const sortedCategories = computed(() =>
@@ -588,7 +575,6 @@ function toggleAllCategories() {
   showAllCategories.value = !showAllCategories.value
 }
 
-// 다가오는 금융 일정: 3개까지만 먼저 보여주고 "전체 보기" 클릭 시 나머지도 펼침
 const SCHEDULE_PREVIEW_COUNT = 3
 const showAllSchedules = ref(false)
 const visibleSchedules = computed(() =>
@@ -619,6 +605,7 @@ function toggleAllSchedules() {
           </button>
           <span class="nav-title">소비 리포트</span>
         </div>
+        <ChildNavActions />
       </div>
 
       <!-- 로딩/에러 상태 -->
@@ -674,29 +661,44 @@ function toggleAllSchedules() {
       </section>
 
       <!-- 이번 달 금융 습관 -->
-      <section>
+      <section v-if="habits.length > 0">
         <h2 class="sec-heading">이번 달 금융 습관</h2>
         <div class="habit-card" v-for="h in habits" :key="h.title">
           <div class="habit-head">
-            <div class="habit-title"><span class="habit-dot" :style="{ background: h.dot }"></span>{{ h.title }}</div>
+            <div class="habit-title">
+              <span class="habit-dot" :style="{ background: h.dot }"></span>
+              {{ h.type === 'savingRepayment' ? '저축·상환' : h.title }}
+            </div>
           </div>
-          <div class="habit-desc">
+
+          <!-- 저축·상환: 가입 상품 데이터로 회차 체크 배지 표시 -->
+          <template v-if="h.type === 'savingRepayment' && savingRepaymentDetail">
+            <div class="habit-desc">
+              <span v-for="(line, i) in savingRepaymentDetail.desc" :key="i">{{ line }}<br v-if="i < savingRepaymentDetail.desc.length - 1" /></span>
+            </div>
+            <div class="round-row" v-if="savingRepaymentDetail.rounds.length">
+              <div
+                v-for="r in savingRepaymentDetail.rounds"
+                :key="r.n"
+                class="round-badge"
+                :class="{ done: r.done }"
+              >
+                <span class="round-circle">
+                  <svg v-if="r.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </span>
+                <span class="round-label">{{ r.label }}</span>
+              </div>
+            </div>
+            <div v-if="savingRepaymentDetail.summaryLine" class="round-summary">{{ savingRepaymentDetail.summaryLine }}</div>
+          </template>
+
+          <!-- 일반 인사이트 카드 (소비 / 오늘만 허용 / 퀘스트, 또는 저축 폴백 텍스트) -->
+          <div v-else class="habit-desc">
             <span v-for="(line, i) in h.desc" :key="i">{{ line }}<br v-if="i < h.desc.length - 1" /></span>
           </div>
-          <template v-if="h.checks">
-            <div class="checks-row">
-              <span
-                v-for="c in checkChips(h)"
-                :key="c.n"
-                class="check-chip"
-                :class="{ pending: !c.done }"
-                :aria-label="`${c.n}회차 ${c.done ? '완료' : '예정'}`"
-              >{{ c.done ? '✓' : '·' }} {{ c.n }}회</span>
-            </div>
-            <div class="habit-footer">{{ h.footer }}</div>
-          </template>
+
           <button
-            v-if="(h.route || h.deepLink) && !h.checks"
+            v-if="h.route || h.deepLink"
             type="button"
             class="habit-link"
             @click="router.push(h.route || h.deepLink)"
@@ -872,8 +874,8 @@ function toggleAllSchedules() {
 
     </div>
 
-    <!-- 하단 탭바 (고정) -->
-    <BottomTabBar active="report" @select="onTabSelect" />
+    <!-- 소비 리포트용 안내 말풍선 포함 챗봇 플로팅 버튼 -->
+    <Chatbot hint-text="이번 달 소비 분석이나 금융 습관에 대해 물어보세요!" />
   </div>
 </template>
 
@@ -907,6 +909,7 @@ function toggleAllSchedules() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
+  padding-top: 20px;
   background: #ffffff;
   border: 1px solid var(--card-border);
   overflow: hidden;
@@ -1079,28 +1082,6 @@ section { margin-bottom: 30px; }
 .habit-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .habit-desc { font-size: 13.5px; color: #3d3f44; line-height: 1.7; word-break: keep-all; overflow-wrap: break-word; }
 
-.checks-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
-  gap: 8px;
-  margin: 12px 0 8px;
-}
-.check-chip {
-  display: block;
-  background: var(--green-tag-bg);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 9px 0;
-  text-align: center;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--green-tag-fg);
-}
-.check-chip.pending {
-  background: #f5f6f8;
-  color: var(--ink-faint);
-}
-.habit-footer { font-size: 12px; color: var(--ink-sub); font-weight: 500; }
 .habit-link {
   display: flex;
   align-items: center;
@@ -1114,6 +1095,59 @@ section { margin-bottom: 30px; }
   padding: 0;
   font-family: inherit;
   cursor: pointer;
+}
+
+/* 저축·상환 회차 배지 */
+.round-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.round-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 40px;
+}
+
+.round-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1.5px dashed #d7d9dd;
+  color: transparent;
+}
+
+.round-badge.done .round-circle {
+  background: var(--green-tag-bg);
+  border: 1.5px solid var(--green);
+  color: var(--green-tag-fg);
+}
+
+.round-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.round-badge.done .round-label {
+  color: var(--green-tag-fg);
+}
+
+.round-summary {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-sub);
 }
 
 /* 소비 명세 카드 */
@@ -1239,7 +1273,7 @@ section { margin-bottom: 30px; }
   margin-bottom: 8px;
 }
 .progress-fill { height: 100%; border-radius: 999px; }
-.progress-fill.green { background: var(--green); }
+.progress-fill.yellow { background: var(--yellow); }
 .progress-fill.blue { background: var(--blue); }
 .progress-label { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
 .product-desc { font-size: 13px; color: var(--ink-sub); margin-bottom: 10px; }
@@ -1384,9 +1418,4 @@ section { margin-bottom: 30px; }
 }
 .schedule-empty .empty-text { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--ink-faint); }
 .schedule-more-btn { margin-top: 10px; }
-
-/* 하단 탭바 고정 */
-.report-screen :deep(.tabbar) {
-  flex-shrink: 0;
-}
 </style>

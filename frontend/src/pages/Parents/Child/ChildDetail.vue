@@ -30,17 +30,7 @@
             자녀 관리
           </span>
 
-          <button
-            class="bell-btn"
-            type="button"
-            aria-label="알림"
-          >
-            <img
-              src="@/assets/icons/icon-notification.svg"
-              alt=""
-              class="alarm-icon"
-            />
-          </button>
+          <ParentNavActions />
         </header>
 
 
@@ -178,7 +168,17 @@
               {{ child.name }}님의 티니머니 잔액
             </span>
 
-            <p class="balance-amount">
+            <p
+              v-if="isWalletLoading"
+              class="balance-amount"
+            >
+              조회 중...
+            </p>
+
+            <p
+              v-else
+              class="balance-amount"
+            >
               {{ child.balance.toLocaleString() }}원
             </p>
 
@@ -186,10 +186,11 @@
 
 
           <button
-            class="unlink-btn"
+            class="history-btn"
             type="button"
+            @click="goToTransactions"
           >
-            연동 해제
+            내역조회
           </button>
 
         </div>
@@ -376,6 +377,80 @@
 
       </section>
 
+      <section class="history">
+        <div class="history-head">
+          <span class="history-title">최근 이용내역</span>
+
+          <button
+            type="button"
+            class="more-button"
+            aria-label="전체 거래내역 보기"
+            @click="goToTransactions"
+          >
+            <span class="chev">›</span>
+          </button>
+        </div>
+
+        <div
+          v-if="isWalletLoading"
+          class="transaction-state"
+        >
+          거래내역을 불러오는 중입니다.
+        </div>
+
+        <div
+          v-else-if="walletError"
+          class="transaction-state error-message"
+        >
+          <p>{{ walletError }}</p>
+
+          <button
+            type="button"
+            class="retry-button"
+            @click="fetchWallet"
+          >
+            다시 시도
+          </button>
+        </div>
+
+        <template v-else-if="recentTransactions.length > 0">
+          <div
+            v-for="item in recentTransactions"
+            :key="item.id"
+            class="tx-item"
+          >
+            <div class="tx-info">
+              <span class="tx-date">
+                {{ formatTransactionDate(item.createdAt) }}
+              </span>
+              <span class="tx-name">
+                {{ item.description || '거래내역' }}
+              </span>
+              <span class="tx-balance">
+                잔액 : {{ Number(item.balanceAfter || 0).toLocaleString() }}원
+              </span>
+            </div>
+
+            <span
+              class="tx-amount"
+              :class="{
+                plus: item.direction === 'CREDIT',
+                minus: item.direction === 'DEBIT',
+              }"
+            >
+              {{ getAmountText(item) }}
+            </span>
+          </div>
+        </template>
+
+        <div
+          v-else
+          class="transaction-state"
+        >
+          최근 이용내역이 없습니다.
+        </div>
+      </section>
+
     </div>
 
 
@@ -390,6 +465,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 import {
   computed,
@@ -404,6 +480,7 @@ import {
 
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { getChildWallet } from '@/api/wallet'
 import { getTeenyScore } from '@/api/teenyScore'
 import * as financialProductsApi from '@/api/financialProducts'
 import { fetchAllChildFinancialProducts } from '@/utils/financialProductMapper'
@@ -445,7 +522,7 @@ const child =
 
     name: '자녀',
 
-    balance: 42500,
+    balance: 0,
 
     score: 0,
 
@@ -510,6 +587,75 @@ function goToReport() {
     name: 'parents-child-report',
     params: { childId },
   })
+}
+
+function goToTransactions() {
+  router.push({
+    name: 'parents-child-transaction',
+    params: { childId },
+  })
+}
+
+const isWalletLoading = ref(false)
+const walletError = ref('')
+const recentTransactions = ref([])
+
+async function fetchWallet() {
+  isWalletLoading.value = true
+  walletError.value = ''
+
+  try {
+    if (!authStore.accessToken) {
+      walletError.value = '로그인이 필요합니다.'
+      return
+    }
+
+    const res = await getChildWallet(authStore.accessToken, childId)
+
+    if (res.success) {
+      child.value.balance = res.data.balance ?? 0
+      recentTransactions.value = res.data.recentTransactions || []
+    }
+  } catch (error) {
+    console.error('자녀 지갑 조회 실패:', error)
+
+    if (error.status === 401) {
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
+      return
+    }
+
+    walletError.value =
+      error.message || '자녀 지갑 정보를 불러오지 못했습니다.'
+  } finally {
+    isWalletLoading.value = false
+  }
+}
+
+function getAmountText(item) {
+  const amount = Math.abs(Number(item.amount || 0))
+
+  if (item.direction === 'CREDIT') {
+    return `+${amount.toLocaleString()}원`
+  }
+
+  if (item.direction === 'DEBIT') {
+    return `-${amount.toLocaleString()}원`
+  }
+
+  return `${amount.toLocaleString()}원`
+}
+
+function formatTransactionDate(createdAt) {
+  if (!createdAt) return ''
+
+  const date = new Date(createdAt)
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 
@@ -624,6 +770,7 @@ onMounted(async () => {
     fetchChildInfo(),
     fetchTeenyScore(),
     fetchFinancePreview(),
+    fetchWallet(),
   ])
 })
 const activeCard =
@@ -1152,21 +1299,139 @@ function onScroll() {
 }
 
 
-.unlink-btn {
-  padding: 8px 12px;
+.history-btn {
+  padding: 9px 14px;
 
-  border:
-    1px solid #fecaca;
+  border: none;
 
   border-radius: 12px;
 
+  background: #facc15;
+
+  color: #18181b;
+
+  font-size: 12.5px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.history {
+  margin: 12px 18px 16px;
+  padding: 16px;
+  border-radius: 20px;
   background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
 
+.history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.history-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.more-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chev {
+  font-size: 18px;
+  color: #a1a1aa;
+}
+
+.tx-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tx-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tx-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.tx-date {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b9097;
+}
+
+.tx-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+}
+
+.tx-balance {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b9097;
+}
+
+.tx-amount {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+  white-space: nowrap;
+}
+
+.tx-amount.plus {
+  color: #3178c6;
+}
+
+.tx-amount.minus {
   color: #ef4444;
+}
 
-  font-size: 11px;
-  font-weight: 700;
+.transaction-state {
+  padding: 28px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b9097;
+  text-align: center;
+}
 
+.error-message {
+  color: #d14343;
+}
+
+.error-message p {
+  margin: 0;
+}
+
+.retry-button {
+  margin-top: 12px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #facc15;
+  color: #191b1e;
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
 }
 

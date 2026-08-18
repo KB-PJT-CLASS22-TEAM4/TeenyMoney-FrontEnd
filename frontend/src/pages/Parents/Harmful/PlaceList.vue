@@ -17,6 +17,7 @@
       </button>
 
       <h1 class="nav-title">업종별 결제 설정</h1>
+      <ParentNavActions />
     </header>
 
 
@@ -77,91 +78,90 @@
       v-else
       class="content"
     >
-      <div
-        v-for="place in filteredPlaces"
-        :key="place.id"
-        class="place-card"
+      <section
+        v-for="group in filteredGroups"
+        :key="group.name"
+        class="place-group"
       >
+        <button
+          v-if="!isFlatGroup(group)"
+          class="toggle-header"
+          type="button"
+          :aria-expanded="isGroupExpanded(group.name)"
+          @click="toggleGroup(group.name)"
+        >
+          <p class="group-title">
+            {{ group.name }}
+          </p>
+          <span class="toggle-count">
+            {{ group.items.length }}
+          </span>
+          <img
+            src="@/assets/icons/icon-chevron.svg"
+            alt=""
+            class="toggle-chevron"
+            :class="{ open: isGroupExpanded(group.name) }"
+          />
+        </button>
 
-        <p class="place-name">
-          {{ place.merchantCategoryName }}
-        </p>
-
-
-        <div class="place-btns">
-
-          <!-- 허용 -->
-          <button
-            class="status-btn"
-            :class="{
-              'active-allow':
-                place.policy === 'ALLOW'
-            }"
-            @click="setStatus(
-              place.id,
-              'ALLOW'
-            )"
+        <div
+          v-if="isFlatGroup(group) || isGroupExpanded(group.name)"
+          class="toggle-body"
+        >
+          <div
+            v-for="place in group.items"
+            :key="place.id"
+            class="place-card"
           >
-            <span
-              v-if="place.policy === 'ALLOW'"
+            <p class="place-name">
+              {{ place.categoryName }}
+            </p>
+            <p
+              v-if="isTemporaryAllow(place)"
+              class="temp-deadline"
             >
-              ✓
-            </span>
+              {{ formatAllowDeadline() }}
+            </p>
 
-            허용
-          </button>
+            <div class="place-btns">
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-allow': isAllowActive(place) }"
+                @click="setStatus(place.id, 'ALLOW')"
+              >
+                <span v-if="isAllowActive(place)">✓</span>
+                허용
+              </button>
 
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-caution': isCautionActive(place) }"
+                @click="setStatus(place.id, 'WATCH')"
+              >
+                <span v-if="isCautionActive(place)">✓</span>
+                주의
+              </button>
 
-          <!-- 주의 -->
-          <button
-            class="status-btn"
-            :class="{
-              'active-caution':
-                place.policy === 'CAUTION'
-            }"
-            @click="setStatus(
-              place.id,
-              'CAUTION'
-            )"
-          >
-            <span
-              v-if="place.policy === 'CAUTION'"
-            >
-              ✓
-            </span>
-
-            주의
-          </button>
-
-
-          <!-- 차단 -->
-          <button
-            class="status-btn"
-            :class="{
-              'active-block':
-                place.policy === 'BLOCK'
-            }"
-            @click="setStatus(
-              place.id,
-              'BLOCK'
-            )"
-          >
-            <span
-              v-if="place.policy === 'BLOCK'"
-            >
-              ✓
-            </span>
-
-            차단
-          </button>
-
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-block': isBlockActive(place) }"
+                @click="setStatus(place.id, 'BLOCK')"
+              >
+                <span v-if="isBlockActive(place)">✓</span>
+                차단
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
 
       <!-- 검색 결과 없음 -->
       <div
-        v-if="filteredPlaces.length === 0"
+        v-if="filteredGroups.length === 0"
         class="empty-box"
       >
         검색 결과가 없습니다.
@@ -189,6 +189,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
@@ -206,9 +207,11 @@ import {
 import { useAuthStore } from '@/stores/auth'
 
 import {
-  getCategoryPolicies,
+  getCategoryPolicyParentGroups,
   updateCategoryPolicies,
 } from '@/api/categoryPolicy'
+
+import { getPermissions } from '@/api/permissions'
 
 
 const router = useRouter()
@@ -239,7 +242,8 @@ const childId = ref(
 // 상태값
 // ========================================
 
-const places = ref([])
+const parentGroups = ref([])
+const approvedPermissions = ref([])
 
 const searchQuery = ref('')
 
@@ -248,29 +252,149 @@ const isSaving = ref(false)
 
 const errorMessage = ref('')
 
+const allPlaces = computed(() =>
+  parentGroups.value.flatMap((group) => group.items)
+)
 
-// ========================================
-// 검색
-// ========================================
-
-const filteredPlaces = computed(() => {
-
-  const keyword =
-    searchQuery.value
-      .trim()
-      .toLowerCase()
+const filteredGroups = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase()
 
   if (!keyword) {
-    return places.value
+    return parentGroups.value
   }
 
-  return places.value.filter(
-    place =>
-      place.merchantCategoryName
-        ?.toLowerCase()
-        .includes(keyword)
-  )
+  return parentGroups.value
+    .map((group) => {
+      if (group.name?.toLowerCase().includes(keyword)) {
+        return group
+      }
+
+      return {
+        ...group,
+        items: group.items.filter((item) =>
+          item.categoryName?.toLowerCase().includes(keyword)
+        ),
+      }
+    })
+    .filter((group) => group.items.length > 0)
 })
+
+const expandedGroups = ref({})
+
+function isCaution(policy) {
+  return policy === 'WATCH' || policy === 'CAUTION'
+}
+
+function isFlatGroup(group) {
+  return group.name === '기타'
+}
+
+function getTodayEnd() {
+  const date = new Date()
+  date.setHours(24, 0, 0, 0)
+  return date
+}
+
+function formatAllowDeadline(until = getTodayEnd()) {
+  const end = until instanceof Date ? until : new Date(until)
+  if (Number.isNaN(end.getTime()) || end.getTime() <= Date.now()) return ''
+  return '오늘 24:00까지 허용'
+}
+
+function extractPermissionCategory(permission) {
+  if (typeof permission?.category === 'string' && permission.category) {
+    return [permission.category]
+  }
+  if (!Array.isArray(permission?.categories)) return []
+  return permission.categories.filter((name) => typeof name === 'string' && name)
+}
+
+const temporaryAllowMap = computed(() => {
+  const map = new Map()
+  const until = getTodayEnd()
+  if (until.getTime() <= Date.now()) return map
+
+  approvedPermissions.value.forEach((permission) => {
+    extractPermissionCategory(permission).forEach((name) => {
+      map.set(name, until)
+    })
+  })
+
+  return map
+})
+
+function isTemporaryAllow(place) {
+  if (place.userOverride) return false
+  if (temporaryAllowMap.value.has(place.categoryName)) return true
+
+  const until = place.expiresAt ? new Date(place.expiresAt) : null
+  return !!(until && !Number.isNaN(until.getTime()) && until.getTime() > Date.now())
+}
+
+function isAllowActive(place) {
+  if (place.userOverride) return place.policy === 'ALLOW'
+  return place.policy === 'ALLOW' || isTemporaryAllow(place)
+}
+
+function isCautionActive(place) {
+  if (isAllowActive(place)) return false
+  return isCaution(place.policy)
+}
+
+function isBlockActive(place) {
+  if (isAllowActive(place)) return false
+  return place.policy === 'BLOCK'
+}
+
+async function fetchApprovedPermissions() {
+  if (!authStore.accessToken || !childId.value) {
+    approvedPermissions.value = []
+    return
+  }
+
+  try {
+    const res = await getPermissions(
+      authStore.accessToken,
+      childId.value
+    )
+    const payload = res.data
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.permissions)
+        ? payload.permissions
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : payload?.permission
+            ? [payload.permission]
+            : []
+
+    approvedPermissions.value = list.filter(
+      (permission) => permission?.status === 'APPROVED'
+    )
+  } catch (error) {
+    console.error('오늘만 허용 승인 내역 조회 실패:', error)
+    approvedPermissions.value = []
+  }
+}
+
+
+function isGroupExpanded(name) {
+  if (searchQuery.value.trim()) return true
+  if (Object.prototype.hasOwnProperty.call(expandedGroups.value, name)) {
+    return !!expandedGroups.value[name]
+  }
+  const group = filteredGroups.value.find((item) => item.name === name)
+  return !!group?.items.some((item) => isTemporaryAllow(item))
+}
+
+function toggleGroup(name) {
+  if (searchQuery.value.trim()) return
+
+  expandedGroups.value = {
+    ...expandedGroups.value,
+    [name]: !isGroupExpanded(name),
+  }
+}
 
 
 // ========================================
@@ -312,7 +436,7 @@ async function fetchPlaces() {
 
 
     const res =
-      await getCategoryPolicies(
+      await getCategoryPolicyParentGroups(
         authStore.accessToken,
         childId.value
       )
@@ -324,27 +448,18 @@ async function fetchPlaces() {
     )
 
 
-    if (
-      res.success &&
-      Array.isArray(res.data)
-    ) {
-
-      places.value =
-        res.data.map(item => ({
-          id: item.id,
-
-          merchantCategoryName:
-            item.merchantCategoryName,
-
-          policy:
-            item.policy,
+    parentGroups.value = Array.isArray(res.data)
+      ? res.data.map((group) => ({
+          name: group.name,
+          items: (group.categoryPolicyList || []).map((item) => ({
+            id: item.id,
+            categoryName: item.categoryName,
+            policy: item.policy,
+            userOverride: false,
+            expiresAt: item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null,
+          })),
         }))
-
-    } else {
-
-      places.value = []
-
-    }
+      : []
 
 
   } catch (error) {
@@ -391,7 +506,7 @@ async function fetchPlaces() {
 function setStatus(id, policy) {
 
   const place =
-    places.value.find(
+    allPlaces.value.find(
       item => item.id === id
     )
 
@@ -402,6 +517,7 @@ function setStatus(id, policy) {
 
 
   place.policy = policy
+  place.userOverride = true
 
 
   console.log(
@@ -470,7 +586,7 @@ async function handleSave() {
      * id + policy만 전송
      */
     const categoryPolicyList =
-      places.value.map(
+      allPlaces.value.map(
         place => ({
           id: place.id,
           policy: place.policy,
@@ -569,6 +685,7 @@ onMounted(() => {
   )
 
   fetchPlaces()
+  fetchApprovedPermissions()
 
 })
 </script>
@@ -581,10 +698,11 @@ onMounted(() => {
 
 .page {
   position: relative;
-  width: 360px;
+  width: 100%;
+  max-width: 430px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding-bottom: 150px;
+  padding-bottom: 160px;
   background-color: #ffffff;
   color: #191b1e;
   display: flex;
@@ -721,12 +839,64 @@ onMounted(() => {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 18px;
   padding: 0 16px;
 }
 
+.place-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.group-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: #191b1e;
+}
+
+.toggle-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b9097;
+}
+
+.toggle-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.toggle-chevron.open {
+  transform: rotate(90deg);
+}
+
+.toggle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .place-card {
-  padding: 16px;
+  padding: 14px;
   border-radius: 16px;
   border: 1px solid #eaedf1;
   background-color: #ffffff;
@@ -734,25 +904,35 @@ onMounted(() => {
 }
 
 .place-name {
-  margin: 0 0 16px;
+  margin: 0 0 8px;
   font-size: 15px;
   font-weight: 700;
 }
 
+.temp-deadline {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff9500;
+}
+
 .place-btns {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .status-btn {
   flex: 1;
-  height: 44px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 4px;
   border: none;
   border-radius: 24px;
   background-color: #f4f5f7;
   color: #8b9097;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -778,19 +958,25 @@ onMounted(() => {
 
 .footer {
   position: fixed;
-  bottom: 90px;
-  left: 50%;
+  bottom: 70px;
+  left: 0;
+  right: 0;
   z-index: 99;
   width: 100%;
-  max-width: 360px;
-  padding: 0 16px;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 12px 16px;
   box-sizing: border-box;
-  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    #ffffff 28%
+  );
 }
 
 .submit-btn {
   width: 100%;
-  height: 54px;
+  height: 52px;
   border: none;
   border-radius: 12px;
   background-color: #ffbc00;

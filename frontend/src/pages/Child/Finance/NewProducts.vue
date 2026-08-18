@@ -5,6 +5,8 @@ import { useAuthStore } from '@/stores/auth'
 import { getFinancialProducts } from '@/api/finance'
 import { getTeenyScore } from '@/api/teenyScore'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -281,11 +283,11 @@ function goBack() {
 }
 
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' })
-  if (key === 'report') router.push({ name: 'child-report' })
-  if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' })
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
   if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
+  if (key === 'quest')   router.push({ name: 'child-quest-list' })
 }
 
 const isScrolling = ref(false)
@@ -343,6 +345,7 @@ function goToApply(product) {
         </svg>
       </button>
       <h1 class="nav-title">금융 상품</h1>
+      <ChildNavActions />
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
@@ -436,6 +439,8 @@ function goToApply(product) {
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="finance" @select="onTabSelect" />
+
+    <Chatbot hint-text="금리가 어떻게 계산되는지 궁금하세요?" />
   </div>
 </template>
 

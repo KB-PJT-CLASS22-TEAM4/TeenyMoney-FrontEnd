@@ -7,6 +7,7 @@
         </svg>
       </button>
       <h1 class="nav-title">{{ pageTitle }}</h1>
+      <ChildNavActions />
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
@@ -324,6 +325,8 @@
         </button>
       </div>
     </div>
+
+    <Chatbot v-if="!errorModalVisible" hint-text="가입 조건이나 이자 계산이 궁금하세요?" />
   </div>
 </template>
 
@@ -332,6 +335,8 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createSavingEnrollment, createLoanEnrollment, createDepositEnrollment } from '@/api/finance'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const route  = useRoute()

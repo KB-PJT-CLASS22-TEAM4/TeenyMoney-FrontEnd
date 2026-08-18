@@ -101,3 +101,43 @@ export async function connectFamilyCode(accessToken, code) {
 
   return result
 }
+
+// 가족 연동 해제 (부모 전용)
+export async function unlinkFamily(accessToken, childId) {
+  ensureAccessToken(accessToken)
+
+  if (childId == null || childId === '') {
+    throw new Error('해제할 자녀를 찾을 수 없습니다.')
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/families/unlink/${childId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  if (response.status === 204) {
+    return { success: true }
+  }
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    if (response.ok) {
+      return { success: true }
+    }
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '연동 해제에 실패했습니다.')
+  }
+
+  return result
+}

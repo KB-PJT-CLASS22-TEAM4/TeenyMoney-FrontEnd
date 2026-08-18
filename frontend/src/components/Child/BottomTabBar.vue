@@ -32,35 +32,36 @@ const tabs = [
 .tabbar {
   display: flex;
   justify-content: space-around;
-  align-items: flex-end;
+  align-items: center;
+  flex-shrink: 0;
   width: 100%;
-  height: 68px;
-  padding: 0 6px 10px;
+  height: 70px;
+  padding: 10px 0 20px;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.85);
+  background: #ffffff;
   border-top: 1px solid #f0f1f3;
-  backdrop-filter: blur(5px);
 }
 
 .tab {
   display: flex;
+  min-width: 0;
+  flex: 1 1 0;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  gap: 5px;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 6px 4px;
-  min-width: 44px;
-  min-height: 48px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .tab-icon {
   display: flex;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 .tab-icon :deep(svg) {
   width: 100%;
@@ -69,11 +70,16 @@ const tabs = [
 
 .tab-label {
   font-weight: 600;
-  font-size: 10.5px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-/* 활성 탭은 검정 */
 .tab.active {
   color: #191b1e;
+}
+
+.tab.active .tab-label {
+  font-weight: 700;
 }
 </style>
