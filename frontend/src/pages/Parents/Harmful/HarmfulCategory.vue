@@ -82,6 +82,12 @@
                 class="flat-item"
               >
                 {{ item.categoryName }}
+                <span
+                  v-if="item.temporaryUntil"
+                  class="temp-deadline"
+                >
+                  {{ formatAllowDeadline(item.temporaryUntil) }}
+                </span>
               </p>
             </div>
 
@@ -121,6 +127,12 @@
                   class="policy-item"
                 >
                   {{ item.categoryName }}
+                  <span
+                    v-if="item.temporaryUntil"
+                    class="temp-deadline"
+                  >
+                    {{ formatAllowDeadline(item.temporaryUntil) }}
+                  </span>
                 </p>
               </div>
             </div>
@@ -196,7 +208,7 @@
 
           <div
             v-for="req in pendingRequests"
-            :key="req.id"
+            :key="requestKey(req)"
             class="request-card"
           >
             <div class="request-top">
@@ -214,18 +226,12 @@
               </span>
             </div>
 
-            <div
-              v-if="req.categories.length"
-              class="request-categories"
+            <p
+              v-if="req.category"
+              class="request-category-name"
             >
-              <span
-                v-for="(category, idx) in req.categories"
-                :key="idx"
-                class="category-tag"
-              >
-                {{ category }}
-              </span>
-            </div>
+              {{ req.category }}
+            </p>
 
             <p
               v-if="req.reason"
@@ -267,7 +273,7 @@
 
           <div
             v-for="req in completedRequests"
-            :key="req.id"
+            :key="requestKey(req)"
             class="request-card"
           >
             <div class="request-top">
@@ -288,18 +294,19 @@
               </span>
             </div>
 
-            <div
-              v-if="req.categories.length"
-              class="request-categories"
+            <p
+              v-if="req.category"
+              class="request-category-name"
             >
-              <span
-                v-for="(category, idx) in req.categories"
-                :key="idx"
-                class="category-tag"
-              >
-                {{ category }}
-              </span>
-            </div>
+              {{ req.category }}
+            </p>
+
+            <p
+              v-if="req.status === 'APPROVED' && formatAllowDeadline()"
+              class="temp-deadline"
+            >
+              {{ formatAllowDeadline() }}
+            </p>
 
             <p
               v-if="req.reason"
@@ -393,15 +400,75 @@ function isFlatGroup(group) {
   return group.name === '기타'
 }
 
+function getTodayEnd() {
+  const date = new Date()
+  date.setHours(24, 0, 0, 0)
+  return date
+}
+
+function isSameLocalDay(dateValue) {
+  const date = parseCreatedAt(dateValue)
+  if (!date) return false
+
+  const now = new Date()
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  )
+}
+
+function formatAllowDeadline(until = getTodayEnd()) {
+  const end = until instanceof Date ? until : parseCreatedAt(until)
+  if (!end || end.getTime() <= Date.now()) return ''
+  return '오늘 24:00까지 허용'
+}
+
+function requestKey(req) {
+  return `${req.id}-${req.category || ''}`
+}
+
+const temporaryAllowMap = computed(() => {
+  const map = new Map()
+  const until = getTodayEnd()
+  if (until.getTime() <= Date.now()) return map
+
+  normalizedRequests.value.forEach((req) => {
+    if (req.status !== 'APPROVED') return
+    if (req.updatedAt && !isSameLocalDay(req.updatedAt) && !isSameLocalDay(req.createdAt)) {
+      return
+    }
+    if (req.category) map.set(req.category, until)
+    req.categories.forEach((name) => map.set(name, until))
+  })
+
+  return map
+})
+
+function withEffectivePolicy(item) {
+  const untilFromPermission = temporaryAllowMap.value.get(item.categoryName) ?? null
+  const untilFromPolicy = parseCreatedAt(
+    item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null
+  )
+  const temporaryUntil = untilFromPermission || untilFromPolicy
+  const isTemp = temporaryUntil && temporaryUntil.getTime() > Date.now()
+
+  return {
+    ...item,
+    temporaryUntil: isTemp ? temporaryUntil : null,
+    effectivePolicy: isTemp ? 'ALLOW' : normalizePolicy(item.policy),
+  }
+}
+
 const policySections = computed(() =>
   POLICY_SECTIONS.map((section) => ({
     ...section,
     groups: parentGroups.value
       .map((group) => ({
         name: group.name,
-        items: group.items.filter(
-          (item) => normalizePolicy(item.policy) === section.key
-        ),
+        items: group.items
+          .map(withEffectivePolicy)
+          .filter((item) => item.effectivePolicy === section.key),
       }))
       .filter((group) => group.items.length > 0),
   }))
@@ -414,14 +481,23 @@ function policyGroupKey(policy, name) {
 }
 
 function isPolicyGroupExpanded(policy, name) {
-  return !!expandedPolicyGroups.value[policyGroupKey(policy, name)]
+  const key = policyGroupKey(policy, name)
+  if (Object.prototype.hasOwnProperty.call(expandedPolicyGroups.value, key)) {
+    return !!expandedPolicyGroups.value[key]
+  }
+
+  const group = policySections.value
+    .find((section) => section.key === policy)
+    ?.groups.find((item) => item.name === name)
+
+  return !!group?.items.some((item) => item.temporaryUntil)
 }
 
 function togglePolicyGroup(policy, name) {
   const key = policyGroupKey(policy, name)
   expandedPolicyGroups.value = {
     ...expandedPolicyGroups.value,
-    [key]: !expandedPolicyGroups.value[key],
+    [key]: !isPolicyGroupExpanded(policy, name),
   }
 }
 
@@ -534,12 +610,15 @@ function extractCategories(permission) {
 }
 
 function normalizePermissionRequest(permission) {
+  const categories = extractCategories(permission)
+
   return {
     id: permission.id,
     childName: permission.child?.name ?? permission.childName ?? '',
     reason: permission.reason ?? '',
     status: permission.status ?? 'PENDING',
-    categories: extractCategories(permission),
+    category: permission.category || categories[0] || '',
+    categories,
     createdAt: permission.createdAt,
     updatedAt: permission.updatedAt ?? null,
   }
@@ -586,22 +665,28 @@ function mergePermissionRequests(currentList, historyList) {
   ;[...currentList, ...historyList].forEach((permission) => {
     if (!permission?.id || !matchesSelectedChild(permission)) return
 
-    const existing = merged.get(permission.id)
-    if (!existing) {
-      merged.set(permission.id, { ...permission })
-      return
-    }
+    const categories = extractCategories(permission)
+    const names = categories.length ? categories : ['']
 
-    existing.categories = [
-      ...new Set([
-        ...extractCategories(existing),
-        ...extractCategories(permission),
-      ]),
-    ]
-    existing.category = existing.categories[0] ?? existing.category
-    if (!existing.updatedAt && permission.updatedAt) {
-      existing.updatedAt = permission.updatedAt
-    }
+    names.forEach((category) => {
+      const key = `${permission.id}::${category}`
+      const existing = merged.get(key)
+      if (!existing) {
+        merged.set(key, {
+          ...permission,
+          category,
+          categories: category ? [category] : [],
+        })
+        return
+      }
+
+      if (!existing.updatedAt && permission.updatedAt) {
+        existing.updatedAt = permission.updatedAt
+      }
+      if (permission.status && permission.status !== existing.status) {
+        existing.status = permission.status
+      }
+    })
   })
 
   return Array.from(merged.values())
@@ -656,6 +741,7 @@ async function fetchCategoryPolicies() {
             id: item.id,
             categoryName: item.categoryName,
             policy: item.policy,
+            expiresAt: item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null,
           })),
         }))
       : []
@@ -947,6 +1033,27 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 700;
   color: #191b1e;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.temp-deadline {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff9500;
+}
+
+.policy-item {
+  margin: 0;
+  font-size: 14px;
+  color: #191b1e;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .policy-badge.allow,
@@ -962,12 +1069,6 @@ onMounted(async () => {
 .policy-badge.block,
 .policy-label.block {
   color: #ff3b30;
-}
-
-.policy-item {
-  margin: 0;
-  font-size: 14px;
-  color: #191b1e;
 }
 
 .empty-policy {
@@ -1118,6 +1219,13 @@ onMounted(async () => {
   font-weight: 700;
   color: #191b1e;
   flex: 1;
+}
+
+.request-category-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #191b1e;
 }
 
 .request-time {

@@ -116,35 +116,41 @@
             <p class="place-name">
               {{ place.categoryName }}
             </p>
+            <p
+              v-if="isTemporaryAllow(place)"
+              class="temp-deadline"
+            >
+              {{ formatAllowDeadline() }}
+            </p>
 
             <div class="place-btns">
               <button
                 class="status-btn"
                 type="button"
-                :class="{ 'active-allow': place.policy === 'ALLOW' }"
+                :class="{ 'active-allow': isAllowActive(place) }"
                 @click="setStatus(place.id, 'ALLOW')"
               >
-                <span v-if="place.policy === 'ALLOW'">✓</span>
+                <span v-if="isAllowActive(place)">✓</span>
                 허용
               </button>
 
               <button
                 class="status-btn"
                 type="button"
-                :class="{ 'active-caution': isCaution(place.policy) }"
+                :class="{ 'active-caution': isCautionActive(place) }"
                 @click="setStatus(place.id, 'WATCH')"
               >
-                <span v-if="isCaution(place.policy)">✓</span>
+                <span v-if="isCautionActive(place)">✓</span>
                 주의
               </button>
 
               <button
                 class="status-btn"
                 type="button"
-                :class="{ 'active-block': place.policy === 'BLOCK' }"
+                :class="{ 'active-block': isBlockActive(place) }"
                 @click="setStatus(place.id, 'BLOCK')"
               >
-                <span v-if="place.policy === 'BLOCK'">✓</span>
+                <span v-if="isBlockActive(place)">✓</span>
                 차단
               </button>
             </div>
@@ -205,6 +211,8 @@ import {
   updateCategoryPolicies,
 } from '@/api/categoryPolicy'
 
+import { getPermissions } from '@/api/permissions'
+
 
 const router = useRouter()
 const route = useRoute()
@@ -235,6 +243,7 @@ const childId = ref(
 // ========================================
 
 const parentGroups = ref([])
+const approvedPermissions = ref([])
 
 const searchQuery = ref('')
 
@@ -280,9 +289,102 @@ function isFlatGroup(group) {
   return group.name === '기타'
 }
 
+function getTodayEnd() {
+  const date = new Date()
+  date.setHours(24, 0, 0, 0)
+  return date
+}
+
+function formatAllowDeadline(until = getTodayEnd()) {
+  const end = until instanceof Date ? until : new Date(until)
+  if (Number.isNaN(end.getTime()) || end.getTime() <= Date.now()) return ''
+  return '오늘 24:00까지 허용'
+}
+
+function extractPermissionCategory(permission) {
+  if (typeof permission?.category === 'string' && permission.category) {
+    return [permission.category]
+  }
+  if (!Array.isArray(permission?.categories)) return []
+  return permission.categories.filter((name) => typeof name === 'string' && name)
+}
+
+const temporaryAllowMap = computed(() => {
+  const map = new Map()
+  const until = getTodayEnd()
+  if (until.getTime() <= Date.now()) return map
+
+  approvedPermissions.value.forEach((permission) => {
+    extractPermissionCategory(permission).forEach((name) => {
+      map.set(name, until)
+    })
+  })
+
+  return map
+})
+
+function isTemporaryAllow(place) {
+  if (place.userOverride) return false
+  if (temporaryAllowMap.value.has(place.categoryName)) return true
+
+  const until = place.expiresAt ? new Date(place.expiresAt) : null
+  return !!(until && !Number.isNaN(until.getTime()) && until.getTime() > Date.now())
+}
+
+function isAllowActive(place) {
+  if (place.userOverride) return place.policy === 'ALLOW'
+  return place.policy === 'ALLOW' || isTemporaryAllow(place)
+}
+
+function isCautionActive(place) {
+  if (isAllowActive(place)) return false
+  return isCaution(place.policy)
+}
+
+function isBlockActive(place) {
+  if (isAllowActive(place)) return false
+  return place.policy === 'BLOCK'
+}
+
+async function fetchApprovedPermissions() {
+  if (!authStore.accessToken || !childId.value) {
+    approvedPermissions.value = []
+    return
+  }
+
+  try {
+    const res = await getPermissions(
+      authStore.accessToken,
+      childId.value
+    )
+    const payload = res.data
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.permissions)
+        ? payload.permissions
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : payload?.permission
+            ? [payload.permission]
+            : []
+
+    approvedPermissions.value = list.filter(
+      (permission) => permission?.status === 'APPROVED'
+    )
+  } catch (error) {
+    console.error('오늘만 허용 승인 내역 조회 실패:', error)
+    approvedPermissions.value = []
+  }
+}
+
+
 function isGroupExpanded(name) {
   if (searchQuery.value.trim()) return true
-  return !!expandedGroups.value[name]
+  if (Object.prototype.hasOwnProperty.call(expandedGroups.value, name)) {
+    return !!expandedGroups.value[name]
+  }
+  const group = filteredGroups.value.find((item) => item.name === name)
+  return !!group?.items.some((item) => isTemporaryAllow(item))
 }
 
 function toggleGroup(name) {
@@ -290,7 +392,7 @@ function toggleGroup(name) {
 
   expandedGroups.value = {
     ...expandedGroups.value,
-    [name]: !expandedGroups.value[name],
+    [name]: !isGroupExpanded(name),
   }
 }
 
@@ -353,6 +455,8 @@ async function fetchPlaces() {
             id: item.id,
             categoryName: item.categoryName,
             policy: item.policy,
+            userOverride: false,
+            expiresAt: item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null,
           })),
         }))
       : []
@@ -413,6 +517,7 @@ function setStatus(id, policy) {
 
 
   place.policy = policy
+  place.userOverride = true
 
 
   console.log(
@@ -580,6 +685,7 @@ onMounted(() => {
   )
 
   fetchPlaces()
+  fetchApprovedPermissions()
 
 })
 </script>
@@ -798,9 +904,16 @@ onMounted(() => {
 }
 
 .place-name {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   font-size: 15px;
   font-weight: 700;
+}
+
+.temp-deadline {
+  margin: -4px 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff9500;
 }
 
 .place-btns {
