@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { getMyEnrolledFinancialProducts, getLoanProductDetail } from '@/api/finance'
+import { getMyEnrolledFinancialProducts, getLoanProductDetail, createSavingPayment } from '@/api/finance'
 import { getMyWallet } from '@/api/wallet'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
@@ -21,14 +21,17 @@ watch(activeTab, (val) => {
 const activeCategory = ref('전체')
 const categories = ['전체', '적금', '예금', '대출']
 
-// 상품 타입 매핑
+// 매핑 테이블
 const typeMap = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
-
-// 이자 계산 방식 / 적립 방식 매핑
 const interestTypeMap = { SIMPLE: '단리', COMPOUND: '복리' }
 const savingsTypeMap = { FREE: '자유적금', FIXED: '정액적금' }
+const repaymentTypeMap = {
+  EQUAL_PRINCIPAL_AND_INTEREST: '원리금균등',
+  EQUAL_PRINCIPAL: '원금균등',
+  BULLET: '만기일시',
+  LUMP_SUM: '만기일시'
+}
 
-// 가입 상태 라벨/색상
 const statusMap = {
   PENDING: { label: '승인 대기 중', color: 'orange' },
   ACTIVE: null,
@@ -63,20 +66,16 @@ function formatDateKorean(raw) {
 function calcNextDueDate(startRaw, paidCount) {
   const parts = parseDateParts(startRaw)
   if (!parts) return null
-  const next = new Date(parts.y, parts.m - 1, parts.d)
-  next.setMonth(next.getMonth() + (paidCount ?? 0) + 1)
-  return next
-}
 
-// 로컬 스토리지 임시 누적액 유틸 (백엔드 API 연동 전 유지용)
-function getLocalBonusDeposit(enrollmentId) {
-  const saved = localStorage.getItem(`mock_deposit_${enrollmentId}`)
-  return saved ? Number(saved) : 0
-}
+  const monthsToAdd = (paidCount ?? 0) + 1
+  const targetMonthIndex = (parts.m - 1) + monthsToAdd
+  const targetYear = parts.y + Math.floor(targetMonthIndex / 12)
+  const targetMonth = ((targetMonthIndex % 12) + 12) % 12
 
-function addLocalBonusDeposit(enrollmentId, amount) {
-  const current = getLocalBonusDeposit(enrollmentId)
-  localStorage.setItem(`mock_deposit_${enrollmentId}`, String(current + amount))
+  const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate()
+  const targetDay = Math.min(parts.d, lastDayOfTargetMonth)
+
+  return new Date(targetYear, targetMonth, targetDay)
 }
 
 // 부모 생성 상품 vs 실제 금융기관 상품 판별
@@ -98,7 +97,7 @@ function resolveProductOrigin(p) {
   return { type: 'bank', label: comp }
 }
 
-// API 데이터 → 화면 표시 구조 매핑
+// API 데이터 매핑
 function mapEnrolledProduct(p) {
   const isLoan = p.productType === 'LOAN'
   const isSaving = p.productType === 'SAVING'
@@ -114,9 +113,7 @@ function mapEnrolledProduct(p) {
   const paidCount = p.paidCount ?? 0
   const totalCount = p.totalPaymentCount ?? 0
   const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0
-
-  const bonus = isFreeSaving ? getLocalBonusDeposit(p.enrollmentId) : 0
-  const currentTotal = (p.currentAmount ?? 0) + bonus
+  const currentTotal = p.currentAmount ?? 0
 
   let infoText = ''
   if (isPending) {
@@ -133,10 +130,12 @@ function mapEnrolledProduct(p) {
   } else if (isDeposit) {
     infoText = `지금 ${(p.currentAmount ?? 0).toLocaleString()}원이 들어 있고 ${formatDateKorean(p.maturityDate)}에 만기가 돼요.`
   } else if (isLoan) {
-    infoText = `앞으로 갚을 돈은 ${(p.currentAmount ?? 0).toLocaleString()}원이에요.`
+    const nextDue = calcNextDueDate(p.startDate, paidCount)
+    const nextDueText = nextDue ? `다음 상환일은 ${nextDue.getMonth() + 1}월 ${nextDue.getDate()}일이에요.\n` : ''
+    infoText = `${nextDueText}앞으로 갚을 돈은 ${(p.currentAmount ?? 0).toLocaleString()}원이에요.`
   }
 
-  let pendingSummary
+  let pendingSummary = ''
   if (isSaving) {
     const savingsLabel = savingsTypeMap[p.savingsType] ?? p.savingsType ?? ''
     const interestLabel = interestTypeMap[p.interestCalculationType] ?? p.interestCalculationType ?? ''
@@ -150,16 +149,14 @@ function mapEnrolledProduct(p) {
   }
 
   const origin = resolveProductOrigin(p)
-
-  // 표시용 타입 라벨 (적금의 경우 '자유적금' 또는 '정액적금'으로 구체화)
   const displayTypeLabel = isSaving
     ? (savingsTypeMap[p.savingsType] || '적금')
     : (typeMap[p.productType] ?? p.productType)
 
   return {
     id: p.enrollmentId,
-    category: typeMap[p.productType] ?? p.productType, // 필터링용 카테고리 ('적금')
-    displayTypeLabel, // 화면 표시용 라벨 ('자유적금' / '정액적금' / '예금' / '대출')
+    category: typeMap[p.productType] ?? p.productType,
+    displayTypeLabel,
     originType: origin.type,
     originLabel: origin.label,
     title: p.productName,
@@ -167,7 +164,7 @@ function mapEnrolledProduct(p) {
     statusColor: statusInfo.color,
     isPending,
     pendingSummary,
-    needsGradeLookup: isPending && isLoan,
+    isLoan,
     productId: p.productId,
     hasDateRange: !isPending,
     startDate: formatDateCompact(p.startDate),
@@ -181,6 +178,10 @@ function mapEnrolledProduct(p) {
     infoText,
     productType: p.productType,
     savingsType: p.savingsType || '',
+    interestCalculationType: p.interestCalculationType || 'SIMPLE',
+    repaymentType: '',
+    lateFeeRate: 0,
+    requiredGradeName: '',
     isFreeSaving,
     principal: currentTotal,
     appliedRate: p.appliedRate ?? 0,
@@ -191,7 +192,7 @@ function mapEnrolledProduct(p) {
   }
 }
 
-// [API] 나의 가입 상품 목록 및 지갑 잔액
+// 지갑 & 가입 상품 상태
 const myProducts = ref([])
 const myWalletBalance = ref(0)
 
@@ -207,16 +208,24 @@ async function fetchWalletBalance() {
 async function loadProducts() {
   try {
     const data = await getMyEnrolledFinancialProducts(authStore.accessToken)
-    myProducts.value = data.map(mapEnrolledProduct)
+    myProducts.value = (data || []).map(mapEnrolledProduct)
 
-    const pendingLoans = myProducts.value.filter((p) => p.needsGradeLookup)
+    // 대출 상품 상세 API 연동
+    const loanProducts = myProducts.value.filter((p) => p.isLoan && p.productId)
     await Promise.all(
-      pendingLoans.map(async (product) => {
+      loanProducts.map(async (product) => {
         try {
-          const detail = await getLoanProductDetail(authStore.accessToken, product.productId)
-          const gradeName = detail?.requiredGradeName
-          if (gradeName) {
-            product.pendingSummary = `${gradeName} 등급 이상 | ${product.termMonths ?? '-'}개월 | 연 ${product.appliedRate ?? '-'}%`
+          const detailRes = await getLoanProductDetail(authStore.accessToken, product.productId)
+          const detail = detailRes?.data ?? detailRes
+
+          if (detail) {
+            product.requiredGradeName = detail.requiredGradeName || ''
+            product.repaymentType = repaymentTypeMap[detail.repaymentType] || detail.repaymentType || ''
+            product.lateFeeRate = detail.lateFeeRate ?? 0
+
+            if (product.isPending && product.requiredGradeName) {
+              product.pendingSummary = `${product.requiredGradeName} 등급 이상 | ${product.termMonths ?? '-'}개월 | 연 ${product.appliedRate ?? '-'}%`
+            }
           }
         } catch (e) {
           console.warn('대출 상품 상세 조회 실패:', product.productId, e.message)
@@ -257,6 +266,7 @@ function goToCancel(product) {
       category: product.category,
       productType: product.productType,
       savingsType: product.savingsType,
+      interestCalculationType: product.interestCalculationType,
       principal: product.principal,
       appliedRate: product.appliedRate,
       termMonths: product.termMonths,
@@ -267,9 +277,7 @@ function goToCancel(product) {
   })
 }
 
-// -------------------------------------------------------------
-// [바텀시트 & 성공 모달] 자유적금 간편 이체 로직
-// -------------------------------------------------------------
+// 자유적금 간편 이체 바텀시트
 const showDepositSheet = ref(false)
 const showSuccessModal = ref(false)
 const selectedProduct = ref(null)
@@ -310,18 +318,32 @@ function onAmountInput(e) {
   depositAmount.value = raw ? parseInt(raw, 10) : 0
 }
 
+function generateIdempotencyKey() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 async function handleDepositSubmit() {
   if (depositAmount.value <= 0 || isOverBalance.value || isSubmitting.value) return
 
   isSubmitting.value = true
   try {
-    lastTransferredAmount.value = depositAmount.value
+    const result = await createSavingPayment(authStore.accessToken, selectedProduct.value.id, {
+      amount: depositAmount.value,
+      idempotencyKey: generateIdempotencyKey(),
+    })
 
-    addLocalBonusDeposit(selectedProduct.value.id, depositAmount.value)
+    lastTransferredAmount.value = depositAmount.value
 
     const targetItem = myProducts.value.find((p) => p.id === selectedProduct.value.id)
     if (targetItem) {
-      targetItem.principal = (targetItem.principal || 0) + depositAmount.value
+      targetItem.principal = result.accumulatedAmount
       targetItem.infoText = `지금까지 총 ${targetItem.principal.toLocaleString()}원을 모았어요.`
     }
 
@@ -329,7 +351,7 @@ async function handleDepositSubmit() {
     showSuccessModal.value = true
   } catch (e) {
     console.error('이체 실패:', e)
-    alert('이체에 실패했습니다. 다시 시도해주세요.')
+    alert(e.message || '이체에 실패했습니다. 다시 시도해주세요.')
   } finally {
     isSubmitting.value = false
   }
@@ -424,7 +446,6 @@ function onScroll() {
             </div>
           </div>
 
-          <!-- '적금' 대신 '자유적금' or '정액적금'으로 구체화된 라벨 표시 -->
           <p class="status-line">
             {{ product.displayTypeLabel }} · <span class="status-text" :class="product.statusColor">{{ product.status }}</span>
           </p>
@@ -444,22 +465,28 @@ function onScroll() {
 
           <p v-if="product.infoText" class="info-text">{{ product.infoText }}</p>
 
+          <!-- 대출 부가 정보 표시 -->
+          <div v-if="product.isLoan && (product.repaymentType || product.lateFeeRate > 0)" class="loan-details">
+            <span v-if="product.repaymentType" class="meta-tag">{{ product.repaymentType }} 방식</span>
+            <span v-if="product.lateFeeRate > 0" class="meta-tag alert">연체 이율 {{ product.lateFeeRate }}%</span>
+          </div>
+
           <!-- 하단 액션 바 -->
           <div class="card-footer" :class="{ 'between': product.isFreeSaving, 'end': !product.isFreeSaving }">
-            <!-- [좌측] 자유적금: 이체하기 버튼 -->
+            <!-- [좌측] 자유적금: 플러스(+) 아이콘 적용된 이체하기 버튼 -->
             <button
               v-if="product.isFreeSaving"
               type="button"
               class="btn-deposit-chip"
               @click="openDepositSheet(product)"
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="#15171b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#15171b" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
               </svg>
               <span>이체하기</span>
             </button>
 
-            <!-- [우측] 밑줄 적용된 중도해지 링크 버튼 -->
+            <!-- [우측] 중도해지 링크 버튼 -->
             <button
               type="button"
               class="btn-cancel-link"
@@ -493,13 +520,11 @@ function onScroll() {
           </button>
         </div>
 
-        <!-- 지갑 잔액 표시 영역 -->
         <div class="sheet-balance-row">
           <span class="balance-label">내 지갑 잔액</span>
           <span class="balance-val">{{ myWalletBalance.toLocaleString() }}원</span>
         </div>
 
-        <!-- 금액 입력창 -->
         <div class="amount-input-box" :class="{ error: isOverBalance }">
           <input
             type="text"
@@ -515,7 +540,6 @@ function onScroll() {
 
         <p v-if="isOverBalance" class="error-msg">지갑 잔액보다 큰 금액은 넣을 수 없어요.</p>
 
-        <!-- 퀵 금액 추가 버튼 + 전액 버튼 -->
         <div class="quick-amounts">
           <button type="button" class="quick-btn" @click="addAmount(1000)">+1천원</button>
           <button type="button" class="quick-btn" @click="addAmount(5000)">+5천원</button>
@@ -523,7 +547,6 @@ function onScroll() {
           <button type="button" class="quick-btn full" @click="setFullAmount">전액</button>
         </div>
 
-        <!-- 하단 확인 버튼 -->
         <button
           type="button"
           class="btn-sheet-submit"
@@ -609,7 +632,6 @@ function onScroll() {
 }
 .scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
-/* 탭 */
 .tabs {
   display: flex;
   padding: 5px;
@@ -635,7 +657,6 @@ function onScroll() {
   font-weight: 600;
 }
 
-/* 필터 칩 */
 .filters {
   display: flex;
   gap: 8px;
@@ -670,7 +691,6 @@ function onScroll() {
   margin-top: 18px;
 }
 
-/* 진행 상태 카드 */
 .card {
   border: 1.3px solid #f0f1f3;
   border-radius: 16px;
@@ -700,7 +720,6 @@ function onScroll() {
   color: #15171b;
 }
 
-/* 출처 배지 */
 .origin-badge {
   display: inline-flex;
   align-items: center;
@@ -802,14 +821,34 @@ function onScroll() {
 }
 
 .info-text {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-weight: 500;
   font-size: 12.5px;
   color: #4a4e55;
-  line-height: 1.4;
+  line-height: 1.5;
+  white-space: pre-line;
 }
 
-/* 카드 하단 액션 영역 */
+.loan-details {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.meta-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f1f3f5;
+  color: #61666d;
+}
+
+.meta-tag.alert {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
 .card-footer {
   display: flex;
   align-items: center;
@@ -826,7 +865,6 @@ function onScroll() {
   justify-content: flex-end;
 }
 
-/* 콤팩트한 이체하기 칩 버튼 */
 .btn-deposit-chip {
   display: inline-flex;
   align-items: center;
@@ -847,7 +885,6 @@ function onScroll() {
   opacity: 0.9;
 }
 
-/* 밑줄이 적용된 중도해지 링크 버튼 */
 .btn-cancel-link {
   background: none;
   border: none;
@@ -867,9 +904,6 @@ function onScroll() {
   text-decoration-color: #6b7280;
 }
 
-/* -------------------------------------------------- */
-/* 간편 이체 바텀시트 모달 스타일 */
-/* -------------------------------------------------- */
 .bottomsheet-backdrop {
   position: absolute;
   top: 0;
@@ -1051,9 +1085,6 @@ function onScroll() {
   cursor: not-allowed;
 }
 
-/* -------------------------------------------------- */
-/* 성공 알림 모달 팝업 스타일 */
-/* -------------------------------------------------- */
 .success-backdrop {
   position: absolute;
   top: 0;
