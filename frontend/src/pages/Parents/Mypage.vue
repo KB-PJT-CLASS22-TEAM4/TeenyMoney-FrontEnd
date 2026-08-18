@@ -70,44 +70,42 @@
 
         <!-- 연락처 -->
         <div class="info-item">
-          <div class="info-heading">
-            <span class="info-label">
-              연락처
-            </span>
+          <span class="info-label">
+            연락처
+          </span>
+
+          <div class="info-row">
+            <p class="info-value">
+              {{ formattedPhoneNumber || '-' }}
+            </p>
 
             <button
               type="button"
               class="edit-button"
-              @click="goToPhoneEdit"
             >
               수정
             </button>
           </div>
-
-          <p class="info-value">
-            {{ formattedPhoneNumber || '-' }}
-          </p>
         </div>
 
         <!-- 이메일 -->
         <div class="info-item">
-          <div class="info-heading">
-            <span class="info-label">
-              이메일
-            </span>
+          <span class="info-label">
+            이메일
+          </span>
+
+          <div class="info-row">
+            <p class="info-value email-value">
+              {{ member.email || '-' }}
+            </p>
 
             <button
               type="button"
               class="edit-button"
-              @click="goToEmailEdit"
             >
               수정
             </button>
           </div>
-
-          <p class="info-value email-value">
-            {{ member.email || '-' }}
-          </p>
         </div>
       </section>
 
@@ -568,22 +566,6 @@ function goToLogin() {
   authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
 }
 
-/* =========================
-   수정 화면 이동
-========================= */
-
-function goToPhoneEdit() {
-  router.push(
-    '/parents/mypage/phone'
-  )
-}
-
-function goToEmailEdit() {
-  router.push(
-    '/parents/mypage/email'
-  )
-}
-
 function goToPasswordChange() {
   router.push(
     '/parents/mypage/password'
@@ -790,12 +772,6 @@ button {
   width: 100%;
 }
 
-.info-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .info-label {
   color: #8b9097;
 
@@ -803,8 +779,18 @@ button {
   font-weight: 700;
 }
 
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+}
+
 .info-value {
-  margin: 9px 0 0;
+  margin: 0;
+  min-width: 0;
+  flex: 1;
 
   color: #191b1e;
 
@@ -834,9 +820,10 @@ button {
 }
 
 .edit-button {
+  flex-shrink: 0;
   padding: 5px 10px;
-
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .disconnect-button {
