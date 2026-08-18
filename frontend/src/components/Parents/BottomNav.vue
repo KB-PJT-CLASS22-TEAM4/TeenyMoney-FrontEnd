@@ -89,7 +89,8 @@ const router = useRouter()
   z-index: 100;
   display: flex;
   justify-content: space-around;
-  width: 360px;
+  width: 100%;
+  max-width: 430px;
   padding: 10px 0 20px;
   border-top: 1px solid #f0f1f3;
   background-color: #ffffff;

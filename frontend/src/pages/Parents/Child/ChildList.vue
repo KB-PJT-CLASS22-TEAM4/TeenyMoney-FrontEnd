@@ -121,7 +121,6 @@ function goToDetail(id) {
   display: flex;
   flex-direction: column;
   position: relative;
-  top: -8px;
   padding-bottom: 80px;
 }
 

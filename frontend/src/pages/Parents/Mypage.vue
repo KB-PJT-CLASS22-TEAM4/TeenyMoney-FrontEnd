@@ -664,7 +664,6 @@ button {
 
 .page {
   position: relative;
-  top: -8px;
 
   width: 360px;
   min-height: 100dvh;
