@@ -129,15 +129,33 @@
           </div>
 
           <div v-if="monthlyHistory.length" class="chart-wrap">
-            <svg class="chart-svg" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg">
+            <svg
+              class="chart-svg"
+              viewBox="0 0 300 148"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
               <defs>
                 <linearGradient id="parentChartGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#ffbc00" stop-opacity="0.3" />
+                  <stop offset="0%" stop-color="#ffbc00" stop-opacity="0.32" />
+                  <stop offset="70%" stop-color="#ffbc00" stop-opacity="0.06" />
                   <stop offset="100%" stop-color="#ffbc00" stop-opacity="0" />
                 </linearGradient>
               </defs>
+
+              <g stroke="#eceef1" stroke-width="1" stroke-dasharray="3 5">
+                <line
+                  v-for="(y, index) in chartGridYs"
+                  :key="index"
+                  :x1="28"
+                  :x2="272"
+                  :y1="y"
+                  :y2="y"
+                />
+              </g>
+
               <path
-                v-if="chartPath"
+                v-if="chartAreaPath"
                 :d="chartAreaPath"
                 fill="url(#parentChartGradient)"
               />
@@ -146,13 +164,50 @@
                 :d="chartPath"
                 fill="none"
                 stroke="#ffbc00"
-                stroke-width="2.5"
+                stroke-width="2.8"
                 stroke-linecap="round"
+                stroke-linejoin="round"
               />
+
+              <g v-for="(point, index) in chartPoints" :key="index">
+                <circle
+                  v-if="point.isLast"
+                  :cx="point.x"
+                  :cy="point.y"
+                  r="9"
+                  fill="#ffbc00"
+                  fill-opacity="0.16"
+                />
+                <circle
+                  :cx="point.x"
+                  :cy="point.y"
+                  :r="point.isLast ? 5.5 : 4.5"
+                  fill="#ffffff"
+                  stroke="#ffbc00"
+                  :stroke-width="point.isLast ? 2.6 : 2"
+                />
+                <text
+                  :x="point.x"
+                  :y="point.y - 12"
+                  text-anchor="middle"
+                  fill="#191b1e"
+                  font-size="11"
+                  font-weight="700"
+                >
+                  {{ point.score }}점
+                </text>
+                <text
+                  :x="point.x"
+                  :y="140"
+                  text-anchor="middle"
+                  fill="#8b9097"
+                  font-size="11"
+                  font-weight="600"
+                >
+                  {{ point.label }}
+                </text>
+              </g>
             </svg>
-            <div class="chart-labels">
-              <span v-for="label in chartLabels" :key="label">{{ label }}</span>
-            </div>
           </div>
 
           <div v-if="monthlyHistory.length" class="monthly-list">
@@ -274,42 +329,68 @@ function calcMonthDiff(currentScore, history) {
   }
 }
 
-const chartLabels = computed(() => {
-  if (!monthlyHistory.value.length) return []
-  return monthlyHistory.value.map((item) =>
-    formatYearMonthLabel(item.yearMonth).replace(`${new Date().getFullYear()}년 `, '')
-  )
-})
+const CHART_WIDTH = 300
+const CHART_PAD_X = 28
+const CHART_PAD_TOP = 26
+const CHART_PAD_BOTTOM = 36
+const CHART_PLOT_BOTTOM = 148 - CHART_PAD_BOTTOM
 
-const chartPath = computed(() => {
-  if (!monthlyHistory.value.length) return ''
+const chartGridYs = [CHART_PAD_TOP, (CHART_PAD_TOP + CHART_PLOT_BOTTOM) / 2, CHART_PLOT_BOTTOM]
 
+const chartPoints = computed(() => {
   const data = monthlyHistory.value
+  if (!data.length) return []
+
   const scores = data.map((item) => item.teenyScore)
   const maxScore = Math.max(...scores)
   const minScore = Math.min(...scores)
   const range = maxScore - minScore || 1
-  const w = 300
-  const h = 80
-  const step = data.length > 1 ? w / (data.length - 1) : 0
+  const yMin = minScore - range * 0.22
+  const yMax = maxScore + range * 0.22
+  const yRange = yMax - yMin || 1
+  const innerWidth = CHART_WIDTH - CHART_PAD_X * 2
+  const innerHeight = CHART_PLOT_BOTTOM - CHART_PAD_TOP
+  const step = data.length > 1 ? innerWidth / (data.length - 1) : 0
+  const currentYear = `${new Date().getFullYear()}년 `
 
   return data.map((item, index) => {
-    const x = data.length > 1 ? index * step : w / 2
-    const y = h - ((item.teenyScore - minScore) / range) * h
-    return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
-  }).join(' ')
+    const x = CHART_PAD_X + (data.length > 1 ? index * step : innerWidth / 2)
+    const y =
+      CHART_PAD_TOP +
+      innerHeight -
+      ((item.teenyScore - yMin) / yRange) * innerHeight
+
+    return {
+      x,
+      y,
+      score: item.teenyScore,
+      label: formatYearMonthLabel(item.yearMonth).replace(currentYear, ''),
+      isLast: index === data.length - 1,
+    }
+  })
+})
+
+const chartPath = computed(() => {
+  const points = chartPoints.value
+  if (!points.length) return ''
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
+
+  return points.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`
+
+    const prev = points[index - 1]
+    const dx = (point.x - prev.x) / 2
+    return `${path} C ${prev.x + dx} ${prev.y}, ${point.x - dx} ${point.y}, ${point.x} ${point.y}`
+  }, '')
 })
 
 const chartAreaPath = computed(() => {
-  if (!chartPath.value) return ''
+  const points = chartPoints.value
+  if (!points.length || !chartPath.value) return ''
 
-  const data = monthlyHistory.value
-  const w = 300
-  const h = 80
-  const step = data.length > 1 ? w / (data.length - 1) : 0
-  const lastX = data.length > 1 ? (data.length - 1) * step : w / 2
-
-  return `${chartPath.value} L ${lastX} ${h} L 0 ${h} Z`
+  const firstX = points[0].x
+  const lastX = points[points.length - 1].x
+  return `${chartPath.value} L ${lastX} ${CHART_PLOT_BOTTOM} L ${firstX} ${CHART_PLOT_BOTTOM} Z`
 })
 
 onMounted(async () => {
@@ -694,22 +775,16 @@ onMounted(async () => {
 
 .chart-wrap {
   margin-bottom: 16px;
+  padding: 10px 2px 4px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #eef0f3;
 }
 
 .chart-svg {
+  display: block;
   width: 100%;
-  height: 80px;
-}
-
-.chart-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-}
-
-.chart-labels span {
-  font-size: 11px;
-  color: #8b9097;
+  height: auto;
 }
 
 .monthly-list {

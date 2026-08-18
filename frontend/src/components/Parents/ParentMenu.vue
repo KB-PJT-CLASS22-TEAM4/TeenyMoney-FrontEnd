@@ -304,10 +304,11 @@ function goWithChild(childId) {
   top: 0;
   left: 50%;
   z-index: 140;
-  width: 360px;
+  width: 100%;
+  max-width: 430px;
   height: 100dvh;
-  margin-left: -180px;
   overflow: hidden;
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
@@ -441,14 +442,6 @@ function goWithChild(childId) {
 
   to {
     transform: translateX(0);
-  }
-}
-
-@media (max-width: 360px) {
-  .menu-frame {
-    left: 0;
-    width: 100%;
-    margin-left: 0;
   }
 }
 </style>

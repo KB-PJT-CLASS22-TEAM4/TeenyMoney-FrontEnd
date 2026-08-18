@@ -234,6 +234,15 @@
           <span class="won">
             원
           </span>
+
+          <button
+            type="button"
+            class="clear-amount-btn"
+            aria-label="금액 초기화"
+            @click="clearAmount"
+          >
+            초기화
+          </button>
         </div>
 
         <!-- 빠른 금액 -->
@@ -242,7 +251,7 @@
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="amount = quick.value"
+            @click="addAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
@@ -629,6 +638,14 @@ function startEdit(schedule) {
   cycle.value = schedule.cycleType === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY'
   dayOfCycle.value = schedule.paymentDay
   amount.value = schedule.amount
+}
+
+function addAmount(value) {
+  amount.value = (Number(amount.value) || 0) + value
+}
+
+function clearAmount() {
+  amount.value = 0
 }
 
 function resetForm() {
@@ -1119,6 +1136,19 @@ button {
   color: #191b1e;
   font-size: 16px;
   font-weight: 600;
+}
+
+.clear-amount-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: #e8eaed;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .quick-btns {
