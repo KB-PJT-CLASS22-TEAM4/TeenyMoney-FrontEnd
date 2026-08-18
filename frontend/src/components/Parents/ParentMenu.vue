@@ -14,16 +14,14 @@
           aria-modal="true"
           aria-label="부모 전체 메뉴"
         >
-          <div class="drawer-header">
-            <button
-              class="close-btn"
-              type="button"
-              aria-label="메뉴 닫기"
-              @click="closeMenu"
-            >
-              ×
-            </button>
-          </div>
+          <button
+            class="close-btn"
+            type="button"
+            aria-label="메뉴 닫기"
+            @click="closeMenu"
+          >
+            ×
+          </button>
 
           <div class="drawer-body">
             <section
@@ -323,6 +321,7 @@ function goWithChild(childId) {
 }
 
 .menu-drawer {
+  position: relative;
   display: flex;
   width: 260px;
   height: 100%;
@@ -333,14 +332,11 @@ function goWithChild(childId) {
   animation: sidebar-in 0.22s ease-out;
 }
 
-.drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 14px 12px 6px;
-}
-
 .close-btn {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
   width: 32px;
   height: 32px;
   padding: 0;
@@ -356,16 +352,20 @@ function goWithChild(childId) {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0 24px;
+  padding: 10px 0 24px;
 }
 
 .menu-group {
   padding: 10px 0 6px;
 }
 
+.menu-group:first-child {
+  padding-top: 0;
+}
+
 .group-title {
   margin: 0;
-  padding: 8px 18px 6px;
+  padding: 12px 40px 6px 18px;
   color: #8b9097;
   font-size: 11px;
   font-weight: 700;
