@@ -8,6 +8,7 @@
         </svg>
       </button>
       <h1 class="nav-title">결제 비밀번호 설정</h1>
+      <ChildNavActions />
     </div>
  
     <!-- 자물쇠 + 안내 -->
@@ -57,6 +58,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { registerPaymentPassword } from '@/api/password'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

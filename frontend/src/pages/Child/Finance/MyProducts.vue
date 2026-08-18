@@ -6,6 +6,7 @@ import { getMyEnrolledFinancialProducts, getLoanProductDetail, createSavingPayme
 import { getMyWallet } from '@/api/wallet'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -395,6 +396,7 @@ function onScroll() {
         </svg>
       </button>
       <h1 class="nav-title">금융 상품</h1>
+      <ChildNavActions />
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
