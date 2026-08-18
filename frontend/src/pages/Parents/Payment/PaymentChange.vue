@@ -17,6 +17,8 @@
       <h1 class="nav-title">
         결제 수단 변경
       </h1>
+
+      <ParentNavActions />
     </header>
 
     <div class="content">
@@ -339,6 +341,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 

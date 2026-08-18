@@ -5,9 +5,7 @@
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
       <h1 class="nav-title">잔액 부족</h1>
-      <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
-      </button>
+      <ParentNavActions />
     </header>
 
     <div class="content">
@@ -34,6 +32,7 @@
 </template>
 
 <script setup>
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()

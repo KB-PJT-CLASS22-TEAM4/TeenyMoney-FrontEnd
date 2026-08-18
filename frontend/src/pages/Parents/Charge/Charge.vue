@@ -17,17 +17,7 @@
 
       <h1 class="nav-title">충전</h1>
 
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
-      </button>
+      <ParentNavActions />
     </header>
 
     <div class="content">
@@ -66,6 +56,15 @@
           <span class="won">
             원
           </span>
+
+          <button
+            type="button"
+            class="clear-amount-btn"
+            aria-label="금액 초기화"
+            @click="clearAmount"
+          >
+            초기화
+          </button>
         </div>
 
         <div class="quick-btns">
@@ -282,6 +281,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
@@ -449,6 +449,10 @@ function addQuickAmount(amount) {
   chargeAmount.value =
     (Number(chargeAmount.value) || 0) +
     amount
+}
+
+function clearAmount() {
+  chargeAmount.value = 0
 }
 
 function togglePaymentList() {
@@ -658,6 +662,19 @@ button {
   color: #191b1e;
   font-size: 16px;
   font-weight: 600;
+}
+
+.clear-amount-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: #e8eaed;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .amount-wrap {

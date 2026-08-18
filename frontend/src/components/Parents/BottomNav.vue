@@ -1,5 +1,5 @@
 <template>
-  <nav class="bottom-nav">
+  <nav class="parent-bottom-nav">
     <button
       class="nav-item"
       :class="{ 'nav-item-active': active === 'home' }"
@@ -82,25 +82,31 @@ const router = useRouter()
 </script>
 
 <style scoped>
-.bottom-nav {
+.parent-bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
+  left: 0;
+  right: 0;
   z-index: 100;
   display: flex;
-  justify-content: space-around;
-  width: 360px;
-  padding: 10px 0 20px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 430px;
+  height: 70px;
+  margin: 0 auto;
+  padding: 8px 0 12px;
   border-top: 1px solid #f0f1f3;
   background-color: #ffffff;
-  transform: translateX(-50%);
+  box-sizing: border-box;
 }
 
 .nav-item {
   display: flex;
-  min-width: 60px;
+  min-width: 0;
+  flex: 1 1 0;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   padding: 0;
   border: none;
@@ -111,11 +117,14 @@ const router = useRouter()
 .nav-icon {
   width: 24px;
   height: 24px;
+  flex-shrink: 0;
 }
 
 .nav-label {
   color: #8b9097;
   font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .nav-item-active .nav-label {

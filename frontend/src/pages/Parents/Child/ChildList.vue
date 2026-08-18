@@ -4,9 +4,7 @@
     <header class="nav">
       <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()" />
       <h1 class="nav-title">자녀 목록</h1>
-      <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
-      </button>
+      <ParentNavActions />
     </header>
     
     <div class="content">
@@ -36,7 +34,14 @@
           </div>
           <div class="child-btns">
             <button class="btn btn-primary" @click="goToDetail(child.id)">상세 관리</button>
-            <button class="btn btn-secondary" @click="unlinkChild(child.id)">연동 해제</button>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              :disabled="unlinkingId === child.id"
+              @click="unlinkChild(child)"
+            >
+              {{ unlinkingId === child.id ? '해제 중...' : '연동 해제' }}
+            </button>
           </div>
         </div>
       </div>
@@ -62,22 +67,29 @@
     </div>
 
     <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import AlertHost from '@/components/AlertHost.vue'
 
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { unlinkFamily } from '@/api/families'
+import { useAlertModal } from '@/composables/useAlertModal'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 const children = ref([])
+const unlinkingId = ref(null)
 
 onMounted(async () => {
   try {
@@ -105,12 +117,30 @@ function goToDetail(id) {
   router.push(`/parents/children/${id}`)
 }
 
-// async function unlinkChild(id) {
-//   // TODO: API 연동
-//   // DELETE /children/:id
-//   // await api.delete(`/children/${id}`)
-//   // children.value = children.value.filter(c => c.id !== id)
-// }
+async function unlinkChild(child) {
+  if (unlinkingId.value) return
+
+  const confirmed = await alertModal.showConfirm(
+    `${child.name} 자녀와의 연동을 해제하시겠습니까?`
+  )
+
+  if (!confirmed) return
+
+  unlinkingId.value = child.id
+
+  try {
+    await unlinkFamily(authStore.accessToken, child.id)
+    children.value = children.value.filter((item) => item.id !== child.id)
+    alertModal.showAlert('자녀 연동이 해제되었습니다.')
+  } catch (error) {
+    console.error('자녀 연동 해제 실패', error)
+    alertModal.showAlert(
+      error.message || '자녀 연동을 해제하지 못했습니다.'
+    )
+  } finally {
+    unlinkingId.value = null
+  }
+}
 </script>
 
 <style scoped>
@@ -122,7 +152,6 @@ function goToDetail(id) {
   display: flex;
   flex-direction: column;
   position: relative;
-  top: -8px;
   padding-bottom: 80px;
 }
 
@@ -335,43 +364,5 @@ function goToDetail(id) {
 .plus {
   font-size: 18px;
   color: #8b9097;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background-color: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  font-size: 11px;
-  color: #8b9097;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
 }
 </style>
