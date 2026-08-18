@@ -289,6 +289,20 @@ const isSubmitting = ref(false)
 
 const isOverBalance = computed(() => depositAmount.value > myWalletBalance.value)
 
+// 이체 에러 알림 모달 상태
+const errorModalVisible = ref(false)
+const errorMessage = ref('')
+
+function showErrorModal(msg) {
+  const base = msg || '이체에 실패했습니다 다시 시도해주세요'
+  errorMessage.value = base.replace(/\.$/, '')
+  errorModalVisible.value = true
+}
+
+function closeErrorModal() {
+  errorModalVisible.value = false
+}
+
 function openDepositSheet(product) {
   selectedProduct.value = product
   depositAmount.value = 0
@@ -353,7 +367,7 @@ async function handleDepositSubmit() {
     showSuccessModal.value = true
   } catch (e) {
     console.error('이체 실패:', e)
-    alert(e.message || '이체에 실패했습니다. 다시 시도해주세요.')
+    showErrorModal(e.message)
   } finally {
     isSubmitting.value = false
   }
@@ -582,9 +596,25 @@ function onScroll() {
       </div>
     </div>
 
+    <!-- 이체 실패 알림 모달 -->
+    <div v-if="errorModalVisible" class="error-backdrop" @click.self="closeErrorModal">
+      <div class="error-dialog">
+        <div class="error-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 8v5M12 16.5h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4 class="error-title">이체 실패</h4>
+        <p class="error-desc">{{ errorMessage }}</p>
+        <button type="button" class="btn-error-confirm" @click="closeErrorModal">
+          확인
+        </button>
+      </div>
+    </div>
+
     <BottomTabBar active="finance" @select="onTabSelect" />
 
-    <Chatbot v-if="!showDepositSheet && !showSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
+    <Chatbot v-if="!showDepositSheet && !showSuccessModal && !errorModalVisible" hint-text="가입한 상품이 궁금하세요?" />
   </div>
 </template>
 
@@ -1161,6 +1191,78 @@ function onScroll() {
   transition: opacity 0.15s ease;
 }
 .btn-success-confirm:active {
+  opacity: 0.85;
+}
+
+/* 이체 실패 알림 모달 */
+.error-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.error-dialog {
+  width: 100%;
+  max-width: 290px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-sizing: border-box;
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.error-icon-wrap {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #e0554f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-title {
+  margin: 0 0 6px;
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #15171b;
+}
+
+.error-desc {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.btn-error-confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #fbe4e3;
+  color: #c23b35;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.btn-error-confirm:active {
   opacity: 0.85;
 }
 
