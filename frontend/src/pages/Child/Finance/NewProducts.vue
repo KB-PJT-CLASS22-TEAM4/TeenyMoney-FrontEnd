@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getFinancialProducts } from '@/api/finance'
+import { getTeenyScore } from '@/api/teenyScore'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 
 const router = useRouter()
@@ -26,13 +27,31 @@ const categories = ['전체', '적금', '예금', '대출']
 const typeMap = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
 const badgeColorMap = { DEPOSIT: 'blue', SAVING: 'blue', LOAN: 'orange' }
 
-// 등급명 → 색상
+// 등급명 → 색상 매핑
 const gradeColorMap = {
   새싹: 'red',
   스타터: 'orange',
   플러스: 'yellow',
   프로: 'green',
   마스터: 'blue',
+}
+
+// 엑셀 정책 기준: 등급별 예·적금 우대금리 (%p)
+const GRADE_BONUS_MAP = {
+  마스터: 5.0,
+  프로: 3.0,
+  플러스: 2.0,
+  스타터: 1.0,
+  새싹: 0.0,
+}
+
+// 엑셀 정책 기준: 등급별 대출 적용금리 (%)
+const GRADE_LOAN_MAP = {
+  마스터: 2.0,
+  프로: 3.5,
+  플러스: 5.0,
+  스타터: 7.0,
+  새싹: null,
 }
 
 // 이자 계산 방식, 적금 적립 방식 매핑
@@ -44,6 +63,10 @@ const savingsTypeMap = {
   FREE: '자유적금',
   FIXED: '정액적금',
 }
+
+// 내 티니 등급 및 점수
+const myGrade = ref('')
+const myScore = ref(0)
 
 // 부모 생성 상품 vs 실제 금융기관 상품 판별 유틸
 function resolveProductOrigin(p) {
@@ -64,7 +87,7 @@ function resolveProductOrigin(p) {
   return { type: 'bank', label: comp }
 }
 
-// API 데이터 → 기존 구조 변환
+// API 데이터 → 기존 구조 변환 (연 1.5% ~ 4% (스타터 2.5% 적용) 형식 생성)
 function mapProduct(p) {
   const terms = p.availableTerms ?? []
   const periodValue =
@@ -74,15 +97,76 @@ function mapProduct(p) {
         ? `${Math.min(...terms)}~${Math.max(...terms)}개월`
         : '-'
 
-  const minRate = p.rates?.length ? Math.min(...p.rates.map((r) => r.baseRate)) : p.baseRate
-  const maxRate = p.rates?.length ? Math.max(...p.rates.map((r) => r.expectedAppliedRate)) : p.expectedAppliedRate
-  const rateValue = minRate != null ? `연 ${minRate}~${maxRate}%` : '-'
+  const isLoan = p.productType === 'LOAN'
+  const isSaving = p.productType === 'SAVING'
+  const ratesList = p.rates || []
+
+  // 기본금리
+  const baseRate = p.baseRate ?? (ratesList.length ? Math.min(...ratesList.map((r) => r.baseRate ?? 0)) : 0)
+
+  let rangeText = ''
+  let finalAppliedRateNum = null
+  let combinedRateText = ''
+
+  if (isLoan) {
+    // 1) 대출: 연 2.0% ~ 7.0%
+    if (ratesList.length > 0) {
+      const allLoanRates = ratesList.map((r) => r.expectedAppliedRate ?? r.appliedRate ?? r.baseRate ?? 0)
+      const minL = Math.min(...allLoanRates)
+      const maxL = Math.max(...allLoanRates)
+      rangeText = minL === maxL ? `연 ${minL}%` : `연 ${minL}% ~ ${maxL}%`
+
+      if (myGrade.value) {
+        const matched = ratesList.find((r) => r.gradeName === myGrade.value)
+        if (matched) {
+          finalAppliedRateNum = matched.expectedAppliedRate ?? matched.appliedRate
+        }
+      }
+    } else {
+      rangeText = '연 2.0% ~ 7.0%'
+      if (myGrade.value && GRADE_LOAN_MAP[myGrade.value] !== undefined) {
+        finalAppliedRateNum = GRADE_LOAN_MAP[myGrade.value]
+      }
+    }
+
+    if (finalAppliedRateNum != null) {
+      combinedRateText = `${rangeText} (${myGrade.value} ${finalAppliedRateNum}%)`
+    } else {
+      combinedRateText = p.eligible ? rangeText : '대출 불가 (새싹 등급)'
+    }
+  } else {
+    // 2) 예·적금: 기본금리 ~ (기본금리 + 5.0%p)
+    const maxBonusRate = ratesList.length
+      ? Math.max(...ratesList.map((r) => r.preferentialRate ?? (r.expectedAppliedRate ? r.expectedAppliedRate - baseRate : 0)))
+      : (GRADE_BONUS_MAP['마스터'] ?? 5.0)
+
+    const maxRate = Number((baseRate + maxBonusRate).toFixed(2))
+    rangeText = maxRate > baseRate ? `연 ${baseRate}% ~ ${maxRate}%` : `연 ${baseRate}%`
+
+    // 내 등급의 우대금리 및 적용금리 계산
+    if (ratesList.length > 0 && myGrade.value) {
+      const matched = ratesList.find((r) => r.gradeName === myGrade.value)
+      if (matched) {
+        finalAppliedRateNum = matched.expectedAppliedRate ?? matched.appliedRate
+      }
+    }
+
+    if (finalAppliedRateNum == null && myGrade.value) {
+      const bonus = GRADE_BONUS_MAP[myGrade.value] ?? 0
+      finalAppliedRateNum = Number((baseRate + bonus).toFixed(2))
+    }
+
+    if (finalAppliedRateNum != null) {
+      combinedRateText = `${rangeText} (${myGrade.value || '내 등급'} ${finalAppliedRateNum}%)`
+    } else {
+      combinedRateText = rangeText
+    }
+  }
 
   const limitLabel =
-    p.productType === 'LOAN' ? '대출한도' : p.productType === 'DEPOSIT' ? '예치한도' : '납입한도'
+    isLoan ? '대출한도' : p.productType === 'DEPOSIT' ? '예치한도' : '납입한도'
   const limitValue = p.maximumAmount ? `${p.maximumAmount.toLocaleString()}원` : '-'
 
-  const isLoan = p.productType === 'LOAN'
   const scoreValue = isLoan
     ? p.requiredGradeName
       ? `${p.requiredGradeName} 등급 이상`
@@ -90,12 +174,10 @@ function mapProduct(p) {
     : null
   const scoreColor = isLoan ? gradeColorMap[p.requiredGradeName] ?? 'blue' : ''
 
-  const isSaving = p.productType === 'SAVING'
-
   const details = [
     { label: '기간', value: periodValue, color: '' },
     { label: limitLabel, value: limitValue, color: '' },
-    { label: '금리', value: rateValue, color: 'blue' },
+    { label: '금리', value: combinedRateText, color: 'blue' },
   ]
 
   if (!isLoan && interestTypeMap[p.interestCalculationType]) {
@@ -126,8 +208,8 @@ function mapProduct(p) {
     availableTerms: terms,
     category: typeMap[p.productType] ?? p.productType,
     badgeColor: badgeColorMap[p.productType] ?? 'blue',
-    originType: origin.type, // 'family' | 'bank'
-    originLabel: origin.label, // '가족 상품' | 기관명
+    originType: origin.type,
+    originLabel: origin.label,
     title: p.productName,
     liked: false,
     eligible: p.eligible,
@@ -135,15 +217,34 @@ function mapProduct(p) {
     locked: isLoan && !p.eligible,
     requiredGradeName: p.requiredGradeName,
     gradeColor: scoreColor,
+    rates: ratesList,
+    baseRate,
+    finalAppliedRateNum,
+    rangeText,
+    combinedRateText,
     details,
   }
 }
 
-// [API] 금융상품 목록 조회
+// [API] 금융상품 목록 및 티니점수 조회
 const products = ref([])
 
 onMounted(async () => {
   try {
+    // 1. 내 티니점수/등급 조회
+    if (authStore.memberId) {
+      try {
+        const scoreRes = await getTeenyScore(authStore.accessToken, authStore.memberId)
+        const scoreData = scoreRes?.data ?? scoreRes
+        myGrade.value = scoreData?.gradeName ?? '스타터'
+        myScore.value = scoreData?.teenyScore ?? 600
+      } catch (err) {
+        console.warn('티니점수 조회 실패:', err)
+        myGrade.value = '스타터'
+      }
+    }
+
+    // 2. 금융상품 목록 조회
     const data = await getFinancialProducts(authStore.accessToken)
     const mapped = data.map(mapProduct)
 
@@ -213,7 +314,8 @@ function goToApply(product) {
       title: product.title,
       originType: product.originType,
       originLabel: product.originLabel,
-      rate: detail('금리')?.value ?? '',
+      rate: product.combinedRateText || product.rangeText,
+      myAppliedRate: product.finalAppliedRateNum,
       periodInfo: detail('기간')?.value ?? '',
       limit:
         detail('납입한도')?.value ||
@@ -225,6 +327,7 @@ function goToApply(product) {
       interestType: detail('이자방식')?.value ?? '',
       savingsType: detail('적립방식')?.value ?? '',
       terms: product.availableTerms.join(','),
+      rates: JSON.stringify(product.rates || []),
     },
   })
 }
@@ -645,7 +748,7 @@ function goToApply(product) {
   color: #15171b;
 }
 
-.d-value.blue { color: #4d8ad6; }
+.d-value.blue { color: #4d8ad6; font-weight: 800; }
 .d-value.green { color: #62b24a; }
 .d-value.yellow { color: #b8901f; }
 .d-value.red { color: #e0554f; }
