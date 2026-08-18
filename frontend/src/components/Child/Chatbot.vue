@@ -44,7 +44,7 @@
 
           <div class="intro-bubble">
             <p>
-              안녕하세요! <strong>티니코치</strong>예요.<br />
+              안녕하세요! <strong>티니코치</strong>입니다.<br />
               티니머니 이용 관련 궁금한 점이 생기면
               언제든지 물어보세요!
             </p>

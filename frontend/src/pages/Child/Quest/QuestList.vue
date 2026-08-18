@@ -291,7 +291,7 @@ const activeTab = ref('available')
 // 탭별 챗봇 말풍선 안내 문구
 const currentHintText = computed(() => {
   if (activeTab.value === 'ongoing') {
-    return '퀘스트 인증하기를 누르면 취소나 수정이 어려워요!'
+    return '요청을 보내면 취소나 수정이 어려워요! 퀘스트 인증하기는 신중하게 보내야해요'
   }
   return '메달이 있는 퀘스트를 완료하면 티니점수가 올라가요!'
 })
