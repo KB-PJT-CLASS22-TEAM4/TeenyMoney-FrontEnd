@@ -33,69 +33,72 @@
                 {{ group.title }}
               </h3>
 
-              <button
+              <template
                 v-for="item in group.items"
                 :key="item.key"
-                class="menu-item"
-                :class="{
-                  active: isActive(item),
-                  picking: selectingFor === item.key,
-                }"
-                type="button"
-                @click="handleItem(item)"
               >
-                <span class="item-label">
-                  {{ item.label }}
-                </span>
-                <span class="item-chevron">›</span>
-              </button>
-
-              <div
-                v-if="selectingFor && group.items.some((item) => item.key === selectingFor)"
-                class="child-picker"
-              >
-                <p
-                  v-if="isChildrenLoading"
-                  class="picker-state"
+                <button
+                  class="menu-item"
+                  :class="{
+                    active: isActive(item),
+                    picking: selectingFor === item.key,
+                  }"
+                  type="button"
+                  @click="handleItem(item)"
                 >
-                  자녀 목록을 불러오는 중입니다.
-                </p>
-
-                <p
-                  v-else-if="childrenError"
-                  class="picker-state"
-                >
-                  {{ childrenError }}
-                </p>
+                  <span class="item-label">
+                    {{ item.label }}
+                  </span>
+                  <span class="item-chevron">›</span>
+                </button>
 
                 <div
-                  v-else-if="children.length === 0"
-                  class="picker-state"
+                  v-if="selectingFor === item.key"
+                  class="child-picker"
                 >
-                  <p>연결된 자녀가 없어요.</p>
-                  <button
-                    type="button"
-                    class="child-pick-btn"
-                    @click="go('/parents/linkcode')"
+                  <p
+                    v-if="isChildrenLoading"
+                    class="picker-state"
                   >
-                    자녀 연동하기
-                    <span>이동</span>
-                  </button>
-                </div>
+                    자녀 목록을 불러오는 중입니다.
+                  </p>
 
-                <template v-else>
-                  <button
-                    v-for="child in children"
-                    :key="child.childId"
-                    class="child-pick-btn"
-                    type="button"
-                    @click="goWithChild(child.childId)"
+                  <p
+                    v-else-if="childrenError"
+                    class="picker-state"
                   >
-                    {{ child.name }}
-                    <span>선택</span>
-                  </button>
-                </template>
-              </div>
+                    {{ childrenError }}
+                  </p>
+
+                  <div
+                    v-else-if="children.length === 0"
+                    class="picker-state"
+                  >
+                    <p>연결된 자녀가 없어요.</p>
+                    <button
+                      type="button"
+                      class="child-pick-btn"
+                      @click="go('/parents/linkcode')"
+                    >
+                      자녀 연동하기
+                      <span>이동</span>
+                    </button>
+                  </div>
+
+                  <template v-else>
+                    <button
+                      v-for="child in children"
+                      :key="child.childId"
+                      class="child-pick-btn"
+                      type="button"
+                      @click="goWithChild(child.childId)"
+                    >
+                      {{ child.name }}
+                      <span>선택</span>
+                    </button>
+                  </template>
+                </div>
+              </template>
             </section>
           </div>
         </aside>
@@ -401,7 +404,7 @@ function goWithChild(childId) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 0 18px 10px 28px;
+  padding: 6px 18px 10px 28px;
 }
 
 .picker-state {
