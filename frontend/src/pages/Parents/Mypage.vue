@@ -193,9 +193,10 @@
                 <button
                   type="button"
                   class="disconnect-button"
+                  :disabled="unlinkingId === child.childId"
                   @click.stop="disconnectChild(child)"
                 >
-                  연동 해제
+                  {{ unlinkingId === child.childId ? '해제 중...' : '연동 해제' }}
                 </button>
 
                 <span class="child-chevron">
@@ -308,6 +309,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
 import { getChildren } from '@/api/children'
+import { unlinkFamily } from '@/api/families'
 import {
   PARENT_PROFILE_IMAGE,
   CHILD_PROFILE_IMAGE,
@@ -342,6 +344,7 @@ const children = ref([])
 
 const isChildrenLoading = ref(false)
 const childrenError = ref('')
+const unlinkingId = ref(null)
 
 /* =========================
    생년월일 포맷
@@ -515,6 +518,9 @@ function goToChildDetail(childId) {
 ========================= */
 
 async function disconnectChild(child) {
+  if (unlinkingId.value) {
+    return
+  }
 
   const confirmed = await alertModal.showConfirm(
     `${child.name} 자녀와의 연동을 해제하시겠습니까?`
@@ -524,27 +530,23 @@ async function disconnectChild(child) {
     return
   }
 
+  unlinkingId.value = child.childId
+
   try {
-
-    /*
-     * TODO:
-     * 자녀 연동 해제 API가 생기면 여기서 호출
-     *
-     * await unlinkChild(
-     *   child.childId,
-     *   authStore.accessToken
-     * )
-     */
-
-    /*
-     * API 성공 후 화면에서도 제거
-     */
+    await unlinkFamily(
+      authStore.accessToken,
+      child.childId
+    )
 
     children.value =
       children.value.filter(
         (item) =>
           item.childId !== child.childId
       )
+
+    alertModal.showAlert(
+      '자녀 연동이 해제되었습니다.'
+    )
 
   } catch (error) {
 
@@ -557,6 +559,8 @@ async function disconnectChild(child) {
       error.message
       || '자녀 연동을 해제하지 못했습니다.'
     )
+  } finally {
+    unlinkingId.value = null
   }
 }
 
@@ -664,7 +668,6 @@ button {
 
 .page {
   position: relative;
-  top: -8px;
 
   width: 360px;
   min-height: 100dvh;

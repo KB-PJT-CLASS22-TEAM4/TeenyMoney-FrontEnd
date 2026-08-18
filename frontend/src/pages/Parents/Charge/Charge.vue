@@ -56,6 +56,15 @@
           <span class="won">
             원
           </span>
+
+          <button
+            type="button"
+            class="clear-amount-btn"
+            aria-label="금액 초기화"
+            @click="clearAmount"
+          >
+            초기화
+          </button>
         </div>
 
         <div class="quick-btns">
@@ -442,6 +451,10 @@ function addQuickAmount(amount) {
     amount
 }
 
+function clearAmount() {
+  chargeAmount.value = 0
+}
+
 function togglePaymentList() {
   isPaymentOpen.value =
     !isPaymentOpen.value
@@ -649,6 +662,19 @@ button {
   color: #191b1e;
   font-size: 16px;
   font-weight: 600;
+}
+
+.clear-amount-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: #e8eaed;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .amount-wrap {

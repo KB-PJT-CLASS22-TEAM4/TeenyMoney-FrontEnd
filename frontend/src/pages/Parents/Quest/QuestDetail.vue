@@ -1857,43 +1857,6 @@ onMounted(() => {
   background: #ffbc00;
 }
 
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 360px;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  background: #ffffff;
-  border-top: 1px solid #f0f1f3;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
-}
-
 /* 거절 모달 */
 
 .modal-overlay {
