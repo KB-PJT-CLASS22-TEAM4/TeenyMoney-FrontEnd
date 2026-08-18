@@ -30,17 +30,7 @@
             자녀 관리
           </span>
 
-          <button
-            class="bell-btn"
-            type="button"
-            aria-label="알림"
-          >
-            <img
-              src="@/assets/icons/icon-notification.svg"
-              alt=""
-              class="alarm-icon"
-            />
-          </button>
+          <ParentNavActions />
         </header>
 
 
@@ -475,6 +465,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 import {
   computed,

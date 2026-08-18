@@ -5,6 +5,7 @@
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
       <h1 class="nav-title">연동 코드</h1>
+      <ParentNavActions />
     </header>
 
     <div class="content">
@@ -82,6 +83,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { makeFamilyCode } from '@/api/families'
 import AlertHost from '@/components/AlertHost.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 const router = useRouter()

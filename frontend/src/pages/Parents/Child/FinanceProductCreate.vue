@@ -5,9 +5,7 @@
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
       <h1 class="nav-title">새 금융 상품 추가</h1>
-      <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
-      </button>
+      <ParentNavActions />
     </header>
 
     <div class="scroll-area">
@@ -220,6 +218,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createFinancialProduct } from '@/api/financialProducts'
 import AlertHost from '@/components/AlertHost.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 const router = useRouter()

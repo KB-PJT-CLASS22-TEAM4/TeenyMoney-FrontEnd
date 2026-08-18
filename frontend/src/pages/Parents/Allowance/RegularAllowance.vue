@@ -18,17 +18,7 @@
         정기 용돈 설정
       </h1>
 
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
-      </button>
+      <ParentNavActions />
     </header>
 
     <div class="content">
@@ -424,6 +414,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 
 import {
