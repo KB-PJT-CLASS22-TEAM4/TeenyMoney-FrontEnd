@@ -203,7 +203,10 @@
               <span class="request-status block">
                 요청
               </span>
-              <span class="request-name">
+              <span
+                v-if="req.childName"
+                class="request-name"
+              >
                 {{ req.childName }}
               </span>
               <span class="request-time">
@@ -274,7 +277,10 @@
               >
                 {{ req.status === 'APPROVED' ? '승인' : '거절' }}
               </span>
-              <span class="request-name">
+              <span
+                v-if="req.childName"
+                class="request-name"
+              >
                 {{ req.childName }}
               </span>
               <span class="request-time">
@@ -515,14 +521,22 @@ function getCategoryLabel(category) {
 }
 
 function extractCategories(permission) {
-  if (!Array.isArray(permission?.categories)) return []
+  if (typeof permission?.category === 'string' && permission.category) {
+    return [permission.category]
+  }
+
+  if (!Array.isArray(permission?.categories)) {
+    const single = getCategoryLabel(permission?.category)
+    return single ? [single] : []
+  }
+
   return permission.categories.map(getCategoryLabel).filter(Boolean)
 }
 
 function normalizePermissionRequest(permission) {
   return {
     id: permission.id,
-    childName: permission.child?.name ?? '자녀',
+    childName: permission.child?.name ?? permission.childName ?? '',
     reason: permission.reason ?? '',
     status: permission.status ?? 'PENDING',
     categories: extractCategories(permission),
@@ -534,16 +548,16 @@ function normalizePermissionRequest(permission) {
 function extractPermissionsList(payload) {
   if (!payload) return []
 
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
   if (Array.isArray(payload.permissions)) {
     return payload.permissions
   }
 
   if (Array.isArray(payload.items)) {
     return payload.items
-  }
-
-  if (Array.isArray(payload)) {
-    return payload
   }
 
   if (payload.isExist && payload.permission) {
@@ -571,7 +585,23 @@ function mergePermissionRequests(currentList, historyList) {
 
   ;[...currentList, ...historyList].forEach((permission) => {
     if (!permission?.id || !matchesSelectedChild(permission)) return
-    merged.set(permission.id, permission)
+
+    const existing = merged.get(permission.id)
+    if (!existing) {
+      merged.set(permission.id, { ...permission })
+      return
+    }
+
+    existing.categories = [
+      ...new Set([
+        ...extractCategories(existing),
+        ...extractCategories(permission),
+      ]),
+    ]
+    existing.category = existing.categories[0] ?? existing.category
+    if (!existing.updatedAt && permission.updatedAt) {
+      existing.updatedAt = permission.updatedAt
+    }
   })
 
   return Array.from(merged.values())
@@ -1091,6 +1121,7 @@ onMounted(async () => {
 }
 
 .request-time {
+  margin-left: auto;
   font-size: 12px;
   color: #8b9097;
 }
