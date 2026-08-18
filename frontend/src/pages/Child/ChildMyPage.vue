@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 import ChildNavActions from '@/components/Child/ChildNavActions.vue';
 import { getMyInfo, getLinkedParent } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 import { logout as logoutApi } from '@/api/auth';
+import { getNotificationSetting, updateNotificationSetting } from '@/api/notification';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import {
   CHILD_PROFILE_IMAGE,
@@ -25,6 +26,49 @@ const user = ref({
 
 // 연동된 부모 (미연동이면 null)
 const parent = ref(null);
+
+// ==== 알림 수신 설정 ====
+const notificationSettings = reactive({
+  notificationFinance: true,
+  notificationPayment: true,
+  notificationQuest: true,
+});
+const notificationSettingLoading = ref(true);
+const notificationSavingKey = ref('');
+
+async function loadNotificationSetting() {
+  notificationSettingLoading.value = true;
+  try {
+    const res = await getNotificationSetting(authStore.accessToken);
+    const d = res.data || {};
+    notificationSettings.notificationFinance = d.notificationFinance ?? true;
+    notificationSettings.notificationPayment = d.notificationPayment ?? true;
+    notificationSettings.notificationQuest = d.notificationQuest ?? true;
+  } catch (e) {
+    console.log('알림 설정 조회 실패:', e.message);
+  } finally {
+    notificationSettingLoading.value = false;
+  }
+}
+
+async function onToggleNotification(key, value) {
+  const prevValue = notificationSettings[key];
+  notificationSettings[key] = value;
+  notificationSavingKey.value = key;
+
+  try {
+    await updateNotificationSetting(authStore.accessToken, {
+      notificationFinance: notificationSettings.notificationFinance,
+      notificationPayment: notificationSettings.notificationPayment,
+      notificationQuest: notificationSettings.notificationQuest,
+    });
+  } catch (e) {
+    console.log('알림 설정 변경 실패:', e.message);
+    notificationSettings[key] = prevValue;
+  } finally {
+    notificationSavingKey.value = '';
+  }
+}
 
 onMounted(async () => {
   try {
@@ -48,6 +92,8 @@ onMounted(async () => {
   } catch (e) {
     console.log('연동된 부모 조회 실패:', e.message);
   }
+
+  loadNotificationSetting();
 });
 
 function goBack() {
@@ -202,6 +248,50 @@ function onScroll() {
         <div class="add-parent" @click="addParent">
           <span class="plus">+</span>
           <span class="add-text">부모님 추가 · 연동 코드 입력</span>
+        </div>
+      </section>
+
+      <!-- 알림 설정 -->
+      <section class="menu-group">
+        <p class="section-label">알림 설정</p>
+
+        <div class="toggle-row">
+          <span class="menu-title">금융상품 알림</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              :checked="notificationSettings.notificationFinance"
+              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationFinance'"
+              @change="onToggleNotification('notificationFinance', $event.target.checked)"
+            >
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span class="menu-title">결제 알림</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              :checked="notificationSettings.notificationPayment"
+              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationPayment'"
+              @change="onToggleNotification('notificationPayment', $event.target.checked)"
+            >
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span class="menu-title">퀘스트 알림</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              :checked="notificationSettings.notificationQuest"
+              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationQuest'"
+              @change="onToggleNotification('notificationQuest', $event.target.checked)"
+            >
+            <span class="slider"></span>
+          </label>
         </div>
       </section>
 
@@ -409,6 +499,44 @@ function onScroll() {
   font-size: 20px;
   color: #c5cad0;
 }
+
+/* 알림 설정 토글 행 (menu-row와 동일 레이아웃, chevron 대신 스위치) */
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 25px;
+  flex: none;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #e7e9ec;
+  border-radius: 25px;
+  transition: .3s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 19px; width: 19px;
+  left: 3px; bottom: 3px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  border-radius: 50%;
+  transition: .3s;
+}
+input:checked + .slider { background: #ffbc00; }
+input:checked + .slider:before { transform: translateX(17px); }
+input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
 
 /* 섹션 라벨 */
 .section-label {
