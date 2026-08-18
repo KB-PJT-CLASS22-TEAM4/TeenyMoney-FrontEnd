@@ -11,38 +11,7 @@
           </svg>
         </button>
         <h1 class="nav-title">{{ isViewOnly ? '제출한 인증' : '퀘스트 인증하기' }}</h1>
-      </div>
-
-      <!-- 티니 코치 -->
-      <div class="coach-block">
-        <svg class="coach-avatar" viewBox="0 0 40 42" width="38" height="40">
-          <!-- 발 -->
-          <path d="M15 38l-2.5 3M15 38l1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
-          <path d="M25 38l2.5 3M25 38l-1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
-          <!-- 몸통 -->
-          <ellipse cx="20" cy="27" rx="12.5" ry="10.5" fill="#ffcf3d"/>
-          <!-- 날개 -->
-          <ellipse cx="9.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(-18 9.5 27)"/>
-          <ellipse cx="30.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(18 30.5 27)"/>
-          <!-- 머리 -->
-          <circle cx="20" cy="13" r="9.5" fill="#ffdd5c"/>
-          <!-- 정수리 깃털 -->
-          <path d="M18.5 3.5c-.6-1.6.4-3 1.8-3.3-.2 1.5-.7 2.6-1.8 3.3z" fill="#f2b400"/>
-          <!-- 볼터치 -->
-          <circle cx="13.3" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
-          <circle cx="26.7" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
-          <!-- 눈 -->
-          <circle cx="16.3" cy="12" r="1.5" fill="#3a2b00"/>
-          <circle cx="23.7" cy="12" r="1.5" fill="#3a2b00"/>
-          <circle cx="16.8" cy="11.5" r=".4" fill="#fff"/>
-          <circle cx="24.2" cy="11.5" r=".4" fill="#fff"/>
-          <!-- 부리 -->
-          <path d="M17.8 15.3h4.4c.3 0 .5.35.3.6l-2 2.3c-.25.3-.75.3-1 0l-2-2.3c-.2-.25 0-.6.3-.6z" fill="#f2971f"/>
-        </svg>
-        <div class="coach-bubble">
-          <span class="coach-name">티니 코치</span>
-          <p class="coach-text">{{ coachMessage }}</p>
-        </div>
+        <ChildNavActions />
       </div>
 
       <!-- 퀘스트 요약 카드 -->
@@ -126,7 +95,8 @@
         </button>
 
         <div v-else class="photo-upload filled">
-          <span class="photo-hint">사진 예시 (조회 전용)</span>
+          <img v-if="photoPreview" :src="photoPreview" class="photo-preview" alt="제출한 인증 사진">
+          <span v-else class="photo-hint">사진이 만료됐거나 없어요</span>
         </div>
       </div>
 
@@ -159,6 +129,7 @@
                   placeholder="어떻게 수행했는지 알려주세요"></textarea>
       </div>
 
+      <!-- 제출 버튼 또는 대기 안내 -->
       <button v-if="!isViewOnly" class="btn-submit" :disabled="!canSubmit" @click="submit">
         {{ quest.subStatus === 'REJECTED' ? '다시 인증하기' : '퀘스트 인증하기' }}
       </button>
@@ -172,51 +143,98 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useQuestStore } from '@/stores/quest'
+import { getQuestDetail, submitQuestVerification } from '@/api/quest'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const route = useRoute()
 const router = useRouter()
-
-// ==================================================================
-// API 연동 필요 (지금은 더미 데이터)
-// ==================================================================
-
-const QUEST_DB = {
-  4: {
-    id: 4, title: '화분 물 주기',
-    content: '베란다 화분 3개를 잎에 물이 튀지 않게 화분 흙에만 뿌려주고 사진 보내줘~',
-    subStatus: 'IN_PROGRESS', score: 2, dDay: 2, rewardAmount: 500,
-    verificationRequirement: 'PHOTO_REQUIRED',
-    lastRejectionReason: null, remainingCount: 3,
-  },
-  5: {
-    id: 5, title: '강아지 산책시키기',
-    content: '초코랑 30분 정도 동네 산책 다녀와주세요. 산책 다녀온 뒤에는 물도 꼭 챙겨주세요.',
-    subStatus: 'PENDING', score: 4, dDay: 1, submittedAt: '08.09', rewardAmount: 1200,
-    verificationRequirement: 'ANY_REQUIRED',
-    lastRejectionReason: null, remainingCount: 3,
-  },
-  6: {
-    id: 6, title: '영어 단어 20개 외우기',
-    content: '오늘 배운 영어 단어 20개를 외우고, 단어장에 뜻까지 적어서 보여주세요.',
-    subStatus: 'REJECTED', score: 5, dDay: 3, rewardAmount: 1500,
-    verificationRequirement: 'TEXT_REQUIRED',
-    lastRejectionReason: '인증하기 어려워요', remainingCount: 2,
-  },
-}
+const authStore = useAuthStore()
+const questStore = useQuestStore()
 
 const isViewOnly = computed(() => route.query.view === '1')
 
-const quest = ref(
-  QUEST_DB[route.params.questId] ?? {
-    id: route.params.questId, title: '퀘스트', content: '',
-    subStatus: 'IN_PROGRESS', score: 0, dDay: 0, rewardAmount: 0,
-    verificationRequirement: 'FREE', lastRejectionReason: null, remainingCount: 3,
-  }
-)
+const quest = ref({
+  id: route.params.questId, title: '', content: '',
+  subStatus: 'IN_PROGRESS', score: null, dDay: null, rewardAmount: 0,
+  submittedAt: '', verificationRequirement: 'FREE',
+  lastRejectionReason: null, remainingCount: 0,
+})
 
-// 제출 시점에 서버에 기록될 인증 일시 미리보기 (실제로는 제출 API 응답의 시각을 써야 함)
+const loadError = ref('')
+
+// deadline(ISO 문자열 또는 [y,m,d,h,mi,s] 배열) → Date 객체
+function parseDeadline(deadline) {
+  if (!deadline) return null
+
+  // Jackson이 LocalDateTime을 배열로 직렬화하는 경우: [2026, 8, 20, 9, 50]
+  if (Array.isArray(deadline)) {
+    const [y, m, d, h = 0, mi = 0, s = 0] = deadline
+    return new Date(y, m - 1, d, h, mi, s)
+  }
+
+  // "2026-08-12 20:00:00"처럼 공백 구분이면 T로 바꿔서 재시도
+  let date = new Date(deadline)
+  if (Number.isNaN(date.getTime()) && typeof deadline === 'string') {
+    date = new Date(deadline.replace(' ', 'T'))
+  }
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function calcDDay(deadline) {
+  const end = parseDeadline(deadline)
+  if (!end) return null
+  const now = new Date()
+  const diffMs = end.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)
+  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+}
+
+function formatShortDate(value) {
+  const d = parseDeadline(value)
+  if (!d) return ''
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(d.getMonth() + 1)}.${pad(d.getDate())}`
+}
+
+async function loadQuest() {
+  loadError.value = ''
+  try {
+    const result = await getQuestDetail(route.params.questId, authStore.accessToken)
+    const d = result.data
+    quest.value = {
+      id: d.questId,
+      title: d.title,
+      content: d.content,
+      subStatus: d.status,
+      score: null, // 티니점수 값은 API에 없음(teenyScoreEnabled 여부만 존재)
+      dDay: calcDDay(d.deadline),
+      rewardAmount: d.rewardAmount ?? 0,
+      submittedAt: d.latestVerification ? formatShortDate(d.latestVerification.submittedAt) : '',
+      verificationRequirement: d.verificationRequirement,
+      lastRejectionReason: d.latestVerification?.rejectionReason ?? null,
+      remainingCount: d.remainingCount ?? 0,
+    }
+
+    // 조회 전용(view=1)이거나 이전에 낸 인증이 있으면 그 내용을 채워서 보여줌
+    // (반려된 뒤 재시도하는 화면에서는 사진을 다시 찍어야 하므로 사진은 채우지 않음)
+    if (d.latestVerification) {
+      content.value = d.latestVerification.content ?? ''
+      if (isViewOnly.value && d.latestVerification.imageUrl && !d.latestVerification.imageExpired) {
+        photoPreview.value = d.latestVerification.imageUrl
+      }
+    }
+  } catch (e) {
+    loadError.value = e.message || '퀘스트를 불러오지 못했습니다.'
+    alert(loadError.value)
+  }
+}
+
+onMounted(loadQuest)
+
+// 제출 시점 인증 일시 미리보기 (실제 저장 시각은 서버 응답 기준)
 const now = new Date()
 const nowLabel = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
@@ -227,15 +245,6 @@ const STATUS_ICON_COLORS = {
   REJECTED:    { bg: '#fbe9e9', stroke: '#e5484d' },
 }
 const iconColor = computed(() => STATUS_ICON_COLORS[quest.value.subStatus] ?? STATUS_ICON_COLORS.IN_PROGRESS)
-
-// 진행 상태 스텝퍼: 수락 -> 인증 제출 -> 승인
-// 티니 코치 - 상태별 격려/안내 메시지
-const coachMessage = computed(() => {
-  const s = quest.value.subStatus
-  if (s === 'REJECTED') return '반려 사유를 확인하고 다시 찍어서 올리면 돼요. 이번엔 성공할 수 있어요!'
-  if (isViewOnly.value) return '부모님이 확인하고 있어요. 조금만 기다려요!'
-  return '사진이랑 인증 내용을 올리면 부모님이 확인하고 승인해주실 거예요.'
-})
 
 const photoRequired = computed(() => true)
 const textRequired = computed(() => quest.value.verificationRequirement === 'TEXT_REQUIRED')
@@ -292,7 +301,8 @@ function capturePhoto() {
 
   canvas.toBlob((blob) => {
     if (!blob) return
-    photoFile.value = blob
+    // multipart 전송 시 파일명이 있는 게 서버 처리에 안전해서 File로 감쌈
+    photoFile.value = new File([blob], 'verification.jpg', { type: 'image/jpeg' })
     photoPreview.value = URL.createObjectURL(blob)
     closeCamera()
   }, 'image/jpeg', 0.9)
@@ -304,10 +314,23 @@ const canSubmit = computed(() => {
   return true
 })
 
-function submit() {
-  // TODO: POST /quests/{quest.id}/verifications 연동 (multipart/form-data: photo, content)
-  console.log('submit verification', quest.value.id, photoFile.value, content.value)
-  router.back()
+const submitting = ref(false)
+
+async function submit() {
+  if (submitting.value) return
+  submitting.value = true
+  try {
+    await submitQuestVerification(authStore.accessToken, quest.value.id, {
+      content: content.value,
+      image: photoFile.value,
+    })
+    questStore.invalidateTab('ongoing')
+    router.back()
+  } catch (e) {
+    alert(e.message || '인증 제출에 실패했습니다.')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function goBack() {
@@ -331,7 +354,7 @@ onBeforeUnmount(() => {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
+  padding-top: 26px;
   background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
@@ -375,74 +398,6 @@ onBeforeUnmount(() => {
   font-weight: 700;
   font-size: 17px;
   color: #15171b;
-}
-
-/* 티니 코치 말풍선 */
-.coach-block {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 6px;
-  width: 100%;
-}
-
-.coach-avatar {
-  flex: 0 0 auto;
-  width: 38px;
-  height: 40px;
-}
-
-.coach-bubble {
-  position: relative;
-  flex: 1 1 0%;
-  min-width: 0;
-  margin-top: 4px;
-  background: #fff9ec;
-  border: 1.4px solid #ffe6a3;
-  border-radius: 4px 16px 16px 16px;
-  padding: 10px 14px 12px;
-  box-shadow: 0 2px 5px rgba(242, 180, 0, 0.12);
-}
-
-.coach-bubble::before,
-.coach-bubble::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-style: solid;
-}
-
-.coach-bubble::before {
-  left: -11px;
-  top: 7px;
-  border-width: 0 11px 10px 0;
-  border-color: transparent #ffe6a3 transparent transparent;
-}
-
-.coach-bubble::after {
-  left: -8.5px;
-  top: 8px;
-  border-width: 0 9px 8px 0;
-  border-color: transparent #fff9ec transparent transparent;
-}
-
-.coach-name {
-  display: block;
-  font-weight: 800;
-  font-size: 11px;
-  color: #b9861a;
-  margin-bottom: 2px;
-}
-
-.coach-text {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b5a2e;
-  line-height: 16.5px;
-  word-break: keep-all;
-  overflow-wrap: break-word;
 }
 
 .card {

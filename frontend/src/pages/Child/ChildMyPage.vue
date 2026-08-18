@@ -1,11 +1,17 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
-import { getMyInfo } from '@/api/member';
+import ChildNavActions from '@/components/Child/ChildNavActions.vue';
+import { getMyInfo, getLinkedParent } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 import { logout as logoutApi } from '@/api/auth';
+import { getNotificationSetting, updateNotificationSetting } from '@/api/notification';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import {
+  CHILD_PROFILE_IMAGE,
+  PARENT_PROFILE_IMAGE,
+} from '@/utils/profileImages';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -18,7 +24,51 @@ const user = ref({
   email: '',
 });
 
-const parent = ref({ name: '', status: '' });
+// 연동된 부모 (미연동이면 null)
+const parent = ref(null);
+
+// ==== 알림 수신 설정 ====
+const notificationSettings = reactive({
+  notificationFinance: true,
+  notificationPayment: true,
+  notificationQuest: true,
+});
+const notificationSettingLoading = ref(true);
+const notificationSavingKey = ref('');
+
+async function loadNotificationSetting() {
+  notificationSettingLoading.value = true;
+  try {
+    const res = await getNotificationSetting(authStore.accessToken);
+    const d = res.data || {};
+    notificationSettings.notificationFinance = d.notificationFinance ?? true;
+    notificationSettings.notificationPayment = d.notificationPayment ?? true;
+    notificationSettings.notificationQuest = d.notificationQuest ?? true;
+  } catch (e) {
+    console.log('알림 설정 조회 실패:', e.message);
+  } finally {
+    notificationSettingLoading.value = false;
+  }
+}
+
+async function onToggleNotification(key, value) {
+  const prevValue = notificationSettings[key];
+  notificationSettings[key] = value;
+  notificationSavingKey.value = key;
+
+  try {
+    await updateNotificationSetting(authStore.accessToken, {
+      notificationFinance: notificationSettings.notificationFinance,
+      notificationPayment: notificationSettings.notificationPayment,
+      notificationQuest: notificationSettings.notificationQuest,
+    });
+  } catch (e) {
+    console.log('알림 설정 변경 실패:', e.message);
+    notificationSettings[key] = prevValue;
+  } finally {
+    notificationSavingKey.value = '';
+  }
+}
 
 onMounted(async () => {
   try {
@@ -32,7 +82,23 @@ onMounted(async () => {
   } catch (e) {                 // try/catch로 실패 처리
     console.log('회원정보 조회 실패:', e.message);
   }
+
+  try {
+    const result = await getLinkedParent(authStore.accessToken);
+    // 미연동이면 data가 null인 게 정상 응답
+    parent.value = result.data
+      ? { name: result.data.name, parentId: result.data.parentId, profileImageUrl: result.data.profileImageUrl }
+      : null;
+  } catch (e) {
+    console.log('연동된 부모 조회 실패:', e.message);
+  }
+
+  loadNotificationSetting();
 });
+
+function goBack() {
+  router.back();
+}
 
 function editContact() {
   // 연락처 수정
@@ -87,31 +153,6 @@ async function confirmLogout() {
   }
 }
 
-//=======연동 해제=========
-const showUnlinkModal = ref(false)
-
-function unlink() {
-  showUnlinkModal.value = true
-}
-
-function cancelUnlink() {
-  showUnlinkModal.value = false
-}
-
-// API 호출 후 연동 해제 처리
-async function confirmUnlink() {
-  showUnlinkModal.value = false   
-
-  try {
-    // TODO: [API] 자녀 연동 해제 API
-    console.log('연동 해제 요청 (API 자리)')
-  } catch (error) {
-    console.error('연동 해제 실패:', error)
-  } finally {
-    router.push({ name: 'child-link' })
-  }
-}
-
 // =========하단 탭==========
 function onTabSelect(key) {
   if (key === 'home') router.push({ name: 'child-home' });
@@ -137,16 +178,23 @@ function onScroll() {
 
 <template>
   <div class="mypage-screen">
+    <header class="nav">
+      <button class="back-btn" type="button" aria-label="뒤로가기" @click="goBack">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">마이페이지</h1>
+      <ChildNavActions />
+    </header>
+
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <h1 class="page-title">마이페이지</h1>
 
       <!-- 프로필 -->
       <section class="profile">
         <div class="avatar">
-          <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
-            <circle cx="16" cy="12" r="5" stroke="#b9bec5" stroke-width="2.2"/>
-            <path d="M6 27c0-5 4.5-8 10-8s10 3 10 8" stroke="#b9bec5" stroke-width="2.2"/>
-          </svg>
+          <img :src="CHILD_PROFILE_IMAGE" alt="" class="avatar-img" />
         </div>
         <div class="profile-text">
           <p class="profile-name">{{ user.name }}</p>
@@ -183,22 +231,67 @@ function onScroll() {
       <!-- 연결된 부모님 -->
       <section class="parents">
         <p class="section-label">연결된 부모님</p>
-        <div class="parent-row">
+
+        <div v-if="parent" class="parent-row">
           <div class="parent-avatar">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-              <circle cx="12" cy="9" r="3.5" stroke="#b9bec5" stroke-width="1.8"/>
-              <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="#b9bec5" stroke-width="1.8"/>
-            </svg>
+            <img :src="PARENT_PROFILE_IMAGE" alt="" class="parent-avatar-img">
           </div>
           <div class="parent-text">
             <b class="parent-name">{{ parent.name }}</b>
-            <span class="parent-status">{{ parent.status }}</span>
+            <span class="parent-status">연동됨</span>
           </div>
         </div>
+
+        <p v-else class="no-parent-text">아직 연동된 부모님이 없어요</p>
+
         <!-- 부모님 추가 -->
         <div class="add-parent" @click="addParent">
           <span class="plus">+</span>
           <span class="add-text">부모님 추가 · 연동 코드 입력</span>
+        </div>
+      </section>
+
+      <!-- 알림 설정 -->
+      <section class="menu-group">
+        <p class="section-label">알림 설정</p>
+
+        <div class="toggle-row">
+          <span class="menu-title">금융상품 알림</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              :checked="notificationSettings.notificationFinance"
+              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationFinance'"
+              @change="onToggleNotification('notificationFinance', $event.target.checked)"
+            >
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span class="menu-title">결제 알림</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              :checked="notificationSettings.notificationPayment"
+              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationPayment'"
+              @change="onToggleNotification('notificationPayment', $event.target.checked)"
+            >
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span class="menu-title">퀘스트 알림</span>
+          <label class="switch">
+            <input
+              type="checkbox"
+              :checked="notificationSettings.notificationQuest"
+              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationQuest'"
+              @change="onToggleNotification('notificationQuest', $event.target.checked)"
+            >
+            <span class="slider"></span>
+          </label>
         </div>
       </section>
 
@@ -226,10 +319,6 @@ function onScroll() {
         <span class="menu-title">로그아웃</span>
         <span class="chev">›</span>
       </div>
-    <div class="menu-row" @click="unlink">      
-      <span class="menu-title">연동 해제</span>
-      <span class="chev">›</span>
-    </div>
     </section>
     </div>
 
@@ -247,16 +336,6 @@ function onScroll() {
       @cancel="cancelLogout"
     />
 
-    <!-- 연동 해제 확인 모달 -->
-    <ConfirmModal
-      :show="showUnlinkModal"
-      title="연동을 해제할까요?"
-      description="연동을 해제하면 부모님과의 연결이 끊어져요"
-      confirm-text="해제"
-      cancel-text="취소"
-      @confirm="confirmUnlink"
-      @cancel="cancelUnlink"
-    />
   </div>
 </template>
 
@@ -265,13 +344,39 @@ function onScroll() {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  height: 730px;
+  width: 100%;
+  min-height: 100dvh;
   margin: 0 auto;
-  padding-top: 50px;
   background: #ffffff;
-  border: 1px solid #eceef1;
   overflow: hidden;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  height: 64px;
+  padding: 0 20px 4px;
+  background: #ffffff;
+}
+
+.nav-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 18px;
+  color: #191b1e;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 .scroll {
@@ -294,13 +399,6 @@ function onScroll() {
   background: #d8dbdf;
 }
 
-.page-title {
-  margin: 0 0 20px;
-  font-weight: 700;
-  font-size: 19px;
-  color: #191b1e;
-}
-
 /* 프로필 */
 .profile {
   display: flex;
@@ -318,6 +416,13 @@ function onScroll() {
   background: #f2f4f6;
   border-radius: 50%;
   flex: none;
+  overflow: hidden;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .profile-name {
@@ -375,7 +480,7 @@ function onScroll() {
   margin: 8px 0 20px;
 }
 
-/* 메뉴 행 (화살표 있는 항목) */
+/* 메뉴 행 */
 .menu-row {
   display: flex;
   justify-content: space-between;
@@ -394,6 +499,44 @@ function onScroll() {
   font-size: 20px;
   color: #c5cad0;
 }
+
+/* 알림 설정 토글 행 (menu-row와 동일 레이아웃, chevron 대신 스위치) */
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 25px;
+  flex: none;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #e7e9ec;
+  border-radius: 25px;
+  transition: .3s;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 19px; width: 19px;
+  left: 3px; bottom: 3px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  border-radius: 50%;
+  transition: .3s;
+}
+input:checked + .slider { background: #ffbc00; }
+input:checked + .slider:before { transform: translateX(17px); }
+input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
 
 /* 섹션 라벨 */
 .section-label {
@@ -421,6 +564,13 @@ function onScroll() {
   background: #f2f4f6;
   border-radius: 50%;
   flex: none;
+  overflow: hidden;
+}
+
+.parent-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .parent-text {
@@ -439,6 +589,13 @@ function onScroll() {
   font-weight: 700;
   font-size: 12px;
   color: #ffbc00;
+}
+
+.no-parent-text {
+  margin: 4px 0 12px;
+  font-weight: 500;
+  font-size: 13px;
+  color: #b9bec5;
 }
 
 /* 부모님 추가 */

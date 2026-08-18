@@ -8,6 +8,7 @@
         </svg>
       </button>
       <h1 class="nav-title">결제 비밀번호 설정</h1>
+      <ChildNavActions />
     </div>
  
     <!-- 자물쇠 + 안내 -->
@@ -55,16 +56,21 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { registerPaymentPassword } from '@/api/password'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const pin = ref('')
 const isError = ref(false)
 const errorMsg = ref('')
+const submitting = ref(false)
 const PIN_LENGTH = 6
 
 function press(num) {
-  if (pin.value.length >= PIN_LENGTH) return
+  if (pin.value.length >= PIN_LENGTH || submitting.value) return
   isError.value = false
   pin.value += num
 }
@@ -78,21 +84,28 @@ function goBack() {
   router.back()
 }
 
-// 6자리 다 채워지면 설정 실행
+// 6자리 다 채워지면 등록 실행
 watch(pin, (val) => {
-  if (val.length === PIN_LENGTH) {
+  if (val.length === PIN_LENGTH && !submitting.value) {
     submitPin()
   }
 })
 
-function submitPin() {
-  // TODO: [API] 입력한 비번을 서버에 저장
-  //   POST /api/v1/... { paymentPassword: pin.value }
-  //   headers: { Authorization: `Bearer ${accessToken}` }
-  console.log('설정할 결제 비밀번호:', pin.value)
-
-  // 6자리 입력하면 바로 완료 화면으로 (설정은 검증 없음)
-  router.push({ name: 'child-password-setting-done' })
+async function submitPin() {
+  submitting.value = true
+  try {
+    await registerPaymentPassword(authStore.accessToken, pin.value)
+    router.push({ name: 'child-password-setting-done' })
+  } catch (e) {
+    errorMsg.value = e.message || '결제 비밀번호 등록에 실패했습니다.'
+    isError.value = true
+    setTimeout(() => {
+      pin.value = ''
+      isError.value = false
+    }, 500)
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
  
@@ -249,4 +262,3 @@ function submitPin() {
   background: transparent;
 }
 </style>
- 

@@ -10,15 +10,7 @@
             <img src="@/assets/logo.svg" class="brand-logo" alt="티니머니" />
             <span class="brand-title">티니머니</span>
           </div>
-          <div class="nav-actions">
-            <button class="bell-btn" @click="goNotification">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-                <path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#333" stroke-width="1.8" stroke-linejoin="round"/>
-                <path d="M10 20a2 2 0 0 0 4 0" stroke="#333" stroke-width="1.8" stroke-linecap="round"/>
-              </svg>
-              <span v-if="hasUnread" class="bell-dot"></span>
-            </button>
-          </div>
+          <ChildNavActions />
         </header>
 
         <!-- 인사말 텍스트 -->
@@ -76,7 +68,7 @@
       <section class="wallet-section">
         <div class="balance-row">
           <div class="balance-info">
-            <span class="balance-label">티니머니 잔액</span>
+            <span class="balance-label">티니머니</span>
             <p class="balance-amount">{{ balance.toLocaleString() }}원</p>
           </div>
           <div class="action-btns">
@@ -153,23 +145,72 @@
         </div>
       </section>
 
+      <!-- ────────── 다가오는 금융 일정 (타임라인 카드 형태) ────────── -->
+      <section class="schedule-section">
+        <div class="schedule-head">
+          <div class="schedule-head-left">
+            <span class="schedule-title">다가오는 금융 일정</span>
+            <span class="schedule-count">{{ upcomingSchedules.length }}</span>
+          </div>
+        </div>
+
+        <div class="schedule-box" v-if="upcomingSchedules.length > 0">
+          <div
+            v-for="(item, idx) in upcomingSchedules"
+            :key="item.id"
+            class="schedule-row"
+            :class="{ 'border-top': idx > 0 }"
+          >
+            <!-- 캘린더형 날짜 타일 (신호등 테마) -->
+            <div class="schedule-date-tile" :class="`tile--${item.badgeTheme}`">
+              <span class="tile-dday">{{ item.dday }}</span>
+              <span class="tile-date">{{ item.dateStr }}</span>
+            </div>
+
+            <!-- 일정 상세 내용 -->
+            <div class="schedule-detail">
+              <div class="schedule-detail-top">
+                <span class="schedule-name">{{ item.title }}</span>
+                <span class="schedule-type-badge" :class="`badge-text--${item.badgeTheme}`">
+                  {{ item.typeLabel }}
+                </span>
+              </div>
+              <p class="schedule-desc">{{ item.desc }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 일정이 없을 때 -->
+        <div v-else class="schedule-empty">
+          <p class="empty-text">예정된 금융 일정이 없어요</p>
+        </div>
+      </section>
+
       <!-- 내 금융 -->
       <section class="finance">
         <div class="finance-head" @click="goFinance" style="cursor: pointer;">
           <span class="finance-title">내 금융</span>
           <span class="finance-all">전체보기 ›</span>
         </div>
-        <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
-          <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
-        </div>
+        
+        <template v-if="finances.length > 0">
+          <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
+            <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
+          </div>
 
-        <div class="indicator">
-          <span
-            v-for="(f, i) in finances"
-            :key="f.id"
-            class="dot"
-            :class="{ active: i === activeCard }"
-          ></span>
+          <div class="indicator" v-if="finances.length > 1">
+            <span
+              v-for="(f, i) in finances"
+              :key="f.id"
+              class="dot"
+              :class="{ active: i === activeCard }"
+            ></span>
+          </div>
+        </template>
+        
+        <div v-else class="finance-empty" @click="goFinance" style="cursor: pointer;">
+          <p class="empty-title">가입된 금융 상품이 없어요</p>
+          <span class="empty-link">새로운 금융 상품 둘러보기 ›</span>
         </div>
       </section>
 
@@ -186,7 +227,8 @@
               <span class="tx-date">{{ t.date }}</span>
               <span class="tx-name">{{ t.name }}</span>
             </div>
-            <span class="tx-amount" :class="{ plus: t.amount > 0 }">
+            <!-- 입금/출금 클래스 바인딩 및 부호 처리 -->
+            <span class="tx-amount" :class="t.amount > 0 ? 'plus' : 'minus'">
               {{ t.amount > 0 ? '+' : '' }}{{ t.amount.toLocaleString() }}원
             </span>
           </div>
@@ -199,38 +241,41 @@
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
+
+    <Chatbot />
   </div>
 </template>
 
 <script setup>
 import FinanceCard from '@/components/Child/FinanceCard.vue'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 import { getMyWallet } from '@/api/wallet'
 import { getTeenyScore, getTeenyScoreGrades } from '@/api/teenyScore'
+import { getMyEnrolledFinancialProducts } from '@/api/finance'
 
 const router    = useRouter()
 const authStore  = useAuthStore()
 const allowStore = useAllowRequestStore()
 
-const teenyScoreMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
+const teenyScoreMascot = new URL('@/assets/mascot/teeny-run.png', import.meta.url).href
 
 const activeCard = ref(0)
 const scrollRef  = ref(null)
-const hasUnread  = ref(true)
 
 function onScroll() {
   const el = scrollRef.value
-  if (!el) return
+  if (!el || finances.value.length === 0) return
   const maxScroll = el.scrollWidth - el.clientWidth
   const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0
   activeCard.value = Math.round(ratio * (finances.value.length - 1))
 }
 
-function goNotification() { router.push({ name: 'child-notification' }) }
 function goPayment()      { router.push({ name: 'child-transaction' }) }
 function goScore()        { router.push({ name: 'child-score' }) }
 function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
@@ -329,10 +374,9 @@ const progressPercent = computed(() => {
   return Math.min(100, Math.max(0, (current / total) * 100))
 })
 
-const finances = ref([
-  { id: 1, type: '적금', rate: '연 4.5%', name: '티니 꿈나무 적금', amount: '90,000원', sub: '3 / 24개월', progress: 13, amountColor: '#15171b' },
-  { id: 2, type: '예금', rate: '연 2.8%', name: '용돈 모으기 예금', amount: '35,000원', sub: '자유 입출금', progress: 60, amountColor: '#15171b' },
-])
+// ==== 내 금융 상품 및 다가오는 일정 목록 ====
+const finances = ref([])
+const upcomingSchedules = ref([])
 
 function pad2(n) {
   return String(n).padStart(2, '0')
@@ -352,16 +396,160 @@ function formatTxDate(dateVal) {
   return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}  ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
 }
 
+function parseDateParts(raw) {
+  if (!raw) return null
+  if (Array.isArray(raw)) {
+    const [y, m, d] = raw
+    return { y, m, d }
+  }
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+}
+
+function formatDateCompact(raw) {
+  const parts = parseDateParts(raw)
+  if (!parts) return '-'
+  return `${parts.y}.${pad2(parts.m)}.${pad2(parts.d)}`
+}
+
+function getLocalBonusDeposit(enrollmentId) {
+  const saved = localStorage.getItem(`mock_deposit_${enrollmentId}`)
+  return saved ? Number(saved) : 0
+}
+
+function calcNextDueDate(startRaw, paidCount) {
+  const parts = parseDateParts(startRaw)
+  if (!parts) return null
+  const next = new Date(parts.y, parts.m - 1, parts.d)
+  next.setMonth(next.getMonth() + (paidCount ?? 0) + 1)
+  return next
+}
+
+// 금융상품 API 응답 → 다가오는 일정 아이템 매핑 (🚦 신호등 색상 매핑)
+function mapToScheduleItem(p) {
+  const isLoan = p.productType === 'LOAN'
+  const isSaving = p.productType === 'SAVING'
+  const isDeposit = p.productType === 'DEPOSIT'
+  const isFreeSaving = isSaving && p.savingsType === 'FREE'
+
+  let targetDate = null
+  if (isDeposit) {
+    const parts = parseDateParts(p.maturityDate)
+    if (parts) targetDate = new Date(parts.y, parts.m - 1, parts.d)
+  } else {
+    targetDate = calcNextDueDate(p.startDate, p.paidCount ?? 0)
+  }
+
+  if (!targetDate) return null
+
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffTime = targetDate.getTime() - today.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`
+  const dateStr = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+
+  let title = ''
+  let desc = ''
+  let typeLabel = ''
+  let badgeTheme = 'green'
+
+  const amountStr = p.monthlyAmount || p.currentAmount
+    ? `${(p.monthlyAmount || p.currentAmount).toLocaleString()}원`
+    : '10,000원'
+
+  if (isLoan) {
+    title = `${p.productName} 상환`
+    desc = `${amountStr} 낼 예정이에요`
+    typeLabel = '대출'
+    badgeTheme = 'red' // 🔴 대출: 빨간색
+  } else if (isSaving) {
+    title = isFreeSaving ? `${p.productName} 입금` : `${p.productName} 납입`
+    desc = `${amountStr} 넣을 예정이에요`
+    typeLabel = isFreeSaving ? '자유적금' : '정액적금'
+    badgeTheme = 'yellow' // 🟡 적금: 노란색
+  } else if (isDeposit) {
+    title = `${p.productName} 만기`
+    desc = `${(p.currentAmount ?? 0).toLocaleString()}원 수령 예정이에요`
+    typeLabel = '예금'
+    badgeTheme = 'green' // 🟢 예금: 초록색
+  }
+
+  return {
+    id: p.enrollmentId,
+    dday,
+    dateStr,
+    title,
+    desc,
+    typeLabel,
+    badgeTheme,
+    diffDays,
+  }
+}
+
+// 금융상품 API 응답 → FinanceCard props 매핑 함수
+function mapToFinanceCard(p) {
+  const isLoan = p.productType === 'LOAN'
+  const isSaving = p.productType === 'SAVING'
+  const isDeposit = p.productType === 'DEPOSIT'
+  const isFreeSaving = isSaving && p.savingsType === 'FREE'
+
+  const paidCount = p.paidCount ?? 0
+  const totalCount = p.totalPaymentCount ?? 0
+  const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0
+
+  const bonus = isFreeSaving ? getLocalBonusDeposit(p.enrollmentId) : 0
+  const currentTotal = (p.currentAmount ?? 0) + bonus
+
+  let typeLabel = '적금'
+  if (isDeposit) typeLabel = '예금'
+  else if (isLoan) typeLabel = '대출'
+  else if (isFreeSaving) typeLabel = '자유적금'
+  else if (isSaving) typeLabel = '정액적금'
+
+  let subText = ''
+  let progress = 0
+
+  if (isDeposit) {
+    subText = p.maturityDate ? `${formatDateCompact(p.maturityDate)} 만기` : '만기 유지 중'
+    progress = 100
+  } else if (isFreeSaving) {
+    subText = '자유 납입'
+    progress = 100
+  } else if (isSaving) {
+    subText = `${paidCount} / ${totalCount}회차`
+    progress = progressPercent
+  } else if (isLoan) {
+    subText = `상환 ${paidCount} / ${totalCount}회`
+    progress = progressPercent
+  }
+
+  return {
+    id: p.enrollmentId,
+    type: typeLabel,
+    rate: `연 ${p.appliedRate ?? 0}%`,
+    name: p.productName,
+    amount: `${currentTotal.toLocaleString()}원`,
+    sub: subText,
+    progress: progress,
+    amountColor: '#15171b',
+  }
+}
+
 onMounted(async () => {
   try {
     userName.value = authStore.name ?? ''
 
-    const [walletRes, scoreRes, gradesRes] = await Promise.all([
+    const [walletRes, scoreRes, gradesRes, enrolledRes] = await Promise.all([
       getMyWallet(authStore.accessToken),
       getTeenyScore(authStore.accessToken, authStore.memberId),
       getTeenyScoreGrades(authStore.accessToken),
+      getMyEnrolledFinancialProducts(authStore.accessToken).catch(() => []),
     ])
 
+    // 지갑 및 거래내역
     balance.value = walletRes.data.balance
     transactions.value = walletRes.data.recentTransactions.map(t => ({
       id:     t.id,
@@ -370,6 +558,7 @@ onMounted(async () => {
       amount: t.direction === 'CREDIT' ? t.amount : -t.amount,
     }))
 
+    // 티니 점수 및 등급
     const d = scoreRes.data
     score.value      = d.teenyScore
     grade.value      = d.gradeName
@@ -383,6 +572,20 @@ onMounted(async () => {
       ? gradesAsc[currentIdx + 1]
       : null
     nextGradeMinScore.value = next ? next.minScore : null
+
+    // 내 금융 상품 목록 매핑
+    if (Array.isArray(enrolledRes)) {
+      const activeProducts = enrolledRes.filter(p => p.status !== 'PENDING')
+      finances.value = activeProducts.map(mapToFinanceCard)
+
+      // 가장 가까운 일정 순으로 3개 추출
+      const schedules = activeProducts
+        .map(mapToScheduleItem)
+        .filter(Boolean)
+        .sort((a, b) => a.diffDays - b.diffDays)
+
+      upcomingSchedules.value = schedules.slice(0, 3)
+    }
 
     // 오늘만 허용 상태 데이터 패치
     await allowStore.fetchTodayPermission(authStore.accessToken)
@@ -411,6 +614,7 @@ function onTabSelect(key) {
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
+  position: relative;
 }
 
 .scroll-area {
@@ -452,26 +656,6 @@ function onTabSelect(key) {
   font-size: 17px;
   font-weight: 900;
   color: #1c1e22;
-}
-
-.bell-btn {
-  position: relative;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-}
-
-.bell-dot {
-  position: absolute;
-  top: 2px;
-  right: 3px;
-  width: 7px;
-  height: 7px;
-  background: #ff4d4f;
-  border-radius: 50%;
-  border: 1.5px solid #fff;
 }
 
 .hero-text {
@@ -656,6 +840,7 @@ function onTabSelect(key) {
   font-size: 21px;
   font-weight: 900;
   color: #0f172a;
+  white-space: nowrap;
 }
 
 .action-btns {
@@ -796,7 +981,7 @@ function onTabSelect(key) {
 .allow-card-msg {
   font-size: 10.5px;
   font-weight: 700;
-  color: #d98200;
+  color: #ffbc00;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -881,6 +1066,171 @@ function onTabSelect(key) {
   line-height: 1;
 }
 
+/* ────────── 다가오는 금융 일정 (타임라인 카드 형태) ────────── */
+.schedule-section {
+  padding: 16px 18px 0;
+}
+
+.schedule-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.schedule-head-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-title {
+  font-weight: 800;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.schedule-count {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #ffbc00;
+  background: #fff8e5;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.schedule-box {
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
+  padding: 4px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.schedule-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.schedule-row.border-top {
+  border-top: 1px solid #f1f5f9;
+}
+
+/* 캘린더형 날짜 타일 */
+.schedule-date-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.tile-dday {
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tile-date {
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 3px;
+}
+
+/* 🚦 신호등 테마 색상 (타일 배경/텍스트) */
+.tile--green {
+  background: #eef8ee;
+  color: #2e8540;
+}
+
+.tile--yellow {
+  background: #fff8e5;
+  color: #d97706;
+}
+
+.tile--red {
+  background: #fff0f0;
+  color: #e5484d;
+}
+
+/* 상세 내용 영역 */
+.schedule-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.schedule-detail-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #15171b;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-type-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* 🚦 신호등 뱃지 텍스트 테마 */
+.badge-text--green {
+  background: #eef8ee;
+  color: #2e8540;
+}
+
+.badge-text--yellow {
+  background: #fff8e5;
+  color: #d97706;
+}
+
+.badge-text--red {
+  background: #fff0f0;
+  color: #e5484d;
+}
+
+.schedule-desc {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.schedule-empty {
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 18px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.schedule-empty .empty-text {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
 /* 내 금융 */
 .finance {
   margin: 12px 18px 0;
@@ -917,6 +1267,28 @@ function onTabSelect(key) {
   scrollbar-width: none;
 }
 .finance-scroll::-webkit-scrollbar { display: none; }
+
+.finance-empty {
+  padding: 24px 16px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.empty-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #71717a;
+}
+
+.empty-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffbc00;
+}
 
 .indicator {
   display: flex;
@@ -995,11 +1367,17 @@ function onTabSelect(key) {
 .tx-amount {
   font-weight: 800;
   font-size: 14px;
-  color: #18181b;
+  white-space: nowrap;
 }
 
+/* 입금: 블루 */
 .tx-amount.plus {
-  color: #2563eb;
+  color: #3d70c2;
+}
+
+/* 출금: 소프트 코랄 레드 */
+.tx-amount.minus {
+  color: #dd494e;
 }
 
 .tx-empty {

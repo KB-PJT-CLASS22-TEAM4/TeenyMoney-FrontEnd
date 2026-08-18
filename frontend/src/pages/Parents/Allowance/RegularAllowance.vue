@@ -18,20 +18,108 @@
         정기 용돈 설정
       </h1>
 
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
-      </button>
+      <ParentNavActions />
     </header>
 
     <div class="content">
+      <!-- 등록된 스케줄 -->
+      <div class="section">
+        <p class="section-label">
+          등록된 정기 용돈
+        </p>
+
+        <p
+          v-if="isScheduleLoading"
+          class="schedule-state"
+        >
+          스케줄을 불러오는 중입니다.
+        </p>
+
+        <p
+          v-else-if="schedules.length === 0"
+          class="schedule-state"
+        >
+          아직 등록된 정기 용돈이 없어요.
+        </p>
+
+        <div
+          v-else
+          class="schedule-list"
+        >
+          <article
+            v-for="schedule in schedules"
+            :key="schedule.id"
+            class="schedule-card"
+            :class="{
+              inactive: !schedule.isActive,
+              editing: editingScheduleId === schedule.id,
+            }"
+          >
+            <button
+              type="button"
+              class="schedule-main"
+              @click="startEdit(schedule)"
+            >
+              <div class="schedule-top">
+                <span class="schedule-child">
+                  {{ childName(schedule.childId) }}
+                </span>
+                <span
+                  class="schedule-badge"
+                  :class="{ off: !schedule.isActive }"
+                >
+                  {{ schedule.isActive ? '진행 중' : '꺼짐' }}
+                </span>
+              </div>
+
+              <p class="schedule-amount">
+                {{ formatAmount(schedule.amount) }}원
+              </p>
+
+              <p class="schedule-meta">
+                {{ formatCycleLabel(schedule.cycleType, schedule.paymentDay) }}
+              </p>
+
+              <p
+                v-if="schedule.nextPaymentDate"
+                class="schedule-next"
+              >
+                다음 지급일 {{ formatDate(schedule.nextPaymentDate) }}
+              </p>
+            </button>
+
+            <div class="schedule-actions">
+              <button
+                type="button"
+                class="schedule-action"
+                :disabled="isSaving"
+                @click="toggleSchedule(schedule)"
+              >
+                {{ schedule.isActive ? '끄기' : '켜기' }}
+              </button>
+
+              <button
+                type="button"
+                class="schedule-action"
+                :disabled="isSaving"
+                @click="startEdit(schedule)"
+              >
+                수정
+              </button>
+
+              <button
+                type="button"
+                class="schedule-action danger"
+                :disabled="isSaving"
+                @click="confirmDelete(schedule)"
+              >
+                삭제
+              </button>
+            </div>
+          </article>
+        </div>
+      </div>
+
       <!-- 대상 자녀 선택 -->
       <div class="section">
         <p class="section-label">
@@ -51,13 +139,9 @@
           >
             <div class="selected-avatar">
               <img
-                :src="
-                  selectedChild.profileImageUrl ||
-                  '/src/assets/icons/child-profile.svg'
-                "
+                :src="CHILD_PROFILE_IMAGE"
                 alt=""
                 class="selected-avatar-img"
-                @error="handleChildImageError"
               />
             </div>
 
@@ -120,9 +204,16 @@
           />
 
           <span class="day-unit">
-            일
+            {{ cycle === 'WEEKLY' ? '요일' : '일' }}
           </span>
         </div>
+
+        <p
+          v-if="cycle === 'WEEKLY'"
+          class="day-hint"
+        >
+          1=월요일 · 7=일요일
+        </p>
       </div>
 
       <!-- 지급 금액 설정 -->
@@ -143,6 +234,15 @@
           <span class="won">
             원
           </span>
+
+          <button
+            type="button"
+            class="clear-amount-btn"
+            aria-label="금액 초기화"
+            @click="clearAmount"
+          >
+            초기화
+          </button>
         </div>
 
         <!-- 빠른 금액 -->
@@ -151,7 +251,7 @@
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="amount = quick.value"
+            @click="addAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
@@ -162,35 +262,48 @@
         </p>
       </div>
 
-      <!-- 주의사항 -->
-      <div class="notice-card">
-        <div class="notice-header">
-          <img
-            src="@/assets/icons/icon-info.svg"
-            alt=""
-            class="notice-icon"
-          />
+      <!-- 안내 -->
+      <div class="notice-banner">
+        <img
+          src="@/assets/icons/icon-info.svg"
+          alt=""
+          class="info-icon"
+        />
 
-          <p class="notice-title">
-            주의사항
+        <div class="notice-content">
+          <p class="notice-label">
+            안내
           </p>
-        </div>
 
-        <p class="notice-text">
-          결제 수단 미등록 시 설정 할 수 없습니다.
-          <br />
-          계좌를 먼저 연결해 주세요.
-        </p>
+          <ul class="notice-list">
+            <li>
+              결제 수단이 등록되어 있어야 정기 용돈을 설정할 수 있어요.
+            </li>
+            <li>
+              설정 전 결제 수단 메뉴에서 카드를 먼저 등록해 주세요.
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- 설정 저장 -->
       <button
         class="submit-btn"
         type="button"
-        :disabled="!canSubmit"
+        :disabled="!canSubmit || isSaving"
         @click="handleSave"
       >
-        설정 저장하기
+        {{ editingScheduleId ? '설정 수정하기' : '설정 저장하기' }}
+      </button>
+
+      <button
+        v-if="editingScheduleId"
+        class="reset-btn"
+        type="button"
+        :disabled="isSaving"
+        @click="resetForm"
+      >
+        새로 만들기
       </button>
     </div>
 
@@ -261,13 +374,9 @@
               <div class="modal-child-left">
                 <div class="modal-avatar">
                   <img
-                    :src="
-                      child.profileImageUrl ||
-                      '/src/assets/icons/child-profile.svg'
-                    "
+                    :src="CHILD_PROFILE_IMAGE"
                     alt=""
                     class="modal-avatar-img"
-                    @error="handleModalImageError"
                   />
                 </div>
 
@@ -307,175 +416,210 @@
       </div>
     </Teleport>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/mypage')"
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-    </nav>
+    <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import AlertHost from '@/components/AlertHost.vue'
+
 import {
   computed,
   onMounted,
   ref,
+  watch,
 } from 'vue'
 
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useAlertModal } from '@/composables/useAlertModal'
 import { getChildren } from '@/api/children'
+import {
+  createAllowanceSchedule,
+  deleteAllowanceSchedule,
+  getAllowanceSchedules,
+  updateAllowanceSchedule,
+  updateAllowanceScheduleStatus,
+} from '@/api/allowance'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
+
+const WEEKDAY_LABELS = [
+  '',
+  '월요일',
+  '화요일',
+  '수요일',
+  '목요일',
+  '금요일',
+  '토요일',
+  '일요일',
+]
 
 const router = useRouter()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
-
-// 상태
 const children = ref([])
-
+const schedules = ref([])
 const selectedChildId = ref(null)
-
+const editingScheduleId = ref(null)
 const cycle = ref('MONTHLY')
-
 const dayOfCycle = ref(1)
-
 const amount = ref('')
-
 const isLoading = ref(false)
-
+const isScheduleLoading = ref(false)
+const isSaving = ref(false)
 const isChildModalOpen = ref(false)
 
-
-// 선택된 자녀
 const selectedChild = computed(() => {
   if (!selectedChildId.value) {
     return null
   }
 
   return children.value.find(
-    child =>
-      child.id === selectedChildId.value
+    child => child.id === selectedChildId.value
   ) || null
 })
 
-
-// 빠른 금액
 const quickAmounts = [
-  {
-    label: '+1만',
-    value: 10000,
-  },
-  {
-    label: '+3만',
-    value: 30000,
-  },
-  {
-    label: '+5만',
-    value: 50000,
-  },
-  {
-    label: '+10만',
-    value: 100000,
-  },
+  { label: '+1만', value: 10000 },
+  { label: '+3만', value: 30000 },
+  { label: '+5만', value: 50000 },
+  { label: '+10만', value: 100000 },
 ]
 
+const maxPaymentDay = computed(() => (
+  cycle.value === 'WEEKLY' ? 7 : 31
+))
 
-// 저장 가능 여부
 const canSubmit = computed(() => {
+  const day = Number(dayOfCycle.value)
+
   return (
     selectedChildId.value &&
-    Number(dayOfCycle.value) > 0 &&
+    day >= 1 &&
+    day <= maxPaymentDay.value &&
     Number(amount.value) > 0
   )
 })
 
+watch(cycle, () => {
+  if (Number(dayOfCycle.value) > maxPaymentDay.value) {
+    dayOfCycle.value = maxPaymentDay.value
+  }
+})
 
-// 자녀 조회
+function childName(childId) {
+  return children.value.find(child => child.id === childId)?.name || '자녀'
+}
+
+function formatAmount(value) {
+  return Number(value || 0).toLocaleString()
+}
+
+function formatCycleLabel(cycleType, paymentDay) {
+  if (cycleType === 'WEEKLY') {
+    return `매주 ${WEEKDAY_LABELS[paymentDay] || `${paymentDay}요일`}`
+  }
+
+  return `매월 ${paymentDay}일`
+}
+
+function formatDate(value) {
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value)
+  }
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}.${month}.${day}`
+}
+
+function handleScheduleError(error, fallbackMessage) {
+  if (error.status === 401) {
+    authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
+    return
+  }
+
+  if (error.status === 403) {
+    alertModal.showAlert('본인 소유의 스케줄이 아닙니다.')
+    return
+  }
+
+  if (error.status === 404) {
+    alertModal.showAlert('스케줄을 찾을 수 없습니다.')
+    return
+  }
+
+  alertModal.showAlert(error.message || fallbackMessage)
+}
+
+function buildPayload() {
+  return {
+    childId: Number(selectedChildId.value),
+    amount: Number(amount.value),
+    cycleType: cycle.value,
+    paymentDay: Number(dayOfCycle.value),
+  }
+}
+
 async function fetchChildren() {
   isLoading.value = true
 
   try {
     if (!authStore.accessToken) {
-      router.replace('/login')
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
       return
     }
 
-    const res = await getChildren(
-      authStore.accessToken
-    )
+    const res = await getChildren(authStore.accessToken)
 
     if (res.success) {
-      children.value = res.data.map(
-        child => ({
-          id: child.childId,
-          name: child.name,
-          profileImageUrl:
-            child.profileImageUrl || '',
-        })
-      )
+      children.value = res.data.map(child => ({
+        id: child.childId,
+        name: child.name,
+        profileImageUrl: CHILD_PROFILE_IMAGE,
+      }))
     }
   } catch (error) {
-    console.error(
-      '자녀 목록 불러오기 실패:',
-      error
-    )
+    console.error('자녀 목록 불러오기 실패:', error)
 
     if (error.status === 401) {
-      authStore.clearUser()
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
     }
   } finally {
     isLoading.value = false
   }
 }
 
+async function fetchSchedules() {
+  if (!authStore.accessToken) {
+    return
+  }
 
-// 자녀 모달
+  isScheduleLoading.value = true
+
+  try {
+    const res = await getAllowanceSchedules(authStore.accessToken)
+    schedules.value = Array.isArray(res?.data) ? res.data : []
+  } catch (error) {
+    console.error('정기 용돈 스케줄 불러오기 실패:', error)
+    handleScheduleError(error, '정기 용돈 스케줄을 불러오지 못했습니다.')
+  } finally {
+    isScheduleLoading.value = false
+  }
+}
+
 function openChildModal() {
   isChildModalOpen.value = true
 }
@@ -488,72 +632,167 @@ function selectChild(child) {
   selectedChildId.value = child.id
 }
 
-
-// 이미지 에러
-function handleChildImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
+function startEdit(schedule) {
+  editingScheduleId.value = schedule.id
+  selectedChildId.value = schedule.childId
+  cycle.value = schedule.cycleType === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY'
+  dayOfCycle.value = schedule.paymentDay
+  amount.value = schedule.amount
 }
 
-function handleModalImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
-
-// 빠른 금액 입력
 function addAmount(value) {
-  amount.value =
-    (Number(amount.value) || 0) + value
+  amount.value = (Number(amount.value) || 0) + value
 }
 
-// 저장하기
+function clearAmount() {
+  amount.value = 0
+}
+
+function resetForm() {
+  editingScheduleId.value = null
+  selectedChildId.value = null
+  cycle.value = 'MONTHLY'
+  dayOfCycle.value = 1
+  amount.value = ''
+}
+
 async function handleSave() {
-  if (!canSubmit.value) {
+  if (!canSubmit.value || isSaving.value) {
     return
   }
 
-  /*
-   * TODO:
-   * 정기 용돈 API 나오면 이곳에서 호출
-   *
-   * POST /api/v1/allowance/regular
-   *
-   * {
-   *   childId: selectedChildId.value,
-   *   cycle: cycle.value,
-   *   dayOfCycle: Number(dayOfCycle.value),
-   *   amount: Number(amount.value)
-   * }
-   */
+  if (!authStore.accessToken) {
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+    return
+  }
 
-  router.push({
-    path:
-      '/parents/regular-allowance/complete',
+  isSaving.value = true
 
-    query: {
-      childName:
-        selectedChild.value?.name,
+  try {
+    const payload = buildPayload()
 
-      childId:
-        selectedChildId.value,
+    if (editingScheduleId.value) {
+      await updateAllowanceSchedule(
+        authStore.accessToken,
+        editingScheduleId.value,
+        payload
+      )
 
-      cycle:
-        cycle.value,
+      await fetchSchedules()
+      alertModal.showAlert('정기 용돈 설정을 수정했어요.')
+      return
+    }
 
-      day:
-        dayOfCycle.value,
+    const res = await createAllowanceSchedule(
+      authStore.accessToken,
+      payload
+    )
 
-      amount:
-        amount.value,
-    },
-  })
+    router.push({
+      path: '/parents/regular-allowance/complete',
+      query: {
+        childName: selectedChild.value?.name,
+        childId: selectedChildId.value,
+        cycle: cycle.value,
+        day: dayOfCycle.value,
+        amount: amount.value,
+        cycleLabel: formatCycleLabel(cycle.value, Number(dayOfCycle.value)),
+        nextPaymentDate: res?.data?.nextPaymentDate || '',
+      },
+    })
+  } catch (error) {
+    console.error('정기 용돈 저장 실패:', error)
+    handleScheduleError(
+      error,
+      editingScheduleId.value
+        ? '정기 용돈 수정에 실패했습니다.'
+        : '정기 용돈 설정에 실패했습니다.'
+    )
+  } finally {
+    isSaving.value = false
+  }
 }
 
+async function toggleSchedule(schedule) {
+  if (isSaving.value) {
+    return
+  }
 
-// 화면 진입
+  if (!authStore.accessToken) {
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+    return
+  }
+
+  const nextActive = !schedule.isActive
+  isSaving.value = true
+
+  try {
+    const res = await updateAllowanceScheduleStatus(
+      authStore.accessToken,
+      schedule.id,
+      nextActive
+    )
+
+    await fetchSchedules()
+
+    if (nextActive) {
+      const nextDate = formatDate(res?.data?.nextPaymentDate)
+
+      alertModal.showAlert(
+        nextDate
+          ? `정기 용돈을 다시 켰어요.\n다음 지급일은 ${nextDate}이에요.`
+          : '정기 용돈을 다시 켰어요.\n다음 지급일이 오늘 기준으로 다시 계산돼요.'
+      )
+      return
+    }
+
+    alertModal.showAlert('정기 용돈을 잠시 꺼 두었어요.')
+  } catch (error) {
+    console.error('정기 용돈 상태 변경 실패:', error)
+    handleScheduleError(error, '정기 용돈 상태 변경에 실패했습니다.')
+  } finally {
+    isSaving.value = false
+  }
+}
+
+async function confirmDelete(schedule) {
+  const child = childName(schedule.childId)
+  const ok = await alertModal.showConfirm(
+    `${child}의 정기 용돈 스케줄을 삭제할까요?`,
+    '삭제'
+  )
+
+  if (!ok) {
+    return
+  }
+
+  if (!authStore.accessToken) {
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+    return
+  }
+
+  isSaving.value = true
+
+  try {
+    await deleteAllowanceSchedule(authStore.accessToken, schedule.id)
+    await fetchSchedules()
+
+    if (editingScheduleId.value === schedule.id) {
+      resetForm()
+    }
+
+    alertModal.showAlert('정기 용돈 스케줄을 삭제했어요.')
+  } catch (error) {
+    console.error('정기 용돈 삭제 실패:', error)
+    handleScheduleError(error, '정기 용돈 삭제에 실패했습니다.')
+  } finally {
+    isSaving.value = false
+  }
+}
+
 onMounted(() => {
   fetchChildren()
+  fetchSchedules()
 })
 </script>
 
@@ -626,6 +865,137 @@ button {
   font-weight: 700;
 }
 
+.schedule-state {
+  margin: 0;
+  padding: 18px 12px;
+  border-radius: 12px;
+  background-color: #f4f5f7;
+  color: #8b9097;
+  font-size: 13px;
+  text-align: center;
+}
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.schedule-card {
+  overflow: hidden;
+  border: 1px solid #f0f1f3;
+  border-radius: 12px;
+  background-color: #ffffff;
+}
+
+.schedule-card.editing {
+  border-color: #ffbc00;
+}
+
+.schedule-card.inactive {
+  opacity: 0.72;
+}
+
+.schedule-main {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px 16px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.schedule-top {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.schedule-child {
+  color: #191b1e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.schedule-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background-color: #fff3c4;
+  color: #8b6e00;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.schedule-badge.off {
+  background-color: #f0f1f3;
+  color: #8b9097;
+}
+
+.schedule-amount {
+  margin: 4px 0 0;
+  color: #191b1e;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.schedule-meta,
+.schedule-next {
+  margin: 0;
+  color: #8b9097;
+  font-size: 12px;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.schedule-action {
+  flex: 1;
+  height: 34px;
+  border: 1px solid #e0e2e6;
+  border-radius: 8px;
+  background-color: #ffffff;
+  color: #191b1e;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.schedule-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.schedule-action.danger {
+  color: #d14b4b;
+}
+
+.day-hint {
+  margin: 8px 0 0;
+  color: #8b9097;
+  font-size: 12px;
+}
+
+.reset-btn {
+  width: 100%;
+  height: 44px;
+  margin-top: -8px;
+  border: none;
+  background: transparent;
+  color: #8b9097;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* 자녀 선택 */
 .child-select-box {
   display: flex;
@@ -657,7 +1027,8 @@ button {
 .selected-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .selected-child-name {
@@ -767,6 +1138,19 @@ button {
   font-weight: 600;
 }
 
+.clear-amount-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: #e8eaed;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .quick-btns {
   display: flex;
   gap: 8px;
@@ -797,40 +1181,46 @@ button {
 }
 
 
-/* 주의사항 */
+/* 안내 */
 
-.notice-card {
+.notice-banner {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
   border-radius: 12px;
-  background-color: #f4f5f7;
+  background-color: #fff7d6;
 }
 
-.notice-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.notice-icon {
+.info-icon {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
+  margin-top: 1px;
 }
 
-.notice-title {
-  margin: 0;
-  color : red;
-  font-size: 14px;
+.notice-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notice-label {
+  margin: 0 0 6px;
+  color: #8b6e00;
+  font-size: 12px;
   font-weight: 700;
 }
 
-.notice-text {
+.notice-list {
   margin: 0;
-  color: red;
-  font-size: 13px;
-  line-height: 1.6;
+  padding-left: 16px;
+  color: #6c6252;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.notice-list li + li {
+  margin-top: 4px;
 }
 
 /* =========================
@@ -854,49 +1244,6 @@ button {
   cursor: not-allowed;
 }
 
-/* =========================
-   하단 네비게이션
-========================= */
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  z-index: 100;
-  display: flex;
-  width: 360px;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  border-top: 1px solid #f0f1f3;
-  background-color: #ffffff;
-  transform: translateX(-50%);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
-}
 
 /* =========================
    Bottom Sheet
@@ -1039,7 +1386,8 @@ button {
   width: 100%;
   height: 100%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 :global(.modal-child-name) {

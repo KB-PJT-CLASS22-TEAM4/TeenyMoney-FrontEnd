@@ -111,9 +111,41 @@
             >
               {{ formattedTimer }}
             </span>
+
+            <button
+              class="confirm-btn"
+              type="button"
+              @click="verifyPhoneCode"
+            >
+              인증
+            </button>
           </div>
 
-          <p class="helper">
+          <p
+            v-if="phoneCodeSent && !phoneVerifyStatus"
+            class="sent-text"
+          >
+            인증번호가 발송되었습니다
+          </p>
+
+          <p
+            v-if="phoneVerifyStatus === 'match'"
+            class="verify-status match"
+          >
+            일치
+          </p>
+
+          <p
+            v-else-if="phoneVerifyStatus === 'mismatch'"
+            class="verify-status mismatch"
+          >
+            불일치
+          </p>
+
+          <p
+            v-else
+            class="helper"
+          >
             문자로 받은 6자리 숫자를 입력해 주세요
           </p>
         </div>
@@ -340,7 +372,24 @@
                 </button>
               </div>
 
-              <p class="helper">
+              <p
+                v-if="guardianVerifyStatus === 'match'"
+                class="verify-status match"
+              >
+                일치
+              </p>
+
+              <p
+                v-else-if="guardianVerifyStatus === 'mismatch'"
+                class="verify-status mismatch"
+              >
+                불일치
+              </p>
+
+              <p
+                v-else
+                class="helper"
+              >
                 문자로 받은 6자리 숫자를 입력해 주세요
               </p>
             </div>
@@ -367,6 +416,8 @@
         </div>
       </div>
     </div>
+
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
@@ -382,12 +433,16 @@ import { useRouter } from 'vue-router'
 
 import {
   confirmGuardianVerification,
+  confirmPhoneVerificationCode,
   sendGuardianVerificationCode,
   sendPhoneVerificationCode,
   signup,
 } from '@/api/auth'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
 
 const router = useRouter()
+const alertModal = useAlertModal()
 
 const form = reactive({
   name: '',
@@ -432,6 +487,10 @@ const relationshipOptions = [
 const showGuardianModal = ref(false)
 const guardianVerified = ref(false)
 const guardianCodeSent = ref(false)
+const guardianVerifyStatus = ref('')
+const phoneCodeSent = ref(false)
+const phoneVerified = ref(false)
+const phoneVerifyStatus = ref('')
 const signupLoading = ref(false)
 
 /* 보호자 인증 성공 후 백엔드에서 받은 동의 토큰 */
@@ -573,6 +632,9 @@ function formatPhoneNumberInput(event) {
     applyPhoneFormat(
       event.target.value,
     )
+  phoneCodeSent.value = false
+  phoneVerified.value = false
+  phoneVerifyStatus.value = ''
 }
 
 function formatGuardianPhoneInput(event) {
@@ -592,6 +654,8 @@ function formatVerificationCodeInput(event) {
     event.target.value
       .replace(/\D/g, '')
       .slice(0, 6)
+  phoneVerified.value = false
+  phoneVerifyStatus.value = ''
 }
 
 function formatGuardianCodeInput(event) {
@@ -599,6 +663,8 @@ function formatGuardianCodeInput(event) {
     event.target.value
       .replace(/\D/g, '')
       .slice(0, 6)
+  guardianVerified.value = false
+  guardianVerifyStatus.value = ''
 }
 
 /*
@@ -888,7 +954,7 @@ async function requestVerification() {
   if (
     phoneNumber.length !== 11
   ) {
-    alert(
+    alertModal.showAlert(
       '휴대폰 번호를 정확히 입력해 주세요.',
     )
 
@@ -907,7 +973,7 @@ async function requestVerification() {
     )
 
     if (!response.success) {
-      alert(
+      alertModal.showAlert(
         response.message ||
         '인증번호 발송에 실패했어요.',
       )
@@ -915,10 +981,9 @@ async function requestVerification() {
       return
     }
 
-    alert(
-      '인증번호가 발송됐어요!',
-    )
-
+    phoneCodeSent.value = true
+    phoneVerified.value = false
+    phoneVerifyStatus.value = ''
     startTimer()
   } catch (error) {
     console.error(
@@ -926,9 +991,61 @@ async function requestVerification() {
       error,
     )
 
-    alert(
+    alertModal.showAlert(
       '인증번호 발송에 실패했어요.',
     )
+  }
+}
+
+async function verifyPhoneCode() {
+  const phoneNumber =
+    formatPhone(
+      form.phoneNumber,
+    )
+
+  if (phoneNumber.length !== 11) {
+    alertModal.showAlert(
+      '휴대폰 번호를 정확히 입력해 주세요.',
+    )
+    return
+  }
+
+  if (!phoneCodeSent.value) {
+    alertModal.showAlert(
+      '먼저 인증번호를 발송해 주세요.',
+    )
+    return
+  }
+
+  if (form.verificationCode.trim().length !== 6) {
+    phoneVerifyStatus.value = 'mismatch'
+    phoneVerified.value = false
+    return
+  }
+
+  try {
+    const response =
+      await confirmPhoneVerificationCode(
+        phoneNumber,
+        form.verificationCode.trim(),
+      )
+
+    if (!response.success) {
+      phoneVerifyStatus.value = 'mismatch'
+      phoneVerified.value = false
+      return
+    }
+
+    phoneVerifyStatus.value = 'match'
+    phoneVerified.value = true
+    stopTimer()
+  } catch (error) {
+    console.error(
+      '본인 인증번호 확인 실패:',
+      error,
+    )
+    phoneVerifyStatus.value = 'mismatch'
+    phoneVerified.value = false
   }
 }
 
@@ -980,7 +1097,7 @@ async function requestGuardianVerification() {
     )
 
   if (!legalGuardianName) {
-    alert(
+    alertModal.showAlert(
       '보호자 이름을 입력해 주세요.',
     )
 
@@ -990,7 +1107,7 @@ async function requestGuardianVerification() {
   if (
     guardianPhone.length !== 11
   ) {
-    alert(
+    alertModal.showAlert(
       '보호자 휴대전화 번호를 정확히 입력해 주세요.',
     )
 
@@ -1003,6 +1120,7 @@ async function requestGuardianVerification() {
      * 기존 보호자 인증 결과와 토큰은 무효화
      */
     guardianVerified.value = false
+    guardianVerifyStatus.value = ''
     legalGuardianConsentToken.value = ''
 
     const response =
@@ -1016,7 +1134,7 @@ async function requestGuardianVerification() {
     )
 
     if (!response.success) {
-      alert(
+      alertModal.showAlert(
         response.message ||
         '보호자 인증번호 발송에 실패했어요.',
       )
@@ -1025,17 +1143,14 @@ async function requestGuardianVerification() {
     }
 
     guardianCodeSent.value = true
-
-    alert(
-      '보호자 인증번호가 발송됐어요!',
-    )
+    guardianVerifyStatus.value = ''
   } catch (error) {
     console.error(
       '🔴 보호자 인증번호 발송 실패:',
       error,
     )
 
-    alert(
+    alertModal.showAlert(
       '보호자 인증번호 발송에 실패했어요.',
     )
   }
@@ -1058,7 +1173,7 @@ async function verifyGuardianCode() {
     )
 
   if (!legalGuardianName) {
-    alert(
+    alertModal.showAlert(
       '보호자 이름을 입력해 주세요.',
     )
 
@@ -1068,7 +1183,7 @@ async function verifyGuardianCode() {
   if (
     guardianPhone.length !== 11
   ) {
-    alert(
+    alertModal.showAlert(
       '보호자 휴대전화 번호를 정확히 입력해 주세요.',
     )
 
@@ -1078,7 +1193,7 @@ async function verifyGuardianCode() {
   if (
     !guardianCodeSent.value
   ) {
-    alert(
+    alertModal.showAlert(
       '먼저 보호자 인증번호를 발송해 주세요.',
     )
 
@@ -1088,10 +1203,8 @@ async function verifyGuardianCode() {
   if (
     guardian.code.length !== 6
   ) {
-    alert(
-      '보호자 인증번호 6자리를 입력해 주세요.',
-    )
-
+    guardianVerifyStatus.value = 'mismatch'
+    guardianVerified.value = false
     return
   }
 
@@ -1139,11 +1252,8 @@ async function verifyGuardianCode() {
     )
 
     if (!response.success) {
-      alert(
-        response.message ||
-        '보호자 인증번호가 올바르지 않아요.',
-      )
-
+      guardianVerifyStatus.value = 'mismatch'
+      guardianVerified.value = false
       return
     }
 
@@ -1171,17 +1281,18 @@ async function verifyGuardianCode() {
         response,
       )
 
-      alert(
+      alertModal.showAlert(
         '보호자 인증 토큰을 확인할 수 없습니다. 다시 인증해 주세요.',
       )
 
       guardianVerified.value = false
+      guardianVerifyStatus.value = 'mismatch'
 
       return
     }
 
     guardianVerified.value = true
-    showGuardianModal.value = false
+    guardianVerifyStatus.value = 'match'
 
     console.log(
       '🟢 guardianVerified:',
@@ -1197,18 +1308,14 @@ async function verifyGuardianCode() {
       '================ 보호자 인증 완료 ================',
     )
 
-    alert(
-      '보호자 인증이 완료됐어요! 가입 완료 버튼을 눌러 주세요.',
-    )
   } catch (error) {
     console.error(
       '🔴 보호자 인증 확인 실패:',
       error,
     )
 
-    alert(
-      '보호자 인증번호 확인에 실패했어요.',
-    )
+    guardianVerifyStatus.value = 'mismatch'
+    guardianVerified.value = false
   }
 }
 
@@ -1408,7 +1515,7 @@ async function doSignup() {
         response.message,
       )
 
-      alert(
+      alertModal.showAlert(
         response.message ||
         '회원가입에 실패했어요.',
       )
@@ -1416,7 +1523,7 @@ async function doSignup() {
       return
     }
 
-    alert(
+    alertModal.showAlert(
       '회원가입이 완료됐어요!',
     )
     await router.push('/login')
@@ -1427,7 +1534,7 @@ async function doSignup() {
       error,
     )
 
-    alert(
+    alertModal.showAlert(
       '회원가입에 실패했어요.',
     )
   } finally {
@@ -1727,6 +1834,20 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 500;
   color: #ffbc00;
+}
+
+.verify-status {
+  margin: -3px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.verify-status.match {
+  color: #16a34a;
+}
+
+.verify-status.mismatch {
+  color: #e5484d;
 }
 
 .confirm-btn {

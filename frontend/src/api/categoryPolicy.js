@@ -1,3 +1,5 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -5,9 +7,7 @@ const API_BASE_URL = import.meta.env.DEV
 
 // 단계별 카테고리 정책 조회
 export async function getCategoryPolicyGroups(accessToken, childId) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   if (!childId) {
     throw new Error('자녀 정보가 필요합니다.')
@@ -45,9 +45,7 @@ export async function getCategoryPolicyGroups(accessToken, childId) {
 
 // 전체 카테고리 정책 조회
 export async function getCategoryPolicies(accessToken, childId) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   if (!childId) {
     throw new Error('자녀 정보가 필요합니다.')
@@ -88,9 +86,7 @@ export async function updateCategoryPolicies(
   childId,
   categoryPolicyList
 ) {
-  if (!accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
+  ensureAccessToken(accessToken)
 
   if (!childId) {
     throw new Error('자녀 정보가 필요합니다.')

@@ -16,6 +16,7 @@
             </svg>
           </button>
           <h1 class="nav-title">티니점수</h1>
+          <ChildNavActions />
         </header>
 
         <!-- 히어로 점수 카드 -->
@@ -205,6 +206,9 @@
 
     </div>
 
+    <!-- 티니점수 안내 말풍선 포함 챗봇 플로팅 버튼 -->
+    <Chatbot hint-text="티니점수를 올리는 방법이 궁금해?" />
+
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
   </div>
@@ -214,6 +218,8 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import {
   getTeenyScore,
   getTeenyScoreGrades,
@@ -245,8 +251,6 @@ const nextGradeName = ref('')
 const nextGradeMinScore = ref(null) // 다음 등급의 시작 점수. 최고 등급이면 null
 const gradeColor = ref('#facc15') // 현재 등급 색상 (API의 color 값, 도넛/진행바/등급명에 사용)
 
-// 도넛 차트는 "전체 점수 체계(모든 등급 통틀어 0~1000)" 기준으로 그려야 하므로
-// 현재 등급의 min/max(minScore/maxScore)와는 별도로 전체 범위를 보관한다.
 const overallMinScore = ref(0)
 const overallMaxScore = ref(1000)
 
@@ -274,42 +278,35 @@ async function loadScoreData() {
     const d = scoreRes.data
     score.value = d.teenyScore
     grade.value = d.gradeName
-    minScore.value = d.minScore   // 현재 등급 구간 최소값 (진행바용)
-    maxScore.value = d.maxScore   // 현재 등급 구간 최대값 (진행바용)
+    minScore.value = d.minScore
+    maxScore.value = d.maxScore
     bonusRate.value = d.bonusRate
-    gradeColor.value = d.color    // 현재 등급 색상
+    gradeColor.value = d.color
 
-    // 등급 목록: 점수 오름차순 정렬 후 다음 등급 이름 찾기 + 전체 점수 범위 계산
     const gradesAsc = [...gradesRes.data].sort((a, b) => a.minScore - b.minScore)
     const currentIdx = gradesAsc.findIndex((g) => g.gradeId === d.gradeId)
     const next = currentIdx >= 0 && currentIdx < gradesAsc.length - 1
       ? gradesAsc[currentIdx + 1]
       : null
-    nextGradeName.value = next ? next.gradeName : d.gradeName // 최고 등급이면 자기 자신
-    nextGradeMinScore.value = next ? next.minScore : null // 다음 등급 시작점 (등급 상세 화면과 계산 기준 통일)
+    nextGradeName.value = next ? next.gradeName : d.gradeName
+    nextGradeMinScore.value = next ? next.minScore : null
 
-    // 도넛 차트용 전체 범위: 등급 목록 전체의 최소/최대 (예: 0~1000)
     if (gradesAsc.length > 0) {
       overallMinScore.value = gradesAsc[0].minScore
       overallMaxScore.value = gradesAsc[gradesAsc.length - 1].maxScore
     }
 
-    // 지난달 대비: 이번 달 이전 데이터 중 "가장 최근 것"을 사용
-    // (정확히 지난달 데이터가 없으면 그 전달 데이터로 대체됨)
-    // yearMonth 포맷: "2026-06" 형태 (YYYY-MM) — 문자열 비교로 날짜 순서 비교 가능
     const now = new Date()
     const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-    const monthlyList = monthlyRes.data // [{ yearMonth, teenyScore }, ...]
+    const monthlyList = monthlyRes.data
     const pastMonths = monthlyList
-      .filter((m) => m.yearMonth < currentYearMonth) // 이번 달 이전 데이터만
-      .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth)) // 최신순 정렬
+      .filter((m) => m.yearMonth < currentYearMonth)
+      .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth))
 
     const prevMonthEntry = pastMonths[0] ?? null
     prevMonthScore.value = prevMonthEntry ? prevMonthEntry.teenyScore : score.value
 
-    // 최근 내역 (최신순)
-    // createdAt이 배열 형식일 수 있어 정렬도 formatRelativeDate와 동일한 파싱을 거쳐야 함
     const histories = [...historyRes.data].sort((a, b) => {
       const parse = (v) => {
         if (Array.isArray(v)) {
@@ -334,8 +331,6 @@ async function loadScoreData() {
   }
 }
 
-// 백엔드 createdAt이 문자열 또는 [년,월,일,시,분,초] 배열(LocalDateTime 직렬화)로
-// 올 수 있어 둘 다 지원. 배열의 월은 1-based라서 Date 생성자용으로 -1 보정.
 function formatRelativeDate(dateVal) {
   if (!dateVal) return '-'
 
@@ -360,15 +355,11 @@ onMounted(loadScoreData)
 // ==================================================================
 // 계산값
 // ==================================================================
-// 도넛(전체 게이지)에 표시할 값 — 전체 점수 체계 기준
 const SCORE_MAX = computed(() => overallMaxScore.value || 1000)
 const SCORE_MIN = computed(() => overallMinScore.value || 0)
 
-// 진행바(다음 등급까지 몇 점)는 "다음 등급의 시작 점수"를 목표로 계산한다.
-// 현재 등급의 maxScore(예: 649)를 목표로 삼으면 등급 상세 화면(다음 등급 minScore 기준,
-// 예: 650)과 1점 차이가 나므로, 두 화면 계산 기준을 nextGradeMinScore로 통일했다.
 const remainingScore = computed(() => {
-  if (nextGradeMinScore.value === null) return 0 // 최고 등급
+  if (nextGradeMinScore.value === null) return 0
   return Math.max(0, nextGradeMinScore.value - score.value)
 })
 const progressPercent = computed(() => {
@@ -379,7 +370,6 @@ const progressPercent = computed(() => {
   return Math.min(100, Math.max(0, (current / total) * 100))
 })
 
-// 도넛 차트 SVG 계산 (전체 점수 범위 SCORE_MIN~SCORE_MAX 기준)
 const donutCircumference = 2 * Math.PI * 52
 const donutFill = computed(() => {
   const total = SCORE_MAX.value - SCORE_MIN.value
@@ -388,7 +378,6 @@ const donutFill = computed(() => {
   return Math.min(1, Math.max(0, ratio)) * donutCircumference
 })
 
-// 혜택 데이터 — bonusRate만 API 값, 나머지 문구는 고정
 const benefits = computed(() => [
   { tag: '금리 혜택', title: '저축 기본 이자 우대', desc: `연 +${bonusRate.value}%p 우대 금리 자동 적용` },
   { tag: '퀘스트', title: `${grade.value} 전용 퀘스트`, desc: '더 많은 포인트를 받는 퀘스트 오픈' },
@@ -423,6 +412,7 @@ function onTabSelect(key) {
 <style scoped>
 .score-view {
   box-sizing: border-box;
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 360px;
@@ -986,5 +976,4 @@ function onTabSelect(key) {
   display: flex;
   align-items: center;
 }
-
 </style>

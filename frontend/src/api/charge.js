@@ -1,10 +1,15 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
-// 결제수단 목록 조회
+// ========================================
+// 카드 결제수단 목록 조회
+// GET /api/v1/charge-methods
+// ========================================
 export async function getChargeMethods(accessToken) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods`,
@@ -18,6 +23,7 @@ export async function getChargeMethods(accessToken) {
   )
 
   let result
+
   try {
     result = await response.json()
   } catch {
@@ -25,18 +31,25 @@ export async function getChargeMethods(accessToken) {
   }
 
   if (!response.ok || result.success === false) {
-    throw new Error(result.message || '결제수단을 불러오지 못했습니다.')
+    throw new Error(
+      result.message ||
+        '결제수단을 불러오지 못했습니다.'
+    )
   }
 
   return result
 }
 
+
+// ========================================
 // 카드 결제수단 등록
+// POST /api/v1/charge-methods/card
+// ========================================
 export async function addCardChargeMethod(
   accessToken,
   cardData
 ) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods/card`,
@@ -48,10 +61,18 @@ export async function addCardChargeMethod(
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        cardExpirationMonth: cardData.cardExpirationMonth,
-        cardExpirationYear: cardData.cardExpirationYear,
-        cardNumber: cardData.cardNumber,
-        cardPassword: cardData.cardPassword,
+        cardExpirationMonth:
+          cardData.cardExpirationMonth,
+
+        cardExpirationYear:
+          cardData.cardExpirationYear,
+
+        cardNumber:
+          cardData.cardNumber,
+
+        cardPassword:
+          cardData.cardPassword,
+
         customerIdentityNumber:
           cardData.customerIdentityNumber,
       }),
@@ -63,12 +84,15 @@ export async function addCardChargeMethod(
   try {
     result = await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
   if (!response.ok || result.success === false) {
     throw new Error(
-      result.message || '결제수단 등록에 실패했습니다.'
+      result.message ||
+        '카드 등록에 실패했습니다.'
     )
   }
 
@@ -76,13 +100,15 @@ export async function addCardChargeMethod(
 }
 
 
-
+// ========================================
 // 주 결제수단 지정
+// PATCH /api/v1/charge-methods/{id}/primary
+// ========================================
 export async function setPrimaryChargeMethod(
   accessToken,
   paymentMethodId
 ) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods/${paymentMethodId}/primary`,
@@ -95,7 +121,7 @@ export async function setPrimaryChargeMethod(
     }
   )
 
-  // 204 No Content 대응
+  // 204 No Content
   if (response.status === 204) {
     return {
       success: true,
@@ -107,12 +133,15 @@ export async function setPrimaryChargeMethod(
   try {
     result = await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
   if (!response.ok || result.success === false) {
     throw new Error(
-      result.message || '주 결제수단 변경에 실패했습니다.'
+      result.message ||
+        '주 결제수단 변경에 실패했습니다.'
     )
   }
 
@@ -120,12 +149,15 @@ export async function setPrimaryChargeMethod(
 }
 
 
-// 결제수단 삭제
+// ========================================
+// 카드 결제수단 삭제
+// DELETE /api/v1/charge-methods/{id}
+// ========================================
 export async function deleteChargeMethod(
   accessToken,
   paymentMethodId
 ) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge-methods/${paymentMethodId}`,
@@ -138,7 +170,7 @@ export async function deleteChargeMethod(
     }
   )
 
-  // 204 No Content 대응
+  // 204 No Content
   if (response.status === 204) {
     return {
       success: true,
@@ -150,27 +182,41 @@ export async function deleteChargeMethod(
   try {
     result = await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
   if (!response.ok || result.success === false) {
     throw new Error(
-      result.message || '결제수단 삭제에 실패했습니다.'
+      result.message ||
+        '카드 삭제에 실패했습니다.'
     )
   }
 
   return result
 }
 
-// 지갑 충전
+
+// ========================================
+// 카드로 지갑 충전
+// POST /api/v1/charge
+// ========================================
 export async function chargeWallet(
   accessToken,
   amount,
   paymentMethodId
 ) {
-  if (!accessToken) throw new Error('로그인이 필요합니다.')
+  ensureAccessToken(accessToken)
 
-  const idempotencyKey = crypto.randomUUID()
+  if (!paymentMethodId) {
+    throw new Error(
+      '충전에 사용할 카드를 선택해주세요.'
+    )
+  }
+
+  const idempotencyKey =
+    crypto.randomUUID()
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge`,
@@ -194,12 +240,15 @@ export async function chargeWallet(
   try {
     result = await response.json()
   } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
   }
 
   if (!response.ok || result.success === false) {
     throw new Error(
-      result.message || '충전에 실패했습니다.'
+      result.message ||
+        '충전에 실패했습니다.'
     )
   }
 

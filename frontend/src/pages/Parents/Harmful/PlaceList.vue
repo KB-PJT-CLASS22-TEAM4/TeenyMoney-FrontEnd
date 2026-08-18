@@ -17,6 +17,7 @@
       </button>
 
       <h1 class="nav-title">업종별 결제 설정</h1>
+      <ParentNavActions />
     </header>
 
 
@@ -180,67 +181,19 @@
       </button>
     </div>
 
-
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/mypage')"
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-
-    </nav>
+    <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
 
   </div>
 </template>
 
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
+
 import {
   computed,
   onMounted,
@@ -264,6 +217,7 @@ const router = useRouter()
 const route = useRoute()
 
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 
 // ========================================
@@ -332,11 +286,7 @@ async function fetchPlaces() {
 
   if (!authStore.accessToken) {
 
-    alert('로그인이 필요합니다.')
-
-    authStore.clearUser()
-
-    router.replace('/login')
+    authStore.handleUnauthorized('서비스를 이용하려면 로그인해 주세요.')
 
     return
   }
@@ -413,15 +363,9 @@ async function fetchPlaces() {
      * 401 처리가 가능
      */
     if (error?.status === 401) {
-
-      authStore.clearUser()
-
-      alert(
-        '로그인 세션이 만료되었습니다.'
+      authStore.handleUnauthorized(
+        '로그인이 만료되었습니다.\n다시 로그인해 주세요.'
       )
-
-      router.replace('/login')
-
       return
     }
 
@@ -500,11 +444,7 @@ async function handleSave() {
 
   if (!authStore.accessToken) {
 
-    alert('로그인이 필요합니다.')
-
-    authStore.clearUser()
-
-    router.replace('/login')
+    authStore.handleUnauthorized('서비스를 이용하려면 로그인해 주세요.')
 
     return
   }
@@ -512,7 +452,7 @@ async function handleSave() {
 
   if (!childId.value) {
 
-    alert(
+    alertModal.showAlert(
       '선택된 자녀 정보가 없습니다.'
     )
 
@@ -568,7 +508,7 @@ async function handleSave() {
     )
 
 
-    alert(
+    alertModal.showAlert(
       '설정이 저장되었습니다!'
     )
 
@@ -598,20 +538,14 @@ async function handleSave() {
 
 
     if (error?.status === 401) {
-
-      authStore.clearUser()
-
-      alert(
-        '로그인 세션이 만료되었습니다.'
+      authStore.handleUnauthorized(
+        '로그인이 만료되었습니다.\n다시 로그인해 주세요.'
       )
-
-      router.replace('/login')
-
       return
     }
 
 
-    alert(
+    alertModal.showAlert(
       error.message ||
       '설정을 저장하지 못했습니다.'
     )
@@ -653,8 +587,10 @@ onMounted(() => {
   min-height: 100dvh;
   margin: 0 auto;
   padding-bottom: 150px;
-  background-color: #f4f5f7;
+  background-color: #ffffff;
   color: #191b1e;
+  display: flex;
+  flex-direction: column;
 }
 
 
@@ -666,9 +602,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 64px;
-  padding: 0 20px;
-  background-color: #f4f5f7;
+  padding: 18px 20px;
+  border-bottom: 1px solid #f0f1f3;
+  background-color: #ffffff;
 }
 
 .back-btn {
@@ -690,6 +626,7 @@ onMounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 700;
+  color: #191b1e;
 }
 
 
@@ -701,9 +638,9 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin: 10px 16px 14px;
-  padding: 12px;
-  border-radius: 10px;
+  margin: 16px 16px 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
   background-color: #fff7d6;
 }
 
@@ -732,8 +669,8 @@ onMounted(() => {
   margin: 0 16px 16px;
   padding: 0 14px;
   height: 44px;
-  border-radius: 10px;
-  background-color: #ffffff;
+  border-radius: 12px;
+  background-color: #f4f5f7;
 }
 
 .search-icon {
@@ -786,14 +723,16 @@ onMounted(() => {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 0 16px;
 }
 
 .place-card {
   padding: 16px;
   border-radius: 16px;
+  border: 1px solid #eaedf1;
   background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .place-name {
@@ -844,30 +783,22 @@ onMounted(() => {
   bottom: 90px;
   left: 50%;
   z-index: 99;
-
   width: 100%;
   max-width: 360px;
-
-  padding: 0 50px;
-
+  padding: 0 16px;
   box-sizing: border-box;
-
-  transform:
-    translateX(-50%);
+  transform: translateX(-50%);
 }
 
 .submit-btn {
   width: 100%;
-  height: 49px;
+  height: 54px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background-color: #ffbc00;
-
   color: #191b1e;
-
   font-size: 16px;
   font-weight: 700;
-
   cursor: pointer;
 }
 
@@ -877,59 +808,5 @@ onMounted(() => {
 }
 
 
-/* =========================
-   하단 네비게이션
-========================= */
 
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  z-index: 100;
-
-  display: flex;
-  justify-content: space-around;
-
-  width: 360px;
-
-  padding: 10px 0 20px;
-
-  border-top: 1px solid #f0f1f3;
-
-  background-color: #ffffff;
-
-  transform:
-    translateX(-50%);
-}
-
-.nav-item {
-  display: flex;
-  min-width: 70px;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-
-  padding: 0;
-
-  border: none;
-
-  background: transparent;
-
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
-}
 </style>

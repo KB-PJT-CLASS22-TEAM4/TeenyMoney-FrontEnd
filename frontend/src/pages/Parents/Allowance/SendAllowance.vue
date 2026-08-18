@@ -18,17 +18,7 @@
         용돈 보내기
       </h1>
 
-      <button
-        class="alarm-btn"
-        type="button"
-        aria-label="알림"
-      >
-        <img
-          src="@/assets/icons/icon-notification.svg"
-          alt=""
-          class="alarm-icon"
-        />
-      </button>
+      <ParentNavActions />
     </header>
 
     <div class="content">
@@ -51,13 +41,9 @@
           >
             <div class="selected-avatar">
               <img
-                :src="
-                  selectedChild.profileImageUrl ||
-                  '/src/assets/icons/child-profile.svg'
-                "
+                :src="CHILD_PROFILE_IMAGE"
                 alt=""
                 class="selected-avatar-img"
-                @error="handleChildImageError"
               />
             </div>
 
@@ -109,6 +95,15 @@
           <span class="won">
             원
           </span>
+
+          <button
+            type="button"
+            class="clear-amount-btn"
+            aria-label="금액 초기화"
+            @click="clearAmount"
+          >
+            초기화
+          </button>
         </div>
 
         <!-- 빠른 금액 -->
@@ -117,15 +112,11 @@
             v-for="quick in quickAmounts"
             :key="quick.label"
             class="quick-btn"
-            @click="amount = quick.value"
+            @click="addAmount(quick.value)"
           >
             {{ quick.label }}
           </button>
         </div>
-
-        <p class="amount-desc">
-          자녀에게 보낼 금액을 입력해주세요.
-        </p>
       </div>
 
       <!-- 보내기 버튼 -->
@@ -217,13 +208,9 @@
               <div class="modal-child-left">
                 <div class="modal-avatar">
                   <img
-                    :src="
-                      child.profileImageUrl ||
-                      '/src/assets/icons/child-profile.svg'
-                    "
+                    :src="CHILD_PROFILE_IMAGE"
                     alt=""
                     class="modal-avatar-img"
-                    @error="handleModalImageError"
                   />
                 </div>
 
@@ -263,60 +250,14 @@
       </div>
     </Teleport>
 
-    <!-- 하단 네비게이션 -->
-    <nav class="bottom-nav">
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/home')"
-      >
-        <img
-          src="@/assets/icons/icon-home.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          홈
-        </span>
-      </button>
-
-      <button
-        class="nav-item nav-item-active"
-        type="button"
-        @click="router.push('/parents/childlist')"
-      >
-        <img
-          src="@/assets/icons/icon-child-alive.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          자녀관리
-        </span>
-      </button>
-
-      <button
-        class="nav-item"
-        type="button"
-        @click="router.push('/parents/mypage')"
-      >
-        <img
-          src="@/assets/icons/icon-mypage.svg"
-          alt=""
-          class="nav-icon"
-        />
-
-        <span class="nav-label">
-          마이페이지
-        </span>
-      </button>
-    </nav>
+    <ParentBottomNav active="child" />
   </div>
 </template>
 
 <script setup>
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+
 import {
   computed,
   onMounted,
@@ -326,6 +267,7 @@ import {
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -397,8 +339,7 @@ async function fetchChildren() {
 
   try {
     if (!authStore.accessToken) {
-      authStore.clearUser()
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
       return
     }
 
@@ -412,8 +353,7 @@ async function fetchChildren() {
       ).map(child => ({
         id: child.childId,
         name: child.name,
-        profileImageUrl:
-          child.profileImageUrl || '',
+        profileImageUrl: CHILD_PROFILE_IMAGE,
       }))
     }
   } catch (error) {
@@ -423,8 +363,7 @@ async function fetchChildren() {
     )
 
     if (error.status === 401) {
-      authStore.clearUser()
-      router.replace('/login')
+      authStore.handleUnauthorized('로그인이 만료되었습니다.\n다시 로그인해 주세요.')
       return
     }
 
@@ -452,22 +391,15 @@ function selectChild(child) {
   selectedChildId.value = child.id
 }
 
-// 이미지 오류
-function handleChildImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
-function handleModalImageError(event) {
-  event.target.src =
-    '/src/assets/icons/child-profile.svg'
-}
-
 
 // 빠른 금액
 function addAmount(value) {
   amount.value =
     (Number(amount.value) || 0) + value
+}
+
+function clearAmount() {
+  amount.value = 0
 }
 
 // 용돈 보내기
@@ -566,6 +498,7 @@ button {
 .content {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 24px;
   padding: 20px 16px;
 }
@@ -609,7 +542,8 @@ button {
 .selected-avatar-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 .selected-child-name {
@@ -674,6 +608,19 @@ button {
   font-weight: 600;
 }
 
+.clear-amount-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: #e8eaed;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* 빠른 금액 */
 .quick-btns {
   display: flex;
@@ -697,18 +644,11 @@ button {
   background-color: #f4f5f7;
 }
 
-.amount-desc {
-  margin: 0;
-  color: #8b9097;
-  font-size: 12px;
-  text-align: center;
-}
-
-
 /* 보내기 버튼 */
 .submit-btn {
   width: 100%;
   height: 52px;
+  margin-top: auto;
   border: none;
   border-radius: 12px;
   color: #191b1e;
@@ -723,46 +663,6 @@ button {
   cursor: not-allowed;
 }
 
-/* 하단 네비게이션 */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  z-index: 100;
-  display: flex;
-  width: 360px;
-  justify-content: space-around;
-  padding: 10px 0 20px;
-  border-top: 1px solid #f0f1f3;
-  background-color: #ffffff;
-  transform: translateX(-50%);
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.nav-label {
-  color: #8b9097;
-  font-size: 11px;
-}
-
-.nav-item-active .nav-label {
-  color: #191b1e;
-  font-weight: 700;
-}
 
 
 /* 모달 오버레이 */
@@ -906,7 +806,8 @@ button {
   width: 100%;
   height: 100%;
 
-  object-fit: cover;
+  object-fit: contain;
+  background-color: #f4f5f7;
 }
 
 :global(.modal-child-name) {

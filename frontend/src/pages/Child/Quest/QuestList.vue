@@ -11,6 +11,7 @@
           </svg>
         </button>
         <h1 class="nav-title">퀘스트</h1>
+        <ChildNavActions />
       </div>
 
       <!-- 탭 스위처 -->
@@ -43,38 +44,6 @@
         <input v-if="searchOpen" v-model="searchText" class="search-input"
                placeholder="퀘스트 이름으로 검색" autofocus>
 
-        <!-- 티니 코치 말풍선 -->
-        <div class="coach-block">
-          <svg class="coach-avatar" viewBox="0 0 40 42" width="38" height="40">
-            <!-- 발 -->
-            <path d="M15 38l-2.5 3M15 38l1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
-            <path d="M25 38l2.5 3M25 38l-1 3.2" stroke="#f2971f" stroke-width="1.6" stroke-linecap="round"/>
-            <!-- 몸통 -->
-            <ellipse cx="20" cy="27" rx="12.5" ry="10.5" fill="#ffcf3d"/>
-            <!-- 날개 -->
-            <ellipse cx="9.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(-18 9.5 27)"/>
-            <ellipse cx="30.5" cy="27" rx="4" ry="6.2" fill="#f2b400" transform="rotate(18 30.5 27)"/>
-            <!-- 머리 -->
-            <circle cx="20" cy="13" r="9.5" fill="#ffdd5c"/>
-            <!-- 정수리 깃털 -->
-            <path d="M18.5 3.5c-.6-1.6.4-3 1.8-3.3-.2 1.5-.7 2.6-1.8 3.3z" fill="#f2b400"/>
-            <!-- 볼터치 -->
-            <circle cx="13.3" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
-            <circle cx="26.7" cy="15" r="1.6" fill="#ffb3a7" opacity=".7"/>
-            <!-- 눈 -->
-            <circle cx="16.3" cy="12" r="1.5" fill="#3a2b00"/>
-            <circle cx="23.7" cy="12" r="1.5" fill="#3a2b00"/>
-            <circle cx="16.8" cy="11.5" r=".4" fill="#fff"/>
-            <circle cx="24.2" cy="11.5" r=".4" fill="#fff"/>
-            <!-- 부리 -->
-            <path d="M17.8 15.3h4.4c.3 0 .5.35.3.6l-2 2.3c-.25.3-.75.3-1 0l-2-2.3c-.2-.25 0-.6.3-.6z" fill="#f2971f"/>
-          </svg>
-          <div class="coach-bubble">
-            <span class="coach-name">티니 코치</span>
-            <p class="coach-text">수락한 퀘스트를 해내면 티니점수가 3점 올라가요.</p>
-          </div>
-        </div>
-
         <div v-if="filteredAvailable.length === 0" class="empty-state">
           <p>지금은 받을 수 있는 퀘스트가 없어요</p>
         </div>
@@ -101,10 +70,16 @@
                 </button>
               </div>
               <div class="quest-row-body">
-                <b class="quest-row-title">{{ q.title }}</b>
+                <div class="quest-title-row">
+                  <!-- 티니점수 메달 아이콘 -->
+                  <svg v-if="q.teenyScoreTarget" class="medal-icon" viewBox="0 0 24 24" width="16" height="16" fill="none">
+                    <circle cx="12" cy="14" r="6" fill="#FFC107" stroke="#D97706" stroke-width="1.4"/>
+                    <path d="M9 3l3 4.5L15 3" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 11.5v5M10 14h4" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                  <b class="quest-row-title">{{ q.title }}</b>
+                </div>
                 <div class="quest-row-meta">
-                  <span v-if="q.teenyScoreTarget">티니점수 +3</span>
-                  <span v-if="q.teenyScoreTarget" class="dot">·</span>
                   <span>기한: D-{{ q.dDay }}</span>
                 </div>
               </div>
@@ -168,24 +143,31 @@
         <div v-for="group in ongoingGroups" :key="group.status" class="completed-group">
           <span class="completed-date">{{ group.label }} {{ group.items.length }}</span>
 
-          <div v-for="(q, i) in group.items" :key="q.id" class="quest-row ongoing-card">
+          <div v-for="q in group.items" :key="q.id" class="quest-row ongoing-card">
             <div class="ongoing-card-top">
-              <div class="quest-icon" :style="{ background: statusIconColor(ongoingBadge(q.subStatus).class).bg }">
+              <div class="quest-icon" :style="{ background: statusIconColor(ongoingBadge(effectiveStatus(q)).class).bg }">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                  <rect x="6" y="4" width="12" height="16" rx="2" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6"/>
-                  <rect x="9" y="2.5" width="6" height="3" rx="1" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6" fill="#fff"/>
-                  <line x1="9" y1="10.5" x2="15" y2="10.5" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6"/>
-                  <line x1="9" y1="14" x2="15" y2="14" :stroke="statusIconColor(ongoingBadge(q.subStatus).class).stroke" stroke-width="1.6"/>
+                  <rect x="6" y="4" width="12" height="16" rx="2" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6"/>
+                  <rect x="9" y="2.5" width="6" height="3" rx="1" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6" fill="#fff"/>
+                  <line x1="9" y1="10.5" x2="15" y2="10.5" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6"/>
+                  <line x1="9" y1="14" x2="15" y2="14" :stroke="statusIconColor(ongoingBadge(effectiveStatus(q)).class).stroke" stroke-width="1.6"/>
                 </svg>
               </div>
               <div class="quest-row-body">
                 <div class="quest-badges-row">
-                  <span class="inline-badge" :class="ongoingBadge(q.subStatus).class">
-                    {{ ongoingBadge(q.subStatus).label }}
+                  <span class="inline-badge" :class="ongoingBadge(effectiveStatus(q)).class">
+                    {{ ongoingBadge(effectiveStatus(q)).label }}
                   </span>
-                  <span v-if="q.score" class="chip chip-score">티니점수 +{{ q.score }}</span>
                 </div>
-                <b class="quest-row-title wrap">{{ q.title }}</b>
+                <div class="quest-title-row">
+                  <!-- 티니점수 메달 아이콘 -->
+                  <svg v-if="q.teenyScoreTarget" class="medal-icon" viewBox="0 0 24 24" width="16" height="16" fill="none">
+                    <circle cx="12" cy="14" r="6" fill="#FFC107" stroke="#D97706" stroke-width="1.4"/>
+                    <path d="M9 3l3 4.5L15 3" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 11.5v5M10 14h4" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                  <b class="quest-row-title wrap">{{ q.title }}</b>
+                </div>
                 <div class="quest-row-meta">
                   <span v-if="q.rewardAmount > 0">{{ q.rewardAmount.toLocaleString() }}원</span>
                   <span v-if="q.rewardAmount > 0" class="dot">·</span>
@@ -197,13 +179,13 @@
               </div>
             </div>
 
-            <!-- 진행중: 인증하기 버튼 -->
-            <button v-if="q.subStatus === 'IN_PROGRESS'" class="ongoing-cta" @click="goVerify(q)">
+            <!-- 진행중(거절 이력 없음): 인증하기 버튼 -->
+            <button v-if="effectiveStatus(q) === 'IN_PROGRESS'" class="ongoing-cta" @click="goVerify(q)">
               퀘스트 인증하기
             </button>
 
             <!-- 승인 대기: 안내 + 인증 보기 링크 -->
-            <div v-else-if="q.subStatus === 'PENDING'" class="pending-box">
+            <div v-else-if="effectiveStatus(q) === 'PENDING'" class="pending-box">
               <span class="pending-box-text">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
                   <path d="M7 4h10M7 20h10M7.5 4c0 4 3 5.5 4.5 6.5C10.5 11.5 7.5 13 7.5 20M16.5 4c0 4-3 5.5-4.5 6.5 1.5 1 4.5 2.5 4.5 9.5"
@@ -214,7 +196,7 @@
               <button class="pending-box-link" @click="goVerify(q, true)">인증 보기</button>
             </div>
 
-            <!-- 반려됨: 사유 + 재시도 -->
+            <!-- 반려됨(거절 이력 있음): 사유 + 재시도 -->
             <div v-else class="rejected-box">
               <div class="rejected-box-header">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
@@ -242,7 +224,7 @@
         <div v-for="group in completedGroups" :key="group.date" class="completed-group">
           <span class="completed-date">{{ group.date }}</span>
 
-          <div v-for="(q, i) in group.items" :key="q.id" class="quest-row static">
+          <div v-for="q in group.items" :key="q.id" class="quest-row static">
             <div class="quest-icon" :style="{ background: statusIconColor(resultBadge(q.resultStatus).class).bg }">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
                 <rect x="6" y="4" width="12" height="16" rx="2" :stroke="statusIconColor(resultBadge(q.resultStatus).class).stroke" stroke-width="1.6"/>
@@ -252,7 +234,15 @@
               </svg>
             </div>
             <div class="quest-row-body">
-              <b class="quest-row-title">{{ q.title }}</b>
+              <div class="quest-title-row">
+                <!-- 티니점수 메달 아이콘 -->
+                <svg v-if="q.teenyScoreTarget" class="medal-icon" viewBox="0 0 24 24" width="16" height="16" fill="none">
+                  <circle cx="12" cy="14" r="6" fill="#FFC107" stroke="#D97706" stroke-width="1.4"/>
+                  <path d="M9 3l3 4.5L15 3" stroke="#EF4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 11.5v5M10 14h4" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+                </svg>
+                <b class="quest-row-title">{{ q.title }}</b>
+              </div>
               <div class="quest-row-meta">
                 <template v-if="q.resultStatus === 'COMPLETED' && q.rewardAmount > 0">{{ q.rewardAmount.toLocaleString() }}원 받았어요</template>
                 <template v-else-if="q.resultStatus === 'FAILED'"><span class="encourage">다음엔 꼭 성공해봐요</span></template>
@@ -265,9 +255,6 @@
                 <span class="inline-badge" :class="resultBadge(q.resultStatus).class">
                   {{ resultBadge(q.resultStatus).label }}
                 </span>
-                <span v-if="q.scoreDelta !== 0" class="row-score" :class="q.scoreDelta > 0 ? 'score-plus' : 'score-minus'">
-                  {{ q.scoreDelta > 0 ? '+' : '' }}{{ q.scoreDelta }}점
-                </span>
               </div>
             </div>
           </div>
@@ -276,22 +263,25 @@
 
     </div>
 
-    <BottomTabBar active="home" @select="onTabSelect" />
+    <BottomTabBar active="quest" @select="onTabSelect" />
+
+    <!-- 탭 상태에 따라 안내 문구 분기 -->
+    <Chatbot :hint-text="currentHintText" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useQuestStore } from '@/stores/quest'
 
 const router = useRouter()
-
-// ==================================================================
-// API 연동 필요 (지금은 더미 데이터)
-// GET /quests?tab=AVAILABLE|ONGOING|COMPLETED (QUEST_FEATURE_DESIGN.md 15.1 API 후보 기준)
-// 15장 API/트랜잭션 설계가 아직 최종 승인 전이라 경로/파라미터는 바뀔 수 있음.
-// ==================================================================
+const authStore = useAuthStore()
+const questStore = useQuestStore()
 
 const tabs = [
   { key: 'available', label: '시작 가능' },
@@ -300,35 +290,32 @@ const tabs = [
 ]
 const activeTab = ref('available')
 
-const availableQuests = ref([
-  {
-    id: 1, title: '방 청소하기',
-    content: '침대 정리하고 바닥에 있는 물건들을 제자리에 정리해주세요. 청소 후 사진으로 인증해주세요!',
-    dDay: 3, rewardAmount: 2000, teenyScoreTarget: true, favorited: false,
-  },
-  {
-    id: 2, title: '숙제 끝내기',
-    content: '오늘 학교 숙제를 다 끝내고 완료한 모습을 사진으로 남겨주세요.',
-    dDay: 1, rewardAmount: 1000, teenyScoreTarget: true, favorited: true,
-  },
-  {
-    id: 3, title: '강아지 산책시키기',
-    content: '초코랑 30분 정도 동네 산책 다녀와주세요.',
-    dDay: 5, rewardAmount: 0, teenyScoreTarget: true, favorited: false,
-  },
-  {
-    id: 11, title: '설거지 돕기',
-    content: '저녁 먹고 나서 설거지를 도와주세요.',
-    dDay: 2, rewardAmount: 800, teenyScoreTarget: false, favorited: false,
-  },
-  {
-    id: 12, title: '책상 정리하기',
-    content: '책상 위 물건들을 제자리에 정리해주세요.',
-    dDay: 6, rewardAmount: 700, teenyScoreTarget: true, favorited: false,
-  },
-])
+// 탭별 챗봇 말풍선 안내 문구
+const currentHintText = computed(() => {
+  if (activeTab.value === 'ongoing') {
+    return '요청을 보내면 취소나 수정이 어려워요! 퀘스트 인증하기는 신중하게 보내야해요'
+  }
+  return '메달이 있는 퀘스트를 완료하면 티니점수가 올라가요!'
+})
 
-// TODO: PATCH /quests/{q.id}/favorite 연동 (즐겨찾기 토글). 지금은 로컬 상태만 바뀜.
+// 스토어 상태를 그대로 참조
+const availableQuests = computed(() => questStore.availableQuests)
+const ongoingQuests = computed(() => questStore.ongoingQuests)
+const completedQuests = computed(() => questStore.completedQuests)
+
+async function loadTab(tabKey) {
+  try {
+    await questStore.ensureTab(authStore.accessToken, tabKey)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+onMounted(() => {
+  tabs.forEach((t) => loadTab(t.key))
+})
+watch(activeTab, (key) => loadTab(key))
+
 function toggleFavorite(q) {
   q.favorited = !q.favorited
 }
@@ -340,19 +327,13 @@ const filteredAvailable = computed(() => {
     ? [...availableQuests.value]
     : availableQuests.value.filter(q => q.title.includes(searchText.value.trim()))
 
-  // 찜한 것(favorited=true)을 위로 정렬. 안정 정렬이라 찜한 것끼리는 원래 순서 유지.
   return list.sort((a, b) => Number(b.favorited) - Number(a.favorited))
 })
 
-const ongoingQuests = ref([
-  { id: 4, title: '화분 물 주기', subStatus: 'IN_PROGRESS', score: 2, dDay: 2, rewardAmount: 500 },
-  { id: 5, title: '강아지 산책시키기', subStatus: 'PENDING', score: 4, dDay: 1, submittedAt: '08.09', rewardAmount: 1200 },
-  {
-    id: 6, title: '영어 단어 20개 외우기',
-    subStatus: 'REJECTED', score: 5, dDay: 3, rewardAmount: 1500,
-    lastRejectionReason: '인증하기 어려워요', remainingCount: 2,
-  },
-])
+function effectiveStatus(q) {
+  if (q.subStatus === 'IN_PROGRESS' && q.lastRejectionReason) return 'REJECTED'
+  return q.subStatus
+}
 
 const ONGOING_ORDER = ['IN_PROGRESS', 'PENDING', 'REJECTED']
 const ongoingGroups = computed(() => {
@@ -360,17 +341,10 @@ const ongoingGroups = computed(() => {
     .map(status => ({
       status,
       label: ongoingBadge(status).groupLabel,
-      items: ongoingQuests.value.filter(q => q.subStatus === status),
+      items: ongoingQuests.value.filter(q => effectiveStatus(q) === status),
     }))
     .filter(g => g.items.length > 0)
 })
-
-const completedQuests = ref([
-  { id: 7, title: '방 청소하기',   endedAt: '2026.08.09', resultStatus: 'COMPLETED', scoreDelta: 3,  rewardAmount: 2000 },
-  { id: 8, title: '독서 30분',      endedAt: '2026.08.09', resultStatus: 'DECLINED',  scoreDelta: 0,  rewardAmount: 0 },
-  { id: 9, title: '손 씻기 실천',    endedAt: '2026.08.07', resultStatus: 'FAILED',    scoreDelta: -2, rewardAmount: 0 },
-  { id: 10, title: '분리수거 하기',  endedAt: '2026.08.05', resultStatus: 'EXPIRED',   scoreDelta: 0,  rewardAmount: 0 },
-])
 
 const completedGroups = computed(() => {
   const map = new Map()
@@ -397,10 +371,9 @@ function resultBadge(status) {
   if (status === 'COMPLETED') return { label: '성공',      class: 'status-success' }
   if (status === 'FAILED')    return { label: '실패',      class: 'status-failed' }
   if (status === 'EXPIRED')   return { label: '기한 만료', class: 'status-neutral' }
-  return { label: '거절함', class: 'status-neutral' } // DECLINED
+  return { label: '거절함', class: 'status-neutral' }
 }
 
-// 상태 뱃지 class를 그대로 받아 아이콘 배경/선 색으로 매핑 (은행앱처럼 아이콘 색으로도 상태가 읽히게)
 const STATUS_ICON_COLORS = {
   'status-progress': { bg: '#e8f0fb', stroke: '#4585d6' },
   'status-pending':  { bg: '#fff6dd', stroke: '#d99a00' },
@@ -413,7 +386,6 @@ function statusIconColor(statusClass) {
   return STATUS_ICON_COLORS[statusClass] ?? STATUS_ICON_COLORS['status-neutral']
 }
 
-// 거절 사유 코드는 QUEST_FEATURE_DESIGN.md 7장 확정 사항 그대로 사용
 const declineReasons = [
   { code: 'NOT_ENOUGH_TIME',    label: '시간이 부족해요' },
   { code: 'TOO_DIFFICULT',      label: '너무 어려워요' },
@@ -428,9 +400,23 @@ const decliningId = ref(null)
 const declineReasonCode = ref('')
 const declineDetail = ref('')
 
-function toggleExpand(id) {
-  expandedId.value = expandedId.value === id ? null : id
-  if (expandedId.value !== id) cancelDecline()
+async function toggleExpand(id) {
+  if (expandedId.value === id) {
+    expandedId.value = null
+    cancelDecline()
+    return
+  }
+  expandedId.value = id
+  cancelDecline()
+
+  const q = availableQuests.value.find((item) => item.id === id)
+  if (q && !q.content) {
+    try {
+      await questStore.fetchDetailInto(authStore.accessToken, id, questStore.availableQuests)
+    } catch (e) {
+      console.error(e)
+    }
+  }
 }
 
 function startDecline(id) {
@@ -451,18 +437,25 @@ const canConfirmDecline = computed(() => {
   return true
 })
 
-function acceptQuest(q) {
-  // TODO: PATCH /quests/{q.id}/accept 연동 후, 성공하면 availableQuests에서 제거하고
-  // ongoingQuests에 subStatus: 'IN_PROGRESS'로 추가
-  console.log('accept', q.id)
-  expandedId.value = null
+async function acceptQuest(q) {
+  try {
+    await questStore.accept(authStore.accessToken, q.id)
+    expandedId.value = null
+    loadTab('ongoing')
+  } catch (e) {
+    alert(e.message)
+  }
 }
 
-function confirmDecline(q) {
-  // TODO: PATCH /quests/{q.id}/decline 연동 { reasonCode: declineReasonCode, detail: declineDetail }
-  console.log('decline', q.id, declineReasonCode.value, declineDetail.value)
-  cancelDecline()
-  expandedId.value = null
+async function confirmDecline(q) {
+  try {
+    await questStore.decline(authStore.accessToken, q.id, declineReasonCode.value, declineDetail.value)
+    cancelDecline()
+    expandedId.value = null
+    loadTab('completed')
+  } catch (e) {
+    alert(e.message)
+  }
 }
 
 function goVerify(q, viewOnly = false) {
@@ -491,7 +484,7 @@ function onTabSelect(key) {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
+  padding-top: 26px;
   background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
@@ -537,7 +530,7 @@ function onTabSelect(key) {
   color: #15171b;
 }
 
-/* 탭 스위처 - Figma 스펙 기준 */
+/* 탭 스위처 */
 .tab-switcher {
   display: flex;
   align-items: flex-start;
@@ -657,74 +650,6 @@ function onTabSelect(key) {
   font-family: inherit;
 }
 
-/* 티니 코치 말풍선 */
-.coach-block {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 6px;
-  width: 100%;
-}
-
-.coach-avatar {
-  flex: 0 0 auto;
-  width: 38px;
-  height: 40px;
-}
-
-.coach-bubble {
-  position: relative;
-  flex: 1 1 0%;
-  min-width: 0;
-  margin-top: 4px;
-  background: #fff9ec;
-  border: 1.4px solid #ffe6a3;
-  border-radius: 4px 16px 16px 16px;
-  padding: 10px 14px 12px;
-  box-shadow: 0 2px 5px rgba(242, 180, 0, 0.12);
-}
-
-.coach-bubble::before,
-.coach-bubble::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-style: solid;
-}
-
-.coach-bubble::before {
-  left: -11px;
-  top: 7px;
-  border-width: 0 11px 10px 0;
-  border-color: transparent #ffe6a3 transparent transparent;
-}
-
-.coach-bubble::after {
-  left: -8.5px;
-  top: 8px;
-  border-width: 0 9px 8px 0;
-  border-color: transparent #fff9ec transparent transparent;
-}
-
-.coach-name {
-  display: block;
-  font-weight: 800;
-  font-size: 11px;
-  color: #b9861a;
-  margin-bottom: 2px;
-}
-
-.coach-text {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b5a2e;
-  line-height: 16.5px;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
-
 /* 빈 상태 */
 .empty-state {
   display: flex;
@@ -736,7 +661,7 @@ function onTabSelect(key) {
   font-size: 13px;
 }
 
-/* 리스트 하단 안내 카드 (짧은 리스트일 때 여백을 자연스럽게 채움) */
+/* 리스트 하단 안내 카드 */
 .bottom-tip {
   display: flex;
   flex-direction: column;
@@ -772,7 +697,6 @@ function onTabSelect(key) {
   line-height: 17px;
 }
 
-/* 찜한 항목 정렬 이동 애니메이션 */
 .quest-list {
   display: flex;
   flex-direction: column;
@@ -783,7 +707,7 @@ function onTabSelect(key) {
   transition: transform 0.45s ease;
 }
 
-/* 리스트 아이템 (아이콘 사각형 + 본문 + 화살표) */
+/* 리스트 아이템 */
 .quest-row {
   display: flex;
   align-items: center;
@@ -824,6 +748,18 @@ function onTabSelect(key) {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+/* 메달 아이콘과 제목 행 */
+.quest-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.medal-icon {
+  flex-shrink: 0;
 }
 
 .row-amount {
@@ -881,16 +817,6 @@ function onTabSelect(key) {
   margin-bottom: 2px;
 }
 
-.chip {
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 10.5px;
-  white-space: nowrap;
-}
-
-.chip-score { background: #fff3d6; color: #d99a00; }
-
 .quest-row-meta {
   font-size: 12px;
   color: #8a9099;
@@ -906,18 +832,9 @@ function onTabSelect(key) {
 .status-failed    { color: #b96565; background: #f4e9e9; }
 .status-neutral   { color: #8a9099; background: #f2f4f6; }
 
-.row-score {
-  font-weight: 700;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-}
-
-.score-plus  { color: #62b24a; font-weight: 700; }
-.score-minus { color: #e5484d; font-weight: 700; }
 .encourage   { color: #62b24a; font-weight: 600; }
-.reject-preview { margin: 0; color: #e5484d; font-size: 12px; font-weight: 500; }
 
-/* 진행 중 카드 - 상태별 액션 영역 */
+/* 진행 중 카드 */
 .ongoing-card {
   flex-direction: column;
   align-items: stretch;
@@ -1029,7 +946,6 @@ function onTabSelect(key) {
   color: #ffffff;
 }
 
-
 .star-btn {
   position: absolute;
   top: -6px;
@@ -1048,7 +964,6 @@ function onTabSelect(key) {
   z-index: 1;
 }
 
-/* 실제 터치 영역은 시각적 배지보다 크게 확보 */
 .star-btn::before {
   content: '';
   position: absolute;
@@ -1072,7 +987,7 @@ function onTabSelect(key) {
 .row-chevron { flex-shrink: 0; transition: transform 0.2s ease; }
 .row-chevron.open { transform: rotate(90deg); }
 
-/* 펼침 영역 (수락/거절) */
+/* 펼침 영역 */
 .quest-expand {
   padding: 0 16px 16px;
   margin-top: -8px;
@@ -1156,7 +1071,6 @@ function onTabSelect(key) {
   font-family: inherit;
   resize: none;
 }
-
 
 /* 완료 탭 날짜 그룹 */
 .completed-group {
