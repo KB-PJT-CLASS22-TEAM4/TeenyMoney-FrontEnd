@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getTeenyScore } from '@/api/teenyScore'
 import { getTerminationQuote, terminateEnrollment } from '@/api/finance'
+import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -296,6 +297,9 @@ function closeModalAndNavigate() {
         </div>
       </div>
     </Transition>
+
+    <!-- 해지는 되돌리기 어려운 결정이라 말풍선 없이 캐릭터만 노출 -->
+    <Chatbot v-if="!showSuccessModal" hint-text="" />
   </div>
 </template>
 

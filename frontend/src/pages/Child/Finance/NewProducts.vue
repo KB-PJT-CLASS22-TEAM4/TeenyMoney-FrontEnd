@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getFinancialProducts } from '@/api/finance'
 import { getTeenyScore } from '@/api/teenyScore'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -436,6 +437,8 @@ function goToApply(product) {
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="finance" @select="onTabSelect" />
+
+    <Chatbot hint-text="금리가 어떻게 계산되는지 궁금하세요?" />
   </div>
 </template>
 

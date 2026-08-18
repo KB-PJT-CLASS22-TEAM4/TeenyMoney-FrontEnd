@@ -42,6 +42,12 @@ function won(n) {
   return (n ?? 0).toLocaleString('ko-KR') + '원'
 }
 
+// 괄호 안 문구가 중간에서 줄바꿈되지 않도록, 괄호 안의 일반 공백을
+// 줄바꿈 없는 공백(non-breaking space)으로 치환
+function noWrap(text) {
+  return text.replace(/\(([^)]*)\)/g, (_, inner) => `(${inner.replace(/ /g, '\u00A0')})`)
+}
+
 const ICON_STYLE = {
   wallet: { bg: '#f2f3f5', fg: '#6b7280' },
   trending: { bg: '#e6f6ec', fg: '#2f9e5b' },
@@ -98,19 +104,17 @@ const INSIGHT_META = {
   SPENDING_TOP_CATEGORY: { dot: '#f0b352', title: '소비' },
   PERMISSION_STATUS_SUMMARY: { dot: '#4a90d9', title: '오늘만 허용' },
   QUEST_COMPLETED: { dot: '#8b7dd8', title: '퀘스트' },
+  SAVING_PAYMENT: { dot: '#4caf82', title: '저축' },
 }
 
 const INSIGHT_ROUTE = {
   SPENDING_TOP_CATEGORY: { name: 'child-transaction' },
   PERMISSION_STATUS_SUMMARY: { name: 'child-todayallow-request' },
   QUEST_COMPLETED: { name: 'child-quest-list' },
+  SAVING_PAYMENT: { name: 'child-finance-myproducts' },
 }
 
 function mapInsight(insight, data) {
-  if (insight.insightCode === 'SAVING_PAYMENT_PROGRESS') {
-    return null
-  }
-
   const teenyScoreData = data.teenyScore
   const meta = INSIGHT_META[insight.insightCode] || { dot: '#9aa1ab', title: insight.insightCode }
   const base = {
@@ -126,7 +130,7 @@ function mapInsight(insight, data) {
       ...base,
       desc: [
         `이번 달에는 ${m.paymentCount ?? 0}번 결제해서 모두 ${won(m.totalAmount)}을 사용했어요.`,
-        `${m.topCategoryName}에서 가장 많이 사용했어요 (${m.topCategoryCount ?? 0}회 · ${m.topCategoryRatio ?? 0}%).`,
+        noWrap(`${m.topCategoryName}에서 가장 많이 사용했어요 (${m.topCategoryCount ?? 0}회 · ${m.topCategoryRatio ?? 0}%).`),
       ],
     }
   }
@@ -171,6 +175,45 @@ function mapInsight(insight, data) {
     desc.push(`${won(m.rewardAmount ?? 0)}을 받았어요.`)
 
     return { ...base, desc }
+  }
+
+  if (insight.insightCode === 'SAVING_PAYMENT') {
+    const savingAmount = m.savingAmount ?? 0
+    const savingProductCount = m.savingProductCount ?? 0
+    const savingPaymentCount = m.savingPaymentCount ?? 0
+    const depositAmount = m.depositAmount ?? 0
+    const depositProductCount = m.depositProductCount ?? 0
+
+    // ⚠️ 백엔드 응답에 상품별 내역 배열(breakdown) 필드 추가 필요
+    // 예상 형태: [{ productName, amount, paymentCount }, ...]
+    const savingBreakdown = m.savingBreakdown ?? m.breakdown ?? []
+    const depositBreakdown = m.depositBreakdown ?? []
+
+    const desc = []
+
+    if (savingAmount > 0) {
+      desc.push(
+        noWrap(`이번 달에 적금 ${savingProductCount}개에 총 ${won(savingAmount)}을 넣었어요 (${savingPaymentCount}회 납입).`)
+      )
+      savingBreakdown.forEach((item) => {
+        desc.push(noWrap(`· ${item.productName} — ${won(item.amount)} (${item.paymentCount ?? 0}회)`))
+      })
+    }
+
+    if (depositAmount > 0) {
+      desc.push(`예금 ${depositProductCount}개에는 ${won(depositAmount)}을 예치했어요.`)
+      depositBreakdown.forEach((item) => {
+        desc.push(`· ${item.productName} — ${won(item.amount)}`)
+      })
+    }
+
+    if (desc.length === 0) {
+      desc.push('이번 달엔 아직 적금이나 예금에 넣은 돈이 없어요.')
+    }
+
+    // type: 'savingRepayment' → 템플릿에서 회차 체크 배지가 있는 특수 카드로 렌더링.
+    // desc는 가입 상품 데이터(activeProducts)를 못 불러왔을 때의 폴백 텍스트로 사용.
+    return { ...base, desc, type: 'savingRepayment' }
   }
 
   return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
@@ -386,6 +429,49 @@ const monthOptions = ref(generateMonthOptions())
 
 const activeProducts = ref([])
 
+// "저축·상환" 카드용: 가입 상품 목록에서 정액적금 1개 + 대출 1개를 뽑아
+// 회차 진행 상황(1회~N회 체크)과 합산 문장을 만든다.
+// 정액적금(FIXED)을 우선 사용 — 자유적금(FREE)은 회차 개념이 없어서 제외
+const savingRepaymentDetail = computed(() => {
+  const list = activeProducts.value || []
+  const saving = list.find(
+    (p) => normalizeProductType(p.productType) === 'SAVING' && p.savingsType === 'FIXED' && p.totalPaymentCount
+  )
+  const loan = list.find((p) => normalizeProductType(p.productType) === 'LOAN' && p.totalPaymentCount)
+
+  if (!saving && !loan) return null
+
+  const parts = []
+  if (saving) {
+    const paid = saving.paidCount ?? 0
+    parts.push(`${saving.totalPaymentCount}번 중 ${paid}번의 적금 납입을 완료했어요.`)
+    parts.push(`지금까지 ${won(saving.currentAmount ?? 0)}을 모았${loan ? '고, ' : '어요.'}`)
+  }
+  if (loan) {
+    const loanPaid = loan.paidCount ?? 0
+    parts.push(`대출도 ${loan.totalPaymentCount}번 중 ${loanPaid}번 갚았어요.`)
+  }
+
+  const rounds = saving
+    ? Array.from({ length: saving.totalPaymentCount }, (_, i) => ({
+        n: i + 1,
+        label: `${i + 1}회`,
+        done: i < (saving.paidCount ?? 0),
+      }))
+    : []
+
+  let summaryLine = ''
+  if (saving) {
+    const nextDue = calcNextDueDate(saving.startDate, saving.paidCount)
+    summaryLine = noWrap(
+      `적금 ${saving.totalPaymentCount}번 중 ${saving.paidCount ?? 0}번 완료` +
+        (nextDue ? ` · 다음 납입일 ${nextDue.getMonth() + 1}월 ${nextDue.getDate()}일` : '')
+    )
+  }
+
+  return { desc: [noWrap(parts.join(' '))], rounds, summaryLine }
+})
+
 async function loadReport(month) {
   isLoading.value = true
   loadError.value = null
@@ -577,11 +663,38 @@ function toggleAllSchedules() {
         <h2 class="sec-heading">이번 달 금융 습관</h2>
         <div class="habit-card" v-for="h in habits" :key="h.title">
           <div class="habit-head">
-            <div class="habit-title"><span class="habit-dot" :style="{ background: h.dot }"></span>{{ h.title }}</div>
+            <div class="habit-title">
+              <span class="habit-dot" :style="{ background: h.dot }"></span>
+              {{ h.type === 'savingRepayment' ? '저축·상환' : h.title }}
+            </div>
           </div>
-          <div class="habit-desc">
+
+          <!-- 저축·상환: 가입 상품 데이터로 회차 체크 배지 표시 -->
+          <template v-if="h.type === 'savingRepayment' && savingRepaymentDetail">
+            <div class="habit-desc">
+              <span v-for="(line, i) in savingRepaymentDetail.desc" :key="i">{{ line }}<br v-if="i < savingRepaymentDetail.desc.length - 1" /></span>
+            </div>
+            <div class="round-row" v-if="savingRepaymentDetail.rounds.length">
+              <div
+                v-for="r in savingRepaymentDetail.rounds"
+                :key="r.n"
+                class="round-badge"
+                :class="{ done: r.done }"
+              >
+                <span class="round-circle">
+                  <svg v-if="r.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </span>
+                <span class="round-label">{{ r.label }}</span>
+              </div>
+            </div>
+            <div v-if="savingRepaymentDetail.summaryLine" class="round-summary">{{ savingRepaymentDetail.summaryLine }}</div>
+          </template>
+
+          <!-- 일반 인사이트 카드 (소비 / 오늘만 허용 / 퀘스트, 또는 저축 폴백 텍스트) -->
+          <div v-else class="habit-desc">
             <span v-for="(line, i) in h.desc" :key="i">{{ line }}<br v-if="i < h.desc.length - 1" /></span>
           </div>
+
           <button
             v-if="h.route || h.deepLink"
             type="button"
@@ -980,6 +1093,59 @@ section { margin-bottom: 30px; }
   padding: 0;
   font-family: inherit;
   cursor: pointer;
+}
+
+/* 저축·상환 회차 배지 */
+.round-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.round-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 40px;
+}
+
+.round-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1.5px dashed #d7d9dd;
+  color: transparent;
+}
+
+.round-badge.done .round-circle {
+  background: var(--green-tag-bg);
+  border: 1.5px solid var(--green);
+  color: var(--green-tag-fg);
+}
+
+.round-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink-faint);
+}
+
+.round-badge.done .round-label {
+  color: var(--green-tag-fg);
+}
+
+.round-summary {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-sub);
 }
 
 /* 소비 명세 카드 */

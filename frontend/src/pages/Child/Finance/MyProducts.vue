@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getMyEnrolledFinancialProducts, getLoanProductDetail, createSavingPayment } from '@/api/finance'
 import { getMyWallet } from '@/api/wallet'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -580,6 +581,8 @@ function onScroll() {
     </div>
 
     <BottomTabBar active="finance" @select="onTabSelect" />
+
+    <Chatbot v-if="!showDepositSheet && !showSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
   </div>
 </template>
 
