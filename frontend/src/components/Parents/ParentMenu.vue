@@ -15,11 +15,6 @@
           aria-label="부모 전체 메뉴"
         >
           <div class="drawer-header">
-            <div>
-              <p class="drawer-eyebrow">부모 메뉴</p>
-              <h2 class="drawer-title">어디로 갈까요?</h2>
-            </div>
-
             <button
               class="close-btn"
               type="button"
@@ -340,24 +335,9 @@ function goWithChild(childId) {
 
 .drawer-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 22px 18px 14px;
-  border-bottom: 1px solid #f0f1f3;
-}
-
-.drawer-eyebrow {
-  margin: 0 0 4px;
-  color: #8b9097;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.drawer-title {
-  margin: 0;
-  color: #191b1e;
-  font-size: 18px;
-  font-weight: 800;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 14px 12px 6px;
 }
 
 .close-btn {
