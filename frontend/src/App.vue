@@ -72,6 +72,8 @@ body {
   border: none !important;
 }
 
+.app-root.is-parent-route .nav,
+.app-root.is-parent-route .top-nav,
 .app-root.is-child-route .nav,
 .app-root.is-child-route .top-nav,
 .app-root.is-child-route .page-title-row {
@@ -85,6 +87,7 @@ body {
   box-sizing: border-box;
 }
 
+.app-root.is-parent-route .nav,
 .app-root.is-child-route .nav,
 .app-root.is-child-route .page-title-row {
   flex-shrink: 0;
@@ -93,11 +96,17 @@ body {
   background: #ffffff;
 }
 
+.app-root.is-parent-route .top-nav:has(.nav-title),
+.app-root.is-parent-route .top-nav:has(h1),
 .app-root.is-child-route .top-nav:has(.nav-title),
 .app-root.is-child-route .top-nav:has(h1) {
   height: 64px;
 }
 
+.app-root.is-parent-route .nav-title,
+.app-root.is-parent-route .nav h1,
+.app-root.is-parent-route .top-nav .nav-title,
+.app-root.is-parent-route .top-nav h1,
 .app-root.is-child-route .nav-title,
 .app-root.is-child-route .page-title,
 .app-root.is-child-route .nav h1,
@@ -122,6 +131,14 @@ body {
   transform: translate(-50%, -50%);
 }
 
+.app-root.is-parent-route .nav-left,
+.app-root.is-parent-route .brand,
+.app-root.is-parent-route .nav .back-btn,
+.app-root.is-parent-route .nav .close-btn,
+.app-root.is-parent-route .nav .icon-btn,
+.app-root.is-parent-route .nav > .back-icon,
+.app-root.is-parent-route .top-nav .back-btn,
+.app-root.is-parent-route .top-nav .icon-btn,
 .app-root.is-child-route .nav-left,
 .app-root.is-child-route .brand,
 .app-root.is-child-route .nav .back-btn,
@@ -131,9 +148,10 @@ body {
   position: relative;
   z-index: 2;
   flex: 0 0 auto !important;
-  width: auto !important;
 }
 
+.app-root.is-parent-route .parent-nav-actions,
+.app-root.is-parent-route .nav-actions,
 .app-root.is-child-route .child-nav-actions,
 .app-root.is-child-route .nav-right {
   position: relative;
