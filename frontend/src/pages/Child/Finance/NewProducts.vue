@@ -6,6 +6,7 @@ import { getFinancialProducts } from '@/api/finance'
 import { getTeenyScore } from '@/api/teenyScore'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -344,6 +345,7 @@ function goToApply(product) {
         </svg>
       </button>
       <h1 class="nav-title">금융 상품</h1>
+      <ChildNavActions />
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">

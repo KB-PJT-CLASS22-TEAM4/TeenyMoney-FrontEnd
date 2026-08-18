@@ -11,6 +11,7 @@
           </svg>
         </button>
         <h1 class="nav-title">퀘스트</h1>
+        <ChildNavActions />
       </div>
 
       <!-- 탭 스위처 -->
@@ -274,6 +275,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getTeenyScore } from '@/api/teenyScore'
 import { getTerminationQuote, terminateEnrollment } from '@/api/finance'
 import Chatbot from '@/components/Child/Chatbot.vue'
+import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -139,6 +140,7 @@ function closeModalAndNavigate() {
         </svg>
       </button>
       <h1 class="nav-title">중도해지</h1>
+      <ChildNavActions />
     </div>
 
     <!-- 스크롤 영역 -->
