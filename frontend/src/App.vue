@@ -11,7 +11,13 @@ const isChildRoute = computed(() => route.path.startsWith('/child'))
 </script>
 
 <template>
-  <div class="app-root" :class="{ 'is-child-route': isChildRoute }">
+  <div
+    class="app-root"
+    :class="{
+      'is-child-route': isChildRoute,
+      'is-parent-route': isParentRoute,
+    }"
+  >
     <RouterView />
   </div>
   <ParentMenu v-if="isParentRoute" />
@@ -38,6 +44,7 @@ body {
   min-height: 100dvh;
 }
 
+.app-root.is-parent-route,
 .app-root.is-child-route {
   width: 100%;
   max-width: 430px;
@@ -45,16 +52,24 @@ body {
   margin: 0 auto;
 }
 
+.app-root.is-parent-route > *,
 .app-root.is-child-route > * {
   width: 100% !important;
   max-width: none !important;
-  height: 100dvh !important;
-  min-height: 100dvh !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
+  box-sizing: border-box;
+}
+
+.app-root.is-parent-route > * {
+  min-height: 100dvh !important;
+}
+
+.app-root.is-child-route > * {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
   padding-top: 0 !important;
   border: none !important;
-  box-sizing: border-box;
 }
 
 .app-root.is-child-route .nav,

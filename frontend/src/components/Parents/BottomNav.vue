@@ -94,7 +94,7 @@ const router = useRouter()
   max-width: 430px;
   height: 70px;
   margin: 0 auto;
-  padding: 8px 0 12px;
+  padding: 10px 0 20px;
   border-top: 1px solid #f0f1f3;
   background-color: #ffffff;
   box-sizing: border-box;
