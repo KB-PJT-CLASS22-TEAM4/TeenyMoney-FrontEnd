@@ -312,7 +312,6 @@
     <!-- 에러 / 알림 커스텀 모달 -->
     <div v-if="errorModalVisible" class="error-backdrop" @click.self="closeErrorModal">
       <div class="error-dialog">
-        <!-- 노란색 통일 원형 아이콘 -->
         <div class="error-icon-wrap">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
             <path d="M12 8v5M12 16.5h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
@@ -381,9 +380,12 @@ function onScroll() {
   scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
 }
 
-const savingsForm = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: 1 })
+// 오늘 날짜의 '일(Day)'로 이체일/상환일 초기화
+const todayDay = new Date().getDate()
+
+const savingsForm = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: todayDay })
 const depositForm = reactive({ amount: 0, period: 0 })
-const loanForm     = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: 1 })
+const loanForm     = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: todayDay })
 
 const isSubmitting = ref(false)
 
@@ -898,7 +900,6 @@ input:checked + .slider:before { transform: translateX(17px); }
   animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 노란색 통일 원형 아이콘 */
 .error-icon-wrap {
   width: 48px;
   height: 48px;
@@ -917,7 +918,6 @@ input:checked + .slider:before { transform: translateX(17px); }
   color: #15171b;
 }
 
-/* 띄어쓰기(단어) 기준 줄바꿈 */
 .error-desc {
   margin: 0 0 18px;
   font-size: 13px;
@@ -947,6 +947,11 @@ input:checked + .slider:before { transform: translateX(17px); }
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 @keyframes scaleUp {
