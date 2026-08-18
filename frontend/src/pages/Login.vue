@@ -1,9 +1,19 @@
 <script setup>
 import { ref, computed } from 'vue'
-import logoUrl from '@/assets/logo.svg'  // 지갑 로고: src/assets/logo.svg 에 저장
- 
+import logoUrl from '@/assets/logo.svg'
+import { useRouter } from 'vue-router'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import { login } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
+import { getMyParent } from '@/api/families'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
 const email = ref('')
 const password = ref('')
+const showLoginErrorModal = ref(false)
+const loginErrorMessage = ref('')
  
 // 비밀번호 8자 이상인지 검사
 const isPasswordValid = computed(() => password.value.length >= 8)
@@ -15,29 +25,67 @@ const canSubmit = computed(() => email.value.length > 0 && isPasswordValid.value
 const showPasswordHint = computed(
   () => password.value.length > 0 && !isPasswordValid.value
 )
- 
-function handleLogin() {
-  if (!canSubmit.value) return  // 조건 안 맞으면 막기 (이중 안전장치)
-  // TODO: 여기서 auth store / axios 로 로그인 요청 보내기
-  // 예) await authStore.login({ email: email.value, password: password.value })
-  console.log('login', { email: email.value, password: password.value })
+
+async function handleLogin() {
+  if (!canSubmit.value) return
+
+  try {
+    const res = await login(email.value, password.value)
+
+    if (res.success) {
+      authStore.setUser(res.data)
+
+      if (res.data.role === 'CHILD') {
+        try {
+          const parentRes = await getMyParent(res.data.accessToken)
+          if (parentRes.data === null) {
+            router.push({ name: 'child-link' })
+          } else {
+            router.push({ name: 'child-home' })
+          }
+        } catch {
+          router.push({ name: 'child-link' })
+        }
+      } else {
+        router.push({ name: 'parents-home' })
+      }
+      return
+    }
+
+    loginErrorMessage.value =
+      res.message || '이메일 또는 비밀번호가 일치하지 않습니다.'
+    showLoginErrorModal.value = true
+  } catch (error) {
+    console.error('로그인 실패:', error)
+    loginErrorMessage.value = '로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+    showLoginErrorModal.value = true
+  }
 }
- 
+
+function closeLoginErrorModal() {
+  showLoginErrorModal.value = false
+}
+
 function handleGoogleLogin() {
   // TODO: 구글 OAuth 연동
   console.log('google login')
 }
+
 </script>
  
 <template>
+        
   <div class="login-screen">
     <div class="scroll">
       <div class="pad">
         <img class="logo" :src="logoUrl" alt="티니머니" />
- 
+
         <div class="heading">
-          <h1 class="welcome">다시 만나서 반가워요</h1>
-          <p class="subtitle">티니머니 계정으로 로그인하세요</p>
+          <h1 class="welcome">티니머니에 오신 걸 환영해요</h1>
+          <p class="subtitle">
+            용돈을 충전하고 목표를 모아요.<br />
+            로그인하고 자녀와 함께 시작해 보세요.
+          </p>
         </div>
  
         <div class="form">
@@ -81,7 +129,7 @@ function handleGoogleLogin() {
             <span class="sep">|</span>
             <span class="link">비밀번호 찾기</span>
             <span class="sep">|</span>
-            <span class="link">회원가입</span>
+            <span class="link" @click="router.push('/signup')">회원가입</span>
           </div>
  
           <div class="divider">
@@ -104,7 +152,17 @@ function handleGoogleLogin() {
       </div>
     </div>
   </div>
-</template>
+
+  <ConfirmModal
+    :show="showLoginErrorModal"
+    title="로그인에 실패했어요"
+    :description="loginErrorMessage"
+    confirm-text="확인"
+    hide-cancel
+    @confirm="closeLoginErrorModal"
+    @cancel="closeLoginErrorModal"
+  />
+    </template>
  
 <style scoped>
  
@@ -114,7 +172,6 @@ function handleGoogleLogin() {
   height: 730px;
   margin: 0 auto;
   background: #ffffff;
-  border: 1px solid #eceef1;
   font-family: 'Inter', -apple-system, sans-serif;
   overflow: hidden;
 }
@@ -124,12 +181,12 @@ function handleGoogleLogin() {
   height: 100%;
   overflow-y: auto;
 }
- 
+
 .pad {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 30px 20px 0;
+  padding: 48px 20px 0;
   gap: 20px;
 }
  
@@ -162,7 +219,8 @@ function handleGoogleLogin() {
   margin: 0;
   font-weight: 500;
   font-size: 13.3px;
-  line-height: 16px;
+  line-height: 1.5;
+  text-align: center;
   color: #8b9097;
 }
  

@@ -18,7 +18,7 @@
         </div>
       </div>
 
-     <!-- 에러 메시지 (코드 박스 아래) -->
+     <!-- 에러 메시지 -->
   <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
 </div>
 
@@ -42,18 +42,20 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-const router = useRouter();
+import { connectFamilyCode } from '@/api/families'
+import { useAuthStore } from '@/stores/auth'
 
+const router = useRouter();
+const authStore = useAuthStore()
 
 const CODE_LENGTH = 6;
-const code = ref(''); 
+const code = ref('');
+const errorMsg = ref('');
 
-// 박스 6칸 
 const digits = computed(() =>
   Array.from({ length: CODE_LENGTH }, (_, i) => code.value[i] ?? '')
 );
 
-// 키패드 배열 
 const keys = [
   { id: 1, type: 'num', value: '1' }, { id: 2, type: 'num', value: '2' }, { id: 3, type: 'num', value: '3' },
   { id: 4, type: 'num', value: '4' }, { id: 5, type: 'num', value: '5' }, { id: 6, type: 'num', value: '6' },
@@ -63,32 +65,29 @@ const keys = [
 
 function onKeyPress(key) {
   if (key.type === 'num' && code.value.length < CODE_LENGTH) {
+    errorMsg.value = ''
     code.value += key.value;
     if (code.value.length === CODE_LENGTH) verifyCode();
   } else if (key.type === 'back') {
+    errorMsg.value = ''
     code.value = code.value.slice(0, -1);
   }
 }
 
-function verifyCode() {
-  // ===== API 연동 필요 =====
-  // 입력한 코드를 서버로 보내 검증 → 성공 시 보호자 확인 화면으로 이동
-  // 성공 → router.push({ name: 'LinkConfirm' })
-  // 실패 → 코드 초기화 + 에러 메세지 안내
-  console.log('입력 완료:', code.value);
-  // 임시: 코드가 "123456"이면 성공이라고 가정 (테스트용)
-  if (code.value === '123456') {
-    router.push({ name: 'child-link-confirm' });   // 일치 → 보호자 확인 화면
-  } else {
-    errorMsg.value = '코드가 일치하지 않아요';
-    code.value = '';
+async function verifyCode() {
+  try {
+    const res = await connectFamilyCode(authStore.accessToken, code.value)
+    console.log('연동 성공:', res)  
+    router.push({ name: 'child-link-confirm' })
+  } catch (e) {
+    console.log('연동 실패:', e.message)  
+    errorMsg.value = e.message || '코드가 일치하지 않아요'
+    code.value = ''
   }
 }
-
-// 코드 에러 메세지 
-const errorMsg = ref('');
-
 </script>
+
+
 <style scoped>
 .link-screen {
   box-sizing: border-box;

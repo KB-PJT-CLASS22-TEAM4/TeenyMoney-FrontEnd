@@ -1,0 +1,800 @@
+<script setup>
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getTeenyScore } from '@/api/teenyScore'
+import { getTerminationQuote, terminateEnrollment } from '@/api/finance'
+import Chatbot from '@/components/Child/Chatbot.vue'
+
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
+
+// 스크롤바 제어
+const isScrolling = ref(false)
+let scrollTimer = null
+function onScroll() {
+  isScrolling.value = true
+  clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => { isScrolling.value = false }, 800)
+}
+
+const product = reactive({
+  id: route.query.id || '',
+  title: route.query.title || '상품',
+  category: route.query.category || '', // '적금' | '예금' | '대출'
+  productType: route.query.productType || '', // SAVING | DEPOSIT | LOAN
+  savingsType: route.query.savingsType || '', // FIXED | FREE
+})
+
+const isLoan = computed(() => product.productType === 'LOAN' || product.category === '대출')
+const badgeColor = computed(() => (isLoan.value ? 'orange' : 'blue'))
+const desc = computed(() => {
+  if (isLoan.value) return '대출 상품'
+  if (product.savingsType === 'FREE' || product.savingsType === '자유적금') return '원하는 금액을 자유롭게 납입하는 자유적금'
+  if (product.productType === 'SAVING' || product.category === '적금') return '매월 정해진 금액을 납입하는 정액적금'
+  return '예금 상품'
+})
+
+// GET/POST 경로 세그먼트 (saving / deposit)
+const productTypePath = computed(() => {
+  const t = String(product.productType || product.category).toUpperCase()
+  if (t.includes('SAVING') || t.includes('적금')) return 'saving'
+  if (t.includes('DEPOSIT') || t.includes('예금')) return 'deposit'
+  return ''
+})
+
+// ---- 티니점수(현재 점수) 조회 ----
+const currentScore = ref(0)
+
+// ---- 중도해지 예상 조회 ----
+const quote = ref(null)
+const isLoadingQuote = ref(true)
+const quoteError = ref('')
+
+async function loadQuote() {
+  if (isLoan.value || !productTypePath.value || !product.id) {
+    isLoadingQuote.value = false
+    return
+  }
+  isLoadingQuote.value = true
+  quoteError.value = ''
+  try {
+    const res = await getTerminationQuote(authStore.accessToken, productTypePath.value, product.id)
+    quote.value = res?.data ?? res
+  } catch (e) {
+    console.error('중도해지 예상 조회 실패:', e.message)
+    quoteError.value = '예상 금액을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
+  } finally {
+    isLoadingQuote.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    const res = await getTeenyScore(authStore.accessToken, authStore.memberId)
+    currentScore.value = res?.data?.teenyScore ?? res?.teenyScore ?? 0
+  } catch (e) {
+    console.error('티니점수 조회 실패:', e.message)
+  }
+  await loadQuote()
+})
+
+const appliedRatePercent = computed(() => {
+  if (!quote.value?.appliedEarlyTerminationRate) return 0
+  return Math.round(quote.value.appliedEarlyTerminationRate * 100)
+})
+
+const totalRefund = computed(() => quote.value?.finalAmount ?? 0)
+const principalAmount = computed(() => quote.value?.principalAmount ?? 0)
+const interestAmount = computed(() => quote.value?.interestAmount ?? 0)
+const scorePenalty = computed(() => Math.abs(quote.value?.scoreChange ?? 0))
+
+const estimatedScore = computed(() => Math.max(0, currentScore.value - scorePenalty.value))
+const scorePercentage = computed(() => Math.min(100, Math.max(0, (estimatedScore.value / 1000) * 100)))
+
+// 동의 체크박스 및 모달 상태
+const agreeCancel = ref(false)
+const showSuccessModal = ref(false)
+const isSubmitting = ref(false)
+const submitError = ref('')
+const finalResult = ref(null)
+
+function goToMyProducts() {
+  router.push({ name: 'child-finance-myproducts' })
+}
+
+async function handleTerminationSubmit() {
+  if (!agreeCancel.value || isSubmitting.value || !quote.value) return
+  isSubmitting.value = true
+  submitError.value = ''
+  try {
+    const res = await terminateEnrollment(authStore.accessToken, productTypePath.value, product.id)
+    finalResult.value = res?.data ?? res
+    showSuccessModal.value = true
+  } catch (e) {
+    console.error('중도해지 실행 실패:', e)
+    submitError.value =
+      e.status === 409
+        ? '이미 해지되었거나 만기에 도달한 상품이에요.'
+        : (e.message || '중도해지 처리에 실패했어요. 잠시 후 다시 시도해주세요.')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+function closeModalAndNavigate() {
+  showSuccessModal.value = false
+  router.push({ name: 'child-finance-myproducts' })
+}
+</script>
+
+<template>
+  <div class="product-screen">
+    <!-- 상단 네비 -->
+    <div class="nav">
+      <button class="icon-btn" @click="goToMyProducts" aria-label="뒤로">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">중도해지</h1>
+    </div>
+
+    <!-- 스크롤 영역 -->
+    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
+
+      <!-- 상품 헤더 카드 -->
+      <section class="card product-card">
+        <div class="title-row">
+          <span class="badge" :class="badgeColor">{{ product.category }}</span>
+          <span class="prod-title">{{ product.title }}</span>
+        </div>
+        <p class="prod-desc">{{ desc }}</p>
+      </section>
+
+      <template v-if="isLoan">
+        <section class="card notice-card">
+          <p class="prod-desc notice-text">대출은 별도의 중도상환 정책이 적용돼요. 상환 관련 문의는 상품 상세에서 확인해주세요.</p>
+        </section>
+      </template>
+
+      <template v-else-if="isLoadingQuote">
+        <section class="card notice-card">
+          <p class="prod-desc">예상 해지 금액을 불러오는 중이에요...</p>
+        </section>
+      </template>
+
+      <template v-else-if="quoteError">
+        <section class="card notice-card">
+          <p class="prod-desc error-text">{{ quoteError }}</p>
+        </section>
+      </template>
+
+      <template v-else-if="quote">
+        <!-- 지금 해지하면 받을 금액 요약 카드 -->
+        <section class="card summary-card">
+          <span class="summary-label">지금 해지하면 받을 금액</span>
+          <h2 class="summary-amount">{{ totalRefund.toLocaleString() }}원</h2>
+          <div class="score-drop" v-if="scorePenalty > 0">
+            <span class="red-text">▼ {{ scorePenalty }}점</span>
+            <span class="gray-text">티니점수 감소</span>
+          </div>
+        </section>
+
+        <!-- 해지 내역 상세 카드 -->
+        <section class="card detail-card">
+          <h3 class="card-section-title">해지 내역</h3>
+          <div class="detail-rows">
+            <div class="detail-row">
+              <span class="d-label">현재까지 납입한 원금</span>
+              <span class="d-value">{{ principalAmount.toLocaleString() }}원</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">진행률</span>
+              <span class="d-value">{{ quote.progressPercent ?? 0 }}%</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">적용 이율 비율</span>
+              <span class="d-value blue">약정금리의 {{ appliedRatePercent }}%</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">받을 이자</span>
+              <span class="d-value blue">{{ interestAmount.toLocaleString() }}원</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="detail-row final-row">
+            <span class="final-label">최종 지급액</span>
+            <span class="final-amount">{{ totalRefund.toLocaleString() }}원</span>
+          </div>
+        </section>
+
+        <!-- 티니점수 변화 예측 카드 -->
+        <section class="card score-card">
+          <h3 class="card-section-title">티니점수 변화</h3>
+
+          <div class="score-status-group">
+            <div class="score-col left">
+              <span class="s-label">현재 점수</span>
+              <span class="s-val">{{ currentScore }}점</span>
+            </div>
+
+            <div class="score-col center">
+              <span class="drop-badge">▼ {{ scorePenalty }}점</span>
+              <span class="drop-sub">감소</span>
+            </div>
+
+            <div class="score-col right">
+              <span class="s-label">해지 후 예상</span>
+              <span class="s-val red">{{ estimatedScore }}점</span>
+            </div>
+          </div>
+
+          <!-- 티니점수 바 -->
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: scorePercentage + '%' }"></div>
+            </div>
+            <div class="progress-labels">
+              <span>0점</span>
+              <span>1000점</span>
+            </div>
+          </div>
+
+          <!-- 경고 박스 -->
+          <div class="warning-box">
+            중도해지 시 티니점수가 {{ scorePenalty }}점 감소하며, 이후 상품 가입 조건에 영향을 줄 수 있어요.
+          </div>
+        </section>
+      </template>
+
+      <!-- 동의 체크박스 및 액션 버튼 -->
+      <section class="action-section" v-if="!isLoan && quote">
+        <div class="checkbox-wrapper" @click="agreeCancel = !agreeCancel">
+          <div class="custom-checkbox" :class="{ checked: agreeCancel }">
+            <svg v-if="agreeCancel" width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="checkbox-label">위 내용을 확인하였으며, 중도해지에 동의합니다.</span>
+        </div>
+
+        <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+
+        <button
+          type="button"
+          class="submit-btn"
+          :class="{ active: agreeCancel && !isSubmitting }"
+          :disabled="!agreeCancel || isSubmitting"
+          @click="handleTerminationSubmit"
+        >
+          {{ isSubmitting ? '처리 중...' : '중도해지 신청' }}
+        </button>
+
+        <button type="button" class="cancel-btn" @click="goToMyProducts">돌아가기</button>
+      </section>
+    </div>
+
+    <!-- 해지 완료 모달 -->
+    <Transition name="modal-fade">
+      <div v-if="showSuccessModal" class="modal-overlay" @click.self="closeModalAndNavigate">
+        <div class="modal-card">
+          <div class="modal-icon warning">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 class="modal-title">중도해지가 완료되었어요</h3>
+          <p class="modal-desc">
+            해지 금액 <strong>{{ (finalResult?.finalAmount ?? totalRefund).toLocaleString() }}원</strong>이<br/>티니머니 지갑으로 입금되었어요.
+          </p>
+          <button type="button" class="modal-confirm-btn" @click="closeModalAndNavigate">
+            확인
+          </button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 해지는 되돌리기 어려운 결정이라 말풍선 없이 캐릭터만 노출 -->
+    <Chatbot v-if="!showSuccessModal" hint-text="" />
+  </div>
+</template>
+
+<style scoped>
+.product-screen {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  height: 730px;
+  margin: 0 auto;
+  padding-top: 50px;
+  background: #ffffff;
+  border: 1px solid #eceef1;
+  overflow: hidden;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 20px 10px;
+  background: #ffffff;
+  flex: none;
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+}
+
+.nav-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 18px;
+  color: #15171b;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 20px 20px;
+  background: #ffffff;
+}
+
+.scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  transition: background 0.3s;
+}
+
+.scroll.scrolling::-webkit-scrollbar-thumb {
+  background: #d8dbdf;
+}
+
+/* 통일된 화이트 카드 스타일 */
+.card {
+  background: #fdfdfd;
+  border: 1.3px solid #f0f1f3;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.badge.blue {
+  background: #eef4fc;
+  color: #3b74b8;
+  border: 1px solid #dce8f8;
+}
+
+.badge.orange {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffe0b2;
+}
+
+.prod-title {
+  font-weight: 800;
+  font-size: 15.5px;
+  color: #15171b;
+}
+
+.prod-desc {
+  margin: 2px 0 0;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: #8b9097;
+}
+
+.notice-card {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.notice-text {
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.error-text {
+  color: #e0554f;
+  font-weight: 600;
+}
+
+/* 요약 카드 */
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  text-align: center;
+  background: #fafbfc;
+}
+
+.summary-label {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #8b9097;
+  margin-bottom: 4px;
+}
+
+.summary-amount {
+  margin: 0 0 6px;
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  color: #15171b;
+}
+
+.score-drop {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.red-text {
+  font-weight: 700;
+  color: #e0554f;
+}
+
+.gray-text {
+  font-weight: 500;
+  color: #9aa0a8;
+}
+
+/* 해지 내역 카드 */
+.card-section-title {
+  margin: 0 0 14px;
+  font-weight: 800;
+  font-size: 14px;
+  color: #15171b;
+}
+
+.detail-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.d-label {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #8b9097;
+}
+
+.d-value {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: #15171b;
+}
+
+.d-value.blue {
+  color: #4d8ad6;
+}
+
+.divider {
+  height: 1px;
+  background: #f0f2f4;
+  margin: 14px 0 12px;
+}
+
+.final-row {
+  padding-top: 2px;
+}
+
+.final-label {
+  font-weight: 800;
+  font-size: 14px;
+  color: #15171b;
+}
+
+.final-amount {
+  font-weight: 800;
+  font-size: 16.5px;
+  color: #ffbc00;
+}
+
+/* 티니점수 변화 카드 */
+.score-status-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.score-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.score-col.left { align-items: flex-start; }
+.score-col.center { align-items: center; }
+.score-col.right { align-items: flex-end; }
+
+.s-label {
+  font-weight: 600;
+  font-size: 11.5px;
+  color: #8b9097;
+  margin-bottom: 2px;
+}
+
+.s-val {
+  font-weight: 800;
+  font-size: 18px;
+  color: #15171b;
+}
+
+.s-val.red {
+  color: #e0554f;
+}
+
+.drop-badge {
+  font-weight: 800;
+  font-size: 13px;
+  color: #e0554f;
+}
+
+.drop-sub {
+  font-weight: 500;
+  font-size: 10.5px;
+  color: #9aa0a8;
+}
+
+.progress-container {
+  margin-bottom: 14px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 7px;
+  background: #eef1f4;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #ffbc00;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 500;
+  font-size: 11px;
+  color: #b9bec5;
+}
+
+.warning-box {
+  background: #fff8f8;
+  border: 1px solid #fee2e2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #e0554f;
+}
+
+/* 액션 영역 */
+.action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.checkbox-wrapper {
+  background: #fdfdfd;
+  border: 1.3px solid #f0f1f3;
+  border-radius: 12px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #c6cbd2;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex: none;
+}
+
+.custom-checkbox.checked {
+  background: #e0554f;
+  border-color: #e0554f;
+}
+
+.checkbox-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: #4a4e55;
+  line-height: 1.4;
+}
+
+.submit-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0554f;
+  padding: 0 4px;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  background: #f2f4f6;
+  border-radius: 12px;
+  border: none;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  color: #9aa0a8;
+  cursor: not-allowed;
+  transition: all 0.2s ease;
+}
+
+.submit-btn.active {
+  background: #e0554f;
+  color: #ffffff;
+  cursor: pointer;
+}
+.submit-btn.active:active {
+  opacity: 0.9;
+}
+
+.cancel-btn {
+  width: 100%;
+  height: 48px;
+  background: #ffffff;
+  border: 1.3px solid #e7e9ec;
+  border-radius: 12px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #4a4e55;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cancel-btn:hover {
+  background: #f8fafc;
+  color: #15171b;
+}
+
+/* 해지 완료 모달 */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 110;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 290px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 26px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.modal-icon.warning {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #ffbc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.modal-title {
+  margin: 0 0 6px;
+  font-weight: 800;
+  font-size: 17px;
+  color: #15171b;
+}
+
+.modal-desc {
+  margin: 0 0 20px;
+  font-weight: 500;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #6b7280;
+}
+
+.modal-desc strong {
+  color: #15171b;
+  font-weight: 700;
+}
+
+.modal-confirm-btn {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.modal-confirm-btn:active {
+  opacity: 0.85;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+</style>

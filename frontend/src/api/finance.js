@@ -1,0 +1,289 @@
+const BASE_URL = '/api/v1';
+
+/**
+ * 전체 금융상품 목록 조회 (예금/적금/대출 + 자녀 가입 가능 여부 포함)
+ * @param {string} accessToken
+ * @returns {Promise<Array>} data 배열 (productType: DEPOSIT | SAVINGS | LOAN 등)
+ */
+export async function getFinancialProducts(accessToken) {
+  const res = await fetch(`${BASE_URL}/financial-products`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  // 204: 목록이 비어있는 경우 (상품 없음)
+  if (res.status === 204) {
+    return [];
+  }
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '금융상품 목록 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 자녀가 가입한 전체 금융상품 목록 조회 (예금/적금/대출, 거절된 신청 제외)
+ * ⚠️ 부모 전용 API — 부모가 특정 자녀(childId)의 가입상품을 조회할 때 사용
+ * @param {string} accessToken
+ * @param {number|string} childId 자녀 회원 ID
+ * @returns {Promise<Array>} data 배열 (enrollmentId, productType, status, currentAmount 등 포함)
+ */
+export async function getEnrolledFinancialProducts(accessToken, childId) {
+  const res = await fetch(`${BASE_URL}/financial-products/children/${childId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  // 204: 가입한 상품이 없는 경우
+  if (res.status === 204) {
+    return [];
+  }
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '가입한 금융상품 목록 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 자녀 본인의 전체 금융상품 가입계약 목록 조회 (자녀 로그인 전용, childId 불필요)
+ * @param {string} accessToken
+ * @returns {Promise<Array>} data 배열 (enrollmentId, productType, status, currentAmount 등 포함)
+ */
+export async function getMyEnrolledFinancialProducts(accessToken) {
+  const res = await fetch(`${BASE_URL}/financial-products/me/enrollments`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  // 204: 가입한 상품이 없는 경우
+  if (res.status === 204) {
+    return [];
+  }
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '가입 상품 목록 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 적금 가입 요청
+ * @param {string} accessToken
+ * @param {{ productId: number, monthlyAmount: number, termMonths: number, autoTransfer: boolean, paymentDay: number }} payload
+ * @returns {Promise<{ enrollmentId: number, expectedAppliedRate: number, productType: string, status: string }>}
+ */
+export async function createSavingEnrollment(accessToken, payload) {
+  const res = await fetch(`${BASE_URL}/financial-products/saving-enrollments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '적금 가입에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 대출 가입 요청
+ * @param {string} accessToken
+ * @param {{ productId: number, principalAmount: number, termMonths: number, autoTransfer: boolean, paymentDay: number }} payload
+ * @returns {Promise<{ enrollmentId: number, expectedAppliedRate: number, productType: string, status: string }>}
+ */
+export async function createLoanEnrollment(accessToken, payload) {
+  const res = await fetch(`${BASE_URL}/financial-products/loan-enrollments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '대출 가입에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 예금 가입 요청
+ * @param {string} accessToken
+ * @param {{ productId: number, amount: number, termMonths: number }} payload
+ * @returns {Promise<{ enrollmentId: number, expectedAppliedRate: number, productType: string, status: string }>}
+ */
+export async function createDepositEnrollment(accessToken, payload) {
+  const res = await fetch(`${BASE_URL}/financial-products/deposit-enrollments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '예금 가입에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 대출 상품 상세 조회 (요구 등급명(requiredGradeName) 등 확인용)
+ * @param {string} accessToken
+ * @param {number|string} productId
+ * @returns {Promise<Object>} 상품 상세 데이터
+ */
+export async function getLoanProductDetail(accessToken, productId) {
+  const res = await fetch(`${BASE_URL}/financial-products/loan/${productId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '대출 상품 상세 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 예·적금 중도해지 예상 조회 (진행률/적용금리/원금/이자/최종지급액/점수변화)
+ * @param {string} accessToken
+ * @param {string} productType - 'saving' | 'deposit' (소문자, 경로 세그먼트)
+ * @param {number|string} enrollmentId
+ * @returns {Promise<{
+ *   appliedEarlyTerminationRate: number,
+ *   enrollmentId: number,
+ *   finalAmount: number,
+ *   interestAmount: number,
+ *   principalAmount: number,
+ *   productType: string,
+ *   progressPercent: number,
+ *   scoreChange: number,
+ *   terminated: boolean,
+ * }>}
+ */
+export async function getTerminationQuote(accessToken, productType, enrollmentId) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/${productType}-enrollments/${enrollmentId}/termination-quote`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '중도해지 예상 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 예·적금 중도해지 실행 (부모 승인 없이 즉시 처리, 원금+이자 지급 및 티니점수 1회 반영)
+ * @param {string} accessToken
+ * @param {string} productType - 'saving' | 'deposit' (소문자, 경로 세그먼트)
+ * @param {number|string} enrollmentId
+ * @returns {Promise<object>} termination-quote와 동일한 응답 구조(data)
+ */
+export async function terminateEnrollment(accessToken, productType, enrollmentId) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/${productType}-enrollments/${enrollmentId}/terminate`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    // 409: 비활성 또는 만기 도달 계약, 404: 본인 가입 계약 아님 등
+    const error = new Error(body.message || '중도해지 처리에 실패했습니다.');
+    error.status = res.status;
+    throw error;
+  }
+
+  return body.data;
+}
+
+/**
+ * 자유적금 직접납입 (자녀 지갑 → 자유적금으로 이체)
+ * idempotencyKey는 호출부에서 매 요청마다 새로 생성해서 넘겨야 함(재시도 시 같은 키를 쓰면
+ * 서버가 중복 출금을 막아줌 — 같은 이체를 두 번 보내려는 게 아니라면 항상 새 UUID를 써야 함).
+ * @param {string} accessToken
+ * @param {number|string} enrollmentId
+ * @param {{ amount: number, idempotencyKey: string }} payload
+ * @returns {Promise<{ accumulatedAmount: number, paidAmount: number, transferId: number }>}
+ */
+export async function createSavingPayment(accessToken, enrollmentId, payload) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/saving-enrollments/${enrollmentId}/payments`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    // 400: 정기적금이거나 월 한도 초과, 409: 비활성 가입 또는 멱등성 키 충돌
+    const error = new Error(body.message || '적금 납입에 실패했습니다.');
+    error.status = res.status;
+    throw error;
+  }
+
+  return body.data;
+}

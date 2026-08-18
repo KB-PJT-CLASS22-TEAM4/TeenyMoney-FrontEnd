@@ -1,0 +1,125 @@
+import { ensureAccessToken } from '@/utils/authSession'
+
+const API_BASE_URL = import.meta.env.DEV
+  ? ''
+  : import.meta.env.VITE_API_BASE_URL
+
+// 자녀 티니 점수 조회
+// GET /api/v1/teeny-score/children/{childId}
+export async function getTeenyScore(accessToken, childId) {
+  ensureAccessToken(accessToken)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/teeny-score/children/${childId}`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '티니 점수를 불러오지 못했습니다.')
+  }
+
+  return result
+}
+
+// 자녀 월별 티니 점수 히스토리 조회
+// GET /api/v1/teeny-score/children/{childId}/monthly-history
+export async function getTeenyScoreMonthlyHistory(accessToken, childId) {
+  ensureAccessToken(accessToken)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/teeny-score/children/${childId}/monthly-history`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '월별 히스토리를 불러오지 못했습니다.')
+  }
+
+  return result
+}
+
+// 등급 기준 조회
+// GET /api/v1/teeny-score/grades
+export async function getTeenyScoreGrades(accessToken) {
+  ensureAccessToken(accessToken)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/teeny-score/grades`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '등급 기준을 불러오지 못했습니다.')
+  }
+
+  return result
+}
+
+// 내(자녀 본인) 티니 점수 변동 내역 조회
+// GET /api/v1/teeny-score/me/history
+export async function getMyHistories(accessToken) {
+  ensureAccessToken(accessToken)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/teeny-score/me/history`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '점수 변동 내역을 불러오지 못했습니다.')
+  }
+
+  return result
+}
