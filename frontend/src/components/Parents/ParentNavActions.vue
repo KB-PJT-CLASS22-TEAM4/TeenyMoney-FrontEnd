@@ -5,11 +5,27 @@
       type="button"
       aria-label="알림"
     >
-      <img
-        src="@/assets/icons/icon-notification.svg"
-        alt=""
+      <svg
         class="action-icon"
-      />
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M6.2 9.4c0-3.1 2.6-5.6 5.8-5.6s5.8 2.5 5.8 5.6c0 4.1.9 5.6 1.7 6.6.3.4 0 1-.4 1H4.9c-.5 0-.7-.6-.4-1 .8-1 1.7-2.5 1.7-6.6Z"
+          stroke="#1d1f23"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M9.6 18.2a2.5 2.5 0 0 0 4.8 0"
+          stroke="#1d1f23"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
     </button>
 
     <button
@@ -45,18 +61,19 @@ const { isOpen, toggleMenu } = useParentMenu()
 
 .action-btn {
   display: flex;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   align-items: center;
   justify-content: center;
   padding: 0;
   border: none;
+  border-radius: 50%;
   background: transparent;
   cursor: pointer;
 }
 
 .action-icon {
-  width: 20px;
+  width: 22px;
   height: 22px;
 }
 
@@ -64,7 +81,7 @@ const { isOpen, toggleMenu } = useParentMenu()
   position: relative;
   display: block;
   width: 18px;
-  height: 14px;
+  height: 13px;
 }
 
 .burger i {
@@ -72,8 +89,8 @@ const { isOpen, toggleMenu } = useParentMenu()
   left: 0;
   display: block;
   width: 18px;
-  height: 2px;
-  border-radius: 2px;
+  height: 2.5px;
+  border-radius: 999px;
   background: #1d1f23;
   transition: transform 0.2s ease, opacity 0.2s ease, top 0.2s ease;
 }

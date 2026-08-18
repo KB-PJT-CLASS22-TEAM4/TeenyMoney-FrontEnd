@@ -319,6 +319,8 @@ function goWithChild(childId) {
 }
 
 .menu-overlay {
+  display: flex;
+  justify-content: flex-end;
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.28);
@@ -330,8 +332,9 @@ function goWithChild(childId) {
   width: 260px;
   height: 100%;
   flex-direction: column;
+  border-radius: 18px 0 0 18px;
   background: #ffffff;
-  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.12);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
   animation: sidebar-in 0.22s ease-out;
 }
 
@@ -362,6 +365,7 @@ function goWithChild(childId) {
   height: 32px;
   padding: 0;
   border: none;
+  border-radius: 50%;
   background: transparent;
   color: #8b9097;
   font-size: 26px;
@@ -452,7 +456,7 @@ function goWithChild(childId) {
 
 @keyframes sidebar-in {
   from {
-    transform: translateX(-100%);
+    transform: translateX(100%);
   }
 
   to {
