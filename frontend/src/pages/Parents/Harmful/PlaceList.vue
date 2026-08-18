@@ -334,12 +334,8 @@ async function fetchPlaces() {
       places.value =
         res.data.map(item => ({
           id: item.id,
-
-          merchantCategoryName:
-            item.merchantCategoryName,
-
-          policy:
-            item.policy,
+          merchantCategoryName: item.categoryName,
+          policy: item.policy,
         }))
 
     } else {

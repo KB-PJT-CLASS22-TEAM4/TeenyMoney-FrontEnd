@@ -62,7 +62,7 @@
             :key="item.id"
             class="policy-item"
           >
-            {{ item.merchantCategoryName }}
+            {{ item.categoryName }}
           </p>
 
           <p
@@ -87,7 +87,7 @@
             :key="item.id"
             class="policy-item"
           >
-            {{ item.merchantCategoryName }}
+            {{ item.categoryName }}
           </p>
 
           <p
@@ -112,7 +112,7 @@
             :key="item.id"
             class="policy-item"
           >
-            {{ item.merchantCategoryName }}
+            {{ item.categoryName }}
           </p>
 
           <p
@@ -324,7 +324,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 import {
-  getCategoryPolicyGroups
+  getCategoryPolicies
 } from '@/api/categoryPolicy'
 
 import {
@@ -528,8 +528,8 @@ function mergePermissionRequests(currentList, historyList) {
 // ========================================
 // 카테고리 정책 조회
 //
-// GET
-// /api/v1/category-policies/groups?childId=...
+// GET /api/v1/category-policies?childId=...
+// data: [{ id, categoryName, policy }]
 // ========================================
 
 async function fetchCategoryPolicies() {
@@ -556,7 +556,7 @@ async function fetchCategoryPolicies() {
     )
 
     const res =
-      await getCategoryPolicyGroups(
+      await getCategoryPolicies(
         authStore.accessToken,
         childId.value
       )
@@ -566,40 +566,28 @@ async function fetchCategoryPolicies() {
       res
     )
 
-    // 이전 데이터 초기화
     allowList.value = []
     cautionList.value = []
     blockList.value = []
-
 
     if (
       res.success &&
       Array.isArray(res.data)
     ) {
-
-      res.data.forEach(group => {
-
-        const list =
-          group.categoryPolicyList || []
-
-        if (group.policy === 'ALLOW') {
-          allowList.value = list
+      res.data.forEach((item) => {
+        const policyItem = {
+          id: item.id,
+          categoryName: item.categoryName,
         }
 
-        else if (
-          group.policy === 'CAUTION'
-        ) {
-          cautionList.value = list
+        if (item.policy === 'ALLOW') {
+          allowList.value.push(policyItem)
+        } else if (item.policy === 'CAUTION') {
+          cautionList.value.push(policyItem)
+        } else if (item.policy === 'BLOCK') {
+          blockList.value.push(policyItem)
         }
-
-        else if (
-          group.policy === 'BLOCK'
-        ) {
-          blockList.value = list
-        }
-
       })
-
     }
 
   } catch (error) {
