@@ -82,6 +82,7 @@ import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete
 import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
 import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
+import ParentChildTransaction from '@/pages/Parents/Child/ChildTransaction.vue'
 import MoneyReport from '@/pages/Parents/Child/MoneyReport.vue'
 import ChildFinance from '@/pages/Parents/Child/ChildFinance.vue'
 import FinanceProductCreate from '@/pages/Parents/Child/FinanceProductCreate.vue'
@@ -396,6 +397,11 @@ const router = createRouter({
     path: '/parents/children/:childId',
     name: 'parents-child-detail',
     component: ChildDetail,
+  },
+  {
+    path: '/parents/children/:childId/transactions',
+    name: 'parents-child-transaction',
+    component: ParentChildTransaction,
   },
   {
     path: '/parents/children/:childId/report',
