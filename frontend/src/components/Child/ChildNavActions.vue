@@ -27,6 +27,9 @@
           stroke-linecap="round"
         />
       </svg>
+      <span v-if="unreadCount > 0" class="unread-badge">
+        {{ unreadCount > 9 ? '9+' : unreadCount }}
+      </span>
     </button>
 
     <button
@@ -46,15 +49,28 @@
 </template>
 
 <script setup>
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChildMenu } from '@/composables/useChildMenu'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationStore } from '@/stores/notification'
 
 const router = useRouter()
 const { isOpen, toggleMenu } = useChildMenu()
+const authStore = useAuthStore()
+const notificationStore = useNotificationStore()
+
+const unreadCount = computed(() => notificationStore.unreadCount)
 
 function goNotification() {
   router.push({ name: 'child-notification' })
 }
+
+onMounted(() => {
+  if (authStore.accessToken) {
+    notificationStore.fetchUnreadCount(authStore.accessToken)
+  }
+})
 </script>
 
 <style scoped>
@@ -68,6 +84,7 @@ function goNotification() {
 }
 
 .action-btn {
+  position: relative;
   display: flex;
   width: 34px;
   height: 34px;
@@ -83,6 +100,26 @@ function goNotification() {
 .action-icon {
   width: 22px;
   height: 22px;
+}
+
+.unread-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ff4d4f;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1;
+  border: 1.5px solid #ffffff;
+  box-sizing: border-box;
 }
 
 .burger {

@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { requestFcmToken } from '@/firebase'
+import { updateFcmToken } from '@/api/notification'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('accessToken'))
@@ -24,6 +26,19 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('name', data.name)
 
     closeLoginModal()
+
+    // 로그인 성공 후 FCM 토큰 발급 + 서버 등록 (실패해도 로그인 흐름에는 영향 없음)
+    registerFcmToken()
+  }
+
+  async function registerFcmToken() {
+    try {
+      const fcmToken = await requestFcmToken()
+      if (!fcmToken) return
+      await updateFcmToken(accessToken.value, fcmToken)
+    } catch (e) {
+      console.log('FCM 토큰 등록 실패:', e.message)
+    }
   }
 
   function clearUser() {
