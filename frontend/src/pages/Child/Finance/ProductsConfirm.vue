@@ -150,12 +150,16 @@
         </div>
       </div>
     </Transition>
+
+    <!-- 확인/제출 단계라 말풍선 없이 캐릭터만 노출 -->
+    <Chatbot v-if="!showSuccessModal" hint-text="" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter();
 const route = useRoute();

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getMyEnrolledFinancialProducts, getLoanProductDetail, createSavingPayment } from '@/api/finance'
 import { getMyWallet } from '@/api/wallet'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -367,10 +368,11 @@ function goBack() {
 }
 
 function onTabSelect(key) {
-  if (key === 'home') router.push({ name: 'child-home' })
-  if (key === 'report') router.push({ name: 'child-report' })
-  if (key === 'my') router.push({ name: 'child-mypage' })
-  if (key === 'q') router.push({ name: 'qr-scan' })
+  if (key === 'home')    router.push({ name: 'child-home' })
+  if (key === 'my')      router.push({ name: 'child-mypage' })
+  if (key === 'q')       router.push({ name: 'qr-scan' })
+  if (key === 'finance') router.push({ name: 'child-finance-myproducts' })
+  if (key === 'quest')   router.push({ name: 'child-quest-list' })
 }
 
 const isScrolling = ref(false)
@@ -579,6 +581,8 @@ function onScroll() {
     </div>
 
     <BottomTabBar active="finance" @select="onTabSelect" />
+
+    <Chatbot v-if="!showDepositSheet && !showSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
   </div>
 </template>
 

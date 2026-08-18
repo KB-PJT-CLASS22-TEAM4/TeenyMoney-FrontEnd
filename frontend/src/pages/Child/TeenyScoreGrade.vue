@@ -109,6 +109,9 @@
       </template>
 
     </div>
+
+    <!-- 말풍선 없이 챗봇 플로팅 버튼만 표시 -->
+    <Chatbot hint-text="" />
   </div>
 </template>
 
@@ -118,20 +121,13 @@ import { useRouter } from 'vue-router'
 import { getTeenyScore, getTeenyScoreGrades, getMyHistories } from '@/api/teenyScore'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
+import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const { accessToken, memberId } = storeToRefs(authStore)
 const childId = memberId
 
-// ==================================================================
-// 실제 DB 등급 (2026-08 확인):
-//   gradeId 1: 새싹   0~449   #FF4D4D
-//   gradeId 2: 스타터 450~649 #FF9F40
-//   gradeId 3: 플러스 650~749 #FFD400
-//   gradeId 4: 프로   750~899 #4CAF50
-//   gradeId 5: 마스터 900~1000 #2196F3
-// ==================================================================
 const GRADE_ID_META = {
   1: { headline: '이제 막 시작하는 단계예요',
     perks: ['결제할 때 보호자 승인이 필요해요', '조금씩 점수를 올려봐요'] },
@@ -208,7 +204,6 @@ async function loadData() {
 
 onMounted(loadData)
 
-// 화면 표시(등급 안내 리스트)는 높은 점수 -> 낮은 점수 순으로 보여줘야 하므로 역순
 const gradesDesc = computed(() => [...gradesAsc.value].reverse())
 
 const SCORE_MIN = computed(() => gradesAsc.value[0]?.min ?? 0)
@@ -219,23 +214,19 @@ const currentGradeInfo = computed(
 )
 const currentGradeIdxAsc = computed(() => gradesAsc.value.findIndex((g) => g.label === grade.value))
 
-// 다음 등급까지 남은 점수 (gradesAsc가 오름차순이므로 다음 등급은 idx+1)
 const nextGradeGap = computed(() => {
   const idx = currentGradeIdxAsc.value
-  if (idx < 0 || idx >= gradesAsc.value.length - 1) return null // 최고 등급
+  if (idx < 0 || idx >= gradesAsc.value.length - 1) return null
   const nextGrade = gradesAsc.value[idx + 1]
   return nextGrade.min - score.value
 })
 
-// 트랙 위 포인터 위치 (0~100%, 점수 비율 기준)
 const thumbPercent = computed(() => {
   const total = SCORE_MAX.value - SCORE_MIN.value
   if (total <= 0) return 0
   return Math.min(100, Math.max(0, ((score.value - SCORE_MIN.value) / total) * 100))
 })
 
-// 등급별 트랙 배경 너비 (실제 점수 범위 비율 기준 — 균등분할 아님)
-// 라벨도 같은 너비로 맞춰서 트랙 세그먼트와 정확히 정렬되도록 함
 const segmentWidths = computed(() => {
   const total = SCORE_MAX.value - SCORE_MIN.value
   if (total <= 0) return []
@@ -337,7 +328,7 @@ function goBack() {
   color: #b9bec5;
 }
 
-/* 현재 등급 섹션 (카드 없이 자연스럽게) */
+/* 현재 등급 섹션 */
 .current-section {
   display: flex;
   flex-direction: column;
@@ -441,9 +432,6 @@ function goBack() {
   height: 100%;
 }
 
-/* 트랙 배경(padding-top 14px 이후 높이 10px)의 정중앙에 오도록
-   top: 14px(패딩) + 5px(트랙 높이 절반) = 19px 지점에 두고
-   translate(-50%, -50%)로 가로/세로 모두 그 지점 중심에 맞춤 */
 .segment-pointer {
   position: absolute;
   top: 19px;
@@ -589,5 +577,4 @@ function goBack() {
   line-height: 17px;
   color: #b9bec5;
 }
-
 </style>
