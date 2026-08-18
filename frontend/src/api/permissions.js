@@ -40,6 +40,42 @@ export async function getPermissions(accessToken, childId) {
   return result
 }
 
+// 오늘만 허용 요청 현황 조회 (이번 달 요청 일수, 남은 일수, 카테고리별 상태)
+export async function getPermissionStatus(accessToken, childId) {
+  ensureAccessToken(accessToken)
+
+  const params = new URLSearchParams()
+  if (childId) {
+    params.set('childId', String(childId))
+  }
+
+  const query = params.toString()
+  const url = query
+    ? `${API_BASE_URL}/api/v1/permissions/status?${query}`
+    : `${API_BASE_URL}/api/v1/permissions/status`
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  let result
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || '오늘만 허용 현황을 불러오지 못했습니다.')
+  }
+
+  return result
+}
+
 // 오늘만 허용 요청 이력 조회
 export async function getPermissionHistory(accessToken, childId) {
   ensureAccessToken(accessToken)
@@ -163,8 +199,8 @@ export async function requestPermission(accessToken, { categories, reason }) {
   return result
 }
 
-// 오늘만 허용 요청 수정
-export async function updatePermission(accessToken, permissionId, { categories, reason }) {
+// 오늘만 허용 요청 수정 (사유만 수정 가능)
+export async function updatePermission(accessToken, permissionId, reason) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
@@ -176,11 +212,10 @@ export async function updatePermission(accessToken, permissionId, { categories, 
         Accept: 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ categories, reason }),
+      body: JSON.stringify({ reason }),
     }
   )
 
-  // 204 No Content면 body가 없을 수 있음
   if (response.status === 204) return { success: true, data: null }
 
   let result
