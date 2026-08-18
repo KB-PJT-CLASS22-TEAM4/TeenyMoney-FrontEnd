@@ -78,91 +78,83 @@
       v-else
       class="content"
     >
-      <div
-        v-for="place in filteredPlaces"
-        :key="place.id"
-        class="place-card"
+      <section
+        v-for="group in filteredGroups"
+        :key="group.name"
+        class="place-group"
       >
+        <button
+          class="toggle-header"
+          type="button"
+          :aria-expanded="isGroupExpanded(group.name)"
+          @click="toggleGroup(group.name)"
+        >
+          <p class="group-title">
+            {{ group.name }}
+          </p>
+          <span class="toggle-count">
+            {{ group.items.length }}
+          </span>
+          <img
+            src="@/assets/icons/icon-chevron.svg"
+            alt=""
+            class="toggle-chevron"
+            :class="{ open: isGroupExpanded(group.name) }"
+          />
+        </button>
 
-        <p class="place-name">
-          {{ place.merchantCategoryName }}
-        </p>
-
-
-        <div class="place-btns">
-
-          <!-- 허용 -->
-          <button
-            class="status-btn"
-            :class="{
-              'active-allow':
-                place.policy === 'ALLOW'
-            }"
-            @click="setStatus(
-              place.id,
-              'ALLOW'
-            )"
+        <div
+          v-if="isGroupExpanded(group.name)"
+          class="toggle-body"
+        >
+          <div
+            v-for="place in group.items"
+            :key="place.id"
+            class="place-card"
           >
-            <span
-              v-if="place.policy === 'ALLOW'"
-            >
-              ✓
-            </span>
+            <p class="place-name">
+              {{ place.categoryName }}
+            </p>
 
-            허용
-          </button>
+            <div class="place-btns">
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-allow': place.policy === 'ALLOW' }"
+                @click="setStatus(place.id, 'ALLOW')"
+              >
+                <span v-if="place.policy === 'ALLOW'">✓</span>
+                허용
+              </button>
 
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-caution': place.policy === 'CAUTION' }"
+                @click="setStatus(place.id, 'CAUTION')"
+              >
+                <span v-if="place.policy === 'CAUTION'">✓</span>
+                주의
+              </button>
 
-          <!-- 주의 -->
-          <button
-            class="status-btn"
-            :class="{
-              'active-caution':
-                place.policy === 'CAUTION'
-            }"
-            @click="setStatus(
-              place.id,
-              'CAUTION'
-            )"
-          >
-            <span
-              v-if="place.policy === 'CAUTION'"
-            >
-              ✓
-            </span>
-
-            주의
-          </button>
-
-
-          <!-- 차단 -->
-          <button
-            class="status-btn"
-            :class="{
-              'active-block':
-                place.policy === 'BLOCK'
-            }"
-            @click="setStatus(
-              place.id,
-              'BLOCK'
-            )"
-          >
-            <span
-              v-if="place.policy === 'BLOCK'"
-            >
-              ✓
-            </span>
-
-            차단
-          </button>
-
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-block': place.policy === 'BLOCK' }"
+                @click="setStatus(place.id, 'BLOCK')"
+              >
+                <span v-if="place.policy === 'BLOCK'">✓</span>
+                차단
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
 
       <!-- 검색 결과 없음 -->
       <div
-        v-if="filteredPlaces.length === 0"
+        v-if="filteredGroups.length === 0"
         class="empty-box"
       >
         검색 결과가 없습니다.
@@ -208,7 +200,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 
 import {
-  getCategoryPolicies,
+  getCategoryPolicyParentGroups,
   updateCategoryPolicies,
 } from '@/api/categoryPolicy'
 
@@ -241,7 +233,7 @@ const childId = ref(
 // 상태값
 // ========================================
 
-const places = ref([])
+const parentGroups = ref([])
 
 const searchQuery = ref('')
 
@@ -250,29 +242,48 @@ const isSaving = ref(false)
 
 const errorMessage = ref('')
 
+const allPlaces = computed(() =>
+  parentGroups.value.flatMap((group) => group.items)
+)
 
-// ========================================
-// 검색
-// ========================================
-
-const filteredPlaces = computed(() => {
-
-  const keyword =
-    searchQuery.value
-      .trim()
-      .toLowerCase()
+const filteredGroups = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase()
 
   if (!keyword) {
-    return places.value
+    return parentGroups.value
   }
 
-  return places.value.filter(
-    place =>
-      place.merchantCategoryName
-        ?.toLowerCase()
-        .includes(keyword)
-  )
+  return parentGroups.value
+    .map((group) => {
+      if (group.name?.toLowerCase().includes(keyword)) {
+        return group
+      }
+
+      return {
+        ...group,
+        items: group.items.filter((item) =>
+          item.categoryName?.toLowerCase().includes(keyword)
+        ),
+      }
+    })
+    .filter((group) => group.items.length > 0)
 })
+
+const expandedGroups = ref({})
+
+function isGroupExpanded(name) {
+  if (searchQuery.value.trim()) return true
+  return !!expandedGroups.value[name]
+}
+
+function toggleGroup(name) {
+  if (searchQuery.value.trim()) return
+
+  expandedGroups.value = {
+    ...expandedGroups.value,
+    [name]: !expandedGroups.value[name],
+  }
+}
 
 
 // ========================================
@@ -314,7 +325,7 @@ async function fetchPlaces() {
 
 
     const res =
-      await getCategoryPolicies(
+      await getCategoryPolicyParentGroups(
         authStore.accessToken,
         childId.value
       )
@@ -326,23 +337,16 @@ async function fetchPlaces() {
     )
 
 
-    if (
-      res.success &&
-      Array.isArray(res.data)
-    ) {
-
-      places.value =
-        res.data.map(item => ({
-          id: item.id,
-          merchantCategoryName: item.categoryName,
-          policy: item.policy,
+    parentGroups.value = Array.isArray(res.data)
+      ? res.data.map((group) => ({
+          name: group.name,
+          items: (group.categoryPolicyList || []).map((item) => ({
+            id: item.id,
+            categoryName: item.categoryName,
+            policy: item.policy,
+          })),
         }))
-
-    } else {
-
-      places.value = []
-
-    }
+      : []
 
 
   } catch (error) {
@@ -389,7 +393,7 @@ async function fetchPlaces() {
 function setStatus(id, policy) {
 
   const place =
-    places.value.find(
+    allPlaces.value.find(
       item => item.id === id
     )
 
@@ -468,7 +472,7 @@ async function handleSave() {
      * id + policy만 전송
      */
     const categoryPolicyList =
-      places.value.map(
+      allPlaces.value.map(
         place => ({
           id: place.id,
           policy: place.policy,
@@ -579,10 +583,11 @@ onMounted(() => {
 
 .page {
   position: relative;
-  width: 360px;
+  width: 100%;
+  max-width: 430px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding-bottom: 150px;
+  padding-bottom: 160px;
   background-color: #ffffff;
   color: #191b1e;
   display: flex;
@@ -719,12 +724,64 @@ onMounted(() => {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 18px;
   padding: 0 16px;
 }
 
+.place-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.group-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: #191b1e;
+}
+
+.toggle-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b9097;
+}
+
+.toggle-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.toggle-chevron.open {
+  transform: rotate(90deg);
+}
+
+.toggle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .place-card {
-  padding: 16px;
+  padding: 14px;
   border-radius: 16px;
   border: 1px solid #eaedf1;
   background-color: #ffffff;
@@ -732,25 +789,28 @@ onMounted(() => {
 }
 
 .place-name {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   font-size: 15px;
   font-weight: 700;
 }
 
 .place-btns {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .status-btn {
   flex: 1;
-  height: 44px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 4px;
   border: none;
   border-radius: 24px;
   background-color: #f4f5f7;
   color: #8b9097;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -776,19 +836,25 @@ onMounted(() => {
 
 .footer {
   position: fixed;
-  bottom: 90px;
-  left: 50%;
+  bottom: 70px;
+  left: 0;
+  right: 0;
   z-index: 99;
   width: 100%;
-  max-width: 360px;
-  padding: 0 16px;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 12px 16px;
   box-sizing: border-box;
-  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    #ffffff 28%
+  );
 }
 
 .submit-btn {
   width: 100%;
-  height: 54px;
+  height: 52px;
   border: none;
   border-radius: 12px;
   background-color: #ffbc00;

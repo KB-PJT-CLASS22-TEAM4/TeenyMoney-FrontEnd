@@ -47,81 +47,67 @@
       </div>
 
 
-      <!-- 정책 목록 -->
+      <!-- 정책 목록: 허용/주의/차단 → 상위 토글 → 하위 조회 -->
       <div v-else>
-
-        <!-- 허용 -->
-        <div class="policy-card">
-
-          <p class="policy-label allow">
-            ✓ 허용
-          </p>
-
+        <div
+          v-for="section in policySections"
+          :key="section.key"
+          class="policy-card"
+        >
           <p
-            v-for="item in allowList"
-            :key="item.id"
-            class="policy-item"
+            class="policy-label"
+            :class="policyClass(section.key)"
           >
-            {{ item.categoryName }}
+            {{ section.label }}
           </p>
 
           <p
-            v-if="allowList.length === 0"
+            v-if="section.groups.length === 0"
             class="empty-policy"
           >
             설정된 업종이 없습니다.
           </p>
 
-        </div>
-
-
-        <!-- 주의 -->
-        <div class="policy-card">
-
-          <p class="policy-label caution">
-            ⚠ 주의
-          </p>
-
-          <p
-            v-for="item in cautionList"
-            :key="item.id"
-            class="policy-item"
+          <div
+            v-for="group in section.groups"
+            :key="group.name"
+            class="toggle-group"
           >
-            {{ item.categoryName }}
-          </p>
+            <button
+              class="toggle-header"
+              type="button"
+              :aria-expanded="isPolicyGroupExpanded(section.key, group.name)"
+              @click="togglePolicyGroup(section.key, group.name)"
+            >
+              <span class="toggle-title">
+                {{ group.name }}
+              </span>
+              <span class="toggle-count">
+                {{ group.items.length }}
+              </span>
+              <img
+                src="@/assets/icons/icon-chevron.svg"
+                alt=""
+                class="toggle-chevron"
+                :class="{
+                  open: isPolicyGroupExpanded(section.key, group.name),
+                }"
+              />
+            </button>
 
-          <p
-            v-if="cautionList.length === 0"
-            class="empty-policy"
-          >
-            설정된 업종이 없습니다.
-          </p>
-
-        </div>
-
-
-        <!-- 차단 -->
-        <div class="policy-card">
-
-          <p class="policy-label block">
-            🚫 차단
-          </p>
-
-          <p
-            v-for="item in blockList"
-            :key="item.id"
-            class="policy-item"
-          >
-            {{ item.categoryName }}
-          </p>
-
-          <p
-            v-if="blockList.length === 0"
-            class="empty-policy"
-          >
-            설정된 업종이 없습니다.
-          </p>
-
+            <div
+              v-if="isPolicyGroupExpanded(section.key, group.name)"
+              class="toggle-body"
+            >
+              <p
+                v-for="item in group.items"
+                :key="item.id"
+                class="policy-item"
+              >
+                {{ item.categoryName }}
+              </p>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -324,7 +310,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 import {
-  getCategoryPolicies
+  getCategoryPolicyParentGroups
 } from '@/api/categoryPolicy'
 
 import {
@@ -359,12 +345,52 @@ const childId = ref(
 // 카테고리 정책
 // ========================================
 
-const allowList = ref([])
-const cautionList = ref([])
-const blockList = ref([])
-
+const parentGroups = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+const POLICY_SECTIONS = [
+  { key: 'ALLOW', label: '허용' },
+  { key: 'CAUTION', label: '주의' },
+  { key: 'BLOCK', label: '차단' },
+]
+
+function policyClass(policy) {
+  if (policy === 'ALLOW') return 'allow'
+  if (policy === 'CAUTION') return 'caution'
+  if (policy === 'BLOCK') return 'block'
+  return ''
+}
+
+const policySections = computed(() =>
+  POLICY_SECTIONS.map((section) => ({
+    ...section,
+    groups: parentGroups.value
+      .map((group) => ({
+        name: group.name,
+        items: group.items.filter((item) => item.policy === section.key),
+      }))
+      .filter((group) => group.items.length > 0),
+  }))
+)
+
+const expandedPolicyGroups = ref({})
+
+function policyGroupKey(policy, name) {
+  return `${policy}:${name}`
+}
+
+function isPolicyGroupExpanded(policy, name) {
+  return !!expandedPolicyGroups.value[policyGroupKey(policy, name)]
+}
+
+function togglePolicyGroup(policy, name) {
+  const key = policyGroupKey(policy, name)
+  expandedPolicyGroups.value = {
+    ...expandedPolicyGroups.value,
+    [key]: !expandedPolicyGroups.value[key],
+  }
+}
 
 
 // ========================================
@@ -528,8 +554,8 @@ function mergePermissionRequests(currentList, historyList) {
 // ========================================
 // 카테고리 정책 조회
 //
-// GET /api/v1/category-policies?childId=...
-// data: [{ id, categoryName, policy }]
+// GET /api/v1/category-policies/parent-groups?childId=...
+// data: [{ name, categoryPolicyList: [{ id, categoryName, policy }] }]
 // ========================================
 
 async function fetchCategoryPolicies() {
@@ -556,7 +582,7 @@ async function fetchCategoryPolicies() {
     )
 
     const res =
-      await getCategoryPolicies(
+      await getCategoryPolicyParentGroups(
         authStore.accessToken,
         childId.value
       )
@@ -566,29 +592,16 @@ async function fetchCategoryPolicies() {
       res
     )
 
-    allowList.value = []
-    cautionList.value = []
-    blockList.value = []
-
-    if (
-      res.success &&
-      Array.isArray(res.data)
-    ) {
-      res.data.forEach((item) => {
-        const policyItem = {
-          id: item.id,
-          categoryName: item.categoryName,
-        }
-
-        if (item.policy === 'ALLOW') {
-          allowList.value.push(policyItem)
-        } else if (item.policy === 'CAUTION') {
-          cautionList.value.push(policyItem)
-        } else if (item.policy === 'BLOCK') {
-          blockList.value.push(policyItem)
-        }
-      })
-    }
+    parentGroups.value = Array.isArray(res.data)
+      ? res.data.map((group) => ({
+          name: group.name,
+          items: (group.categoryPolicyList || []).map((item) => ({
+            id: item.id,
+            categoryName: item.categoryName,
+            policy: item.policy,
+          })),
+        }))
+      : []
 
   } catch (error) {
 
@@ -813,14 +826,69 @@ onMounted(async () => {
   font-weight: 700;
 }
 
+.toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.toggle-title {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: #191b1e;
+}
+
+.toggle-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b9097;
+}
+
+.toggle-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.toggle-chevron.open {
+  transform: rotate(90deg);
+}
+
+.toggle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 0 6px 8px;
+}
+
+.policy-badge.allow,
 .policy-label.allow {
   color: #34c759;
 }
 
+.policy-badge.caution,
 .policy-label.caution {
   color: #ff9500;
 }
 
+.policy-badge.block,
 .policy-label.block {
   color: #ff3b30;
 }
@@ -829,7 +897,6 @@ onMounted(async () => {
   margin: 0;
   font-size: 14px;
   color: #191b1e;
-  padding-left: 8px;
 }
 
 .empty-policy {
