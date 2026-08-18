@@ -4,9 +4,7 @@
     <header class="nav">
       <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" @click="router.back()" />
       <h1 class="nav-title">자녀 목록</h1>
-      <button class="alarm-btn" type="button" aria-label="알림">
-        <img src="@/assets/icons/icon-notification.svg" alt="" class="alarm-icon" />
-      </button>
+      <ParentNavActions />
     </header>
     
     <div class="content">
@@ -67,6 +65,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'

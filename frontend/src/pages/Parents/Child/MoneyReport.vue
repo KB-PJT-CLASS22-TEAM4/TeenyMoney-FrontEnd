@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport } from '@/api/report'
 import { getChildren } from '@/api/children'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -348,6 +349,7 @@ onMounted(async () => {
       <h1 class="nav-title">
         {{ childName ? `${childName} 머니 리포트` : '머니 리포트' }}
       </h1>
+      <ParentNavActions />
     </header>
 
     <div v-if="loading" class="state-box">불러오는 중...</div>

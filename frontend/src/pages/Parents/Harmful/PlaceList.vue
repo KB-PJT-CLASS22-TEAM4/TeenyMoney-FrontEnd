@@ -17,6 +17,7 @@
       </button>
 
       <h1 class="nav-title">업종별 결제 설정</h1>
+      <ParentNavActions />
     </header>
 
 
@@ -189,6 +190,7 @@
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
