@@ -268,58 +268,47 @@
           </p>
 
           <p class="info-value">
-            {{
-              quest.latestVerification.attemptNo !== null &&
-              '-'
-            }}회
+            {{ formatAttemptCount(quest) }}
           </p>
         </div>
 
         <!-- 제출 -->
-        <template
-          v-if="
-            quest.latestVerification.submittedAt
-          "
-        >
-          <div class="divider"></div>
+        <div class="divider"></div>
 
-          <div class="info-row">
-            <p class="info-label">
-              제출 일시
-            </p>
+        <div class="info-row">
+          <p class="info-label">
+            제출 일시
+          </p>
 
-            <p class="info-value">
-              {{
-                formatDate(
-                  quest.latestVerification.submittedAt
+          <p class="info-value">
+            {{
+              formatDate(
+                getVerificationSubmittedAt(
+                  quest.latestVerification
                 )
-              }}
-            </p>
-          </div>
-        </template>
+              )
+            }}
+          </p>
+        </div>
 
         <!-- 검토 -->
-        <template
-          v-if="
-            quest.latestVerification.reviewedAt
-          "
-        >
-          <div class="divider"></div>
+        <div class="divider"></div>
 
-          <div class="info-row">
-            <p class="info-label">
-              검토 일시
-            </p>
+        <div class="info-row">
+          <p class="info-label">
+            검토 일시
+          </p>
 
-            <p class="info-value">
-              {{
-                formatDate(
-                  quest.latestVerification.reviewedAt
+          <p class="info-value">
+            {{
+              formatDate(
+                getVerificationReviewedAt(
+                  quest.latestVerification
                 )
-              }}
-            </p>
-          </div>
-        </template>
+              )
+            }}
+          </p>
+        </div>
 
         <!-- 거절 사유 -->
         <template
@@ -1341,21 +1330,65 @@ function formatReward(
   ).toLocaleString()}원`
 }
 
+function parseDateValue(
+  value
+) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ''
+  ) {
+    return null
+  }
+
+  if (Array.isArray(value)) {
+    const [
+      year,
+      month,
+      day,
+      hour = 0,
+      minute = 0,
+      second = 0,
+    ] = value
+
+    const date = new Date(
+      year,
+      month - 1,
+      day,
+      hour,
+      minute,
+      second
+    )
+
+    return Number.isNaN(
+      date.getTime()
+    )
+      ? null
+      : date
+  }
+
+  const raw =
+    typeof value === 'string'
+      ? value.replace(' ', 'T')
+      : value
+
+  const date =
+    new Date(raw)
+
+  return Number.isNaN(
+    date.getTime()
+  )
+    ? null
+    : date
+}
+
 function formatDate(
   value
 ) {
-  if (!value) {
-    return '-'
-  }
-
   const date =
-    new Date(value)
+    parseDateValue(value)
 
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
+  if (!date) {
     return '-'
   }
 
@@ -1373,21 +1406,61 @@ function formatDate(
     .format(date)
 }
 
+function formatAttemptCount(
+  questData
+) {
+  const verification =
+    questData?.latestVerification
+
+  const count =
+    verification?.attemptNo ??
+    verification?.attemptCount ??
+    verification?.attempt ??
+    questData?.attemptNo ??
+    questData?.attemptCount
+
+  if (
+    count === null ||
+    count === undefined ||
+    count === ''
+  ) {
+    return '-회'
+  }
+
+  return `${count}회`
+}
+
+function getVerificationSubmittedAt(
+  verification
+) {
+  return (
+    verification?.submittedAt ??
+    verification?.createdAt ??
+    verification?.submittedDate ??
+    verification?.createdDate ??
+    null
+  )
+}
+
+function getVerificationReviewedAt(
+  verification
+) {
+  return (
+    verification?.reviewedAt ??
+    verification?.processedAt ??
+    verification?.updatedAt ??
+    verification?.reviewedDate ??
+    null
+  )
+}
+
 function toLocalDatetime(
   value
 ) {
-  if (!value) {
-    return ''
-  }
-
   const date =
-    new Date(value)
+    parseDateValue(value)
 
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
+  if (!date) {
     return ''
   }
 
