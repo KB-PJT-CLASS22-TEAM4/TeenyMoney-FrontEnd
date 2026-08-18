@@ -84,6 +84,7 @@
         class="place-group"
       >
         <button
+          v-if="!isFlatGroup(group)"
           class="toggle-header"
           type="button"
           :aria-expanded="isGroupExpanded(group.name)"
@@ -104,7 +105,7 @@
         </button>
 
         <div
-          v-if="isGroupExpanded(group.name)"
+          v-if="isFlatGroup(group) || isGroupExpanded(group.name)"
           class="toggle-body"
         >
           <div
@@ -130,10 +131,10 @@
               <button
                 class="status-btn"
                 type="button"
-                :class="{ 'active-caution': place.policy === 'CAUTION' }"
-                @click="setStatus(place.id, 'CAUTION')"
+                :class="{ 'active-caution': isCaution(place.policy) }"
+                @click="setStatus(place.id, 'WATCH')"
               >
-                <span v-if="place.policy === 'CAUTION'">✓</span>
+                <span v-if="isCaution(place.policy)">✓</span>
                 주의
               </button>
 
@@ -270,6 +271,14 @@ const filteredGroups = computed(() => {
 })
 
 const expandedGroups = ref({})
+
+function isCaution(policy) {
+  return policy === 'WATCH' || policy === 'CAUTION'
+}
+
+function isFlatGroup(group) {
+  return group.name === '기타'
+}
 
 function isGroupExpanded(name) {
   if (searchQuery.value.trim()) return true

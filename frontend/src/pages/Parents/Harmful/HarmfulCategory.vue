@@ -68,46 +68,63 @@
             설정된 업종이 없습니다.
           </p>
 
-          <div
+          <template
             v-for="group in section.groups"
             :key="group.name"
-            class="toggle-group"
           >
-            <button
-              class="toggle-header"
-              type="button"
-              :aria-expanded="isPolicyGroupExpanded(section.key, group.name)"
-              @click="togglePolicyGroup(section.key, group.name)"
-            >
-              <span class="toggle-title">
-                {{ group.name }}
-              </span>
-              <span class="toggle-count">
-                {{ group.items.length }}
-              </span>
-              <img
-                src="@/assets/icons/icon-chevron.svg"
-                alt=""
-                class="toggle-chevron"
-                :class="{
-                  open: isPolicyGroupExpanded(section.key, group.name),
-                }"
-              />
-            </button>
-
             <div
-              v-if="isPolicyGroupExpanded(section.key, group.name)"
-              class="toggle-body"
+              v-if="isFlatGroup(group)"
+              class="flat-group"
             >
               <p
                 v-for="item in group.items"
                 :key="item.id"
-                class="policy-item"
+                class="flat-item"
               >
                 {{ item.categoryName }}
               </p>
             </div>
-          </div>
+
+            <div
+              v-else
+              class="toggle-group"
+            >
+              <button
+                class="toggle-header"
+                type="button"
+                :aria-expanded="isPolicyGroupExpanded(section.key, group.name)"
+                @click="togglePolicyGroup(section.key, group.name)"
+              >
+                <span class="toggle-title">
+                  {{ group.name }}
+                </span>
+                <span class="toggle-count">
+                  {{ group.items.length }}
+                </span>
+                <img
+                  src="@/assets/icons/icon-chevron.svg"
+                  alt=""
+                  class="toggle-chevron"
+                  :class="{
+                    open: isPolicyGroupExpanded(section.key, group.name),
+                  }"
+                />
+              </button>
+
+              <div
+                v-if="isPolicyGroupExpanded(section.key, group.name)"
+                class="toggle-body"
+              >
+                <p
+                  v-for="item in group.items"
+                  :key="item.id"
+                  class="policy-item"
+                >
+                  {{ item.categoryName }}
+                </p>
+              </div>
+            </div>
+          </template>
         </div>
 
       </div>
@@ -355,11 +372,19 @@ const POLICY_SECTIONS = [
   { key: 'BLOCK', label: '차단' },
 ]
 
+function normalizePolicy(policy) {
+  return policy === 'WATCH' ? 'CAUTION' : policy
+}
+
 function policyClass(policy) {
   if (policy === 'ALLOW') return 'allow'
-  if (policy === 'CAUTION') return 'caution'
+  if (policy === 'CAUTION' || policy === 'WATCH') return 'caution'
   if (policy === 'BLOCK') return 'block'
   return ''
+}
+
+function isFlatGroup(group) {
+  return group.name === '기타'
 }
 
 const policySections = computed(() =>
@@ -368,7 +393,9 @@ const policySections = computed(() =>
     groups: parentGroups.value
       .map((group) => ({
         name: group.name,
-        items: group.items.filter((item) => item.policy === section.key),
+        items: group.items.filter(
+          (item) => normalizePolicy(item.policy) === section.key
+        ),
       }))
       .filter((group) => group.items.length > 0),
   }))
@@ -876,6 +903,20 @@ onMounted(async () => {
   flex-direction: column;
   gap: 6px;
   padding: 0 0 6px 8px;
+}
+
+.flat-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flat-item {
+  margin: 0;
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #191b1e;
 }
 
 .policy-badge.allow,
