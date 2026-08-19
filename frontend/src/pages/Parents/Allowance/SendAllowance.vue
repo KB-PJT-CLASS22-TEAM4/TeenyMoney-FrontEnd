@@ -708,7 +708,7 @@ button {
   color: #a1a1aa;
 }
 
-/* 보내기 버튼 -->
+/* 보내기 버튼 */
 .submit-btn {
   width: 100%;
   height: 52px;
