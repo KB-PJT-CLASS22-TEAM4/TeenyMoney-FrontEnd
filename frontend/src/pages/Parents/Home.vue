@@ -192,22 +192,12 @@
 
 
 <script setup>
-import {
-  onActivated,
-import AlertHost from '@/components/AlertHost.vue'
-import { useAlertModal } from '@/composables/useAlertModal'
-import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
-
-import {
-  computed,
-  onMounted,
-  reactive,
-  ref,
-} from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet } from '@/api/wallet'
 import { useParentRequests } from '@/composables/useParentRequests'
+import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
 import { PARENT_PROFILE_IMAGE } from '@/utils/profileImages'
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
