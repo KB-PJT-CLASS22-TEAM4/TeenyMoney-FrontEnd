@@ -87,11 +87,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
-import {
-  getMyNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '@/api/notification'
+import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notification'
+import { getChildren } from '@/api/children'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -124,9 +121,31 @@ function isTodayAllowNotification(n) {
   return /오늘만\s*허용/.test(`${n.title || ''} ${n.detail || ''}`)
 }
 
-function goToReference(n) {
+function goToHarmfulCategory(childId) {
+  router.push({
+    name: 'parents-harmful-category',
+    query: childId ? { childId } : {},
+  })
+}
+
+async function goToTodayAllow(n) {
+  const fromNoti = n.childId ?? n.referenceId
+
+  try {
+    const res = await getChildren(authStore.accessToken)
+    const children = Array.isArray(res?.data) ? res.data : []
+    const matched = children.find(
+      (child) => Number(child.childId) === Number(fromNoti)
+    )
+    goToHarmfulCategory(matched?.childId ?? children[0]?.childId ?? fromNoti)
+  } catch {
+    goToHarmfulCategory(fromNoti)
+  }
+}
+
+async function goToReference(n) {
   if (isTodayAllowNotification(n)) {
-    router.push({ name: 'parents-request-list' })
+    await goToTodayAllow(n)
     return
   }
   if (n.referenceType === 'PAYMENT') {
@@ -221,6 +240,7 @@ function mapNotification(n) {
     read: n.isRead,
     referenceType: n.referenceType,
     referenceId: n.referenceId,
+    childId: n.childId ?? n.child?.childId ?? n.child?.id ?? null,
     icon: getIcon(n.referenceType),
     createdDate,
     dateLabel: createdDate ? formatDateLabel(createdDate) : '',
@@ -308,7 +328,7 @@ async function readOne(n) {
     }
   }
 
-  goToReference(n)
+  await goToReference(n)
 }
 
 onMounted(() => {
