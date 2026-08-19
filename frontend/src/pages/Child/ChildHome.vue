@@ -160,6 +160,7 @@
             :key="item.id"
             class="schedule-row"
             :class="{ 'border-top': idx > 0 }"
+            @click="goToScheduleItem(item)"
           >
             <!-- 캘린더형 날짜 타일 (신호등 테마) -->
             <div class="schedule-date-tile" :class="`tile--${item.badgeTheme}`">
@@ -282,15 +283,46 @@ function goScore()        { router.push({ name: 'child-score' }) }
 function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
 function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
 
+// 다가오는 일정 카드 클릭 시 — 퀘스트는 퀘스트 상세로, 금융상품은 나의 상품 목록으로 이동
+function goToScheduleItem(item) {
+  if (item.scheduleType === 'quest') {
+    router.push({ name: 'child-quest-detail', params: { questId: item.questId } })
+  } else {
+    router.push({ name: 'child-finance-myproducts' })
+  }
+}
+
 // ==== 오늘만 허용 매핑 정보 ====
-// CATEGORY_LABELS는 더 이상 필요 없음 — API가 category를 이미 이름 문자열로 내려줌
+const CATEGORY_LABELS = {
+  1: '편의점',
+  2: '카페·디저트',
+  3: '문구·도서·완구',
+  4: '게임',
+  5: 'PC방·노래방',
+  6: '패션·뷰티',
+  7: '대중교통',
+  8: '통신',
+  9: '영화·공연·테마파크',
+  10: '온라인쇼핑',
+  11: '학원·교육',
+  12: '유흥·성인업소',
+  13: '사행성·도박',
+  14: '성인숙박업',
+  15: '일반숙박업',
+  16: '생활용품·잡화',
+  17: '외식·숙박',
+  18: '의료·건강',
+  19: '문화·여가',
+  20: '생활서비스',
+  21: '기타',
+}
 
 const allowRequests = computed(() => {
   const list = allowStore.todayPermission
   if (!Array.isArray(list) || list.length === 0) return []
   return list.map(item => ({
     id: item.id,
-    label: item.category,   // 예: "PC방·노래방"
+    label: item.category,   // 이미 "PC방·노래방" 같은 이름 문자열
     status: item.status,    // PENDING / APPROVED / REJECTED
   }))
 })
@@ -470,6 +502,7 @@ function mapToScheduleItem(p) {
     typeLabel,
     badgeTheme,
     diffDays,
+    scheduleType: 'finance',
   }
 }
 
@@ -494,6 +527,8 @@ function mapToQuestScheduleItem(q) {
     typeLabel: '퀘스트',
     badgeTheme: 'purple',
     diffDays,
+    scheduleType: 'quest',
+    questId: q.questId,
   }
 }
 
@@ -605,7 +640,7 @@ onMounted(async () => {
       .slice(0, 3)
 
     // 오늘만 허용 상태 데이터 패치
-    await allowStore.fetchTodayPermission(authStore.accessToken , authStore.memberId)
+    await allowStore.fetchTodayPermission(authStore.accessToken)
   } catch (e) {
     console.error('홈 데이터 조회 실패:', e.message)
   }
@@ -1126,6 +1161,7 @@ function onTabSelect(key) {
   display: flex;
   align-items: center;
   padding: 12px 0;
+  cursor: pointer;
 }
 
 .schedule-row.border-top {
