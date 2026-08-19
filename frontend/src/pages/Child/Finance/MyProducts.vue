@@ -29,6 +29,7 @@ const interestTypeMap = { SIMPLE: '단리', COMPOUND: '복리' }
 const savingsTypeMap = { FREE: '자유적금', FIXED: '정액적금' }
 const repaymentTypeMap = {
   EQUAL_PRINCIPAL_AND_INTEREST: '원리금균등',
+  EQUAL_PRINCIPAL_INTEREST: '원리금균등',
   EQUAL_PRINCIPAL: '원금균등',
   BULLET: '만기일시',
   LUMP_SUM: '만기일시'
