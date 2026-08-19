@@ -100,6 +100,9 @@ async function onToggleNotification(key, value) {
   }
 }
 
+// 결제 비밀번호 설정 여부
+const isPasswordSet = ref(false);
+
 onMounted(async () => {
   try {
     const data = await getMyInfo(authStore.accessToken);   // 토큰 넘김
@@ -110,6 +113,8 @@ onMounted(async () => {
       email: data.email,
       profileImageUrl: data.profileImageUrl || '',
     };
+    // 결제 비밀번호가 등록되어 있는지 체크
+    isPasswordSet.value = data.paymentPassword != null || data.hasPaymentPassword === true;
   } catch (e) {                 // try/catch로 실패 처리
     console.log('회원정보 조회 실패:', e.message);
   }
@@ -178,6 +183,7 @@ function editEmail() {
 }
 
 function goPasswordSetting() {
+  if (isPasswordSet.value) return;
   // 결제 비밀번호 설정
   router.push({ name: 'child-password-setting' });
 }
@@ -319,9 +325,14 @@ function onScroll() {
       <hr class="divider" />
 
       <!-- 결제 비밀번호 설정 -->
-      <div class="menu-row" @click="goPasswordSetting">
+      <div class="menu-row" :class="{ 'is-locked': isPasswordSet }" @click="goPasswordSetting">
         <span class="menu-title">결제 비밀번호 설정</span>
-        <span class="chev">›</span>
+        <svg v-if="isPasswordSet" viewBox="0 0 24 24" width="18" height="18" fill="none" class="lock-ic" aria-label="설정 완료">
+          <rect x="5" y="11" width="14" height="9" rx="2" stroke="#94a3b8" stroke-width="2"/>
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#94a3b8" stroke-width="2"/>
+          <circle cx="12" cy="15.5" r="1.2" fill="#94a3b8"/>
+        </svg>
+        <span v-else class="chev">›</span>
       </div>
 
       <!-- 연결된 부모님 -->
@@ -618,6 +629,15 @@ function onScroll() {
   align-items: center;
   padding: 14px 0;
   cursor: pointer;
+}
+
+.menu-row.is-locked {
+  cursor: default;
+}
+
+.lock-ic {
+  flex-shrink: 0;
+  margin-right: 4px;
 }
 
 .menu-title {

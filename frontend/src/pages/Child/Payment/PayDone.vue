@@ -1,48 +1,61 @@
 <template>
   <div class="pay-done-screen">
     <div class="body">
-      <!-- 완료 체크 아이콘 + 파티클 애니메이션 -->
+      <!-- 상단 체크 아이콘 & 축하 모션 -->
       <div class="icon-container">
-        <span v-for="n in 8" :key="n" :class="`spark spark-${n}`"></span>
+        <span v-for="n in 6" :key="n" :class="`spark spark-${n}`"></span>
         <div class="icon-wrap">
-          <svg viewBox="0 0 24 24" width="38" height="38" fill="none">
-            <path d="M5 12.5l4.5 4.5L19 7" stroke="#ffffff" stroke-width="3"
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none">
+            <path d="M5 12.5l4.5 4.5L19 7" stroke="#15171b" stroke-width="2.8"
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </div>
 
-      <p class="done-msg">결제가 완료되었어요!</p>
-      <p class="amount">{{ amount.toLocaleString() }}원</p>
-
-      <!-- 가맹점 카드 -->
-      <div class="card store-card">
-        <span class="store-name">{{ store.name }}</span>
+      <!-- 타이틀 & 결제 금액 -->
+      <div class="head-area">
+        <p class="done-msg">결제가 완료되었어요</p>
+        <h2 class="amount">{{ amount.toLocaleString() }}<span class="unit">원</span></h2>
       </div>
 
-      <!-- 정보 카드 -->
+      <!-- 결제 상세 정보 카드 -->
       <div class="card info-card">
+        <!-- 가맹점 -->
+        <div class="info-row">
+          <span class="info-label">사용처</span>
+          <span class="info-value store-name">{{ store.name }}</span>
+        </div>
+
+        <!-- 결제 일시 -->
         <div class="info-row">
           <span class="info-label">결제 일시</span>
           <span class="info-value">{{ paidAt }}</span>
         </div>
-        <div class="info-row">
+
+        <!-- 업종 / 카테고리 -->
+        <div v-if="category" class="info-row">
           <span class="info-label">업종</span>
-          <span class="info-value cat-value">
+          <span class="info-value cat-badge">
             <span class="cat-dot"></span>
-            <span class="cat-name">{{ category }}</span>
+            {{ category }}
           </span>
         </div>
-        <div class="info-row no-border">
-          <span class="info-label">남은 잔액</span>
-          <span class="info-value">{{ balance.toLocaleString() }}원</span>
+
+        <!-- 결제 후 잔액 -->
+        <div class="info-row no-border balance-row">
+          <span class="info-label">결제 후 잔액</span>
+          <span class="info-value balance-value">{{ balance.toLocaleString() }}원</span>
         </div>
       </div>
 
-      <!-- 하단 버튼 -->
+      <!-- 하단 버튼 영역 -->
       <div class="btns">
-        <button class="btn-primary" @click="goHome">확인</button>
-        <button class="btn-secondary" @click="goHistory">내역 보기</button>
+        <button class="btn-primary" type="button" @click="goHome">
+          확인
+        </button>
+        <button class="btn-secondary" type="button" @click="goHistory">
+          결제내역 보기
+        </button>
       </div>
     </div>
   </div>
@@ -64,8 +77,7 @@ const amount = ref(result?.amount ?? 0)
 const category = ref(result?.categoryPolicy?.categoryName ?? '')
 const balance = ref(result?.balance ?? 0)
 
-// createdAt이 ISO 문자열("2026-08-11T08:22:02.126Z") 또는
-// 배열([year, month, day, hour, minute, second]) 형태로 올 수 있어 둘 다 처리
+// createdAt 포맷팅
 const paidAt = ref(formatPaidAt(result?.createdAt))
 
 function formatPaidAt(value) {
@@ -73,7 +85,6 @@ function formatPaidAt(value) {
 
   let d
   if (Array.isArray(value)) {
-    // [year, month(1~12), day, hour, minute, second] → JS Date는 month가 0부터 시작이라 -1 보정
     const [year, month, day, hour = 0, minute = 0, second = 0] = value
     d = new Date(year, month - 1, day, hour, minute, second)
   } else {
@@ -93,10 +104,12 @@ function formatPaidAt(value) {
 }
 
 function goHome() {
+  paymentStore.reset()
   router.push({ name: 'child-home' })
 }
 
 function goHistory() {
+  paymentStore.reset()
   router.push({ name: 'child-transaction' })
 }
 </script>
@@ -110,8 +123,8 @@ function goHistory() {
   width: 360px;
   min-height: 730px;
   margin: 0 auto;
-  background: #ffffff;
-  border: 1px solid #eceef1;
+  background: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
 }
 
 .body {
@@ -121,18 +134,18 @@ function goHistory() {
   align-items: center;
   width: 100%;
   flex: 1;
-  padding: 60px 20px 24px;
+  padding: 130px 20px 28px;
 }
 
-/* 아이콘 + 파티클 */
+/* 상단 완료 아이콘 + 파티클 */
 .icon-container {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 180px;
-  height: 150px;  
-  margin-bottom: 0px;  
+  width: 120px;
+  height: 90px;
+  margin-bottom: 8px;
   flex-shrink: 0;
 }
 
@@ -140,85 +153,86 @@ function goHistory() {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   background: #ffbc00;
   border-radius: 50%;
-  animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+  box-shadow: 0 8px 20px rgba(255, 188, 0, 0.35);
+  animation: pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   z-index: 1;
 }
 
 @keyframes pop {
   0%   { transform: scale(0); opacity: 0; }
-  70%  { transform: scale(1.2); opacity: 1; }
+  70%  { transform: scale(1.15); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
 
 .spark {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   opacity: 0;
-  animation: burst 0.8s ease-out 0.3s forwards;
+  animation: burst 0.7s ease-out 0.25s forwards;
 }
 
-.spark-1 { background: #ff6b6b; --tx: 0px;   --ty: -75px; }
-.spark-2 { background: #ffd93d; --tx: 53px;  --ty: -53px; }
-.spark-3 { background: #6bcb77; --tx: 75px;  --ty: 0px;   }
-.spark-4 { background: #4d96ff; --tx: 53px;  --ty: 53px;  }
-.spark-5 { background: #ff6b6b; --tx: 0px;   --ty: 75px;  }
-.spark-6 { background: #ffd93d; --tx: -53px; --ty: 53px;  }
-.spark-7 { background: #6bcb77; --tx: -75px; --ty: 0px;   }
-.spark-8 { background: #4d96ff; --tx: -53px; --ty: -53px; }
+.spark-1 { background: #ffbc00; --tx: 0px;   --ty: -55px; }
+.spark-2 { background: #3b82f6; --tx: 44px;  --ty: -35px; }
+.spark-3 { background: #10b981; --tx: 50px;  --ty: 20px;  }
+.spark-4 { background: #f59e0b; --tx: 0px;   --ty: 55px;  }
+.spark-5 { background: #3b82f6; --tx: -44px; --ty: 35px;  }
+.spark-6 { background: #10b981; --tx: -50px; --ty: -20px; }
 
 @keyframes burst {
-  0%   { transform: translate(0, 0) scale(1);                                          opacity: 0; }
-  20%  { transform: translate(calc(var(--tx) * 0.3), calc(var(--ty) * 0.3)) scale(1); opacity: 1; }
-  100% { transform: translate(var(--tx), var(--ty)) scale(0);                          opacity: 0; }
+  0%   { transform: translate(0, 0) scale(1); opacity: 0; }
+  25%  { transform: translate(calc(var(--tx) * 0.4), calc(var(--ty) * 0.4)) scale(1.2); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+/* 타이틀 & 금액 영역 */
+.head-area {
+  text-align: center;
+  margin-bottom: 24px;
 }
 
 .done-msg {
   margin: 0 0 6px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 15px;
-  color: #15171b;
+  color: #64748b;
+  letter-spacing: -0.3px;
 }
 
 .amount {
-  margin: 0 0 24px;
-  font-weight: 600;
-  font-size: 34px;
-  letter-spacing: -1.5px;
-  color: #15171b;
+  margin: 0;
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -1px;
+  color: #0f172a;
 }
 
-/* 공통 카드 */
+.amount .unit {
+  font-size: 24px;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+/* 상세 정보 카드 */
 .card {
   box-sizing: border-box;
   width: 100%;
-  border: 1px solid #f0f1f3;
-  border-radius: 16px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid #f1f5f9;
 }
 
-/* 가맹점 카드 */
-.store-card {
-  display: flex;
-  align-items: center;
-  padding: 16px 16px 16px 29px;
-  margin-bottom: 12px;
-}
-
-.store-name {
-  font-weight: 700;
-  font-size: 14px;
-  color: #15171b;
-}
-
-/* 정보 카드 */
 .info-card {
   display: flex;
   flex-direction: column;
+  padding: 4px 16px;
   margin-bottom: 24px;
 }
 
@@ -226,8 +240,8 @@ function goHistory() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f1f3;
+  padding: 15px 4px;
+  border-bottom: 1px solid #f8fafc;
 }
 
 .info-row.no-border {
@@ -236,36 +250,58 @@ function goHistory() {
 
 .info-label {
   font-weight: 500;
-  font-size: 12.5px;
-  color: #8a9099;
+  font-size: 14px;
+  color: #64748b;
+  letter-spacing: -0.2px;
 }
 
 .info-value {
-  font-weight: 700;
-  font-size: 13.5px;
-  color: #15171b;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: #0f172a;
+  letter-spacing: -0.2px;
+  text-align: right;
 }
 
-.cat-value {
-  display: flex;
+.store-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.cat-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
+  padding: 3px 8px;
+  background: #fffdf2;
+  border: 1px solid #fef3c7;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b45309;
 }
 
 .cat-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background: #ffbc00;
 }
 
-.cat-name {
-  font-weight: 600;
-  font-size: 14px;
-  color: #191b1e;
+.balance-row {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  margin-top: 2px;
+  border-top: 1px dashed #e2e8f0;
 }
 
-/* 하단 버튼 */
+.balance-value {
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+/* 하단 버튼 영역 */
 .btns {
   display: flex;
   flex-direction: column;
@@ -276,30 +312,38 @@ function goHistory() {
 
 .btn-primary {
   width: 100%;
-  padding: 14px 0;
+  height: 52px;
   border: none;
-  border-radius: 14px;
+  border-radius: 16px;
   background: #ffbc00;
-  color: #15171b;
+  color: #191b1e;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 15.5px;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 188, 0, 0.3);
+  transition: background-color 0.15s ease, transform 0.08s ease;
+}
+
+.btn-primary:active {
+  background: #f5b300;
+  transform: scale(0.98);
 }
 
 .btn-secondary {
   width: 100%;
-  padding: 14px 0;
+  height: 48px;
   border: none;
-  border-radius: 14px;
-  background: #f3f4f6;
-  color: #15171b;
-  font-weight: 700;
-  font-size: 15px;
+  border-radius: 16px;
+  background: #edf2f7;
+  color: #475569;
+  font-weight: 600;
+  font-size: 14.5px;
   cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.08s ease;
 }
 
-.btn-primary:active,
 .btn-secondary:active {
-  filter: brightness(0.97);
+  background: #e2e8f0;
+  transform: scale(0.98);
 }
 </style>

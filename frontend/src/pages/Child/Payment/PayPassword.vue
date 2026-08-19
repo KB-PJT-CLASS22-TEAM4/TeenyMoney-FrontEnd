@@ -2,18 +2,19 @@
   <div class="pay-pw-screen">
     <!-- 상단 네비 -->
     <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="nav-placeholder"></div>
+      <h1 class="nav-title">결제 비밀번호</h1>
+      <button class="icon-btn close-btn" type="button" @click="cancelPayment" aria-label="결제 취소">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1 class="nav-title">결제 비밀번호</h1>
     </div>
 
     <!-- 자물쇠 + 안내 -->
     <div class="lock-area">
-         <div class="lock-icon">
-        <svg :class="{ shake: isError }" viewBox="0 0 24 24" width="40" height="40" fill="none">
+      <div class="lock-icon">
+        <svg :class="{ shake: isError }" viewBox="0 0 24 24" width="34" height="34" fill="none">
           <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#ffffff" stroke-width="1.8"/>
           <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffffff" stroke-width="1.8"/>
           <circle cx="12" cy="15" r="1.3" fill="#ffffff"/>
@@ -42,10 +43,10 @@
       </button>
       <span class="key empty"></span>
       <button class="key" @click="press('0')">0</button>
-      <button class="key" @click="remove" aria-label="지우기">
+      <button class="key" type="button" @click="remove" aria-label="지우기">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
-          <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z" stroke="#15171b" stroke-width="1.5" stroke-linejoin="round"/>
-          <path d="M13 9l4 4M17 9l-4 4" stroke="#15171b" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M13 9l4 6M17 9l-4 6" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
@@ -79,8 +80,9 @@ function remove() {
   pin.value = pin.value.slice(0, -1)
 }
 
-function goBack() {
-  router.push({ name: 'qr-scan' })
+function cancelPayment() {
+  paymentStore.reset()
+  router.push({ name: 'child-home' })
 }
 
 // 6자리 다 채워지면 결제 실행
@@ -119,8 +121,7 @@ function handleError(message) {
   min-height: 730px;
   margin: 0 auto;
   padding: 40px 0 30px;
-  background: #ffffff;
-  border: 1px solid #eceef1;
+  background: #f8fafc;
 }
 
 /* 상단 네비 */
@@ -129,8 +130,13 @@ function handleError(message) {
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   width: 100%;
   padding: 12px 20px;
+}
+
+.nav-placeholder {
+  width: 30px;
 }
 
 .icon-btn {
@@ -143,6 +149,7 @@ function handleError(message) {
   background: transparent;
   cursor: pointer;
   padding: 0;
+  z-index: 2;
 }
 
 .nav-title {
@@ -164,24 +171,26 @@ function handleError(message) {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-top: 40px;
+  margin-top: 54px;
 }
 
 .lock-icon {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 76px;
-  height: 76px;
+  width: 66px;
+  height: 66px;
   background: #ffbc00;
   border-radius: 50%;
 }
 
 .lock-text {
-  margin: 30px 0 0;
-  font-weight: 700;
-  font-size: 16px;
-  color: #15171b;
+  margin: 28px 0 0;
+  font-weight: 600;
+  font-size: 19px;
+  color: #0f172a;
+  letter-spacing: -0.4px;
+  text-align: center;
 }
 
 /* 6자리 점 */
@@ -195,15 +204,16 @@ function handleError(message) {
 }
 
 .dot {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #e5e7eb;
-  transition: background 0.15s;
+  background: #cbd5e1;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .dot.filled {
   background: #ffbc00;
+  transform: scale(1.05);
 }
 
 .dot.error {
@@ -247,7 +257,7 @@ function handleError(message) {
   align-items: center;
   width: 100%;
   max-width: 320px;
-  margin: 40px auto 0;
+  margin: 54px auto 0;
   padding: 0;
   gap: 8px 0;
   box-sizing: border-box;
@@ -264,11 +274,11 @@ function handleError(message) {
   padding: 0;
   border: none;
   background: transparent;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 26px;
   line-height: 1;
   text-align: center;
-  color: #15171b;
+  color: #0f172a;
   cursor: pointer;
   border-radius: 12px;
   appearance: none;
