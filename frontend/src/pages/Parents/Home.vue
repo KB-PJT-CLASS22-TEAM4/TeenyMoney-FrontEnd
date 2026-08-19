@@ -286,10 +286,10 @@ import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
+import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
 
 import {
   computed,
-  onActivated,
   onMounted,
   reactive,
   ref,
@@ -598,14 +598,13 @@ function formatTransactionDate(createdAt) {
   }).format(date)
 }
 
-onMounted(() => {
+function load() {
   fetchWallet()
   fetchPendingRequests()
-})
+}
 
-onActivated(() => {
-  fetchPendingRequests()
-})
+onMounted(load)
+useRefreshOnVisible(load)
 </script>
 
 
