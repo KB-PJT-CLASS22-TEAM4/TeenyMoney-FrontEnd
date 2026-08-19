@@ -50,12 +50,6 @@
         </div>
 
         <div v-if="activeApprovalTab === 'pending'">
-          <div
-            v-if="!filteredPendingApprovals.length"
-            class="empty-box"
-          >
-            승인 대기 중인 가입 신청이 없습니다.
-          </div>
 
           <div
             v-for="item in filteredPendingApprovals"
@@ -261,22 +255,6 @@ const groupedActiveProducts = computed(() => {
     label,
     items,
   }))
-})
-
-const emptyCategoryMessage = computed(() => {
-  if (activeCategory.value === '대출') {
-    return '자녀가 갖고 있는 대출이 없습니다'
-  }
-
-  if (activeCategory.value === '예금') {
-    return '자녀가 갖고 있는 예금이 없습니다'
-  }
-
-  if (activeCategory.value === '적금') {
-    return '자녀가 갖고 있는 적금이 없습니다'
-  }
-
-  return '등록된 금융 상품이 없습니다'
 })
 
 function formatPendingMeta(item) {
@@ -527,8 +505,8 @@ onMounted(async () => {
 }
 
 .pending-badge {
-  background: #eef2f7;
-  color: #8b9097;
+  background: #fff3e0;
+  color: #ff9500;
 }
 
 .completed-badge.approved {

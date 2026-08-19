@@ -86,6 +86,7 @@ onMounted(async () => {
 
       query: {
         amount,
+        childId,
         childName,
 
         createdAt:

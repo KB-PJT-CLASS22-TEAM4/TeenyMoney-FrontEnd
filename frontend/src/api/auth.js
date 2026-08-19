@@ -8,6 +8,24 @@ const BASE_URL = `${API_BASE_URL}/api/v1/auth`;
 
 console.log(import.meta.env.VITE_API_BASE_URL);
 
+async function parseJsonSafe(response) {
+  const text = await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function isApiSuccess(response, result) {
+  return response.ok && result?.success !== false;
+}
+
 // 이메일 중복 확인
 export async function checkEmail(email) {
   const res = await fetch(`${BASE_URL}/check-email?email=${email}`);
@@ -45,7 +63,15 @@ export async function confirmPhoneVerificationCode(
     }),
   });
 
-  return res.json();
+  const result = await parseJsonSafe(res);
+
+  if (!isApiSuccess(res, result)) {
+    throw new Error(
+      result?.message || '인증번호가 올바르지 않아요.',
+    );
+  }
+
+  return result ?? { success: true };
 }
 
 // 회원가입
@@ -130,5 +156,14 @@ export async function confirmGuardianVerification(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  return res.json();
+
+  const result = await parseJsonSafe(res);
+
+  if (!isApiSuccess(res, result)) {
+    throw new Error(
+      result?.message || '보호자 인증번호가 올바르지 않아요.',
+    );
+  }
+
+  return result ?? { success: true };
 }

@@ -111,14 +111,19 @@
 
       <!-- 비밀번호 변경 -->
       <section class="menu-card">
-        <button
-          type="button"
-          class="menu-button menu-border"
-          @click="goToPaymentPassword"
-        >
-          <span>결제 비밀번호 설정</span>
-          <span class="chevron">›</span>
-        </button>
+        <div class="payment-password-block menu-border">
+          <button
+            type="button"
+            class="menu-button"
+            @click="goToPaymentPassword"
+          >
+            <span>결제 비밀번호 설정</span>
+            <span class="chevron">›</span>
+          </button>
+          <p class="payment-password-current">
+            {{ hasPaymentPassword ? '설정됨' : '미설정' }}
+          </p>
+        </div>
 
         <button
           type="button"
@@ -235,16 +240,9 @@
           <button
             type="button"
             class="menu-button menu-border"
+            @click="goToFaq"
           >
-            <span>자주 묻는 질문</span>
-            <span class="chevron">›</span>
-          </button>
-
-          <button
-            type="button"
-            class="menu-button menu-border"
-          >
-            <span>문의하기</span>
+            <span>FAQ</span>
             <span class="chevron">›</span>
           </button>
 
@@ -337,6 +335,7 @@ const member = reactive({
   phoneNumber: '',
   birthDate: '',
   profileImageUrl: '',
+  hasPaymentPassword: false,
 })
 
 /* =========================
@@ -363,6 +362,8 @@ const formattedBirthDate = computed(() => {
 
   return member.birthDate.replaceAll('-', '.')
 })
+
+const hasPaymentPassword = computed(() => Boolean(member.hasPaymentPassword))
 
 /* =========================
    휴대폰 번호 포맷
@@ -422,6 +423,7 @@ async function fetchMyInfo() {
       birthDate: data.birthDate,
       profileImageUrl:
         data.profileImageUrl || '',
+      hasPaymentPassword: Boolean(data.hasPaymentPassword),
     })
 
     if (
@@ -583,6 +585,10 @@ function goToPasswordChange() {
 
 function goToPaymentPassword() {
   router.push({ name: 'parents-payment-password' })
+}
+
+function goToFaq() {
+  router.push({ name: 'parents-faq' })
 }
 
 /* =========================
@@ -907,6 +913,15 @@ button {
 
 .menu-border {
   border-bottom: 1px solid #f0f1f3;
+}
+
+.payment-password-current {
+  margin: -4px 0 0;
+  padding: 0 16px 12px;
+  color: #8b9097;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .chevron {

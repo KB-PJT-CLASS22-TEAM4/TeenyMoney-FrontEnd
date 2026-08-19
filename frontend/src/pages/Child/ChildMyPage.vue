@@ -145,10 +145,7 @@ router.push({ name: 'child-link' });
 
 //========고객 지원===========
 function goFaq() {
-  // 자주 묻는 질문 
-}
-function goContact() {
-  // 문의하기 
+  router.push({ name: 'child-faq' })
 }
 function goPolicy() {
   // 약관 및 정책
@@ -325,11 +322,7 @@ function onScroll() {
       <section class="menu-group">
         <p class="section-label">고객지원</p>
         <div class="menu-row" @click="goFaq">
-          <span class="menu-title">자주 묻는 질문</span>
-          <span class="chev">›</span>
-        </div>
-        <div class="menu-row" @click="goContact">
-          <span class="menu-title">문의하기</span>
+          <span class="menu-title">FAQ</span>
           <span class="chev">›</span>
         </div>
         <div class="menu-row" @click="goPolicy">

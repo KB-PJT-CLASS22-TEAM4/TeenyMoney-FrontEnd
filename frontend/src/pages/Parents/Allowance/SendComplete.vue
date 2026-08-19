@@ -29,7 +29,7 @@
       </div>
 
       <!-- 버튼 -->
-      <button class="btn btn-primary" @click="router.push('/child/home')">
+      <button class="btn btn-primary" type="button" @click="goToChildHome">
         자녀 지갑으로 가기
       </button>
       <button class="btn btn-secondary" @click="router.push('/parents/home')">
@@ -49,6 +49,20 @@ import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
+
+function goToChildHome() {
+  const childId = Number(route.query.childId)
+
+  if (childId) {
+    router.push({
+      name: 'parents-child-detail',
+      params: { childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-child-list' })
+}
 
 // TODO: API 연동 후 실제 거래 시간으로 교체
 const now = new Date()

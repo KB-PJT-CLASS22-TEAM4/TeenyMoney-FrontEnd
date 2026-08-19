@@ -178,6 +178,7 @@
         <button
           class="add-btn"
           type="button"
+          :disabled="isCheckingPassword"
           @click="toggleAddForm"
         >
           <span class="add-icon">
@@ -351,7 +352,7 @@ import {
   onMounted,
 } from 'vue'
 
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 import {
@@ -361,7 +362,10 @@ import {
   setPrimaryChargeMethod,
 } from '@/api/charge'
 
+import { getMyInfo } from '@/api/member'
+
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const alertModal = useAlertModal()
 
@@ -386,6 +390,8 @@ const deletingId = ref(null)
 const showAddForm = ref(false)
 
 const isRegistering = ref(false)
+
+const isCheckingPassword = ref(false)
 
 const cardForm = ref({
   cardNumber: '',
@@ -439,6 +445,10 @@ const canRegisterCard = computed(() => {
 
 onMounted(async () => {
   await loadPaymentMethods()
+
+  if (route.query.openAdd === '1' && paymentMethods.value.length === 0) {
+    showAddForm.value = true
+  }
 })
 
 /* =========================
@@ -535,9 +545,42 @@ function getPaymentNumber(payment) {
    카드 추가 폼 토글
 ========================= */
 
-function toggleAddForm() {
-  showAddForm.value =
-    !showAddForm.value
+async function toggleAddForm() {
+  if (showAddForm.value) {
+    showAddForm.value = false
+    return
+  }
+
+  if (isCheckingPassword.value) return
+
+  isCheckingPassword.value = true
+
+  try {
+    const me = await getMyInfo(authStore.accessToken)
+
+    if (!me?.hasPaymentPassword) {
+      await alertModal.showAlert(
+        '결제수단을 등록하려면 결제 비밀번호를 먼저 설정해주세요.',
+        '결제 비밀번호 설정'
+      )
+      router.push({
+        name: 'parents-payment-password',
+        query: { from: 'payment-change' },
+      })
+      return
+    }
+
+    showAddForm.value = true
+  } catch (error) {
+    if (error.message === 'LOGIN_REQUIRED') return
+
+    alertModal.showAlert(
+      error.message ||
+        '결제 비밀번호 확인에 실패했습니다.'
+    )
+  } finally {
+    isCheckingPassword.value = false
+  }
 }
 
 /* =========================
@@ -1135,6 +1178,11 @@ async function handleChange() {
 
 .add-chevron.opened {
   transform: rotate(90deg);
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .action-area {

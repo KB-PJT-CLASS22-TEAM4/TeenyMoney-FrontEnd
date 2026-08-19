@@ -55,12 +55,13 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { registerPaymentPassword } from '@/api/password'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const pin = ref('')
@@ -96,7 +97,10 @@ async function submitPin() {
   submitting.value = true
   try {
     await registerPaymentPassword(authStore.accessToken, pin.value)
-    router.replace({ name: 'parents-payment-password-done' })
+    router.replace({
+      name: 'parents-payment-password-done',
+      query: route.query,
+    })
   } catch (e) {
     errorMsg.value = e.message || '결제 비밀번호 등록에 실패했습니다.'
     isError.value = true
@@ -190,7 +194,10 @@ async function submitPin() {
 
 .dots {
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 20px;
+  width: 100%;
   margin-top: 40px;
 }
 
@@ -239,23 +246,36 @@ async function submitPin() {
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px 24px;
-  width: 260px;
-  margin-top: 40px;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+  margin: 40px auto 0;
+  padding: 0;
+  gap: 8px 0;
+  box-sizing: border-box;
 }
 
 .key {
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
   height: 56px;
+  margin: 0;
+  padding: 0;
   border: none;
   background: transparent;
   font-weight: 500;
   font-size: 26px;
+  line-height: 1;
+  text-align: center;
   color: #15171b;
   cursor: pointer;
   border-radius: 12px;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .key:active {

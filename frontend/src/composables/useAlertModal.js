@@ -11,15 +11,22 @@ export function useAlertModal() {
   })
 
   let confirmResolver = null
+  let alertResolver = null
 
   function showAlert(message, title = '알림') {
     state.alertTitle = title
     state.alertMessage = String(message ?? '')
     state.alertVisible = true
+
+    return new Promise((resolve) => {
+      alertResolver = resolve
+    })
   }
 
   function closeAlert() {
     state.alertVisible = false
+    alertResolver?.()
+    alertResolver = null
   }
 
   function showConfirm(message, title = '확인') {

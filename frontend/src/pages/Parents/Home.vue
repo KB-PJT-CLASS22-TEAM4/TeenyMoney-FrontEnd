@@ -30,65 +30,7 @@
         </div>
       </section>
 
-      <section
-        v-if="homeRequests.length"
-        class="request-section"
-      >
-        <p class="request-section-title">처리할 요청</p>
-
-        <article
-          v-for="item in homeRequests"
-          :key="item.key"
-          class="home-request-card"
-        >
-          <div class="home-request-top">
-            <span
-              class="home-request-badge"
-              :class="item.type"
-            >
-              {{ item.badge }}
-            </span>
-            <span
-              v-if="item.childName"
-              class="home-request-child"
-            >
-              {{ item.childName }}
-            </span>
-          </div>
-
-          <p class="home-request-title">
-            {{ item.title }}
-          </p>
-
-          <p
-            v-if="item.detail"
-            class="home-request-detail"
-          >
-            {{ item.detail }}
-          </p>
-
-          <div class="home-request-actions">
-            <button
-              class="home-request-btn ghost"
-              type="button"
-              :disabled="processingKey === item.key"
-              @click="handleRejectRequest(item)"
-            >
-              거절
-            </button>
-            <button
-              class="home-request-btn primary"
-              type="button"
-              :disabled="processingKey === item.key"
-              @click="handleApproveRequest(item)"
-            >
-              {{ processingKey === item.key ? '처리 중...' : '승인' }}
-            </button>
-          </div>
-        </article>
-      </section>
-
-      <section class="wallet-section" :class="{ 'after-requests': homeRequests.length }">
+      <section class="wallet-section">
         <div class="wallet-card">
           <div class="wallet-main">
             <p class="wallet-label">티니머니</p>
@@ -147,19 +89,25 @@
         <button
           class="allowance-card"
           type="button"
-          @click="router.push('/parents/regular-allowance')"
+          @click="router.push({ name: 'parents-request-list' })"
         >
           <div class="allowance-left">
             <div class="allowance-icon-wrap">
               <img
-                src="@/assets/icons/icon-clock.svg"
+                src="@/assets/icons/icon-notification.svg"
                 alt=""
                 class="clock-icon"
               />
+              <span
+                v-if="requests.length"
+                class="request-badge"
+              >
+                {{ requests.length > 9 ? '9+' : requests.length }}
+              </span>
             </div>
 
             <div>
-              <p class="allowance-main">정기용돈 설정</p>
+              <p class="allowance-main">요청 목록 확인하기</p>
             </div>
           </div>
 
@@ -203,7 +151,9 @@
           </button>
         </div>
 
-        <template v-else-if="recentTransactions.length > 0">
+        <div
+          v-else-if="recentTransactions.length > 0"
+        >
           <div
             v-for="item in recentTransactions"
             :key="item.id"
@@ -231,92 +181,34 @@
               {{ getAmountText(item) }}
             </span>
           </div>
-        </template>
-
-        <div
-          v-else
-          class="transaction-state"
-        >
-          최근 이용내역이 없습니다.
         </div>
+
       </section>
     </div>
 
     <ParentBottomNav active="home" />
-    <AlertHost :modal="alertModal" />
-
-    <div
-      v-if="rejectTarget"
-      class="reject-overlay"
-      @click.self="closeRejectModal"
-    >
-      <div class="reject-sheet">
-        <p class="reject-title">거절 사유</p>
-        <textarea
-          v-model="rejectReason"
-          class="reject-input"
-          maxlength="200"
-          placeholder="거절 사유를 입력해 주세요"
-        />
-        <div class="home-request-actions">
-          <button
-            class="home-request-btn ghost"
-            type="button"
-            @click="closeRejectModal"
-          >
-            취소
-          </button>
-          <button
-            class="home-request-btn primary"
-            type="button"
-            :disabled="processingKey === rejectTarget.key"
-            @click="submitQuestReject"
-          >
-            거절하기
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 
 <script setup>
-import ParentBottomNav from '@/components/Parents/BottomNav.vue'
-import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
-import AlertHost from '@/components/AlertHost.vue'
-import { useAlertModal } from '@/composables/useAlertModal'
-import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
-
-import {
-  computed,
-  onMounted,
-  reactive,
-  ref,
-} from 'vue'
-
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet } from '@/api/wallet'
-import { getChildren } from '@/api/children'
-import {
-  getPermissions,
-  approvePermission,
-  rejectPermission,
-} from '@/api/permissions'
-import {
-  getQuests,
-  getQuestDetail,
-  approveQuestVerification,
-  rejectQuestVerification,
-} from '@/api/quest'
-import {
-  PARENT_PROFILE_IMAGE,
-} from '@/utils/profileImages'
+import { useParentRequests } from '@/composables/useParentRequests'
+import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
+import { PARENT_PROFILE_IMAGE } from '@/utils/profileImages'
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const alertModal = useAlertModal()
+
+const {
+  requests,
+  fetchPendingRequests,
+} = useParentRequests()
 
 const parentMascot = PARENT_PROFILE_IMAGE
 
@@ -330,210 +222,6 @@ const wallet = reactive({
 })
 
 const recentTransactions = ref([])
-
-const pendingPermissions = ref([])
-const pendingQuests = ref([])
-const processingKey = ref('')
-const rejectTarget = ref(null)
-const rejectReason = ref('')
-
-function extractPermissionsList(payload) {
-  if (!payload) return []
-  if (Array.isArray(payload)) return payload
-  if (Array.isArray(payload.permissions)) return payload.permissions
-  if (Array.isArray(payload.items)) return payload.items
-  if (payload.isExist && payload.permission) return [payload.permission]
-  if (payload.permission) return [payload.permission]
-  return []
-}
-
-function getPermissionTitle(permission) {
-  if (permission.category) return String(permission.category)
-  if (Array.isArray(permission.categories) && permission.categories.length) {
-    return permission.categories
-      .map((item) => (typeof item === 'string' ? item : item?.categoryName || item?.name || ''))
-      .filter(Boolean)
-      .join(', ')
-  }
-  return '오늘만 허용 요청'
-}
-
-const homeRequests = computed(() => {
-  const permissions = pendingPermissions.value.map((permission) => ({
-    type: 'permission',
-    key: `permission-${permission.id}`,
-    badge: '오늘만 허용',
-    childName: permission.child?.name || permission.childName || '',
-    childId: permission.child?.childId || permission.childId || null,
-    title: getPermissionTitle(permission),
-    detail: permission.reason || '',
-    id: permission.id,
-  }))
-
-  const quests = pendingQuests.value.map((quest) => ({
-    type: 'quest',
-    key: `quest-${quest.questId}`,
-    badge: '퀘스트 인증',
-    childName: quest.child?.name || '',
-    title: quest.title || '퀘스트 인증 요청',
-    detail: quest.rewardAmount != null
-      ? `보상 ${Number(quest.rewardAmount).toLocaleString()}원`
-      : '',
-    questId: quest.questId,
-  }))
-
-  return [...permissions, ...quests]
-})
-
-async function fetchPendingRequests() {
-  if (!authStore.accessToken) return
-
-  try {
-    const [permRes, questRes, childrenRes] = await Promise.allSettled([
-      getPermissions(authStore.accessToken),
-      getQuests(authStore.accessToken, 'ONGOING'),
-      getChildren(authStore.accessToken),
-    ])
-
-    let permissions = permRes.status === 'fulfilled'
-      ? extractPermissionsList(permRes.value.data)
-      : []
-
-    if (
-      permissions.length === 0 &&
-      childrenRes.status === 'fulfilled'
-    ) {
-      const children = Array.isArray(childrenRes.value.data)
-        ? childrenRes.value.data
-        : []
-
-      const childResults = await Promise.allSettled(
-        children.map((child) =>
-          getPermissions(authStore.accessToken, child.childId)
-        )
-      )
-
-      permissions = childResults.flatMap((result, index) => {
-        if (result.status !== 'fulfilled') return []
-        return extractPermissionsList(result.value.data).map((permission) => ({
-          ...permission,
-          childName: permission.child?.name || permission.childName || children[index]?.name,
-          childId: permission.child?.childId || permission.childId || children[index]?.childId,
-        }))
-      })
-    }
-
-    pendingPermissions.value = permissions.filter(
-      (permission) => (permission.status || 'PENDING') === 'PENDING'
-    )
-
-    const questItems = questRes.status === 'fulfilled' && Array.isArray(questRes.value.data?.items)
-      ? questRes.value.data.items
-      : []
-
-    pendingQuests.value = questItems.filter((quest) => quest.status === 'PENDING')
-  } catch (error) {
-    console.error('홈 요청 조회 실패:', error)
-  }
-}
-
-async function findVerificationId(questId) {
-  const res = await getQuestDetail(questId, authStore.accessToken)
-  const verificationId = res.data?.latestVerification?.verificationId
-  if (verificationId == null) {
-    throw new Error('인증 요청 정보를 찾을 수 없습니다.')
-  }
-  return verificationId
-}
-
-async function handleApproveRequest(item) {
-  if (processingKey.value) return
-  processingKey.value = item.key
-
-  try {
-    if (item.type === 'permission') {
-      await approvePermission(authStore.accessToken, item.id)
-      pendingPermissions.value = pendingPermissions.value.filter(
-        (permission) => permission.id !== item.id
-      )
-    } else {
-      const verificationId = await findVerificationId(item.questId)
-      await approveQuestVerification(
-        item.questId,
-        verificationId,
-        authStore.accessToken
-      )
-      pendingQuests.value = pendingQuests.value.filter(
-        (quest) => quest.questId !== item.questId
-      )
-    }
-  } catch (error) {
-    console.error('요청 승인 실패:', error)
-    alertModal.showAlert(error.message || '승인에 실패했습니다.')
-  } finally {
-    processingKey.value = ''
-  }
-}
-
-async function handleRejectRequest(item) {
-  if (item.type === 'quest') {
-    rejectTarget.value = item
-    rejectReason.value = ''
-    return
-  }
-
-  if (processingKey.value) return
-  processingKey.value = item.key
-
-  try {
-    await rejectPermission(authStore.accessToken, item.id)
-    pendingPermissions.value = pendingPermissions.value.filter(
-      (permission) => permission.id !== item.id
-    )
-  } catch (error) {
-    console.error('요청 거절 실패:', error)
-    alertModal.showAlert(error.message || '거절에 실패했습니다.')
-  } finally {
-    processingKey.value = ''
-  }
-}
-
-function closeRejectModal() {
-  rejectTarget.value = null
-  rejectReason.value = ''
-}
-
-async function submitQuestReject() {
-  const item = rejectTarget.value
-  const reason = rejectReason.value.trim()
-  if (!item) return
-
-  if (!reason) {
-    alertModal.showAlert('거절 사유를 입력해 주세요.')
-    return
-  }
-
-  processingKey.value = item.key
-
-  try {
-    const verificationId = await findVerificationId(item.questId)
-    await rejectQuestVerification(
-      item.questId,
-      verificationId,
-      reason,
-      authStore.accessToken
-    )
-    pendingQuests.value = pendingQuests.value.filter(
-      (quest) => quest.questId !== item.questId
-    )
-    closeRejectModal()
-  } catch (error) {
-    console.error('퀘스트 거절 실패:', error)
-    alertModal.showAlert(error.message || '거절에 실패했습니다.')
-  } finally {
-    processingKey.value = ''
-  }
-}
 
 async function fetchWallet() {
   isWalletLoading.value = true
@@ -759,144 +447,6 @@ button {
   padding: 0 18px;
 }
 
-.wallet-section.after-requests {
-  margin-top: 0;
-}
-
-.request-section {
-  position: relative;
-  z-index: 3;
-  margin-top: -10px;
-  padding: 0 18px 14px;
-}
-
-.request-section-title {
-  margin: 0 0 10px 4px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #334155;
-}
-
-.home-request-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  margin-bottom: 10px;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-}
-
-.home-request-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.home-request-badge {
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.home-request-badge.permission {
-  background: #fff6dd;
-  color: #b45309;
-}
-
-.home-request-badge.quest {
-  background: #e8f0fb;
-  color: #2563eb;
-}
-
-.home-request-child {
-  font-size: 12px;
-  font-weight: 700;
-  color: #64748b;
-}
-
-.home-request-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  color: #191b1e;
-}
-
-.home-request-detail {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #8b9097;
-}
-
-.home-request-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.home-request-btn {
-  flex: 1;
-  height: 38px;
-  border-radius: 10px;
-  border: none;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.home-request-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.home-request-btn.ghost {
-  background: #f4f5f7;
-  color: #4a4e55;
-}
-
-.home-request-btn.primary {
-  background: #ffbc00;
-  color: #191b1e;
-}
-
-.reject-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
-}
-
-.reject-sheet {
-  width: 360px;
-  padding: 20px 18px 24px;
-  border-radius: 20px 20px 0 0;
-  background: #ffffff;
-}
-
-.reject-title {
-  margin: 0 0 10px;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.reject-input {
-  width: 100%;
-  min-height: 88px;
-  margin-bottom: 12px;
-  padding: 12px;
-  border: 1px solid #eceef1;
-  border-radius: 12px;
-  resize: none;
-  font: inherit;
-  font-size: 13px;
-  box-sizing: border-box;
-}
-
 .wallet-card {
   position: relative;
   z-index: 3;
@@ -1009,6 +559,7 @@ button {
 }
 
 .allowance-icon-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1028,6 +579,26 @@ button {
   font-size: 14px;
   font-weight: 800;
   color: #191b1e;
+}
+
+.request-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ff4d4f;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  border: 1.5px solid #ffffff;
+  box-sizing: border-box;
 }
 
 .chev {
