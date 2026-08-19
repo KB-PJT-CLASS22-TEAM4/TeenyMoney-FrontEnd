@@ -134,6 +134,7 @@ defineExpose({ reset })
 }
 
 .nav {
+  position: relative;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -164,19 +165,23 @@ defineExpose({ reset })
 }
 
 .nav-title {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   margin: 0;
   font-weight: 700;
   font-size: 17px;
   color: #191b1e;
   text-align: center;
-  padding-right: 40px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .lock-area {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
   margin-top: 40px;
 }
 
@@ -200,7 +205,10 @@ defineExpose({ reset })
 
 .dots {
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 20px;
+  width: 100%;
   margin-top: 40px;
 }
 
@@ -219,23 +227,36 @@ defineExpose({ reset })
 .keypad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px 24px;
-  width: 260px;
-  margin-top: 40px;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+  margin: 40px auto 0;
+  padding: 0;
+  gap: 8px 0;
+  box-sizing: border-box;
 }
 
 .key {
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
   height: 56px;
+  margin: 0;
+  padding: 0;
   border: none;
   background: transparent;
   font-weight: 500;
   font-size: 26px;
+  line-height: 1;
+  text-align: center;
   color: #15171b;
   cursor: pointer;
   border-radius: 12px;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .key:active {
