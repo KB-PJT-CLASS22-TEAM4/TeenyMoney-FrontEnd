@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { requestFcmToken } from '@/firebase'
 import { updateFcmToken } from '@/api/notification'
-import { clearStoredPaymentPassword } from '@/api/password'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('accessToken'))
@@ -43,8 +42,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearUser() {
-    const id = memberId.value
-
     accessToken.value = null
     memberId.value = null
     role.value = null
@@ -54,7 +51,6 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('memberId')
     localStorage.removeItem('role')
     localStorage.removeItem('name')
-    clearStoredPaymentPassword(id)
   }
 
   function openLoginModal(

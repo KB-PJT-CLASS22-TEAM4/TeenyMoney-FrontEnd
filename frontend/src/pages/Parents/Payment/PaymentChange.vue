@@ -362,10 +362,7 @@ import {
   setPrimaryChargeMethod,
 } from '@/api/charge'
 
-import {
-  hasPaymentPassword,
-  isPaymentPasswordMarkedSet,
-} from '@/api/password'
+import { getMyInfo } from '@/api/member'
 
 const router = useRouter()
 const route = useRoute()
@@ -556,33 +553,12 @@ async function toggleAddForm() {
 
   if (isCheckingPassword.value) return
 
-  /*
-   * 이미 카드가 있으면
-   * 첫 등록 때 비밀번호가 설정된 것으로 보고
-   * 이후 추가에서는 설정 여부를 다시 확인하지 않는다.
-   */
-  const hasRegisteredCard = paymentMethods.value.some(
-    (payment) => payment.type === 'CARD'
-  )
-
-  if (hasRegisteredCard) {
-    showAddForm.value = true
-    return
-  }
-
-  if (isPaymentPasswordMarkedSet()) {
-    showAddForm.value = true
-    return
-  }
-
   isCheckingPassword.value = true
 
   try {
-    const passwordSet = await hasPaymentPassword(
-      authStore.accessToken
-    )
+    const me = await getMyInfo(authStore.accessToken)
 
-    if (!passwordSet) {
+    if (!me?.hasPaymentPassword) {
       await alertModal.showAlert(
         '결제수단을 등록하려면 결제 비밀번호를 먼저 설정해주세요.',
         '결제 비밀번호 설정'

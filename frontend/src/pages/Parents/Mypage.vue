@@ -121,7 +121,7 @@
             <span class="chevron">›</span>
           </button>
           <p class="payment-password-current">
-            현재 비밀번호 {{ currentPaymentPassword }}
+            {{ hasPaymentPassword ? '설정됨' : '미설정' }}
           </p>
         </div>
 
@@ -316,7 +316,6 @@ import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
-import { getStoredPaymentPassword } from '@/api/password'
 import { getChildren } from '@/api/children'
 import { unlinkFamily } from '@/api/families'
 import {
@@ -343,6 +342,7 @@ const member = reactive({
   phoneNumber: '',
   birthDate: '',
   profileImageUrl: '',
+  hasPaymentPassword: false,
 })
 
 /* =========================
@@ -370,9 +370,7 @@ const formattedBirthDate = computed(() => {
   return member.birthDate.replaceAll('-', '.')
 })
 
-const currentPaymentPassword = computed(() => {
-  return getStoredPaymentPassword(authStore.memberId) || '미설정'
-})
+const hasPaymentPassword = computed(() => Boolean(member.hasPaymentPassword))
 
 /* =========================
    휴대폰 번호 포맷
@@ -432,6 +430,7 @@ async function fetchMyInfo() {
       birthDate: data.birthDate,
       profileImageUrl:
         data.profileImageUrl || '',
+      hasPaymentPassword: Boolean(data.hasPaymentPassword),
     })
 
     if (

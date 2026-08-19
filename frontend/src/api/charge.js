@@ -226,7 +226,7 @@ export async function chargeWallet(
   }
 
   if (password != null && password !== '') {
-    payload.password = String(password)
+    payload.password = Number(password)
   }
 
   const response = await fetch(

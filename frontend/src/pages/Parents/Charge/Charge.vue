@@ -308,11 +308,7 @@ import {
 } from '@/api/charge'
 
 import { getMyWallet } from '@/api/wallet'
-import {
-  isPasswordNotSetMessage,
-  markPaymentPasswordSet,
-  verifyPaymentPassword,
-} from '@/api/password'
+import { getMyInfo } from '@/api/member'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -515,6 +511,14 @@ function getSelectedChargeMethod() {
   )
 }
 
+function isPasswordMismatchMessage(message) {
+  return /불일치|일치하지|잘못된 비밀/.test(String(message ?? ''))
+}
+
+function isPasswordNotSetMessage(message) {
+  return /설정되지 않았|등록되지 않았|먼저 설정/.test(String(message ?? ''))
+}
+
 async function handleCharge() {
   if (isCharging.value || showPasswordGate.value) {
     return
@@ -560,6 +564,27 @@ async function handleCharge() {
     return
   }
 
+  try {
+    const me = await getMyInfo(authStore.accessToken)
+    if (!me?.hasPaymentPassword) {
+      await alertModal.showAlert(
+        '충전하려면 결제 비밀번호를 먼저 설정해주세요.',
+        '결제 비밀번호 설정'
+      )
+      router.push({
+        name: 'parents-payment-password',
+        query: { from: 'charge' },
+      })
+      return
+    }
+  } catch (error) {
+    if (error.message === 'LOGIN_REQUIRED') return
+    alertModal.showAlert(
+      error.message || '회원 정보를 확인하지 못했습니다.'
+    )
+    return
+  }
+
   showPasswordGate.value = true
 }
 
@@ -578,46 +603,6 @@ async function handlePasswordSubmit(pin) {
   }
 
   isCharging.value = true
-
-  try {
-    await verifyPaymentPassword(
-      authStore.accessToken,
-      pin
-    )
-  } catch (error) {
-    isCharging.value = false
-    passwordOverlay.value?.reset()
-
-    if (error.message === 'LOGIN_REQUIRED') {
-      showPasswordGate.value = false
-      return
-    }
-
-    if (
-      isPasswordNotSetMessage(error.message) ||
-      /확인할 수 없습니다/.test(error.message || '')
-    ) {
-      showPasswordGate.value = false
-      await alertModal.showAlert(
-        '충전하려면 결제 비밀번호를 먼저 설정해주세요.',
-        '결제 비밀번호 설정'
-      )
-      router.push({
-        name: 'parents-payment-password',
-        query: { from: 'charge' },
-      })
-      return
-    }
-
-    await alertModal.showAlert(
-      error.message ||
-        '결제 비밀번호가 일치하지 않습니다.',
-      '비밀번호 불일치'
-    )
-    return
-  }
-
-  markPaymentPasswordSet()
 
   try {
     const res = await chargeWallet(
@@ -652,10 +637,23 @@ async function handlePasswordSubmit(pin) {
       return
     }
 
-    const isPasswordError =
-      /비밀번호|password/i.test(error.message || '')
+    if (isPasswordNotSetMessage(error.message)) {
+      showPasswordGate.value = false
+      await alertModal.showAlert(
+        '충전하려면 결제 비밀번호를 먼저 설정해주세요.',
+        '결제 비밀번호 설정'
+      )
+      router.push({
+        name: 'parents-payment-password',
+        query: { from: 'charge' },
+      })
+      return
+    }
 
-    if (isPasswordError) {
+    if (
+      isPasswordMismatchMessage(error.message) ||
+      /비밀번호|password/i.test(error.message || '')
+    ) {
       await alertModal.showAlert(
         error.message ||
           '결제 비밀번호가 일치하지 않습니다.',
