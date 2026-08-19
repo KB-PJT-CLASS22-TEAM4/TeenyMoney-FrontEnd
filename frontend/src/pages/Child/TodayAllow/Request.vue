@@ -15,16 +15,13 @@
         <ChildNavActions />
       </nav>
 
-      <!-- 🐥 티니 코치 말풍선 카드 -->
-      <section class="teeny-coach-card">
-        <img :src="teenyCoachImg" class="coach-mascot" alt="티니 코치" />
-        <div class="speech-bubble">
-          <div class="coach-title">티니 코치</div>
-          <p class="coach-msg">
-            부모님이 <span class="hl hl--watch">주의</span> 또는 <span class="hl hl--block">차단</span>으로 설정한 업종을 <br/> 오늘만 허용 요청해보세요!
-          </p>
+      <!-- 상단 안내 영역: 남은 횟수 -->
+      <div class="top-info-row">
+        <div class="remaining-badge">
+          <span class="remaining-label">이번 달 남은 횟수</span>
+          <span class="remaining-count">{{ monthlyRemainingCount }}<span class="remaining-unit">번</span></span>
         </div>
-      </section>
+      </div>
 
       <p class="section-title">업종 선택</p>
 
@@ -96,7 +93,7 @@
         </div>
         
         <button class="submit" :disabled="!canSubmit || submitting" @click="onSubmit">
-          {{ submitting ? '요청 보내는 중...' : '요청 보내기' }}
+          {{ isMonthlyLimitReached ? '이번 달 요청 횟수를 모두 사용했어요' : (submitting ? '요청 보내는 중...' : '요청 보내기') }}
         </button>
       </div>
     </main>
@@ -129,9 +126,9 @@
       </div>
     </Transition>
 
-    <!-- 2. 오늘 이미 요청을 보낸 경우 모달 (안내 박스 제거 완료) -->
+    <!-- 2. 이번 달 요청 한도를 모두 사용한 경우 모달 -->
     <Transition name="bounce">
-      <div v-if="showAlreadyRequestedModal" class="modal-overlay" @click.self="showAlreadyRequestedModal = false">
+      <div v-if="showLimitReachedModal" class="modal-overlay" @click.self="showLimitReachedModal = false">
         <div class="modal-card">
           <div class="modal-badge">
             <span class="badge-icon">🚨</span>
@@ -139,32 +136,33 @@
           <h3 class="modal-title">잠깐만요!</h3>
           <div class="modal-body">
             <p class="modal-text">
-              오늘만 허용은 <strong class="highlight-block">하루에 1번만</strong> 보낼 수 있어요!
+              이번 달 오늘만 허용 요청 <strong class="highlight-block">횟수를 모두 사용</strong>했어요!
             </p>
           </div>
           <div class="modal-actions">
-            <button class="btn-kids btn-kids--confirm" @click="showAlreadyRequestedModal = false">
+            <button class="btn-kids btn-kids--confirm" @click="showLimitReachedModal = false">
               닫기
             </button>
           </div>
         </div>
       </div>
     </Transition>
+
+    <Chatbot hint-text="오늘만 허용 요청 시 횟수가 차감되니 신중히 보내주세요!" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const allowStore = useAllowRequestStore()
-
-const teenyCoachImg = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
 // 카테고리 데이터 (DB mcc_seed_data.sql 확정 기준)
 const watchCategories = ref([
@@ -190,9 +188,13 @@ const MAX_LEN = 100
 
 // 모달 및 제출 상태
 const showBlockWarningModal = ref(false)
-const showAlreadyRequestedModal = ref(false)
+const showLimitReachedModal = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+
+// 이번 달 남은 요청 횟수
+const monthlyRemainingCount = computed(() => allowStore.monthlyRemainingCount)
+const isMonthlyLimitReached = computed(() => monthlyRemainingCount.value <= 0)
 
 const isWatchSelected = (id) => selectedWatchIds.value.includes(id)
 const isBlockSelected = (id) => selectedBlockIds.value.includes(id)
@@ -223,7 +225,9 @@ const allSelectedCategories = computed(() => [
 ])
 
 const hasBlockSelected = computed(() => selectedBlockIds.value.length > 0)
-const canSubmit = computed(() => allSelectedCategories.value.length > 0)
+const canSubmit = computed(() =>
+  allSelectedCategories.value.length > 0 && !isMonthlyLimitReached.value
+)
 
 const scrolling = ref(false)
 let scrollTimer = null
@@ -236,6 +240,14 @@ function onScroll() {
 function goBack() {
   router.push({ name: 'child-home' })
 }
+
+onMounted(async () => {
+  try {
+    await allowStore.fetchPermissionStatus(authStore.accessToken, authStore.memberId)
+  } catch (e) {
+    console.error('오늘만 허용 현황 조회 실패:', e)
+  }
+})
 
 function onSubmit() {
   if (!canSubmit.value || submitting.value) return
@@ -272,8 +284,8 @@ async function processSubmit() {
     console.error('❗SUBMIT ERROR:', e)
 
     const errorMsg = e.response?.data?.message || e.message || ''
-    if (e.response?.status === 400 || errorMsg.includes('이미') || errorMsg.includes('ALREADY')) {
-      showAlreadyRequestedModal.value = true
+    if (e.response?.status === 400 || errorMsg.includes('한도') || errorMsg.includes('초과')) {
+      showLimitReachedModal.value = true
     } else {
       submitError.value = '요청을 보내지 못했어요. 다시 시도해 주세요.'
     }
@@ -333,84 +345,41 @@ async function processSubmit() {
 }
 .scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
-/* 🐥 티니 코치 말풍선 카드 */
-.teeny-coach-card {
+/* 상단 남은 횟수 배지 */
+.top-info-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 0 12px;
-  overflow: visible;
+  justify-content: flex-start;
+  margin: 6px 0 10px;
 }
 
-.coach-mascot {
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  flex-shrink: 0;
-  margin-left: -10px;
-  margin-right: -4px;
-  transform: scale(1.08);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+.remaining-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  background: #fff8e5;
+  border: 1.5px solid #ffe89a;
+  border-radius: 16px;
 }
 
-.speech-bubble {
-  position: relative;
-  flex: 1;
-  background: #fffbe8;
-  border: 1px solid #ffe89a;
-  border-radius: 14px;
-  padding: 8px 12px;
-  box-shadow: 0 2px 6px rgba(255, 188, 0, 0.05);
+.remaining-label {
+  font-weight: 700;
+  font-size: 11px;
+  color: #b8860b;
 }
 
-.speech-bubble::before {
-  content: '';
-  position: absolute;
-  left: -6px;
-  top: 14px;
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-right: 6px solid #ffe89a;
-}
-
-.speech-bubble::after {
-  content: '';
-  position: absolute;
-  left: -4.5px;
-  top: 14px;
-  width: 0;
-  height: 0;
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-  border-right: 5.5px solid #fffbe8;
-}
-
-.coach-title {
-  font-size: 12px;
-  font-weight: 800;
+.remaining-count {
+  font-weight: 900;
+  font-size: 26px;
   color: #d98200;
-  margin-bottom: 2px;
-  line-height: 1.1;
+  line-height: 1;
+  letter-spacing: -0.5px;
 }
 
-.coach-msg {
-  margin: 0;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #4a4d52;
-  line-height: 1.35;
-  word-break: keep-all;
-}
-
-.hl--watch {
-  color: #e0a500;
+.remaining-unit {
   font-weight: 800;
-}
-.hl--block {
-  color: #e5484d;
-  font-weight: 800;
+  font-size: 15px;
+  margin-left: 2px;
 }
 
 .section-title {

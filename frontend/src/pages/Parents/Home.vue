@@ -194,6 +194,12 @@
 <script setup>
 import {
   onActivated,
+import AlertHost from '@/components/AlertHost.vue'
+import { useAlertModal } from '@/composables/useAlertModal'
+import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
+
+import {
+  computed,
   onMounted,
   reactive,
   ref,
@@ -290,14 +296,13 @@ function formatTransactionDate(createdAt) {
   }).format(date)
 }
 
-onMounted(() => {
+function load() {
   fetchWallet()
   fetchPendingRequests()
-})
+}
 
-onActivated(() => {
-  fetchPendingRequests()
-})
+onMounted(load)
+useRefreshOnVisible(load)
 </script>
 
 

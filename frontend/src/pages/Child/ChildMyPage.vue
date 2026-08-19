@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 import ChildNavActions from '@/components/Child/ChildNavActions.vue';
@@ -23,6 +23,32 @@ const user = ref({
   phone: '',
   email: '',
 });
+
+// 전화번호에 하이픈을 붙여 보여주기 위한 포맷터 (숫자만 남긴 뒤 자리수에 맞춰 하이픈 삽입)
+function formatPhoneNumber(raw) {
+  if (!raw) return '';
+  const digits = String(raw).replace(/[^0-9]/g, '');
+
+  if (digits.startsWith('02')) {
+    // 서울 지역번호(02): 02-XXX(X)-XXXX
+    if (digits.length === 9) return digits.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+    if (digits.length === 10) return digits.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+    return raw;
+  }
+
+  if (digits.length === 11) {
+    // 휴대전화(010 등): XXX-XXXX-XXXX
+    return digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+  }
+  if (digits.length === 10) {
+    // 그 외 지역번호 등: XXX-XXX-XXXX
+    return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  }
+
+  return raw;
+}
+
+const formattedPhone = computed(() => formatPhoneNumber(user.value.phone));
 
 // 연동된 부모 (미연동이면 null)
 const parent = ref(null);
@@ -205,7 +231,7 @@ function onScroll() {
           <span class="field-label">연락처</span>
           <button class="edit-btn" @click="editContact">수정</button>
         </div>
-        <p class="field-value">{{ user.phone }}</p>
+        <p class="field-value">{{ formattedPhone }}</p>
       </div>
 
       <!-- 이메일 -->

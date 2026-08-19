@@ -287,3 +287,78 @@ export async function createSavingPayment(accessToken, enrollmentId, payload) {
 
   return body.data;
 }
+
+/**
+ * 대출 조기상환 예상 조회 (연체이자/원금 충당 내역, 완제 여부, 점수 변화)
+ * @param {string} accessToken
+ * @param {number|string} enrollmentId
+ * @param {number} amount - 상환하려는 금액
+ * @returns {Promise<{
+ *   currentOutstandingPrincipal: number,
+ *   currentOverdueInterest: number,
+ *   enrollmentId: number,
+ *   executed: boolean,
+ *   paidInterestAmount: number,
+ *   paidPrincipalAmount: number,
+ *   remainingOutstandingPrincipal: number,
+ *   remainingOverdueInterest: number,
+ *   requestedAmount: number,
+ *   scoreChange: number,
+ *   status: string,
+ * }>}
+ */
+export async function getEarlyRepaymentQuote(accessToken, enrollmentId, amount) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/loan-enrollments/${enrollmentId}/early-repayment-quote?amount=${encodeURIComponent(amount)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '조기상환 예상 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
+ * 대출 조기상환 실행 (요청 금액을 연체이자 → 원금 순으로 충당, 잔여 원금 0원이면 자동 종료)
+ * idempotencyKey는 호출부에서 매 요청마다 새로 생성해서 넘겨야 함(재시도 시 같은 키를 쓰면
+ * 서버가 중복 출금을 막아줌 — 같은 상환을 두 번 보내려는 게 아니라면 항상 새 UUID를 써야 함).
+ * @param {string} accessToken
+ * @param {number|string} enrollmentId
+ * @param {{ amount: number, idempotencyKey: string }} payload
+ * @returns {Promise<object>} early-repayment-quote와 동일한 응답 구조(data)
+ */
+export async function executeEarlyRepayment(accessToken, enrollmentId, payload) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/loan-enrollments/${enrollmentId}/early-repayment`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    // 400: 요청 형식 오류 또는 남은 상환 금액 초과
+    // 409: 상환 중인 대출이 아니거나 잔액 부족, 멱등성 키 충돌
+    const error = new Error(body.message || '조기상환 처리에 실패했습니다.');
+    error.status = res.status;
+    throw error;
+  }
+
+  return body.data;
+}
