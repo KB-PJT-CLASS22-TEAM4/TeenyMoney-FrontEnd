@@ -276,6 +276,12 @@
           <span class="terms-text">
             서비스 이용약관·개인정보 동의
             <span class="required">(필수)</span>
+            <span
+              v-if="guardianVerified"
+              class="guardian-done"
+            >
+              · 보호자 인증 완료
+            </span>
           </span>
 
           <img
@@ -1313,12 +1319,8 @@ async function verifyGuardianCode() {
       response?.data,
     )
 
-    /*
-     * ★ 핵심
-     * 보호자 인증 성공 후 받은 consent token 저장
-     */
     legalGuardianConsentToken.value =
-      response.data?.legalGuardianConsentToken || ''
+      pickGuardianConsentToken(response)
 
     console.log(
       '🟢 저장된 legalGuardianConsentToken:',
@@ -1349,20 +1351,11 @@ async function verifyGuardianCode() {
 
     guardianVerified.value = true
     guardianVerifyStatus.value = 'match'
+    form.agreedToTerms = true
 
-    console.log(
-      '🟢 guardianVerified:',
-      guardianVerified.value,
-    )
-
-    console.log(
-      '🟢 보호자 동의 토큰:',
-      legalGuardianConsentToken.value,
-    )
-
-    console.log(
-      '================ 보호자 인증 완료 ================',
-    )
+    window.setTimeout(() => {
+      showGuardianModal.value = false
+    }, 400)
 
   } catch (error) {
     console.error(
@@ -1395,6 +1388,22 @@ function toggleTerms() {
   ) {
     showGuardianModal.value = true
   }
+}
+
+function pickGuardianConsentToken(response) {
+  const data = response?.data
+
+  if (typeof data === 'string' && data.trim()) {
+    return data.trim()
+  }
+
+  return (
+    data?.legalGuardianConsentToken ||
+    data?.consentToken ||
+    data?.token ||
+    response?.legalGuardianConsentToken ||
+    ''
+  )
 }
 
 function closeGuardianModal() {
@@ -1825,6 +1834,10 @@ onUnmounted(() => {
 
 .required {
   color: #8b9097;
+}
+
+.guardian-done {
+  color: #16a34a;
 }
 
 .chevron-icon {
