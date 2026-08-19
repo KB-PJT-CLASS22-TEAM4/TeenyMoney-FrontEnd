@@ -151,7 +151,9 @@
           </button>
         </div>
 
-        <template v-else-if="recentTransactions.length > 0">
+        <div
+          v-else-if="recentTransactions.length > 0"
+        >
           <div
             v-for="item in recentTransactions"
             :key="item.id"
@@ -179,7 +181,7 @@
               {{ getAmountText(item) }}
             </span>
           </div>
-        </template>
+        </div>
 
       </section>
     </div>
@@ -190,23 +192,19 @@
 
 
 <script setup>
-import ParentBottomNav from '@/components/Parents/BottomNav.vue'
-import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
-
 import {
   onActivated,
   onMounted,
   reactive,
   ref,
 } from 'vue'
-
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet } from '@/api/wallet'
 import { useParentRequests } from '@/composables/useParentRequests'
-import {
-  PARENT_PROFILE_IMAGE,
-} from '@/utils/profileImages'
+import { PARENT_PROFILE_IMAGE } from '@/utils/profileImages'
+import ParentBottomNav from '@/components/Parents/BottomNav.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
