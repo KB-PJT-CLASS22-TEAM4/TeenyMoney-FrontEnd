@@ -74,6 +74,7 @@ import Mypage from '@/pages/Parents/Mypage.vue'
 import HarmfulCategory from '@/pages/Parents/Harmful/HarmfulCategory.vue'
 import PlaceList from '@/pages/Parents/Harmful/PlaceList.vue'
 import SendAllowance from '@/pages/Parents/Allowance/SendAllowance.vue'
+import RequestList from '@/pages/Parents/RequestList.vue'
 import SendingAllowance from '@/pages/Parents/Allowance/SendingAllowance.vue'
 import SendFail from '@/pages/Parents/Allowance/SendFail.vue'
 import SendComplete from '@/pages/Parents/Allowance/SendComplete.vue'
@@ -378,6 +379,11 @@ const router = createRouter({
   { path: '/parents/send-allowance', 
     name: 'send-allowance', 
     component: SendAllowance 
+  },
+  {
+    path: '/parents/requests',
+    name: 'parents-request-list',
+    component: RequestList,
   },
   {
     path: '/parents/sending-allowance',

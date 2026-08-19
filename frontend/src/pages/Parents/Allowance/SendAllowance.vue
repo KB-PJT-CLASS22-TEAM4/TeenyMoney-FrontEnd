@@ -119,6 +119,24 @@
         </div>
       </div>
 
+      <button
+        class="allowance-card"
+        type="button"
+        @click="router.push('/parents/regular-allowance')"
+      >
+        <div class="allowance-left">
+          <div class="allowance-icon-wrap">
+            <img
+              src="@/assets/icons/icon-clock.svg"
+              alt=""
+              class="clock-icon"
+            />
+          </div>
+          <p class="allowance-main">정기용돈 설정</p>
+        </div>
+        <span class="chev">›</span>
+      </button>
+
       <!-- 보내기 버튼 -->
       <button
         class="submit-btn"
@@ -644,7 +662,53 @@ button {
   background-color: #f4f5f7;
 }
 
-/* 보내기 버튼 */
+.allowance-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid #eceef1;
+  border-radius: 20px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.allowance-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.allowance-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #fff8e6;
+}
+
+.clock-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.allowance-main {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+}
+
+.chev {
+  font-size: 18px;
+  color: #a1a1aa;
+}
+
+/* 보내기 버튼 -->
 .submit-btn {
   width: 100%;
   height: 52px;
