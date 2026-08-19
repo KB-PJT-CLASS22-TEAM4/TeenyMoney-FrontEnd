@@ -98,6 +98,12 @@
                 alt=""
                 class="clock-icon"
               />
+              <span
+                v-if="requests.length"
+                class="request-badge"
+              >
+                {{ requests.length > 9 ? '9+' : requests.length }}
+              </span>
             </div>
 
             <div>
@@ -105,12 +111,6 @@
             </div>
           </div>
 
-          <span
-            v-if="requests.length"
-            class="request-count"
-          >
-            {{ requests.length }}
-          </span>
           <span class="chev">›</span>
         </button>
       </section>
@@ -566,6 +566,7 @@ button {
 }
 
 .allowance-icon-wrap {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -587,20 +588,24 @@ button {
   color: #191b1e;
 }
 
-.request-count {
-  display: inline-flex;
+.request-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  margin-left: auto;
-  margin-right: 4px;
-  padding: 0 6px;
   border-radius: 999px;
-  background: #ff3b30;
+  background: #ff4d4f;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
+  line-height: 1;
+  border: 1.5px solid #ffffff;
+  box-sizing: border-box;
 }
 
 .chev {
