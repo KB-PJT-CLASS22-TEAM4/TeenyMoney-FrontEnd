@@ -240,16 +240,9 @@
           <button
             type="button"
             class="menu-button menu-border"
+            @click="goToFaq"
           >
-            <span>자주 묻는 질문</span>
-            <span class="chevron">›</span>
-          </button>
-
-          <button
-            type="button"
-            class="menu-button menu-border"
-          >
-            <span>문의하기</span>
+            <span>FAQ</span>
             <span class="chevron">›</span>
           </button>
 
@@ -592,6 +585,10 @@ function goToPasswordChange() {
 
 function goToPaymentPassword() {
   router.push({ name: 'parents-payment-password' })
+}
+
+function goToFaq() {
+  router.push({ name: 'parents-faq' })
 }
 
 /* =========================
