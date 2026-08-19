@@ -98,9 +98,8 @@
             class="selected-payment-info"
           >
             <div class="payment-icon-wrap">
-              <img
-                src="@/assets/logo.svg"
-                alt=""
+              <PaymentMethodLogo
+                :payment="selectedPaymentMethod"
                 class="payment-icon"
               />
             </div>
@@ -198,9 +197,8 @@
             >
               <div class="payment-info">
                 <div class="payment-icon-wrap">
-                  <img
-                    src="@/assets/logo.svg"
-                    alt=""
+                  <PaymentMethodLogo
+                    :payment="method"
                     class="payment-icon"
                   />
                 </div>
@@ -291,6 +289,7 @@ import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import PaymentPasswordOverlay from '@/components/PaymentPasswordOverlay.vue'
+import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -882,8 +881,9 @@ button {
 }
 
 .payment-icon {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .payment-name-row {
