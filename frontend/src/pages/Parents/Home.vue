@@ -52,6 +52,12 @@
             >
               {{ item.childName }}
             </span>
+            <span
+              v-if="item.timeLabel"
+              class="home-request-time"
+            >
+              {{ item.timeLabel }}
+            </span>
           </div>
 
           <p class="home-request-title">
@@ -66,22 +72,34 @@
           </p>
 
           <div class="home-request-actions">
-            <button
-              class="home-request-btn ghost"
-              type="button"
-              :disabled="processingKey === item.key"
-              @click="handleRejectRequest(item)"
-            >
-              거절
-            </button>
-            <button
-              class="home-request-btn primary"
-              type="button"
-              :disabled="processingKey === item.key"
-              @click="handleApproveRequest(item)"
-            >
-              {{ processingKey === item.key ? '처리 중...' : '승인' }}
-            </button>
+            <template v-if="item.type === 'finance'">
+              <button
+                class="home-request-btn primary"
+                type="button"
+                @click="openRequestDetail(item)"
+              >
+                확인하기
+              </button>
+            </template>
+
+            <template v-else>
+              <button
+                class="home-request-btn ghost"
+                type="button"
+                :disabled="processingKey === item.key"
+                @click="handleRejectRequest(item)"
+              >
+                거절
+              </button>
+              <button
+                class="home-request-btn primary"
+                type="button"
+                :disabled="processingKey === item.key"
+                @click="handleApproveRequest(item)"
+              >
+                {{ processingKey === item.key ? '처리 중...' : '승인' }}
+              </button>
+            </template>
           </div>
         </article>
       </section>
@@ -231,12 +249,6 @@
           </div>
         </template>
 
-        <div
-          v-else
-          class="transaction-state"
-        >
-          최근 이용내역이 없습니다.
-        </div>
       </section>
     </div>
 
@@ -249,7 +261,13 @@
       @click.self="closeRejectModal"
     >
       <div class="reject-sheet">
-        <p class="reject-title">거절 사유</p>
+        <p class="reject-title">인증 거절 사유</p>
+        <p
+          v-if="rejectTarget?.childName"
+          class="reject-desc"
+        >
+          {{ rejectTarget.childName }}에게 전달할 거절 사유를 입력해주세요.
+        </p>
         <textarea
           v-model="rejectReason"
           class="reject-input"
@@ -308,6 +326,11 @@ import {
   approveQuestVerification,
   rejectQuestVerification,
 } from '@/api/quest'
+import * as financialProductsApi from '@/api/financialProducts'
+import {
+  extractApprovalRequestList,
+  normalizeApprovalRequest,
+} from '@/utils/financialProductMapper'
 import {
   PARENT_PROFILE_IMAGE,
 } from '@/utils/profileImages'
@@ -331,6 +354,7 @@ const recentTransactions = ref([])
 
 const pendingPermissions = ref([])
 const pendingQuests = ref([])
+const pendingFinances = ref([])
 const processingKey = ref('')
 const rejectTarget = ref(null)
 const rejectReason = ref('')
@@ -345,91 +369,213 @@ function extractPermissionsList(payload) {
   return []
 }
 
-function getPermissionTitle(permission) {
-  if (permission.category) return String(permission.category)
-  if (Array.isArray(permission.categories) && permission.categories.length) {
-    return permission.categories
-      .map((item) => (typeof item === 'string' ? item : item?.categoryName || item?.name || ''))
-      .filter(Boolean)
-      .join(', ')
+function getPermissionId(permission) {
+  return permission?.id ?? permission?.permissionId ?? null
+}
+
+function getPermissionChildId(permission) {
+  return permission?.childId
+    ?? permission?.child?.childId
+    ?? permission?.child?.id
+    ?? null
+}
+
+function getCategoryLabel(category) {
+  if (typeof category === 'string') return category
+  if (typeof category === 'number') return String(category)
+
+  return category?.category
+    ?? category?.categoryName
+    ?? category?.merchantCategoryName
+    ?? category?.name
+    ?? ''
+}
+
+function extractCategories(permission) {
+  if (typeof permission?.category === 'string' && permission.category) {
+    return [permission.category]
   }
-  return '오늘만 허용 요청'
+
+  if (!Array.isArray(permission?.categories)) {
+    const single = getCategoryLabel(permission?.category)
+    return single ? [single] : []
+  }
+
+  return permission.categories.map(getCategoryLabel).filter(Boolean)
+}
+
+function parseCreatedAt(createdAt) {
+  if (!createdAt) return null
+
+  if (Array.isArray(createdAt)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = createdAt
+    return new Date(year, month - 1, day, hour, minute, second)
+  }
+
+  const date = new Date(createdAt)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function formatRelativeTime(createdAt) {
+  const date = parseCreatedAt(createdAt)
+  if (!date) return ''
+
+  const diffMinutes = Math.floor((Date.now() - date.getTime()) / 1000 / 60)
+
+  if (diffMinutes < 1) return '방금 전'
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}시간 전`
+
+  const diffDays = Math.floor(diffMinutes / 1440)
+  return `${diffDays}일 전`
+}
+
+function formatFinanceMeta(item) {
+  const parts = []
+
+  if (item.requestedAmount) {
+    parts.push(`${Number(item.requestedAmount).toLocaleString()}원`)
+  } else if (item.monthlyAmount) {
+    parts.push(`월 ${Number(item.monthlyAmount).toLocaleString()}원`)
+  }
+
+  if (item.termMonths) {
+    parts.push(`${item.termMonths}개월`)
+  }
+
+  if (item.rateText && item.rateText !== '-') {
+    parts.push(item.rateText)
+  }
+
+  return parts.join(' · ')
 }
 
 const homeRequests = computed(() => {
-  const permissions = pendingPermissions.value.map((permission) => ({
-    type: 'permission',
-    key: `permission-${permission.id}`,
-    badge: '오늘만 허용',
-    childName: permission.child?.name || permission.childName || '',
-    childId: permission.child?.childId || permission.childId || null,
-    title: getPermissionTitle(permission),
-    detail: permission.reason || '',
-    id: permission.id,
-  }))
+  const permissions = pendingPermissions.value.map((permission) => {
+    const categories = extractCategories(permission)
+    const categoryTitle = permission.category || categories.join(', ')
+
+    return {
+      type: 'permission',
+      key: `permission-${getPermissionId(permission)}-${categoryTitle}`,
+      badge: '요청',
+      childName: permission.child?.name || permission.childName || '',
+      childId: getPermissionChildId(permission),
+      title: categoryTitle || '오늘만 허용 요청',
+      detail: permission.reason || '',
+      timeLabel: formatRelativeTime(permission.createdAt),
+      id: getPermissionId(permission),
+    }
+  })
 
   const quests = pendingQuests.value.map((quest) => ({
     type: 'quest',
     key: `quest-${quest.questId}`,
-    badge: '퀘스트 인증',
+    badge: '인증 대기',
     childName: quest.child?.name || '',
     title: quest.title || '퀘스트 인증 요청',
     detail: quest.rewardAmount != null
       ? `보상 ${Number(quest.rewardAmount).toLocaleString()}원`
       : '',
+    timeLabel: formatRelativeTime(
+      quest.submittedAt || quest.updatedAt || quest.createdAt
+    ),
     questId: quest.questId,
   }))
 
-  return [...permissions, ...quests]
+  const finances = pendingFinances.value.map((item) => ({
+    type: 'finance',
+    key: `finance-${item.enrollmentId}`,
+    badge: '승인 대기',
+    childName: item.childName || '',
+    childId: item.childId,
+    title: item.title || '금융상품 가입 신청',
+    detail: formatFinanceMeta(item),
+    timeLabel: formatRelativeTime(item.requestedAt),
+    productType: item.productType,
+    enrollmentId: item.enrollmentId,
+  }))
+
+  return [...permissions, ...quests, ...finances]
 })
 
 async function fetchPendingRequests() {
   if (!authStore.accessToken) return
 
   try {
-    const [permRes, questRes, childrenRes] = await Promise.allSettled([
-      getPermissions(authStore.accessToken),
+    const childrenRes = await getChildren(authStore.accessToken).catch(() => null)
+    const children = Array.isArray(childrenRes?.data) ? childrenRes.data : []
+
+    const [permRes, questRes, financeRes] = await Promise.allSettled([
+      children.length
+        ? Promise.allSettled(
+            children.map((child) =>
+              getPermissions(authStore.accessToken, child.childId)
+            )
+          )
+        : getPermissions(authStore.accessToken).then((res) => [
+            { status: 'fulfilled', value: res },
+          ]),
       getQuests(authStore.accessToken, 'ONGOING'),
-      getChildren(authStore.accessToken),
+      financialProductsApi.getFinancialProductApprovalRequests(
+        authStore.accessToken
+      ),
     ])
 
-    let permissions = permRes.status === 'fulfilled'
-      ? extractPermissionsList(permRes.value.data)
-      : []
+    let permissions = []
 
-    if (
-      permissions.length === 0 &&
-      childrenRes.status === 'fulfilled'
-    ) {
-      const children = Array.isArray(childrenRes.value.data)
-        ? childrenRes.value.data
-        : []
-
-      const childResults = await Promise.allSettled(
-        children.map((child) =>
-          getPermissions(authStore.accessToken, child.childId)
-        )
-      )
-
-      permissions = childResults.flatMap((result, index) => {
+    if (permRes.status === 'fulfilled' && Array.isArray(permRes.value)) {
+      permissions = permRes.value.flatMap((result, index) => {
         if (result.status !== 'fulfilled') return []
         return extractPermissionsList(result.value.data).map((permission) => ({
           ...permission,
-          childName: permission.child?.name || permission.childName || children[index]?.name,
-          childId: permission.child?.childId || permission.childId || children[index]?.childId,
+          childName:
+            permission.child?.name
+            || permission.childName
+            || children[index]?.name,
+          childId:
+            getPermissionChildId(permission)
+            || children[index]?.childId,
         }))
       })
+    } else if (permRes.status === 'fulfilled') {
+      permissions = extractPermissionsList(permRes.value.data)
     }
 
-    pendingPermissions.value = permissions.filter(
-      (permission) => (permission.status || 'PENDING') === 'PENDING'
+    pendingPermissions.value = permissions.filter((permission) => {
+      const status = permission.status || 'PENDING'
+      return status === 'PENDING' && getPermissionId(permission) != null
+    })
+
+    const questItems =
+      questRes.status === 'fulfilled' && Array.isArray(questRes.value.data?.items)
+        ? questRes.value.data.items
+        : []
+
+    pendingQuests.value = questItems.filter(
+      (quest) => quest.status === 'PENDING'
     )
 
-    const questItems = questRes.status === 'fulfilled' && Array.isArray(questRes.value.data?.items)
-      ? questRes.value.data.items
-      : []
-
-    pendingQuests.value = questItems.filter((quest) => quest.status === 'PENDING')
+    if (financeRes.status === 'fulfilled') {
+      pendingFinances.value = extractApprovalRequestList(financeRes.value.data)
+        .map((item) => normalizeApprovalRequest(item))
+        .filter((item) => item.isPending)
+        .map((item) => {
+          const matched = children.find(
+            (child) => Number(child.childId) === Number(item.childId)
+          )
+          return {
+            ...item,
+            childName: item.childName && item.childName !== '자녀'
+              ? item.childName
+              : (matched?.name || item.childName),
+          }
+        })
+    } else {
+      pendingFinances.value = []
+    }
   } catch (error) {
     console.error('홈 요청 조회 실패:', error)
   }
@@ -444,15 +590,60 @@ async function findVerificationId(questId) {
   return verificationId
 }
 
+async function openRequestDetail(item) {
+  if (item.type === 'permission' && item.childId) {
+    router.push({
+      name: 'parents-harmful-category',
+      query: { childId: item.childId },
+    })
+    return
+  }
+
+  if (item.type === 'quest') {
+    try {
+      const verificationId = await findVerificationId(item.questId)
+      router.push({
+        name: 'ParentQuestApproval',
+        params: {
+          questId: item.questId,
+          verificationId,
+        },
+      })
+    } catch (error) {
+      alertModal.showAlert(error.message || '인증 요청을 열 수 없습니다.')
+    }
+    return
+  }
+
+  if (item.type === 'finance' && item.childId && item.enrollmentId) {
+    router.push({
+      name: 'parents-finance-approval-detail',
+      params: {
+        childId: item.childId,
+        productType: item.productType || 'SAVING',
+        enrollmentId: item.enrollmentId,
+      },
+    })
+  }
+}
+
 async function handleApproveRequest(item) {
   if (processingKey.value) return
+
+  if (item.type === 'quest') {
+    const confirmed = await alertModal.showConfirm(
+      `"${item.title}" 인증을 승인하시겠습니까?`
+    )
+    if (!confirmed) return
+  }
+
   processingKey.value = item.key
 
   try {
     if (item.type === 'permission') {
       await approvePermission(authStore.accessToken, item.id)
       pendingPermissions.value = pendingPermissions.value.filter(
-        (permission) => permission.id !== item.id
+        (permission) => getPermissionId(permission) !== item.id
       )
     } else {
       const verificationId = await findVerificationId(item.questId)
@@ -486,7 +677,7 @@ async function handleRejectRequest(item) {
   try {
     await rejectPermission(authStore.accessToken, item.id)
     pendingPermissions.value = pendingPermissions.value.filter(
-      (permission) => permission.id !== item.id
+      (permission) => getPermissionId(permission) !== item.id
     )
   } catch (error) {
     console.error('요청 거절 실패:', error)
@@ -779,12 +970,13 @@ button {
 .home-request-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 16px;
   margin-bottom: 10px;
+  border: 1px solid #eaedf1;
   border-radius: 16px;
   background: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .home-request-top {
@@ -795,38 +987,50 @@ button {
 
 .home-request-badge {
   padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .home-request-badge.permission {
-  background: #fff6dd;
-  color: #b45309;
+  background: #ffe5e5;
+  color: #ff3b30;
 }
 
 .home-request-badge.quest {
+  background: #fff3e0;
+  color: #ff9500;
+}
+
+.home-request-badge.finance {
   background: #e8f0fb;
   color: #2563eb;
 }
 
 .home-request-child {
-  font-size: 12px;
+  flex: 1;
+  font-size: 14px;
   font-weight: 700;
-  color: #64748b;
+  color: #191b1e;
+}
+
+.home-request-time {
+  margin-left: auto;
+  font-size: 12px;
+  color: #8b9097;
 }
 
 .home-request-title {
   margin: 0;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: #191b1e;
 }
 
 .home-request-detail {
   margin: 0;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: #8b9097;
 }
 
@@ -837,22 +1041,22 @@ button {
 
 .home-request-btn {
   flex: 1;
-  height: 38px;
-  border-radius: 10px;
+  height: 40px;
+  border-radius: 8px;
   border: none;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .home-request-btn:disabled {
-  opacity: 0.55;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .home-request-btn.ghost {
   background: #f4f5f7;
-  color: #4a4e55;
+  color: #191b1e;
 }
 
 .home-request-btn.primary {
@@ -878,9 +1082,16 @@ button {
 }
 
 .reject-title {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-size: 15px;
   font-weight: 800;
+}
+
+.reject-desc {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b9097;
 }
 
 .reject-input {
