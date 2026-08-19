@@ -10,15 +10,11 @@
     <div class="card qr-card">
       <div class="qr-top">
         <div class="exp">
-          <svg viewBox="-1 -1 26 26" width="14" height="14" fill="none" style="display:block; overflow:visible;">
-            <circle cx="15" cy="15" r="11" stroke="#8b9097" stroke-width="1.6"/>
-            <path d="M12 8v4l3 2" stroke="#8b9097" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
           <span class="exp-text">{{ formattedTime }} 후 만료</span>
         </div>
 
        <button class="refresh-btn" @click="refreshQr">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
             <path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v3.5h-3.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <span>재발급</span>
@@ -204,11 +200,6 @@ const isExpired = computed(() => remainSec.value <= 0)
 .exp {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-.exp svg {
-  display: block;
-  flex: none;
 }
 
 .exp-text {
@@ -220,15 +211,24 @@ const isExpired = computed(() => remainSec.value <= 0)
 .refresh-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 13px;
   border: none;
   border-radius: 10px;
   background: #ffbc00;
   color: #ffffff;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
+  line-height: 1;
   cursor: pointer;
+}
+
+.refresh-btn svg {
+  display: block;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
 }
 
 .qr-box {

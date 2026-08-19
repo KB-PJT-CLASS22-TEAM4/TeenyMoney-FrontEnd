@@ -1,21 +1,20 @@
 <template>
   <div class="qr-scan">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <h1 class="nav-title">QR 스캔</h1>
+    <!-- 상단 네비 (전역 .nav 스타일과 충돌 방지를 위해 별도 클래스 사용) -->
+    <div class="qr-nav">
+      <h1 class="qr-nav-title">QR 스캔</h1>
       <button class="icon-btn" @click="closeScan" aria-label="닫기">
-        <svg viewBox="0 0 24 24" width="30" height="30" fill="none">
-          <path d="M6 6l12 12M18 6L6 18" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M6 6l12 12M18 6L6 18" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
 
-    <!-- 안내 문구 -->
-    <p class="desc">매장의 QR 코드를 네모 안에 맞춰주세요</p>
-    <p v-if="errorMsg" class="err">{{ errorMsg }}</p>
-
-    <!-- 스캔 영역 -->
+    <!-- 안내 문구 + 스캔 영역을 함께 세로 중앙 정렬 -->
     <div class="scan-stage">
+      <p class="desc">매장의 QR 코드를 네모 안에 맞춰주세요</p>
+      <p v-if="errorMsg" class="err">{{ errorMsg }}</p>
+
       <div class="scan-frame">
         <!-- 카메라 박스 -->
         <div class="scan-box">
@@ -125,24 +124,26 @@ function onError(err) {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
   background: #1a1200;
   overflow: hidden;
 }
 
-/* 상단 네비 */
-.nav {
-  box-sizing: border-box;    
+/* 상단 네비 (전역 .nav 스타일이 App.vue에서 흰 배경/가운데정렬로 강제 덮어써서, 클래스명을 분리함) */
+.qr-nav {
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   flex-shrink: 0;
-  padding: 12px 20px 4px;
-
+  height: 64px;
+  padding: 0 20px 4px;
+  background: #1a1200;
+  position: relative;
+  z-index: 10;
 }
 
-.nav-title {
+.qr-nav-title {
   margin: 0;
   font-weight: 700;
   font-size: 16px;
@@ -153,17 +154,27 @@ function onError(err) {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: none;
   border-radius: 50%;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.08);
   cursor: pointer;
 }
 
-/* 안내 문구 */
+/* 안내 문구 + 스캔 영역을 함께 감싸 세로 중앙 정렬 */
+.scan-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+  gap: 20px;
+}
+
 .desc {
-  margin: 21px 0 4px;
+  margin: 0;
   font-weight: 500;
   font-size: 14px;
   line-height: 20px;
@@ -172,21 +183,12 @@ function onError(err) {
 }
 
 .err {
-  margin: 0 0 8px;
+  margin: -12px 0 0;
   font-size: 12px;
   color: #ff6b6b;
   text-align: center;
 }
 
-/* 스캔 영역 */
-.scan-stage {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  width: 100%;
-  flex: 1;
-  padding-top: 50px;
-}
 .scan-frame {
   position: relative;
   width: 240px;
