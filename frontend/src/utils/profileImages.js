@@ -9,6 +9,6 @@ export const CHILD_PROFILE_IMAGE = new URL(
 ).href
 
 export const CHILD_DETAIL_MASCOT = new URL(
-  '@/assets/mascot/teeny-coach.png',
+  '@/assets/mascot/teeny-run.png',
   import.meta.url,
 ).href
