@@ -78,13 +78,6 @@
             <p class="info-value">
               {{ formattedPhoneNumber || '-' }}
             </p>
-
-            <button
-              type="button"
-              class="edit-button"
-            >
-              수정
-            </button>
           </div>
         </div>
 
@@ -98,13 +91,6 @@
             <p class="info-value email-value">
               {{ member.email || '-' }}
             </p>
-
-            <button
-              type="button"
-              class="edit-button"
-            >
-              수정
-            </button>
           </div>
         </div>
       </section>
@@ -112,17 +98,12 @@
       <!-- 비밀번호 변경 -->
       <section class="menu-card">
         <div class="payment-password-block menu-border">
-          <button
-            type="button"
-            class="menu-button"
-            @click="goToPaymentPassword"
-          >
-            <span>결제 비밀번호 설정</span>
-            <span class="chevron">›</span>
-          </button>
-          <p class="payment-password-current">
-            {{ hasPaymentPassword ? '설정됨' : '미설정' }}
-          </p>
+          <div class="payment-password-row">
+            <span>결제 비밀번호</span>
+            <span class="payment-password-status">
+              {{ hasPaymentPassword ? '등록됨' : '미등록' }}
+            </span>
+          </div>
         </div>
 
         <button
@@ -583,10 +564,6 @@ function goToPasswordChange() {
   )
 }
 
-function goToPaymentPassword() {
-  router.push({ name: 'parents-payment-password' })
-}
-
 function goToFaq() {
   router.push({ name: 'parents-faq' })
 }
@@ -825,7 +802,6 @@ button {
   font-size: 18px;
 }
 
-.edit-button,
 .disconnect-button {
   border: 1px solid #d9dee5;
 
@@ -836,16 +812,6 @@ button {
   background-color: #ffffff;
 
   cursor: pointer;
-}
-
-.edit-button {
-  flex-shrink: 0;
-  padding: 5px 10px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.disconnect-button {
   padding: 8px 10px;
 
   font-size: 12px;
@@ -915,13 +881,24 @@ button {
   border-bottom: 1px solid #f0f1f3;
 }
 
-.payment-password-current {
-  margin: -4px 0 0;
-  padding: 0 16px 12px;
+.payment-password-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+  min-height: 58px;
+  padding: 0 16px;
+
+  color: #191b1e;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.payment-password-status {
   color: #8b9097;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.3px;
 }
 
 .chevron {
