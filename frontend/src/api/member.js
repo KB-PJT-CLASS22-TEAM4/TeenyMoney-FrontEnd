@@ -45,6 +45,47 @@ export async function getMyInfo(accessToken) {
   return result.data
 }
 
+// 프로필 이미지 변경
+// PATCH /api/v1/members/me
+export async function updateMyProfileImage(accessToken, file) {
+  ensureAccessToken(accessToken)
+
+  if (!file) {
+    throw new Error('프로필 이미지를 선택해 주세요.')
+  }
+
+  const formData = new FormData()
+  formData.append('profileImage', file)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/members/me`,
+    {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: formData,
+    }
+  )
+
+  let result
+
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(
+      result.message || '프로필 이미지를 변경하지 못했습니다.'
+    )
+  }
+
+  return result.data
+}
+
 // 연동된 부모 조회
 export async function getLinkedParent(accessToken) {
   ensureAccessToken(accessToken)

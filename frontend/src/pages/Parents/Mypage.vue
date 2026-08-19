@@ -45,13 +45,37 @@
 
       <!-- 프로필 -->
       <section class="profile-card">
-        <div class="profile-image-wrapper">
+        <button
+          type="button"
+          class="profile-image-wrapper"
+          :disabled="isUploadingProfile"
+          aria-label="프로필 사진 변경"
+          @click="openProfilePicker"
+        >
           <img
-            :src="PARENT_PROFILE_IMAGE"
+            :src="shownProfileImage"
             alt="프로필 이미지"
             class="profile-image"
+            :class="{ photo: !isDefaultProfileShown }"
           />
-        </div>
+          <span class="profile-edit-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <path
+                d="M4 8.5h2.2l1.1-2.2h9.4L18 8.5H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5z"
+                stroke="#191b1e"
+                stroke-width="1.6"
+              />
+              <circle cx="12" cy="14" r="3.2" stroke="#191b1e" stroke-width="1.6"/>
+            </svg>
+          </span>
+        </button>
+        <input
+          ref="profileFileInput"
+          class="profile-file-input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          @change="onProfileFileChange"
+        />
 
         <div class="profile-text">
           <span class="role-badge">보호자</span>
@@ -151,7 +175,7 @@
             >
               <div class="child-info">
                 <img
-                  :src="CHILD_PROFILE_IMAGE"
+                  :src="childProfileImage(child)"
                   alt=""
                   class="child-icon"
                 />
@@ -252,6 +276,7 @@ import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
   computed,
+  onBeforeUnmount,
   onMounted,
   reactive,
   ref,
@@ -260,13 +285,16 @@ import {
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
-import { getMyInfo } from '@/api/member'
+import { getMyInfo, updateMyProfileImage } from '@/api/member'
 import { getChildren } from '@/api/children'
 import { unlinkFamily } from '@/api/families'
 import {
   PARENT_PROFILE_IMAGE,
   CHILD_PROFILE_IMAGE,
+  resolveProfileImageUrl,
 } from '@/utils/profileImages'
+
+const PROFILE_IMAGE_MAX_BYTES = 5 * 1024 * 1024
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -299,6 +327,72 @@ const children = ref([])
 const isChildrenLoading = ref(false)
 const childrenError = ref('')
 const unlinkingId = ref(null)
+const profileFileInput = ref(null)
+const localPreviewUrl = ref('')
+const isUploadingProfile = ref(false)
+
+const sharedRemoteProfileUrl = computed(() => {
+  const urls = [
+    member.profileImageUrl,
+    ...children.value.map((child) => child.profileImageUrl),
+  ]
+    .map((url) => String(url || '').trim())
+    .filter(Boolean)
+
+  if (urls.length < 2) {
+    return ''
+  }
+
+  return urls.every((url) => url === urls[0]) ? urls[0] : ''
+})
+
+const displayProfileImage = computed(() => {
+  const url = member.profileImageUrl?.trim()
+  if (url && url === sharedRemoteProfileUrl.value) {
+    return PARENT_PROFILE_IMAGE
+  }
+  return resolveProfileImageUrl(url, PARENT_PROFILE_IMAGE)
+})
+
+const shownProfileImage = computed(() =>
+  localPreviewUrl.value || displayProfileImage.value
+)
+
+const isDefaultProfileShown = computed(() =>
+  shownProfileImage.value === PARENT_PROFILE_IMAGE
+)
+
+function childProfileImage(child) {
+  const url = child?.profileImageUrl?.trim()
+  if (url && url === sharedRemoteProfileUrl.value) {
+    return CHILD_PROFILE_IMAGE
+  }
+  return resolveProfileImageUrl(url, CHILD_PROFILE_IMAGE)
+}
+
+function clearLocalPreview() {
+  if (localPreviewUrl.value) {
+    URL.revokeObjectURL(localPreviewUrl.value)
+    localPreviewUrl.value = ''
+  }
+}
+
+function applyMember(data) {
+  if (!data) {
+    return
+  }
+
+  Object.assign(member, {
+    memberId: data.memberId,
+    role: data.role,
+    name: data.name,
+    email: data.email,
+    phoneNumber: data.phoneNumber,
+    birthDate: data.birthDate,
+    profileImageUrl: data.profileImageUrl || '',
+    hasPaymentPassword: Boolean(data.hasPaymentPassword),
+  })
+}
 
 /* =========================
    생년월일 포맷
@@ -366,17 +460,7 @@ async function fetchMyInfo() {
       authStore.accessToken
     )
 
-    Object.assign(member, {
-      memberId: data.memberId,
-      role: data.role,
-      name: data.name,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      birthDate: data.birthDate,
-      profileImageUrl:
-        data.profileImageUrl || '',
-      hasPaymentPassword: Boolean(data.hasPaymentPassword),
-    })
+    applyMember(data)
 
     if (
       typeof authStore.updateUserInfo ===
@@ -539,6 +623,68 @@ function goToFaq() {
   router.push({ name: 'parents-faq' })
 }
 
+function openProfilePicker() {
+  if (isUploadingProfile.value) {
+    return
+  }
+
+  profileFileInput.value?.click()
+}
+
+async function onProfileFileChange(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+
+  if (!file) {
+    return
+  }
+
+  if (!file.type.startsWith('image/')) {
+    alertModal.showAlert('이미지 파일만 선택할 수 있어요.')
+    return
+  }
+
+  if (file.size > PROFILE_IMAGE_MAX_BYTES) {
+    alertModal.showAlert('프로필 사진은 5MB 이하만 업로드할 수 있어요.')
+    return
+  }
+
+  if (!authStore.accessToken) {
+    alertModal.showAlert('로그인이 필요합니다.')
+    return
+  }
+
+  clearLocalPreview()
+  localPreviewUrl.value = URL.createObjectURL(file)
+  isUploadingProfile.value = true
+
+  try {
+    const data = await updateMyProfileImage(
+      authStore.accessToken,
+      file
+    )
+
+    if (data?.profileImageUrl) {
+      member.profileImageUrl = data.profileImageUrl
+      clearLocalPreview()
+    } else {
+      const refreshed = await getMyInfo(authStore.accessToken)
+      if (refreshed?.profileImageUrl) {
+        member.profileImageUrl = refreshed.profileImageUrl
+        clearLocalPreview()
+      }
+    }
+  } catch (error) {
+    console.error('프로필 이미지 변경 실패:', error)
+    clearLocalPreview()
+    alertModal.showAlert(
+      error.message || '프로필 이미지를 변경하지 못했습니다.'
+    )
+  } finally {
+    isUploadingProfile.value = false
+  }
+}
+
 /* =========================
    로그아웃
 ========================= */
@@ -564,6 +710,10 @@ async function logout() {
 onMounted(() => {
   fetchMyInfo()
   fetchChildren()
+})
+
+onBeforeUnmount(() => {
+  clearLocalPreview()
 })
 </script>
 
@@ -632,12 +782,20 @@ button {
 }
 
 .profile-image-wrapper {
+  position: relative;
   flex-shrink: 0;
   width: 72px;
   height: 72px;
   padding: 3px;
+  border: none;
   border-radius: 50%;
   background: #ffbc00;
+  cursor: pointer;
+}
+
+.profile-image-wrapper:disabled {
+  cursor: default;
+  opacity: 0.7;
 }
 
 .profile-image {
@@ -647,6 +805,28 @@ button {
   border-radius: 50%;
   object-fit: contain;
   background-color: #ffffff;
+}
+
+.profile-image.photo {
+  object-fit: cover;
+}
+
+.profile-edit-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #ffbc00;
+}
+
+.profile-file-input {
+  display: none;
 }
 
 .profile-text {
