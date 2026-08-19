@@ -107,6 +107,7 @@ async function verifyCode() {
   flex-direction: column;
   align-items: center;
   gap: 32px;
+  margin-top: 180px;
 }
 
 .heading {
