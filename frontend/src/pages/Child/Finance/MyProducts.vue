@@ -40,6 +40,7 @@ const statusMap = {
   TERMINATED: { label: '중도해지 완료', color: 'red' },
   CANCELLED: { label: '중도해지 완료', color: 'red' },
   CLOSED: { label: '중도해지 완료', color: 'red' },
+  REPAID: { label: '상환 완료', color: 'green' },
 }
 
 // 해지(중도해지/만기 등으로 종료)된 계약인지 판별
@@ -49,7 +50,8 @@ function isEnrollmentTerminated(p) {
     p.terminated === true ||
     p.status === 'TERMINATED' ||
     p.status === 'CANCELLED' ||
-    p.status === 'CLOSED'
+    p.status === 'CLOSED' ||
+    p.status === 'REPAID'
   )
 }
 
@@ -134,7 +136,9 @@ function mapEnrolledProduct(p) {
 
   let infoText = ''
   if (isTerminated) {
-    infoText = '중도해지가 완료된 상품이에요.'
+    infoText = p.status === 'REPAID'
+      ? '대출이 모두 상환 완료됐어요.'
+      : '중도해지가 완료된 상품이에요.'
   } else if (isPending) {
     infoText = '부모님이 승인하면 시작돼요. 조금만 기다려주세요!'
   } else if (isSaving) {
