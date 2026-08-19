@@ -134,20 +134,26 @@
         >
           <!-- 선택된 자녀가 있을 때 -->
           <div
-            v-if="selectedChild"
-            class="selected-child"
+            v-if="selectedChildren.length"
+            class="selected-child-list"
           >
-            <div class="selected-avatar">
-              <img
-                :src="CHILD_PROFILE_IMAGE"
-                alt=""
-                class="selected-avatar-img"
-              />
-            </div>
+            <div
+              v-for="child in selectedChildren"
+              :key="child.id"
+              class="selected-child"
+            >
+              <div class="selected-avatar">
+                <img
+                  :src="CHILD_PROFILE_IMAGE"
+                  alt=""
+                  class="selected-avatar-img"
+                />
+              </div>
 
-            <span class="selected-child-name">
-              {{ selectedChild.name }}
-            </span>
+              <span class="selected-child-name">
+                {{ child.name }}
+              </span>
+            </div>
           </div>
 
           <!-- 선택 전 -->
@@ -382,9 +388,9 @@
               class="modal-child-item"
               :class="{
                 selected:
-                  selectedChildId === child.id
+                  selectedChildIds.includes(child.id)
               }"
-              @click="selectChild(child)"
+              @click="toggleChild(child)"
             >
               <div class="modal-child-left">
                 <div class="modal-avatar">
@@ -405,11 +411,11 @@
                 class="check-circle"
                 :class="{
                   checked:
-                    selectedChildId === child.id
+                    selectedChildIds.includes(child.id)
                 }"
               >
                 <span
-                  v-if="selectedChildId === child.id"
+                  v-if="selectedChildIds.includes(child.id)"
                   class="check-mark"
                 >
                   ✓
@@ -422,7 +428,7 @@
           <button
             type="button"
             class="modal-confirm-btn"
-            :disabled="!selectedChildId"
+            :disabled="selectedChildIds.length === 0"
             @click="closeChildModal"
           >
             선택 완료
@@ -488,7 +494,7 @@ const alertModal = useAlertModal()
 
 const children = ref([])
 const schedules = ref([])
-const selectedChildId = ref(null)
+const selectedChildIds = ref([])
 const editingScheduleId = ref(null)
 const cycle = ref('MONTHLY')
 const dayOfCycle = ref(1)
@@ -498,14 +504,14 @@ const isScheduleLoading = ref(false)
 const isSaving = ref(false)
 const isChildModalOpen = ref(false)
 
-const selectedChild = computed(() => {
-  if (!selectedChildId.value) {
-    return null
+const selectedChildren = computed(() => {
+  if (!selectedChildIds.value.length) {
+    return []
   }
 
-  return children.value.find(
-    child => child.id === selectedChildId.value
-  ) || null
+  return children.value.filter(
+    (child) => selectedChildIds.value.includes(child.id)
+  )
 })
 
 const quickAmounts = [
@@ -523,7 +529,7 @@ const canSubmit = computed(() => {
   const day = Number(dayOfCycle.value)
 
   return (
-    selectedChildId.value &&
+    selectedChildIds.value.length > 0 &&
     day >= 1 &&
     day <= maxPaymentDay.value &&
     Number(amount.value) > 0
@@ -604,9 +610,9 @@ function handleScheduleError(error, fallbackMessage) {
   alertModal.showAlert(error.message || fallbackMessage)
 }
 
-function buildPayload() {
+function buildPayload(childId) {
   return {
-    childId: Number(selectedChildId.value),
+    childId: Number(childId),
     amount: Number(amount.value),
     cycleType: cycle.value,
     paymentDay: Number(dayOfCycle.value),
@@ -668,13 +674,26 @@ function closeChildModal() {
   isChildModalOpen.value = false
 }
 
-function selectChild(child) {
-  selectedChildId.value = child.id
+function toggleChild(child) {
+  if (editingScheduleId.value) {
+    selectedChildIds.value =
+      selectedChildIds.value.includes(child.id) ? [] : [child.id]
+    return
+  }
+
+  if (selectedChildIds.value.includes(child.id)) {
+    selectedChildIds.value = selectedChildIds.value.filter(
+      (id) => id !== child.id
+    )
+    return
+  }
+
+  selectedChildIds.value = [...selectedChildIds.value, child.id]
 }
 
 function startEdit(schedule) {
   editingScheduleId.value = schedule.id
-  selectedChildId.value = schedule.childId
+  selectedChildIds.value = [schedule.childId]
   cycle.value = schedule.cycleType === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY'
 
   const day = Number(schedule.paymentDay) || 1
@@ -697,7 +716,7 @@ function clearAmount() {
 
 function resetForm() {
   editingScheduleId.value = null
-  selectedChildId.value = null
+  selectedChildIds.value = []
   cycle.value = 'MONTHLY'
   dayOfCycle.value = 1
   amount.value = ''
@@ -716,13 +735,11 @@ async function handleSave() {
   isSaving.value = true
 
   try {
-    const payload = buildPayload()
-
     if (editingScheduleId.value) {
       await updateAllowanceSchedule(
         authStore.accessToken,
         editingScheduleId.value,
-        payload
+        buildPayload(selectedChildIds.value[0])
       )
 
       await fetchSchedules()
@@ -730,21 +747,26 @@ async function handleSave() {
       return
     }
 
-    const res = await createAllowanceSchedule(
-      authStore.accessToken,
-      payload
-    )
+    const created = []
+
+    for (const childId of selectedChildIds.value) {
+      const res = await createAllowanceSchedule(
+        authStore.accessToken,
+        buildPayload(childId)
+      )
+      created.push(res)
+    }
 
     router.push({
       path: '/parents/regular-allowance/complete',
       query: {
-        childName: selectedChild.value?.name,
-        childId: selectedChildId.value,
+        childName: selectedChildren.value.map((child) => child.name).join(', '),
+        childId: selectedChildIds.value[0],
         cycle: cycle.value,
         day: dayOfCycle.value,
         amount: amount.value,
         cycleLabel: formatCycleLabel(cycle.value, Number(dayOfCycle.value)),
-        nextPaymentDate: res?.data?.nextPaymentDate || '',
+        nextPaymentDate: created[0]?.data?.nextPaymentDate || '',
       },
     })
   } catch (error) {
@@ -1049,6 +1071,13 @@ button {
   border-radius: 12px;
   background-color: #ffffff;
   cursor: pointer;
+}
+
+.selected-child-list {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .selected-child {

@@ -545,6 +545,11 @@
                       '0'
                     )
                   "
+                  :disabled="
+                    isHourDisabled(
+                      String(hour - 1).padStart(2, '0')
+                    )
+                  "
                 >
                   {{
                     String(
@@ -565,28 +570,13 @@
                 v-model="selectedMinute"
                 class="time-select"
               >
-                <option value="00">
-                  00분
-                </option>
-
-                <option value="10">
-                  10분
-                </option>
-
-                <option value="20">
-                  20분
-                </option>
-
-                <option value="30">
-                  30분
-                </option>
-
-                <option value="40">
-                  40분
-                </option>
-
-                <option value="50">
-                  50분
+                <option
+                  v-for="minute in ['00', '10', '20', '30', '40', '50']"
+                  :key="minute"
+                  :value="minute"
+                  :disabled="isMinuteDisabled(minute)"
+                >
+                  {{ minute }}분
                 </option>
               </select>
 
@@ -837,6 +827,8 @@ function openCalendar() {
 
     calendarMonth.value =
       now.getMonth()
+
+    snapTimeToFuture()
   }
 
   isCalendarOpen.value =
@@ -895,6 +887,8 @@ function selectDay(
       calendarMonth.value,
       day
     )
+
+  snapTimeToFuture()
 }
 
 
@@ -944,25 +938,94 @@ function isToday(
 function isPastDay(
   day
 ) {
-
-  const date =
-    new Date(
-      calendarYear.value,
-      calendarMonth.value,
-      day
-    )
-
-  date.setHours(
-    23,
-    59,
-    59,
-    999
+  const now = new Date()
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
   )
+  const date = new Date(
+    calendarYear.value,
+    calendarMonth.value,
+    day
+  )
+
+  return date < todayStart
+}
+
+function isSelectedDateToday() {
+  if (!selectedDate.value) return false
+
+  const now = new Date()
 
   return (
-    date <
-    new Date()
+    selectedDate.value.getFullYear() === now.getFullYear() &&
+    selectedDate.value.getMonth() === now.getMonth() &&
+    selectedDate.value.getDate() === now.getDate()
   )
+}
+
+function isHourDisabled(hourValue) {
+  if (!isSelectedDateToday()) return false
+
+  const lastSlot = new Date(selectedDate.value)
+  lastSlot.setHours(Number(hourValue), 50, 0, 0)
+
+  return lastSlot.getTime() < Date.now()
+}
+
+function isMinuteDisabled(minuteValue) {
+  if (!isSelectedDateToday()) return false
+
+  const slot = new Date(selectedDate.value)
+  slot.setHours(
+    Number(selectedHour.value),
+    Number(minuteValue),
+    0,
+    0
+  )
+
+  return slot.getTime() < Date.now()
+}
+
+function snapTimeToFuture() {
+  if (!isSelectedDateToday()) return
+
+  const candidate = new Date(selectedDate.value)
+  candidate.setHours(
+    Number(selectedHour.value),
+    Number(selectedMinute.value),
+    0,
+    0
+  )
+
+  if (candidate.getTime() >= Date.now()) return
+
+  const now = new Date()
+  const slots = [0, 10, 20, 30, 40, 50]
+  let hour = now.getHours()
+  let minute = slots.find((slot) => {
+    const time = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      hour,
+      slot,
+      0,
+      0
+    )
+    return time.getTime() >= Date.now()
+  })
+
+  if (minute == null) {
+    hour += 1
+    minute = 0
+  }
+
+  if (hour > 23) return
+
+  selectedHour.value = String(hour).padStart(2, '0')
+  selectedMinute.value = String(minute).padStart(2, '0')
 }
 
 
@@ -992,12 +1055,21 @@ function confirmCalendar() {
     0
   )
 
+  snapTimeToFuture()
+
+  date.setHours(
+    Number(selectedHour.value),
+    Number(selectedMinute.value),
+    0,
+    0
+  )
+
   /*
-   * 오늘을 선택했는데
-   * 이미 지난 시간을 선택한 경우 방지
+   * 현재 시각보다 과거인 기한만 막는다.
+   * 당일은 현재 시각 이후면 허용한다.
    */
   if (
-    date.getTime() <=
+    date.getTime() <
     Date.now()
   ) {
 
