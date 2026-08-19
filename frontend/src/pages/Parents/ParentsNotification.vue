@@ -121,14 +121,28 @@ function isTodayAllowNotification(n) {
   return /오늘만\s*허용/.test(`${n.title || ''} ${n.detail || ''}`)
 }
 
-function goToHarmfulCategory(childId) {
-  router.push({
-    name: 'parents-harmful-category',
-    query: childId ? { childId } : {},
-  })
+function isFamilyLinkNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (type === 'FAMILY' || type === 'LINK' || type === 'CHILD_LINK') {
+    return true
+  }
+
+  return /연결됐|연동됐|연결되었|연동되었/.test(`${n.title || ''} ${n.detail || ''}`)
 }
 
-async function goToTodayAllow(n) {
+function goToChildDetail(childId) {
+  if (childId) {
+    router.push({
+      name: 'parents-child-detail',
+      params: { childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-child-list' })
+}
+
+async function resolveChildId(n) {
   const fromNoti = n.childId ?? n.referenceId
 
   try {
@@ -137,15 +151,32 @@ async function goToTodayAllow(n) {
     const matched = children.find(
       (child) => Number(child.childId) === Number(fromNoti)
     )
-    goToHarmfulCategory(matched?.childId ?? children[0]?.childId ?? fromNoti)
+    return matched?.childId ?? children[0]?.childId ?? fromNoti
   } catch {
-    goToHarmfulCategory(fromNoti)
+    return fromNoti
   }
+}
+
+async function goToTodayAllow(n) {
+  const childId = await resolveChildId(n)
+  router.push({
+    name: 'parents-harmful-category',
+    query: childId ? { childId } : {},
+  })
+}
+
+async function goToFamilyLink(n) {
+  const childId = await resolveChildId(n)
+  goToChildDetail(childId)
 }
 
 async function goToReference(n) {
   if (isTodayAllowNotification(n)) {
     await goToTodayAllow(n)
+    return
+  }
+  if (isFamilyLinkNotification(n)) {
+    await goToFamilyLink(n)
     return
   }
   if (n.referenceType === 'PAYMENT') {
