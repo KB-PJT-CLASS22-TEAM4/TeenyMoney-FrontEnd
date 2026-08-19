@@ -377,6 +377,7 @@ import {
 
 import {
   getPermissions,
+  getPermissionHistory,
   approvePermission,
   rejectPermission
 } from '@/api/permissions'
@@ -469,15 +470,22 @@ const temporaryAllowMap = computed(() => {
     if (req.updatedAt && !isSameLocalDay(req.updatedAt) && !isSameLocalDay(req.createdAt)) {
       return
     }
-    if (req.category) map.set(req.category, until)
-    req.categories.forEach((name) => map.set(name, until))
+    if (req.category) map.set(String(req.category), until)
+    req.categories.forEach((name) => map.set(String(name), until))
+    ;(req.categoryItems || []).forEach((item) => {
+      if (item.label) map.set(String(item.label), until)
+      if (item.id != null) map.set(String(item.id), until)
+    })
   })
 
   return map
 })
 
 function withEffectivePolicy(item) {
-  const untilFromPermission = temporaryAllowMap.value.get(item.categoryName) ?? null
+  const untilFromPermission =
+    temporaryAllowMap.value.get(item.categoryName)
+    ?? temporaryAllowMap.value.get(String(item.id))
+    ?? null
   const untilFromPolicy = parseCreatedAt(
     item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null
   )
@@ -937,13 +945,35 @@ async function fetchPermissions() {
   isPermissionLoading.value = true
 
   try {
-    const result = await getPermissions(
-      authStore.accessToken,
-      childId.value
-    )
+    const [permRes, historyRes] = await Promise.allSettled([
+      getPermissions(
+        authStore.accessToken,
+        childId.value
+      ),
+      getPermissionHistory(
+        authStore.accessToken,
+        childId.value
+      ),
+    ])
+
+    const fromPermissions =
+      permRes.status === 'fulfilled'
+        ? extractPermissionsList(permRes.value.data)
+        : []
+    const fromHistory =
+      historyRes.status === 'fulfilled'
+        ? extractPermissionsList(historyRes.value.data)
+        : []
+
+    const merged = new Map()
+    ;[...fromHistory, ...fromPermissions].forEach((permission) => {
+      const key = permission?.id ?? permission?.permissionId
+      if (key == null) return
+      merged.set(key, permission)
+    })
 
     permissionRequests.value = mergePermissionRequests(
-      extractPermissionsList(result.data)
+      Array.from(merged.values())
     )
 
   } catch (error) {
@@ -1222,9 +1252,9 @@ onMounted(async () => {
   font-weight: 700;
   color: #191b1e;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .temp-deadline {
@@ -1239,9 +1269,9 @@ onMounted(async () => {
   font-size: 14px;
   color: #191b1e;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .policy-badge.allow,
