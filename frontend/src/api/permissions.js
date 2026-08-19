@@ -110,62 +110,67 @@ export async function getPermissionHistory(accessToken, childId) {
   return result
 }
 
+async function parsePermissionAction(response, fallbackMessage) {
+  if (response.status === 204) {
+    return { success: true }
+  }
+
+  let result
+
+  try {
+    const text = await response.text()
+    result = text ? JSON.parse(text) : null
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result?.success === false) {
+    throw new Error(result?.message || fallbackMessage)
+  }
+
+  return result ?? { success: true }
+}
+
+function buildPermissionActionInit(accessToken, categories) {
+  const hasBody = Array.isArray(categories) && categories.length > 0
+  const headers = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+  }
+
+  if (hasBody) {
+    headers['Content-Type'] = 'application/json'
+  }
+
+  return {
+    method: 'PATCH',
+    headers,
+    ...(hasBody ? { body: JSON.stringify({ categories }) } : {}),
+  }
+}
+
 // 오늘만 허용 요청 승인
-export async function approvePermission(accessToken, permissionId) {
+export async function approvePermission(accessToken, permissionId, categories) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/permissions/${permissionId}/approve`,
-    {
-      method: 'PATCH',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
+    buildPermissionActionInit(accessToken, categories)
   )
 
-  let result
-  try {
-    result = await response.json()
-  } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
-  }
-
-  if (!response.ok || result.success === false) {
-    throw new Error(result.message || '승인에 실패했습니다.')
-  }
-
-  return result
+  return parsePermissionAction(response, '승인에 실패했습니다.')
 }
 
 // 오늘만 허용 요청 거절
-export async function rejectPermission(accessToken, permissionId) {
+export async function rejectPermission(accessToken, permissionId, categories) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
     `${API_BASE_URL}/api/v1/permissions/${permissionId}/reject`,
-    {
-      method: 'PATCH',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
+    buildPermissionActionInit(accessToken, categories)
   )
 
-  let result
-  try {
-    result = await response.json()
-  } catch {
-    throw new Error('서버 응답을 읽을 수 없습니다.')
-  }
-
-  if (!response.ok || result.success === false) {
-    throw new Error(result.message || '거절에 실패했습니다.')
-  }
-
-  return result
+  return parsePermissionAction(response, '거절에 실패했습니다.')
 }
 
 // 오늘만 허용 요청 (자녀)

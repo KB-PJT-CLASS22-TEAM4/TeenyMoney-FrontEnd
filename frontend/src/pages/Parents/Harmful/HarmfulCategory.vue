@@ -226,12 +226,38 @@
               </span>
             </div>
 
-            <p
-              v-if="req.category"
-              class="request-category-name"
-            >
-              {{ req.category }}
+            <p class="request-category-hint">
+              허용할 업종을 선택한 뒤 승인을 누르면,<br />선택하지 않은 업종은 자동으로 거절됩니다.
             </p>
+
+            <div
+              v-if="req.categoryItems.length"
+              class="request-category-list"
+            >
+              <button
+                v-for="item in req.categoryItems"
+                :key="categoryKey(item)"
+                class="category-check"
+                type="button"
+                :disabled="processingId === req.id"
+                @click="toggleCategory(req, item)"
+              >
+                <span
+                  class="checkbox"
+                  :class="{ checked: isCategoryChecked(req, item) }"
+                >
+                  <img
+                    v-if="isCategoryChecked(req, item)"
+                    src="@/assets/icons/icon-check.svg"
+                    alt=""
+                    class="check-icon"
+                  />
+                </span>
+                <span class="category-check-label">
+                  {{ item.label }}
+                </span>
+              </button>
+            </div>
 
             <p
               v-if="req.reason"
@@ -245,7 +271,7 @@
                 class="btn btn-secondary"
                 :disabled="processingId === req.id"
                 type="button"
-                @click="handleReject(req.id)"
+                @click="handleReject(req)"
               >
                 거절
               </button>
@@ -253,7 +279,7 @@
                 class="btn btn-primary"
                 :disabled="processingId === req.id"
                 type="button"
-                @click="handleAccept(req.id)"
+                @click="handleAccept(req)"
               >
                 승인
               </button>
@@ -294,12 +320,18 @@
               </span>
             </div>
 
-            <p
-              v-if="req.category"
-              class="request-category-name"
+            <div
+              v-if="req.categories.length"
+              class="request-categories"
             >
-              {{ req.category }}
-            </p>
+              <span
+                v-for="name in req.categories"
+                :key="name"
+                class="category-tag"
+              >
+                {{ name }}
+              </span>
+            </div>
 
             <p
               v-if="req.status === 'APPROVED' && formatAllowDeadline()"
@@ -424,7 +456,7 @@ function formatAllowDeadline(until = getTodayEnd()) {
 }
 
 function requestKey(req) {
-  return `${req.id}-${req.category || ''}`
+  return (req.permissionIds || [req.id]).join('-')
 }
 
 const temporaryAllowMap = computed(() => {
@@ -509,6 +541,7 @@ const permissionRequests = ref([])
 const isPermissionLoading = ref(false)
 const activeRequestTab = ref('pending')
 const processingId = ref(null)
+const selectedByRequestId = ref({})
 
 const normalizedRequests = computed(() =>
   permissionRequests.value
@@ -595,29 +628,110 @@ function getCategoryLabel(category) {
     ?? ''
 }
 
+function extractCategoryItems(permission) {
+  const raw = Array.isArray(permission?.categories)
+    ? permission.categories
+    : permission?.category
+      ? [permission.category]
+      : []
+
+  return raw
+    .map((item) => {
+      if (item == null || item === '') return null
+
+      if (typeof item === 'string' || typeof item === 'number') {
+        return {
+          id: item,
+          label: String(item),
+        }
+      }
+
+      const id =
+        item.id
+        ?? item.categoryId
+        ?? item.merchantCategoryId
+        ?? item.category
+        ?? item.categoryName
+
+      const label = getCategoryLabel(item)
+      if (id == null && !label) return null
+
+      return {
+        id: id ?? label,
+        label: label || String(id),
+      }
+    })
+    .filter(Boolean)
+}
+
 function extractCategories(permission) {
-  if (typeof permission?.category === 'string' && permission.category) {
-    return [permission.category]
+  if (Array.isArray(permission?.categoryItems) && permission.categoryItems.length) {
+    return permission.categoryItems.map((item) => item.label).filter(Boolean)
   }
 
-  if (!Array.isArray(permission?.categories)) {
-    const single = getCategoryLabel(permission?.category)
-    return single ? [single] : []
+  return extractCategoryItems(permission).map((item) => item.label).filter(Boolean)
+}
+
+function categoryKey(item) {
+  return String(item?.id ?? item?.label ?? '')
+}
+
+function isCategoryChecked(req, item) {
+  const selected = selectedByRequestId.value[requestKey(req)] || []
+  return selected.includes(categoryKey(item))
+}
+
+function toggleCategory(req, item) {
+  const key = requestKey(req)
+  const itemKey = categoryKey(item)
+  const current = selectedByRequestId.value[key] || []
+  const next = current.includes(itemKey)
+    ? current.filter((value) => value !== itemKey)
+    : [...current, itemKey]
+
+  selectedByRequestId.value = {
+    ...selectedByRequestId.value,
+    [key]: next,
+  }
+}
+
+function resolveCategoryId(item) {
+  if (typeof item?.id === 'number') return item.id
+
+  const numericId = Number(item?.id)
+  if (Number.isFinite(numericId) && String(item.id) === String(numericId)) {
+    return numericId
   }
 
-  return permission.categories.map(getCategoryLabel).filter(Boolean)
+  const found = parentGroups.value
+    .flatMap((group) => group.items)
+    .find((policy) =>
+      policy.categoryName === item.label
+      || String(policy.id) === String(item.id)
+    )
+
+  return found?.id ?? item.id ?? item.label
 }
 
 function normalizePermissionRequest(permission) {
-  const categories = extractCategories(permission)
+  const categoryItems = Array.isArray(permission.categoryItems) && permission.categoryItems.length
+    ? permission.categoryItems
+    : extractCategoryItems(permission).map((item) => ({
+        ...item,
+        permissionId: permission.id,
+      }))
+
+  const categories = categoryItems.map((item) => item.label).filter(Boolean)
 
   return {
     id: permission.id,
+    permissionIds: permission.permissionIds || [permission.id],
     childName: permission.child?.name ?? permission.childName ?? '',
     reason: permission.reason ?? '',
     status: permission.status ?? 'PENDING',
-    category: permission.category || categories[0] || '',
+    category: categories[0] || '',
     categories,
+    categoryItems,
     createdAt: permission.createdAt,
     updatedAt: permission.updatedAt ?? null,
   }
@@ -659,36 +773,64 @@ function matchesSelectedChild(permission) {
 }
 
 function mergePermissionRequests(list) {
-  const merged = new Map()
+  const byId = new Map()
 
   list.forEach((permission) => {
     if (!permission?.id || !matchesSelectedChild(permission)) return
 
-    const categories = extractCategories(permission)
-    const names = categories.length ? categories : ['']
+    const existing = byId.get(permission.id)
+    if (!existing) {
+      byId.set(permission.id, { ...permission })
+      return
+    }
 
-    names.forEach((category) => {
-      const key = `${permission.id}::${category}`
-      const existing = merged.get(key)
-      if (!existing) {
-        merged.set(key, {
-          ...permission,
-          category,
-          categories: category ? [category] : [],
-        })
-        return
-      }
+    const mergedCategories = [
+      ...extractCategoryItems(existing),
+      ...extractCategoryItems(permission),
+    ]
+    existing.categories = mergedCategories
+    if (!existing.updatedAt && permission.updatedAt) {
+      existing.updatedAt = permission.updatedAt
+    }
+  })
 
-      if (!existing.updatedAt && permission.updatedAt) {
-        existing.updatedAt = permission.updatedAt
-      }
-      if (permission.status && permission.status !== existing.status) {
-        existing.status = permission.status
+  const groups = new Map()
+
+  Array.from(byId.values()).forEach((permission) => {
+    const items = extractCategoryItems(permission).map((item) => ({
+      ...item,
+      permissionId: permission.id,
+    }))
+    const timeBucket = Math.floor(getTimestamp(permission.createdAt) / 60000)
+    const key = items.length > 1
+      ? `id:${permission.id}`
+      : `g:${getPermissionChildId(permission) ?? ''}|${permission.reason ?? ''}|${timeBucket}|${permission.status ?? 'PENDING'}`
+
+    const existing = groups.get(key)
+    if (!existing) {
+      groups.set(key, {
+        ...permission,
+        categoryItems: items,
+        permissionIds: [permission.id],
+      })
+      return
+    }
+
+    existing.permissionIds = [
+      ...new Set([...existing.permissionIds, permission.id]),
+    ]
+
+    const seen = new Set(existing.categoryItems.map(categoryKey))
+    items.forEach((item) => {
+      const itemKey = categoryKey(item)
+      if (!seen.has(itemKey)) {
+        existing.categoryItems.push(item)
+        seen.add(itemKey)
       }
     })
   })
 
-  return Array.from(merged.values())
+  return Array.from(groups.values())
 }
 
 
@@ -818,11 +960,70 @@ async function fetchPermissions() {
 }
 
 
-async function handleAccept(id) {
-  processingId.value = id
+async function handleAccept(req) {
+  const items = req.categoryItems || []
+  const selected = new Set(selectedByRequestId.value[requestKey(req)] || [])
+  const approvedItems = items.filter((item) => selected.has(categoryKey(item)))
+  const rejectedItems = items.filter((item) => !selected.has(categoryKey(item)))
+
+  if (!items.length) {
+    alertModal.showAlert('요청된 업종이 없습니다.')
+    return
+  }
+
+  if (!approvedItems.length) {
+    const confirmed = await alertModal.showConfirm(
+      '허용할 업종을 선택하지 않았습니다. 요청한 업종을 모두 거절할까요?'
+    )
+    if (!confirmed) return
+    await handleReject(req)
+    return
+  }
+
+  processingId.value = req.id
 
   try {
-    await approvePermission(authStore.accessToken, id)
+    const byPermission = new Map()
+
+    items.forEach((item) => {
+      const permissionId = item.permissionId ?? req.id
+      const bucket = byPermission.get(permissionId) || {
+        approved: [],
+        rejected: [],
+      }
+
+      if (selected.has(categoryKey(item))) {
+        bucket.approved.push(item)
+      } else {
+        bucket.rejected.push(item)
+      }
+
+      byPermission.set(permissionId, bucket)
+    })
+
+    for (const [permissionId, bucket] of byPermission.entries()) {
+      if (bucket.approved.length && !bucket.rejected.length) {
+        await approvePermission(authStore.accessToken, permissionId)
+        continue
+      }
+
+      if (!bucket.approved.length && bucket.rejected.length) {
+        await rejectPermission(authStore.accessToken, permissionId)
+        continue
+      }
+
+      await approvePermission(
+        authStore.accessToken,
+        permissionId,
+        bucket.approved.map(resolveCategoryId)
+      )
+      await rejectPermission(
+        authStore.accessToken,
+        permissionId,
+        bucket.rejected.map(resolveCategoryId)
+      )
+    }
+
     await fetchPermissions()
     await fetchCategoryPolicies()
   } catch (error) {
@@ -833,11 +1034,14 @@ async function handleAccept(id) {
   }
 }
 
-async function handleReject(id) {
-  processingId.value = id
+async function handleReject(req) {
+  const permissionIds = [...new Set(req.permissionIds || [req.id])]
+  processingId.value = req.id
 
   try {
-    await rejectPermission(authStore.accessToken, id)
+    for (const permissionId of permissionIds) {
+      await rejectPermission(authStore.accessToken, permissionId)
+    }
     await fetchPermissions()
   } catch (error) {
     console.error('거절 실패:', error)
@@ -1216,6 +1420,63 @@ onMounted(async () => {
   margin-left: auto;
   font-size: 12px;
   color: #8b9097;
+}
+
+.request-category-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #8b9097;
+  line-height: 1.5;
+}
+
+.request-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.category-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #eaedf1;
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.category-check:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: #f0f1f3;
+}
+
+.checkbox.checked {
+  background: #ffbc00;
+}
+
+.check-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.category-check-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #191b1e;
 }
 
 .request-categories {
