@@ -178,6 +178,7 @@
                   :src="childProfileImage(child)"
                   alt=""
                   class="child-icon"
+                  :class="{ photo: isCustomChildProfile(child) }"
                 />
 
                 <div class="child-text">
@@ -291,6 +292,8 @@ import { unlinkFamily } from '@/api/families'
 import {
   PARENT_PROFILE_IMAGE,
   CHILD_PROFILE_IMAGE,
+  pickProfileImageUrl,
+  getSharedDefaultProfileKeys,
   resolveProfileImageUrl,
 } from '@/utils/profileImages'
 
@@ -331,28 +334,20 @@ const profileFileInput = ref(null)
 const localPreviewUrl = ref('')
 const isUploadingProfile = ref(false)
 
-const sharedRemoteProfileUrl = computed(() => {
-  const urls = [
+const sharedDefaultProfileKeys = computed(() =>
+  getSharedDefaultProfileKeys([
     member.profileImageUrl,
     ...children.value.map((child) => child.profileImageUrl),
-  ]
-    .map((url) => String(url || '').trim())
-    .filter(Boolean)
+  ])
+)
 
-  if (urls.length < 2) {
-    return ''
-  }
-
-  return urls.every((url) => url === urls[0]) ? urls[0] : ''
-})
-
-const displayProfileImage = computed(() => {
-  const url = member.profileImageUrl?.trim()
-  if (url && url === sharedRemoteProfileUrl.value) {
-    return PARENT_PROFILE_IMAGE
-  }
-  return resolveProfileImageUrl(url, PARENT_PROFILE_IMAGE)
-})
+const displayProfileImage = computed(() =>
+  resolveProfileImageUrl(
+    member.profileImageUrl,
+    PARENT_PROFILE_IMAGE,
+    sharedDefaultProfileKeys.value
+  )
+)
 
 const shownProfileImage = computed(() =>
   localPreviewUrl.value || displayProfileImage.value
@@ -363,11 +358,15 @@ const isDefaultProfileShown = computed(() =>
 )
 
 function childProfileImage(child) {
-  const url = child?.profileImageUrl?.trim()
-  if (url && url === sharedRemoteProfileUrl.value) {
-    return CHILD_PROFILE_IMAGE
-  }
-  return resolveProfileImageUrl(url, CHILD_PROFILE_IMAGE)
+  return resolveProfileImageUrl(
+    child?.profileImageUrl,
+    CHILD_PROFILE_IMAGE,
+    sharedDefaultProfileKeys.value
+  )
+}
+
+function isCustomChildProfile(child) {
+  return childProfileImage(child) !== CHILD_PROFILE_IMAGE
 }
 
 function clearLocalPreview() {
@@ -523,8 +522,7 @@ async function fetchChildren() {
           email: child.email,
           balance: child.balance,
           teenyScore: child.teenyScore,
-          profileImageUrl:
-            child.profileImageUrl || '',
+          profileImageUrl: pickProfileImageUrl(child),
         })
       )
     }
@@ -1030,6 +1028,10 @@ button {
   border-radius: 50%;
   object-fit: contain;
   background-color: #ffffff;
+}
+
+.child-icon.photo {
+  object-fit: cover;
 }
 
 .child-text {
