@@ -36,20 +36,26 @@
         >
           <!-- 선택된 자녀 -->
           <div
-            v-if="selectedChild"
-            class="selected-child"
+            v-if="selectedChildren.length"
+            class="selected-child-list"
           >
-            <div class="selected-avatar">
-              <img
-                :src="CHILD_PROFILE_IMAGE"
-                alt=""
-                class="selected-avatar-img"
-              />
-            </div>
+            <div
+              v-for="child in selectedChildren"
+              :key="child.id"
+              class="selected-child"
+            >
+              <div class="selected-avatar">
+                <img
+                  :src="CHILD_PROFILE_IMAGE"
+                  alt=""
+                  class="selected-avatar-img"
+                />
+              </div>
 
-            <span class="selected-child-name">
-              {{ selectedChild.name }}
-            </span>
+              <span class="selected-child-name">
+                {{ child.name }}
+              </span>
+            </div>
           </div>
 
           <!-- 선택 전 -->
@@ -219,9 +225,9 @@
               class="modal-child-item"
               :class="{
                 selected:
-                  selectedChildId === child.id
+                  selectedChildIds.includes(child.id)
               }"
-              @click="selectChild(child)"
+              @click="toggleChild(child)"
             >
               <div class="modal-child-left">
                 <div class="modal-avatar">
@@ -242,11 +248,11 @@
                 class="check-circle"
                 :class="{
                   checked:
-                    selectedChildId === child.id
+                    selectedChildIds.includes(child.id)
                 }"
               >
                 <span
-                  v-if="selectedChildId === child.id"
+                  v-if="selectedChildIds.includes(child.id)"
                   class="check-mark"
                 >
                   ✓
@@ -259,7 +265,7 @@
           <button
             type="button"
             class="modal-confirm-btn"
-            :disabled="!selectedChildId"
+            :disabled="selectedChildIds.length === 0"
             @click="closeChildModal"
           >
             선택 완료
@@ -294,7 +300,7 @@ const authStore = useAuthStore()
 // 상태
 const children = ref([])
 
-const selectedChildId = ref(null)
+const selectedChildIds = ref([])
 
 const amount = ref('')
 
@@ -306,16 +312,9 @@ const isChildModalOpen = ref(false)
 
 
 // 선택된 자녀
-const selectedChild = computed(() => {
-  if (!selectedChildId.value) {
-    return null
-  }
-
-  return (
-    children.value.find(
-      child =>
-        child.id === selectedChildId.value
-    ) || null
+const selectedChildren = computed(() => {
+  return children.value.filter(
+    (child) => selectedChildIds.value.includes(child.id)
   )
 })
 
@@ -344,7 +343,7 @@ const quickAmounts = [
 // 보내기 활성화
 const canSubmit = computed(() => {
   return (
-    selectedChildId.value !== null &&
+    selectedChildIds.value.length > 0 &&
     Number(amount.value) > 0
   )
 })
@@ -405,8 +404,15 @@ function closeChildModal() {
 
 
 // 자녀 선택
-function selectChild(child) {
-  selectedChildId.value = child.id
+function toggleChild(child) {
+  if (selectedChildIds.value.includes(child.id)) {
+    selectedChildIds.value = selectedChildIds.value.filter(
+      (id) => id !== child.id
+    )
+    return
+  }
+
+  selectedChildIds.value = [...selectedChildIds.value, child.id]
 }
 
 
@@ -434,15 +440,10 @@ function handleSend() {
     path: '/parents/sending-allowance',
 
     query: {
-      childId:
-        selectedChildId.value,
-
-      childName:
-        selectedChild.value?.name || '',
-
-      amount:
-        Number(amount.value),
-
+      childIds: selectedChildIds.value.join(','),
+      childId: selectedChildIds.value[0],
+      childName: selectedChildren.value.map((child) => child.name).join(', '),
+      amount: Number(amount.value),
       idempotencyKey,
     },
   })
@@ -541,6 +542,13 @@ button {
   border-radius: 12px;
   background-color: #ffffff;
   cursor: pointer;
+}
+
+.selected-child-list {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .selected-child {

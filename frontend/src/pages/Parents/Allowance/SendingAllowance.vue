@@ -43,8 +43,10 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 onMounted(async () => {
-  const childId =
-    Number(route.query.childId)
+  const childIds = String(route.query.childIds || route.query.childId || '')
+    .split(',')
+    .map((id) => Number(id))
+    .filter((id) => Number.isFinite(id) && id > 0)
 
   const amount =
     Number(route.query.amount)
@@ -52,13 +54,9 @@ onMounted(async () => {
   const childName =
     route.query.childName
 
-  const idempotencyKey =
-    route.query.idempotencyKey
-
   if (
-    !childId ||
-    !amount ||
-    !idempotencyKey
+    !childIds.length ||
+    !amount
   ) {
     router.replace({
       path: '/parents/send/fail',
@@ -73,24 +71,29 @@ onMounted(async () => {
   }
 
   try {
-    const res =
-      await sendAllowance(
-        childId,
-        amount,
-        authStore.accessToken,
-        idempotencyKey
-      )
+    let lastCreatedAt = ''
+
+    for (const childId of childIds) {
+      const res =
+        await sendAllowance(
+          childId,
+          amount,
+          authStore.accessToken,
+          crypto.randomUUID()
+        )
+
+      lastCreatedAt = res?.data?.createdAt || lastCreatedAt
+    }
 
     router.replace({
       path: '/parents/send/complete',
 
       query: {
         amount,
-        childId,
+        childId: childIds[0],
         childName,
 
-        createdAt:
-          res?.data?.createdAt || '',
+        createdAt: lastCreatedAt,
       },
     })
 

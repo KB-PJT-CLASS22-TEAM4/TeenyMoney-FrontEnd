@@ -210,46 +210,73 @@
            신뢰도 점수
       ========================== -->
       <div class="section">
+        <p class="section-label">
+          신뢰도 점수
+        </p>
+
         <button
           class="teeny-score-row"
+          :class="{
+            on: form.teenyScoreEnabled
+          }"
           type="button"
+          role="switch"
+          :aria-checked="form.teenyScoreEnabled"
           @click="
             form.teenyScoreEnabled =
               !form.teenyScoreEnabled
           "
         >
           <div
-            class="checkbox"
-            :class="{
-              checked:
-                form.teenyScoreEnabled
-            }"
+            class="teeny-score-icon"
+            aria-hidden="true"
           >
-            <img
-              v-if="
-                form.teenyScoreEnabled
-              "
-              src="@/assets/icons/icon-check.svg"
-              alt=""
-              class="check-icon"
-            />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <path
+                d="M12 3L19.5 6.2V11.2C19.5 15.9 16.4 19.7 12 21.7C7.6 19.7 4.5 15.9 4.5 11.2V6.2L12 3Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M8.6 12.1L11 14.5L15.5 9.8"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
           </div>
 
           <div class="teeny-score-text">
-            <p class="teeny-score-title">
-              신뢰도 점수 부여
-            </p>
+            <div class="teeny-score-title-row">
+              <p class="teeny-score-title">
+                신뢰도 점수 부여
+              </p>
+
+              <span class="teeny-score-badge">
+                {{
+                  form.teenyScoreEnabled
+                    ? '부여'
+                    : '미부여'
+                }}
+              </span>
+            </div>
 
             <p class="teeny-score-desc">
               수행 완료 시 신뢰도 점수가 상승합니다.
             </p>
           </div>
 
-          <img
-            src="@/assets/icons/icon-shield.svg"
-            alt=""
-            class="shield-icon"
-          />
+          <span
+            class="teeny-score-switch"
+            aria-hidden="true"
+          >
+            <span class="teeny-score-knob"></span>
+          </span>
         </button>
       </div>
 
@@ -545,6 +572,11 @@
                       '0'
                     )
                   "
+                  :disabled="
+                    isHourDisabled(
+                      String(hour - 1).padStart(2, '0')
+                    )
+                  "
                 >
                   {{
                     String(
@@ -565,28 +597,13 @@
                 v-model="selectedMinute"
                 class="time-select"
               >
-                <option value="00">
-                  00분
-                </option>
-
-                <option value="10">
-                  10분
-                </option>
-
-                <option value="20">
-                  20분
-                </option>
-
-                <option value="30">
-                  30분
-                </option>
-
-                <option value="40">
-                  40분
-                </option>
-
-                <option value="50">
-                  50분
+                <option
+                  v-for="minute in ['00', '10', '20', '30', '40', '50']"
+                  :key="minute"
+                  :value="minute"
+                  :disabled="isMinuteDisabled(minute)"
+                >
+                  {{ minute }}분
                 </option>
               </select>
 
@@ -837,6 +854,8 @@ function openCalendar() {
 
     calendarMonth.value =
       now.getMonth()
+
+    snapTimeToFuture()
   }
 
   isCalendarOpen.value =
@@ -895,6 +914,8 @@ function selectDay(
       calendarMonth.value,
       day
     )
+
+  snapTimeToFuture()
 }
 
 
@@ -944,25 +965,94 @@ function isToday(
 function isPastDay(
   day
 ) {
-
-  const date =
-    new Date(
-      calendarYear.value,
-      calendarMonth.value,
-      day
-    )
-
-  date.setHours(
-    23,
-    59,
-    59,
-    999
+  const now = new Date()
+  const todayStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
   )
+  const date = new Date(
+    calendarYear.value,
+    calendarMonth.value,
+    day
+  )
+
+  return date < todayStart
+}
+
+function isSelectedDateToday() {
+  if (!selectedDate.value) return false
+
+  const now = new Date()
 
   return (
-    date <
-    new Date()
+    selectedDate.value.getFullYear() === now.getFullYear() &&
+    selectedDate.value.getMonth() === now.getMonth() &&
+    selectedDate.value.getDate() === now.getDate()
   )
+}
+
+function isHourDisabled(hourValue) {
+  if (!isSelectedDateToday()) return false
+
+  const lastSlot = new Date(selectedDate.value)
+  lastSlot.setHours(Number(hourValue), 50, 0, 0)
+
+  return lastSlot.getTime() < Date.now()
+}
+
+function isMinuteDisabled(minuteValue) {
+  if (!isSelectedDateToday()) return false
+
+  const slot = new Date(selectedDate.value)
+  slot.setHours(
+    Number(selectedHour.value),
+    Number(minuteValue),
+    0,
+    0
+  )
+
+  return slot.getTime() < Date.now()
+}
+
+function snapTimeToFuture() {
+  if (!isSelectedDateToday()) return
+
+  const candidate = new Date(selectedDate.value)
+  candidate.setHours(
+    Number(selectedHour.value),
+    Number(selectedMinute.value),
+    0,
+    0
+  )
+
+  if (candidate.getTime() >= Date.now()) return
+
+  const now = new Date()
+  const slots = [0, 10, 20, 30, 40, 50]
+  let hour = now.getHours()
+  let minute = slots.find((slot) => {
+    const time = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      hour,
+      slot,
+      0,
+      0
+    )
+    return time.getTime() >= Date.now()
+  })
+
+  if (minute == null) {
+    hour += 1
+    minute = 0
+  }
+
+  if (hour > 23) return
+
+  selectedHour.value = String(hour).padStart(2, '0')
+  selectedMinute.value = String(minute).padStart(2, '0')
 }
 
 
@@ -992,12 +1082,21 @@ function confirmCalendar() {
     0
   )
 
+  snapTimeToFuture()
+
+  date.setHours(
+    Number(selectedHour.value),
+    Number(selectedMinute.value),
+    0,
+    0
+  )
+
   /*
-   * 오늘을 선택했는데
-   * 이미 지난 시간을 선택한 경우 방지
+   * 현재 시각보다 과거인 기한만 막는다.
+   * 당일은 현재 시각 이후면 허용한다.
    */
   if (
-    date.getTime() <=
+    date.getTime() <
     Date.now()
   ) {
 
@@ -1795,50 +1894,83 @@ async function handleCreate() {
 
   box-sizing: border-box;
 
-  padding: 14px 16px;
+  padding: 14px 14px 14px 12px;
 
-  border:
-    1px solid #ffe397;
+  border: 1.5px solid #e8eaee;
 
-  border-radius: 12px;
+  border-radius: 14px;
 
-  background: #fff8e1;
+  background: #ffffff;
 
   text-align: left;
 
   cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.checkbox {
+.teeny-score-row.on {
+  border-color: #ffd66a;
+
+  background: linear-gradient(
+    180deg,
+    #fff8e1 0%,
+    #fffdf6 100%
+  );
+
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.12);
+}
+
+.teeny-score-icon {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  width: 22px;
-  height: 22px;
+  width: 42px;
+  height: 42px;
 
   flex-shrink: 0;
 
-  border-radius: 6px;
+  border-radius: 12px;
 
-  background: #f0f1f3;
+  background: #f4f5f7;
+
+  color: #8b9097;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
-.checkbox.checked {
+.teeny-score-row.on .teeny-score-icon {
   background: #ffbc00;
+
+  color: #191b1e;
 }
 
-.check-icon {
-  width: 14px;
-  height: 14px;
+.teeny-score-icon svg {
+  width: 22px;
+  height: 22px;
 }
 
 .teeny-score-text {
   flex: 1;
+
+  min-width: 0;
+}
+
+.teeny-score-title-row {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
 }
 
 .teeny-score-title {
-  margin: 0 0 2px;
+  margin: 0;
 
   color: #191b1e;
 
@@ -1846,17 +1978,76 @@ async function handleCreate() {
   font-weight: 700;
 }
 
+.teeny-score-badge {
+  padding: 2px 7px;
+
+  border-radius: 999px;
+
+  background: #f0f1f3;
+
+  color: #8b9097;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: -0.2px;
+}
+
+.teeny-score-row.on .teeny-score-badge {
+  background: #ffbc00;
+
+  color: #191b1e;
+}
+
 .teeny-score-desc {
-  margin: 0;
+  margin: 4px 0 0;
 
   color: #8b9097;
 
   font-size: 12px;
+
+  line-height: 1.4;
 }
 
-.shield-icon {
+.teeny-score-switch {
+  position: relative;
+
+  width: 44px;
+  height: 26px;
+
+  flex-shrink: 0;
+
+  border-radius: 26px;
+
+  background: #e7e9ec;
+
+  transition: background 0.25s ease;
+}
+
+.teeny-score-row.on .teeny-score-switch {
+  background: #ffbc00;
+}
+
+.teeny-score-knob {
+  position: absolute;
+
+  top: 3px;
+  left: 3px;
+
   width: 20px;
   height: 20px;
+
+  border-radius: 50%;
+
+  background: #ffffff;
+
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+
+  transition: transform 0.25s ease;
+}
+
+.teeny-score-row.on .teeny-score-knob {
+  transform: translateX(18px);
 }
 
 
