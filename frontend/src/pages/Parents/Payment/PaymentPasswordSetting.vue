@@ -4,7 +4,7 @@
       <button class="icon-btn" type="button" aria-label="뒤로" @click="router.back()">
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
-      <h1 class="nav-title">{{ isChange ? '결제 비밀번호 변경' : '결제 비밀번호 설정' }}</h1>
+      <h1 class="nav-title">결제 비밀번호 설정</h1>
       <ParentNavActions />
     </header>
 
@@ -16,11 +16,7 @@
           <circle cx="12" cy="15" r="1.3" fill="#ffffff"/>
         </svg>
       </div>
-      <p class="lock-text">
-        {{ isChange
-          ? '변경할 결제 비밀번호 6자리를 입력해 주세요'
-          : '새로운 결제 비밀번호 6자리를 입력해 주세요' }}
-      </p>
+      <p class="lock-text">새로운 결제 비밀번호 6자리를 입력해 주세요</p>
       <p class="lock-sub">이 비밀번호는 자녀 결제에도 적용돼요</p>
 
       <div class="dots" :class="{ shake: isError }">
@@ -58,14 +54,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { getMyInfo } from '@/api/member'
-import {
-  registerPaymentPassword,
-  updatePaymentPassword,
-} from '@/api/password'
+import { registerPaymentPassword } from '@/api/password'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 const router = useRouter()
@@ -76,19 +68,7 @@ const pin = ref('')
 const isError = ref(false)
 const errorMsg = ref('')
 const submitting = ref(false)
-const isChange = ref(false)
 const PIN_LENGTH = 6
-
-onMounted(async () => {
-  if (!authStore.accessToken) return
-
-  try {
-    const me = await getMyInfo(authStore.accessToken)
-    isChange.value = Boolean(me?.hasPaymentPassword)
-  } catch {
-    isChange.value = false
-  }
-})
 
 function press(num) {
   if (pin.value.length >= PIN_LENGTH || submitting.value) return
@@ -116,24 +96,13 @@ async function submitPin() {
 
   submitting.value = true
   try {
-    if (isChange.value) {
-      await updatePaymentPassword(authStore.accessToken, pin.value)
-    } else {
-      await registerPaymentPassword(authStore.accessToken, pin.value)
-    }
+    await registerPaymentPassword(authStore.accessToken, pin.value)
     router.replace({
       name: 'parents-payment-password-done',
-      query: {
-        ...route.query,
-        mode: isChange.value ? 'change' : 'set',
-      },
+      query: route.query,
     })
   } catch (e) {
-    errorMsg.value = e.message || (
-      isChange.value
-        ? '결제 비밀번호 변경에 실패했습니다.'
-        : '결제 비밀번호 등록에 실패했습니다.'
-    )
+    errorMsg.value = e.message || '결제 비밀번호 등록에 실패했습니다.'
     isError.value = true
     setTimeout(() => {
       pin.value = ''
