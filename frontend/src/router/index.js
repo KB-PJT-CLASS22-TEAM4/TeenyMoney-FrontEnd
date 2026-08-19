@@ -92,6 +92,7 @@ import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
 import QuestDetails from '@/pages/Parents/Quest/QuestDetail.vue'
 import QuestApproval from '@/pages/Parents/Quest/QuestApproval.vue';'@/pages/Parents/QuestApproval.vue'
+import ParentsNotification from '@/pages/Parents/ParentsNotification.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -194,6 +195,12 @@ const router = createRouter({
       path: '/child/notification',
       name: 'child-notification',
       component: ChildNotification,
+    },
+    // 부모 알림페이지
+    {
+      path: '/parents/notification',
+      name: 'parents-notification',
+      component: ParentsNotification,
     },
     // QR스캔
     {

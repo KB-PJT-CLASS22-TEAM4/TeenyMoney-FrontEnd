@@ -1,42 +1,49 @@
 <template>
-  <div class="noti-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <div class="nav-left">
-        <button class="back-btn" @click="goBack">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="nav-title">알림</h1>
-      </div>
-      <div class="nav-right">
-        <ChildNavActions />
-      </div>
-    </div>
+  <div class="page">
+    <header class="nav">
+      <button
+        class="back-btn"
+        type="button"
+        aria-label="뒤로 가기"
+        @click="router.back()"
+      >
+        <img
+          src="@/assets/icons/icon-back.svg"
+          alt=""
+          class="back-icon"
+        />
+      </button>
+
+      <h1 class="nav-title">알림</h1>
+
+      <ParentNavActions />
+    </header>
 
     <div class="sub-bar">
-      <span class="mark-read" @click="markAllRead">모두 읽음</span>
+      <button
+        class="mark-read"
+        type="button"
+        :disabled="notifications.length === 0"
+        @click="markAllRead"
+      >
+        모두 읽음
+      </button>
     </div>
 
     <div class="scroll">
-      <!-- 로딩 (최초 조회) -->
       <div v-if="isLoading && notifications.length === 0" class="state-msg">
         불러오는 중이에요...
       </div>
 
-      <!-- 조회 실패 -->
       <div v-else-if="loadError && notifications.length === 0" class="state-msg">
         알림을 불러오지 못했어요.
         <button type="button" class="retry-btn" @click="loadInitial">다시 시도</button>
       </div>
 
-      <!-- 알림 없음 -->
       <div v-else-if="!isLoading && notifications.length === 0" class="state-msg">
         아직 도착한 알림이 없어요.
       </div>
 
-      <!-- 날짜 그룹 -->
       <template v-else>
         <div v-for="group in groupedList" :key="group.date" class="group">
           <p class="date-label">{{ group.date }}</p>
@@ -59,9 +66,13 @@
           </div>
         </div>
 
-        <!-- 더 보기 (커서 기반 다음 페이지) -->
         <div v-if="nextCursor" class="load-more-wrap">
-          <button type="button" class="load-more-btn" :disabled="isLoadingMore" @click="loadMore">
+          <button
+            type="button"
+            class="load-more-btn"
+            :disabled="isLoadingMore"
+            @click="loadMore"
+          >
             {{ isLoadingMore ? '불러오는 중...' : '더 보기' }}
           </button>
         </div>
@@ -71,27 +82,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import {
   getMyNotifications,
-  markNotificationRead,
   markAllNotificationsRead,
+  markNotificationRead,
 } from '@/api/notification'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 
-function goBack() {
-  router.back()
-}
-
-// ==== 알림 종류(referenceType)별 아이콘 ====
-// ⚠️ PAYMENT 외 나머지 referenceType 값은 백엔드 enum 확정되면 재확인 필요
 const ICONS = {
   PAYMENT: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#8b9097" stroke-width="1.6"/><path d="M3 10h18" stroke="#8b9097" stroke-width="1.6"/></svg>`,
   QUEST: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#8b9097" stroke-width="1.6"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#8b9097" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -105,23 +110,27 @@ function getIcon(referenceType) {
   return ICONS[referenceType] || ICONS.DEFAULT
 }
 
-// referenceType별 상세 화면 라우팅 (대상 화면 생기면 이름 맞춰서 연결)
 function goToReference(n) {
   if (n.referenceType === 'PAYMENT') {
-    router.push({ name: 'child-transaction' })
-  } else if (n.referenceType === 'QUEST') {
-    router.push({ name: 'child-quest-list' })
-  } else if (n.referenceType === 'FINANCE') {
-    router.push({ name: 'child-finance-myproducts' })
+    router.push({ name: 'parents-transaction' })
+    return
   }
-  // ALLOWANCE/FAMILY 등 다른 타입은 대상 화면 확정되면 추가
+  if (n.referenceType === 'QUEST') {
+    router.push({ name: 'parents-quest-list' })
+    return
+  }
+  if (n.referenceType === 'FINANCE') {
+    router.push({ name: 'parents-child-list' })
+    return
+  }
+  if (n.referenceType === 'ALLOWANCE') {
+    router.push({ name: 'send-allowance' })
+  }
 }
 
-// ==== 날짜/시간 포맷 ====
 function parseCreatedAt(raw) {
   if (!raw) return null
 
-  // 백엔드가 LocalDateTime을 배열로 직렬화하는 경우: [year, month, day, hour, minute, second, nano]
   if (Array.isArray(raw)) {
     const [y, m, d, h = 0, mi = 0, s = 0] = raw
     if (y === undefined || m === undefined || d === undefined) return null
@@ -176,11 +185,9 @@ function formatTime(d) {
   if (diffMin < 1) return '방금'
   if (diffMin < 60) return `${diffMin}분 전`
 
-  // 같은 날, 1시간 이상 지난 알림은 정확한 시각으로 표시
   return formatClockTime(d)
 }
 
-// ==== 알림 목록 상태 ====
 const notifications = ref([])
 const nextCursor = ref(null)
 const isLoading = ref(false)
@@ -204,6 +211,11 @@ function mapNotification(n) {
 }
 
 async function loadInitial() {
+  if (!authStore.accessToken) {
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+    return
+  }
+
   isLoading.value = true
   loadError.value = false
   try {
@@ -233,7 +245,6 @@ async function loadMore() {
   }
 }
 
-// 날짜별로 그룹핑
 const groupedList = computed(() => {
   const groups = {}
   const order = []
@@ -259,7 +270,6 @@ async function markAllRead() {
     await markAllNotificationsRead(authStore.accessToken, latestId)
   } catch (e) {
     console.error('전체 읽음 처리 실패:', e.message)
-    // 실패 시 원래 상태로 롤백
     notifications.value.forEach((n, idx) => { n.read = prevState[idx] })
     notificationStore.fetchUnreadCount(authStore.accessToken)
   }
@@ -289,65 +299,70 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.noti-screen {
+.page {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   width: 360px;
-  height: 730px;
+  min-height: 100dvh;
   margin: 0 auto;
-  padding-top: 50px;
   background: #ffffff;
-  border: 1px solid #eceef1;
-  overflow: hidden;
 }
 
-/* 상단 네비 */
 .nav {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 2px 16px 6px;
-}
-
-/* 뒤로가기 + 제목 묶음 */
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
+  height: 56px;
+  padding: 0 8px 0 4px;
+  flex-shrink: 0;
 }
 
 .back-btn {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: transparent;
   cursor: pointer;
-  padding: 0;
-  display: flex;
+}
+
+.back-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .nav-title {
+  flex: 1;
   margin: 0;
+  font-size: 17px;
   font-weight: 700;
-  font-size: 16px;
   color: #191b1e;
+  text-align: center;
 }
 
 .sub-bar {
   display: flex;
   justify-content: flex-end;
   padding: 0 20px 6px;
+  flex-shrink: 0;
 }
 
 .mark-read {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
   font-weight: 600;
   font-size: 12.7px;
   color: #8b9097;
   cursor: pointer;
+}
+
+.mark-read:disabled {
+  color: #d8dbdf;
+  cursor: default;
 }
 
 .scroll {
@@ -355,18 +370,7 @@ onMounted(() => {
   overflow-y: auto;
   padding: 10px 0 0;
 }
-.scroll::-webkit-scrollbar {
-  width: 5px;
-}
-.scroll::-webkit-scrollbar-thumb {
-  background: #d8dbdf;
-  border-radius: 999px;
-}
-.scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
 
-/* 로딩 / 에러 / 빈 상태 */
 .state-msg {
   display: flex;
   flex-direction: column;
@@ -391,7 +395,6 @@ onMounted(() => {
   cursor: pointer;
 }
 
-/* 날짜 그룹 */
 .group {
   padding: 6px 20px 8px;
 }
@@ -403,7 +406,6 @@ onMounted(() => {
   color: #8b9097;
 }
 
-/* 알림 항목 */
 .noti-item {
   display: flex;
   align-items: center;
@@ -428,6 +430,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 5px;
   flex: 1;
+  min-width: 0;
 }
 
 .noti-title {
@@ -458,7 +461,6 @@ onMounted(() => {
   flex: none;
 }
 
-/* 더 보기 */
 .load-more-wrap {
   display: flex;
   justify-content: center;
@@ -476,6 +478,7 @@ onMounted(() => {
   color: #4a4e55;
   cursor: pointer;
 }
+
 .load-more-btn:disabled {
   color: #b9bec5;
   cursor: not-allowed;
