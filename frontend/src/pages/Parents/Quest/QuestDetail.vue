@@ -300,15 +300,15 @@
           </p>
 
           <div
-            v-if="reviewHistory.length"
+            v-if="showReviewHistoryList"
             class="review-history"
           >
             <p
               v-for="item in reviewHistory"
-              :key="item.attempt"
-              class="info-value"
+              :key="item.key"
+              class="info-value review-history-line"
             >
-              {{ item.attempt }}회 {{ formatDate(item.reviewedAt) }}
+              {{ formatReviewHistoryLine(item) }}
             </p>
           </div>
 
@@ -316,7 +316,7 @@
             v-else
             class="info-value"
           >
-            -
+            {{ firstReviewDateText }}
           </p>
         </div>
 
@@ -1502,10 +1502,9 @@ function getHistoryReviewedAt(
   }
 
   const status =
-    String(
-      verification?.status ||
-      ''
-    ).toUpperCase()
+    getVerificationStatusCode(
+      verification
+    )
 
   if (
     status === 'APPROVED' ||
@@ -1519,6 +1518,37 @@ function getHistoryReviewedAt(
   }
 
   return null
+}
+
+function getVerificationStatusCode(
+  verification
+) {
+  return String(
+    verification?.status ||
+    ''
+  ).toUpperCase()
+}
+
+function getReviewResultLabel(
+  verification
+) {
+  const status =
+    getVerificationStatusCode(
+      verification
+    )
+
+  if (status === 'APPROVED') {
+    return '허용'
+  }
+
+  if (
+    status === 'REJECTED' ||
+    status === 'DECLINED'
+  ) {
+    return '거절'
+  }
+
+  return ''
 }
 
 function getVerificationAttemptNo(
@@ -1643,21 +1673,83 @@ const reviewHistory =
           )
 
         return {
+          key:
+            item.verificationId ??
+            item.id ??
+            `attempt-${attempt}`,
           attempt,
+          submittedAt:
+            getVerificationSubmittedAt(
+              item
+            ),
           reviewedAt:
             getHistoryReviewedAt(
               item
             ),
+          result:
+            getReviewResultLabel(
+              item
+            ),
         }
       })
-      .filter((item) =>
-        item.reviewedAt
-      )
-      .sort(
-        (a, b) =>
-          a.attempt - b.attempt
-      )
+      .sort((a, b) => {
+        if (a.attempt !== b.attempt) {
+          return a.attempt - b.attempt
+        }
+
+        const timeA =
+          parseDateValue(
+            a.submittedAt ||
+            a.reviewedAt
+          )?.getTime() || 0
+
+        const timeB =
+          parseDateValue(
+            b.submittedAt ||
+            b.reviewedAt
+          )?.getTime() || 0
+
+        return timeA - timeB
+      })
+      .map((item, index) => ({
+        ...item,
+        attempt:
+          item.attempt > 0
+            ? item.attempt
+            : index + 1,
+      }))
   })
+
+const showReviewHistoryList =
+  computed(() =>
+    reviewHistory.value.length > 1
+  )
+
+const firstReviewDateText =
+  computed(() => {
+    const reviewed =
+      reviewHistory.value.find(
+        (item) => item.reviewedAt
+      )
+
+    return reviewed
+      ? formatDate(reviewed.reviewedAt)
+      : '-'
+  })
+
+function formatReviewHistoryLine(
+  item
+) {
+  const dateText = item.reviewedAt
+    ? formatDate(item.reviewedAt)
+    : '-'
+
+  if (!item.result) {
+    return `${item.attempt}회 : ${dateText}`
+  }
+
+  return `${item.attempt}회 : ${dateText}, ${item.result}`
+}
 
 function toLocalDatetime(
   value
