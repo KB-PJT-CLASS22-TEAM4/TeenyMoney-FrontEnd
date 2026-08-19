@@ -31,13 +31,26 @@ function calcDDay(deadline) {
   return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
 }
 
-function formatDate(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}.${m}.${day}`
+// raw: ISO 문자열 또는 [y, m, d] / [y, m, d, h, mi, s] 배열(Jackson 직렬화 형식) 둘 다 지원
+function formatDate(raw) {
+  if (!raw) return ''
+
+  let y, m, day
+
+  if (Array.isArray(raw)) {
+    [y, m, day] = raw
+  } else {
+    const d = new Date(raw)
+    if (Number.isNaN(d.getTime())) return ''
+    y = d.getFullYear()
+    m = d.getMonth() + 1
+    day = d.getDate()
+  }
+
+  if (y === undefined || m === undefined || day === undefined) return ''
+
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${y}.${pad(m)}.${pad(day)}`
 }
 
 function mapListItem(raw) {
