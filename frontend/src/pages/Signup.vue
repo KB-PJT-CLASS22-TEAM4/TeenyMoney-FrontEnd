@@ -96,11 +96,12 @@
           <div class="input-row">
             <input
               id="code"
-              v-model="form.verificationCode"
+              :value="form.verificationCode"
               class="input input-inline"
               type="text"
               inputmode="numeric"
               maxlength="6"
+              autocomplete="one-time-code"
               placeholder="인증번호 6자리 입력"
               @input="formatVerificationCodeInput"
             />
@@ -115,6 +116,7 @@
             <button
               class="confirm-btn"
               type="button"
+              :disabled="phoneVerified || isPhoneVerifying"
               @click="verifyPhoneCode"
             >
               인증
@@ -390,11 +392,12 @@
               <div class="input-row">
                 <input
                   id="guardianCode"
-                  v-model="guardian.code"
+                  :value="guardian.code"
                   class="input input-inline"
                   type="text"
                   inputmode="numeric"
                   maxlength="6"
+                  autocomplete="one-time-code"
                   placeholder="인증번호 6자리 입력"
                   @input="formatGuardianCodeInput"
                 />
@@ -402,6 +405,7 @@
                 <button
                   class="confirm-btn"
                   type="button"
+                  :disabled="guardianVerified || isGuardianVerifying"
                   @click="verifyGuardianCode"
                 >
                   확인
@@ -530,6 +534,8 @@ const guardianVerifyStatus = ref('')
 const phoneCodeSent = ref(false)
 const phoneVerified = ref(false)
 const phoneVerifyStatus = ref('')
+const isPhoneVerifying = ref(false)
+const isGuardianVerifying = ref(false)
 const signupLoading = ref(false)
 
 /* 보호자 인증 성공 후 백엔드에서 받은 동의 토큰 */
@@ -689,19 +695,29 @@ function formatGuardianPhoneInput(event) {
 }
 
 function formatVerificationCodeInput(event) {
-  form.verificationCode =
-    event.target.value
-      .replace(/\D/g, '')
-      .slice(0, 6)
+  const next = event.target.value
+    .replace(/\D/g, '')
+    .slice(0, 6)
+
+  if (next === form.verificationCode) {
+    return
+  }
+
+  form.verificationCode = next
   phoneVerified.value = false
   phoneVerifyStatus.value = ''
 }
 
 function formatGuardianCodeInput(event) {
-  guardian.code =
-    event.target.value
-      .replace(/\D/g, '')
-      .slice(0, 6)
+  const next = event.target.value
+    .replace(/\D/g, '')
+    .slice(0, 6)
+
+  if (next === guardian.code) {
+    return
+  }
+
+  guardian.code = next
   guardianVerified.value = false
   guardianVerifyStatus.value = ''
 }
@@ -1037,6 +1053,10 @@ async function requestVerification() {
 }
 
 async function verifyPhoneCode() {
+  if (phoneVerified.value || isPhoneVerifying.value) {
+    return
+  }
+
   const phoneNumber =
     formatPhone(
       form.phoneNumber,
@@ -1062,18 +1082,13 @@ async function verifyPhoneCode() {
     return
   }
 
-  try {
-    const response =
-      await confirmPhoneVerificationCode(
-        phoneNumber,
-        form.verificationCode.trim(),
-      )
+  isPhoneVerifying.value = true
 
-    if (!response.success) {
-      phoneVerifyStatus.value = 'mismatch'
-      phoneVerified.value = false
-      return
-    }
+  try {
+    await confirmPhoneVerificationCode(
+      phoneNumber,
+      form.verificationCode.trim(),
+    )
 
     phoneVerifyStatus.value = 'match'
     phoneVerified.value = true
@@ -1085,6 +1100,8 @@ async function verifyPhoneCode() {
     )
     phoneVerifyStatus.value = 'mismatch'
     phoneVerified.value = false
+  } finally {
+    isPhoneVerifying.value = false
   }
 }
 
@@ -1199,6 +1216,10 @@ async function requestGuardianVerification() {
  * 보호자 인증번호 확인
  */
 async function verifyGuardianCode() {
+  if (guardianVerified.value || isGuardianVerifying.value) {
+    return
+  }
+
   console.log(
     '================ 보호자 인증 시작 ================',
   )
@@ -1247,6 +1268,8 @@ async function verifyGuardianCode() {
     return
   }
 
+  isGuardianVerifying.value = true
+
   try {
     const requestData = {
       legalGuardianName,
@@ -1289,12 +1312,6 @@ async function verifyGuardianCode() {
       '🟢 보호자 인증 response.data:',
       response?.data,
     )
-
-    if (!response.success) {
-      guardianVerifyStatus.value = 'mismatch'
-      guardianVerified.value = false
-      return
-    }
 
     /*
      * ★ 핵심
@@ -1355,6 +1372,8 @@ async function verifyGuardianCode() {
 
     guardianVerifyStatus.value = 'mismatch'
     guardianVerified.value = false
+  } finally {
+    isGuardianVerifying.value = false
   }
 }
 
@@ -1911,6 +1930,11 @@ onUnmounted(() => {
   font-weight: 600;
   color: #191b1e;
   cursor: pointer;
+}
+
+.confirm-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .select {
