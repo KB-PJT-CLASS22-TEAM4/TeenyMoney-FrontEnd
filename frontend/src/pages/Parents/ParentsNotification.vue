@@ -110,7 +110,25 @@ function getIcon(referenceType) {
   return ICONS[referenceType] || ICONS.DEFAULT
 }
 
+function isTodayAllowNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (
+    type === 'PERMISSION' ||
+    type === 'TODAY_ALLOW' ||
+    type === 'TODAYALLOW' ||
+    type === 'TODAY_PERMISSION'
+  ) {
+    return true
+  }
+
+  return /오늘만\s*허용/.test(`${n.title || ''} ${n.detail || ''}`)
+}
+
 function goToReference(n) {
+  if (isTodayAllowNotification(n)) {
+    router.push({ name: 'parents-request-list' })
+    return
+  }
   if (n.referenceType === 'PAYMENT') {
     router.push({ name: 'parents-transaction' })
     return
