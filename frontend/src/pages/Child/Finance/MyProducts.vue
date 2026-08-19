@@ -525,13 +525,13 @@ function onScroll() {
               <span>이체하기</span>
             </button>
 
-            <!-- [우측] 중도해지 링크 버튼 -->
+            <!-- [우측] 중도해지/조기상환 링크 버튼 -->
             <button
               type="button"
               class="btn-cancel-link"
               @click="goToCancel(product)"
             >
-              중도해지
+              {{ product.isLoan ? '조기상환' : '중도해지' }}
             </button>
           </div>
         </div>
