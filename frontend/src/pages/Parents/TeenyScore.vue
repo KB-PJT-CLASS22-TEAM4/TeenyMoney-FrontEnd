@@ -455,7 +455,7 @@ onMounted(async () => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   padding-bottom: 70px;
@@ -467,6 +467,8 @@ onMounted(async () => {
   justify-content: space-between;
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
+  background: #ffffff;
+
 }
 
 .back-btn,
@@ -554,12 +556,13 @@ onMounted(async () => {
 }
 
 .score-card {
-  background-color: #f4f5f7;
-  border-radius: 16px;
+  background-color: #ffffff;
+  border-radius: 20px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .score-value {
@@ -598,6 +601,10 @@ onMounted(async () => {
 .guide-block {
   display: flex;
   flex-direction: column;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .guide-list {
@@ -697,7 +704,8 @@ onMounted(async () => {
 .change-card {
   padding: 16px;
   border-radius: 16px;
-  background: #f8fafc;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .change-head {

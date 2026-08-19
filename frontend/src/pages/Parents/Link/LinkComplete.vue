@@ -65,7 +65,7 @@ function goToList() {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   padding-bottom: 90px;
@@ -76,6 +76,8 @@ function goToList() {
   align-items: center;
   gap: 10px;
   padding: 18px 20px 6px;
+  background: #ffffff;
+
 }
 
 .back-btn {
@@ -101,7 +103,11 @@ function goToList() {
   flex-direction: column;
   align-items: center;
   gap: 32px;
-  padding: 60px 16px 20px;
+  margin: 16px;
+  padding: 40px 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 /* 완료 섹션 */

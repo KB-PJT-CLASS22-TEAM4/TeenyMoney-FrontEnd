@@ -44,9 +44,8 @@
     <main v-else class="content">
 
       <!-- 프로필 -->
-      <section class="profile-section">
+      <section class="profile-card">
         <div class="profile-image-wrapper">
-
           <img
             :src="PARENT_PROFILE_IMAGE"
             alt="프로필 이미지"
@@ -55,10 +54,10 @@
         </div>
 
         <div class="profile-text">
+          <span class="role-badge">보호자</span>
           <strong class="member-name">
             {{ member.name || '-' }}
           </strong>
-
           <span class="member-birth">
             {{ formattedBirthDate || '-' }}
           </span>
@@ -67,43 +66,33 @@
 
       <!-- 회원 정보 -->
       <section class="info-card">
-
-        <!-- 연락처 -->
         <div class="info-item">
-          <span class="info-label">
-            연락처
-          </span>
-
-          <div class="info-row">
-            <p class="info-value">
-              {{ formattedPhoneNumber || '-' }}
-            </p>
-          </div>
+          <span class="info-label">연락처</span>
+          <p class="info-value">
+            {{ formattedPhoneNumber || '-' }}
+          </p>
         </div>
 
-        <!-- 이메일 -->
-        <div class="info-item">
-          <span class="info-label">
-            이메일
-          </span>
+        <div class="info-divider"></div>
 
-          <div class="info-row">
-            <p class="info-value email-value">
-              {{ member.email || '-' }}
-            </p>
-          </div>
+        <div class="info-item">
+          <span class="info-label">이메일</span>
+          <p class="info-value">
+            {{ member.email || '-' }}
+          </p>
         </div>
       </section>
 
-      <!-- 비밀번호 변경 -->
+      <!-- 보안 -->
       <section class="menu-card">
-        <div class="payment-password-block menu-border">
-          <div class="payment-password-row">
-            <span>결제 비밀번호</span>
-            <span class="payment-password-status">
-              {{ hasPaymentPassword ? '등록됨' : '미등록' }}
-            </span>
-          </div>
+        <div class="payment-password-row menu-border">
+          <span class="menu-label">결제 비밀번호</span>
+          <span
+            class="status-pill"
+            :class="hasPaymentPassword ? 'on' : 'off'"
+          >
+            {{ hasPaymentPassword ? '등록됨' : '미등록' }}
+          </span>
         </div>
 
         <button
@@ -111,19 +100,23 @@
           class="menu-button"
           @click="goToPasswordChange"
         >
-          <span>비밀번호 변경</span>
+          <span class="menu-label">비밀번호 변경</span>
           <span class="chevron">›</span>
         </button>
       </section>
 
       <!-- 연결된 자녀 -->
       <section class="section-block">
+        <div class="section-head">
+          <h2 class="section-title">연결된 자녀</h2>
+          <span
+            v-if="!isChildrenLoading && !childrenError"
+            class="section-count"
+          >
+            {{ children.length }}명
+          </span>
+        </div>
 
-        <h2 class="section-title">
-          연결된 자녀
-        </h2>
-
-        <!-- 자녀 로딩 -->
         <div
           v-if="isChildrenLoading"
           class="section-card"
@@ -133,7 +126,6 @@
           </p>
         </div>
 
-        <!-- 자녀 조회 에러 -->
         <div
           v-else-if="childrenError"
           class="section-card"
@@ -143,13 +135,11 @@
           </p>
         </div>
 
-        <!-- 자녀 목록 -->
         <div
           v-else
           class="section-card"
         >
           <template v-if="children.length > 0">
-
             <div
               v-for="(child, index) in children"
               :key="child.childId"
@@ -159,9 +149,7 @@
               }"
               @click="goToChildDetail(child.childId)"
             >
-
               <div class="child-info">
-
                 <img
                   :src="CHILD_PROFILE_IMAGE"
                   alt=""
@@ -172,7 +160,6 @@
                   <strong class="child-name">
                     {{ child.name }}
                   </strong>
-
                   <span
                     v-if="child.email"
                     class="child-email"
@@ -191,12 +178,8 @@
                 >
                   {{ unlinkingId === child.childId ? '해제 중...' : '연동 해제' }}
                 </button>
-
-                <span class="child-chevron">
-                  ›
-                </span>
+                <span class="child-chevron">›</span>
               </div>
-
             </div>
           </template>
 
@@ -211,19 +194,15 @@
 
       <!-- 고객지원 -->
       <section class="section-block">
-
-        <h2 class="section-title">
-          고객지원
-        </h2>
+        <h2 class="section-title">고객지원</h2>
 
         <div class="menu-card">
-
           <button
             type="button"
             class="menu-button menu-border"
             @click="goToFaq"
           >
-            <span>FAQ</span>
+            <span class="menu-label">FAQ</span>
             <span class="chevron">›</span>
           </button>
 
@@ -231,39 +210,31 @@
             type="button"
             class="menu-button"
           >
-            <span>약관 및 정책</span>
+            <span class="menu-label">약관 및 정책</span>
             <span class="chevron">›</span>
           </button>
-
         </div>
       </section>
 
       <!-- 계정관리 -->
       <section class="section-block">
-
-        <h2 class="section-title">
-          계정관리
-        </h2>
+        <h2 class="section-title">계정관리</h2>
 
         <div class="menu-card">
-
           <button
             type="button"
             class="menu-button menu-border"
             @click="logout"
           >
-            <span>로그아웃</span>
-            <span class="chevron">›</span>
+            <span class="menu-label">로그아웃</span>
           </button>
 
           <button
             type="button"
-            class="menu-button"
+            class="menu-button danger"
           >
-            <span>회원 탈퇴</span>
-            <span class="chevron">›</span>
+            <span class="menu-label">회원 탈퇴</span>
           </button>
-
         </div>
       </section>
     </main>
@@ -607,107 +578,66 @@ button {
 
 .page {
   position: relative;
-
   width: 360px;
   min-height: 100dvh;
-
   margin: 0 auto;
-
-  padding-bottom: 60px;
-
+  padding-bottom: 88px;
   color: #191b1e;
-
-  background-color: white;
+  background: #f8fafc;
 }
 
-
-/* 헤더 */
 .nav {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
-  padding: 0 20px 4px;
-  background-color: white;
+  height: 56px;
+  padding: 0 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #eceef1;
 }
 
 .back-icon {
   width: 24px;
   height: 24px;
-
   cursor: pointer;
 }
 
 .nav-title {
   position: absolute;
-
   left: 50%;
-
   margin: 0;
-
   color: #191b1e;
-
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-
   transform: translateX(-50%);
 }
-
-.alarm-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border: none;
-
-  background: transparent;
-
-  cursor: pointer;
-}
-
-.alarm-icon {
-  width: 24px;
-  height: 24px;
-}
-
-/* =========================
-   콘텐츠
-========================= */
 
 .content {
   display: flex;
   flex-direction: column;
-
-  gap: 12px;
-
-  padding: 12px 16px 24px;
+  gap: 16px;
+  padding: 16px;
 }
 
-/* =========================
-   프로필
-========================= */
-
-.profile-section {
+.profile-card {
   display: flex;
   align-items: center;
-
-  gap: 20px;
-
-  padding: 20px 18px;
-
-  border-radius: 16px;
-
-  background-color: #ffffff;
+  gap: 14px;
+  padding: 18px 16px;
+  border: none;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 .profile-image-wrapper {
   flex-shrink: 0;
-
-  width: 86px;
-  height: 86px;
+  width: 72px;
+  height: 72px;
+  padding: 3px;
+  border-radius: 50%;
+  background: #ffbc00;
 }
 
 .profile-image {
@@ -716,281 +646,233 @@ button {
   height: 100%;
   border-radius: 50%;
   object-fit: contain;
-  background-color: #f4f5f7;
+  background-color: #ffffff;
 }
 
 .profile-text {
   display: flex;
   min-width: 0;
-
   flex-direction: column;
+  gap: 4px;
+}
 
-  gap: 6px;
+.role-badge {
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .member-name {
   overflow: hidden;
-
   color: #191b1e;
-
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
-
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .member-birth {
   color: #8b9097;
-
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
 }
 
-/* =========================
-   연락처 / 이메일
-========================= */
+.info-card,
+.menu-card,
+.section-card {
+  overflow: hidden;
+  border: none;
+  border-radius: 16px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
 
 .info-card {
-  display: flex;
-  flex-direction: column;
-
-  gap: 28px;
-
-  padding: 20px 16px;
-
-  border-radius: 16px;
-
-  background-color: #ffffff;
+  padding: 4px 16px;
 }
 
 .info-item {
-  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
 }
 
 .info-label {
+  flex-shrink: 0;
   color: #8b9097;
-
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 9px;
+  line-height: 1.5;
 }
 
 .info-value {
   margin: 0;
   min-width: 0;
-  flex: 1;
-
   color: #191b1e;
-
-  font-size: 20px;
-  font-weight: 500;
-
-  line-height: 1.4;
-
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: right;
   overflow-wrap: anywhere;
 }
 
-.email-value {
-  font-size: 18px;
+.info-divider {
+  height: 1px;
+  background: #e8eaee;
 }
-
-.disconnect-button {
-  border: 1px solid #d9dee5;
-
-  border-radius: 6px;
-
-  color: #3c4046;
-
-  background-color: #ffffff;
-
-  cursor: pointer;
-  padding: 8px 10px;
-
-  font-size: 12px;
-
-  white-space: nowrap;
-
-  position: relative;
-  z-index: 2;
-}
-
-/* =========================
-   섹션
-========================= */
 
 .section-block {
-  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.section-title {
-  margin: 0 0 10px 4px;
-
-  color: #8b9097;
-
-  font-size: 14px;
-  font-weight: 700;
-}
-
-/* =========================
-   공통 카드
-========================= */
-
-.menu-card,
-.section-card {
-  overflow: hidden;
-
-  border-radius: 16px;
-
-  background-color: #ffffff;
-}
-
-.menu-button {
+.section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 4px;
+}
 
-  width: 100%;
-
-  min-height: 58px;
-
-  padding: 0 16px;
-
-  border: none;
-
-  color: #191b1e;
-
-  font-size: 15px;
+.section-title {
+  margin: 0 0 0 4px;
+  color: #8b9097;
+  font-size: 13px;
   font-weight: 700;
-
-  text-align: left;
-
-  background-color: #ffffff;
-
-  cursor: pointer;
 }
 
-.menu-border {
-  border-bottom: 1px solid #f0f1f3;
+.section-head .section-title {
+  margin: 0;
 }
 
+.section-count {
+  color: #b9bec5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.menu-button,
 .payment-password-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   width: 100%;
-  min-height: 58px;
+  min-height: 54px;
   padding: 0 16px;
-
+  border: none;
   color: #191b1e;
+  background-color: transparent;
+  text-align: left;
+}
+
+.menu-button {
+  cursor: pointer;
+}
+
+.menu-button:active {
+  background-color: #fafafa;
+}
+
+.menu-label {
   font-size: 15px;
   font-weight: 700;
 }
 
-.payment-password-status {
-  color: #8b9097;
-  font-size: 13px;
-  font-weight: 600;
+.menu-border {
+  border-bottom: 1px solid #e8eaee;
 }
 
-.chevron {
-  color: #b9bec5;
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
 
-  font-size: 28px;
+.status-pill.on {
+  background: #ffbc00;
+  color: #191b1e;
+}
+
+.status-pill.off {
+  border: 1px solid #e8eaee;
+  background: #ffffff;
+  color: #8b9097;
+}
+
+.chevron,
+.child-chevron {
+  color: #c5cad0;
+  font-size: 22px;
   font-weight: 300;
-
   line-height: 1;
 }
 
-/* =========================
-   연결된 자녀
-========================= */
+.menu-button.danger .menu-label {
+  color: #e24b4a;
+}
 
 .child-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  min-height: 70px;
-
-  padding: 0 16px;
-
+  min-height: 72px;
+  padding: 10px 14px;
   cursor: pointer;
-
-  transition: background-color 0.15s ease;
-}
-
-.child-item:hover {
-  background-color: #fafafa;
 }
 
 .child-item:active {
-  background-color: #f4f5f7;
+  background-color: #fafafa;
 }
 
 .child-item.with-border {
-  border-bottom: 1px solid #f0f1f3;
+  border-bottom: 1px solid #e8eaee;
 }
 
 .child-info {
   display: flex;
   min-width: 0;
-
   align-items: center;
-
   gap: 12px;
 }
 
 .child-icon {
   flex-shrink: 0;
-
-  width: 32px;
-  height: 32px;
-
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e8eaee;
   border-radius: 50%;
-
   object-fit: contain;
-  background-color: #f4f5f7;
+  background-color: #ffffff;
 }
 
 .child-text {
   display: flex;
   min-width: 0;
-
   flex-direction: column;
-
   gap: 2px;
 }
 
 .child-name {
   overflow: hidden;
-
   color: #191b1e;
-
   font-size: 15px;
   font-weight: 700;
-
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .child-email {
   overflow: hidden;
-
-  max-width: 150px;
-
+  max-width: 140px;
   color: #8b9097;
-
   font-size: 11px;
-
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -998,33 +880,32 @@ button {
 .child-right {
   display: flex;
   align-items: center;
-
-  gap: 7px;
-
+  gap: 6px;
   flex-shrink: 0;
 }
 
-.child-chevron {
-  color: #b9bec5;
-
-  font-size: 25px;
-
-  line-height: 1;
+.disconnect-button {
+  padding: 6px 10px;
+  border: 1px solid #e8eaee;
+  border-radius: 999px;
+  color: #6b7077;
+  background-color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-/* =========================
-   빈 상태
-========================= */
+.disconnect-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 .empty-message {
   margin: 0;
-
-  padding: 34px 16px;
-
+  padding: 28px 16px;
   color: #b9bec5;
-
   font-size: 13px;
-
   text-align: center;
 }
 
@@ -1032,21 +913,14 @@ button {
   color: #d14343;
 }
 
-/* =========================
-   로딩 / 에러
-========================= */
-
 .state-box {
   padding: 120px 20px;
-
   text-align: center;
 }
 
 .state-text {
   margin: 0;
-
   color: #8b9097;
-
   font-size: 14px;
 }
 
@@ -1056,22 +930,13 @@ button {
 
 .retry-button {
   margin-top: 16px;
-
   padding: 10px 18px;
-
   border: none;
-
-  border-radius: 8px;
-
+  border-radius: 10px;
   color: #191b1e;
-
   font-size: 13px;
   font-weight: 700;
-
   background-color: #ffbc00;
-
   cursor: pointer;
 }
-
-
 </style>

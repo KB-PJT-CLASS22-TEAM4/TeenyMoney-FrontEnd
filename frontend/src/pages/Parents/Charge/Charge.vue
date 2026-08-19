@@ -691,7 +691,7 @@ button {
   flex-direction: column;
   margin: 0 auto;
   padding-bottom: 70px;
-  background-color: #ffffff;
+  background: #f8fafc;
 }
 
 .nav {
@@ -735,8 +735,15 @@ button {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   padding: 20px 16px;
+}
+
+.section {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .section-label {

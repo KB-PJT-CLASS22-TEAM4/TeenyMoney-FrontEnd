@@ -818,7 +818,7 @@ onMounted(() => {
   min-height: 100dvh;
   margin: 0 auto;
   padding-bottom: 160px;
-  background-color: #ffffff;
+  background: #f8fafc;
   color: #191b1e;
   display: flex;
   flex-direction: column;
@@ -901,7 +901,8 @@ onMounted(() => {
   padding: 0 14px;
   height: 44px;
   border-radius: 12px;
-  background-color: #f4f5f7;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .search-icon {

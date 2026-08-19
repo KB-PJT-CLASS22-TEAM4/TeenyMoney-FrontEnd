@@ -620,7 +620,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 28px 18px 12px;
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .icon-btn {

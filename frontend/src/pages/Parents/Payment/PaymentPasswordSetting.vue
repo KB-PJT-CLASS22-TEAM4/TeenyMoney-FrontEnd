@@ -123,7 +123,7 @@ async function submitPin() {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .nav {
@@ -133,6 +133,8 @@ async function submitPin() {
   width: 100%;
   height: 56px;
   padding: 0 8px 0 4px;
+  background: #ffffff;
+
 }
 
 .icon-btn {
@@ -164,7 +166,13 @@ async function submitPin() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 40px;
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  margin-top: 24px;
+  padding: 32px 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .lock-icon {
@@ -249,11 +257,13 @@ async function submitPin() {
   justify-items: center;
   align-items: center;
   width: 100%;
-  max-width: 320px;
-  margin: 40px auto 0;
-  padding: 0;
+  max-width: 360px;
+  margin: auto 0 0;
+  padding: 16px 8px 24px;
   gap: 8px 0;
   box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
 }
 
 .key {

@@ -108,7 +108,7 @@ onMounted(async () => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
 }
@@ -119,6 +119,8 @@ onMounted(async () => {
   justify-content: space-between;
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
+  background: #ffffff;
+
 }
 
 .back-btn, .alarm-btn {
@@ -142,7 +144,11 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 40px 16px 20px;
+  margin: 16px;
+  padding: 32px 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .logo {
