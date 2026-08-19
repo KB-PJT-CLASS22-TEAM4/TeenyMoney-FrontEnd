@@ -411,6 +411,72 @@ export async function deleteQuest(
 
 
 // ========================================
+// 퀘스트 인증 내역 조회
+//
+// GET /api/v1/quests/{questId}/verifications
+// ========================================
+export async function getQuestVerifications(
+  questId,
+  accessToken
+) {
+  if (!accessToken) {
+    throw new Error(
+      '로그인이 필요합니다.'
+    )
+  }
+
+  if (
+    questId === null ||
+    questId === undefined
+  ) {
+    throw new Error(
+      'questId가 필요합니다.'
+    )
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/quests/${questId}/verifications`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  if (
+    response.status === 404 ||
+    response.status === 405
+  ) {
+    return { success: true, data: [] }
+  }
+
+  let result
+
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error(
+      '서버 응답을 읽을 수 없습니다.'
+    )
+  }
+
+  if (
+    !response.ok ||
+    result.success === false
+  ) {
+    throw new Error(
+      result.message ||
+      '인증 내역을 불러오지 못했습니다.'
+    )
+  }
+
+  return result
+}
+
+
+// ========================================
 // 부모 - 퀘스트 인증 승인
 //
 // PATCH

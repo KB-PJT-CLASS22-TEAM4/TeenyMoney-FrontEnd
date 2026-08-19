@@ -47,81 +47,96 @@
       </div>
 
 
-      <!-- 정책 목록 -->
+      <!-- 정책 목록: 허용/주의/차단 → 상위 토글 → 하위 조회 -->
       <div v-else>
-
-        <!-- 허용 -->
-        <div class="policy-card">
-
-          <p class="policy-label allow">
-            ✓ 허용
-          </p>
-
+        <div
+          v-for="section in policySections"
+          :key="section.key"
+          class="policy-card"
+        >
           <p
-            v-for="item in allowList"
-            :key="item.id"
-            class="policy-item"
+            class="policy-label"
+            :class="policyClass(section.key)"
           >
-            {{ item.merchantCategoryName }}
+            {{ section.label }}
           </p>
 
           <p
-            v-if="allowList.length === 0"
+            v-if="section.groups.length === 0"
             class="empty-policy"
           >
             설정된 업종이 없습니다.
           </p>
 
-        </div>
-
-
-        <!-- 주의 -->
-        <div class="policy-card">
-
-          <p class="policy-label caution">
-            ⚠ 주의
-          </p>
-
-          <p
-            v-for="item in cautionList"
-            :key="item.id"
-            class="policy-item"
+          <template
+            v-for="group in section.groups"
+            :key="group.name"
           >
-            {{ item.merchantCategoryName }}
-          </p>
+            <div
+              v-if="isFlatGroup(group)"
+              class="flat-group"
+            >
+              <p
+                v-for="item in group.items"
+                :key="item.id"
+                class="flat-item"
+              >
+                {{ item.categoryName }}
+                <span
+                  v-if="item.temporaryUntil"
+                  class="temp-deadline"
+                >
+                  {{ formatAllowDeadline(item.temporaryUntil) }}
+                </span>
+              </p>
+            </div>
 
-          <p
-            v-if="cautionList.length === 0"
-            class="empty-policy"
-          >
-            설정된 업종이 없습니다.
-          </p>
+            <div
+              v-else
+              class="toggle-group"
+            >
+              <button
+                class="toggle-header"
+                type="button"
+                :aria-expanded="isPolicyGroupExpanded(section.key, group.name)"
+                @click="togglePolicyGroup(section.key, group.name)"
+              >
+                <span class="toggle-title">
+                  {{ group.name }}
+                </span>
+                <span class="toggle-count">
+                  {{ group.items.length }}
+                </span>
+                <img
+                  src="@/assets/icons/icon-chevron.svg"
+                  alt=""
+                  class="toggle-chevron"
+                  :class="{
+                    open: isPolicyGroupExpanded(section.key, group.name),
+                  }"
+                />
+              </button>
 
-        </div>
-
-
-        <!-- 차단 -->
-        <div class="policy-card">
-
-          <p class="policy-label block">
-            🚫 차단
-          </p>
-
-          <p
-            v-for="item in blockList"
-            :key="item.id"
-            class="policy-item"
-          >
-            {{ item.merchantCategoryName }}
-          </p>
-
-          <p
-            v-if="blockList.length === 0"
-            class="empty-policy"
-          >
-            설정된 업종이 없습니다.
-          </p>
-
+              <div
+                v-if="isPolicyGroupExpanded(section.key, group.name)"
+                class="toggle-body"
+              >
+                <p
+                  v-for="item in group.items"
+                  :key="item.id"
+                  class="policy-item"
+                >
+                  {{ item.categoryName }}
+                  <span
+                    v-if="item.temporaryUntil"
+                    class="temp-deadline"
+                  >
+                    {{ formatAllowDeadline(item.temporaryUntil) }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </template>
         </div>
 
       </div>
@@ -193,14 +208,17 @@
 
           <div
             v-for="req in pendingRequests"
-            :key="req.id"
+            :key="requestKey(req)"
             class="request-card"
           >
             <div class="request-top">
               <span class="request-status block">
                 요청
               </span>
-              <span class="request-name">
+              <span
+                v-if="req.childName"
+                class="request-name"
+              >
                 {{ req.childName }}
               </span>
               <span class="request-time">
@@ -208,18 +226,12 @@
               </span>
             </div>
 
-            <div
-              v-if="req.categories.length"
-              class="request-categories"
+            <p
+              v-if="req.category"
+              class="request-category-name"
             >
-              <span
-                v-for="(category, idx) in req.categories"
-                :key="idx"
-                class="category-tag"
-              >
-                {{ category }}
-              </span>
-            </div>
+              {{ req.category }}
+            </p>
 
             <p
               v-if="req.reason"
@@ -261,7 +273,7 @@
 
           <div
             v-for="req in completedRequests"
-            :key="req.id"
+            :key="requestKey(req)"
             class="request-card"
           >
             <div class="request-top">
@@ -271,7 +283,10 @@
               >
                 {{ req.status === 'APPROVED' ? '승인' : '거절' }}
               </span>
-              <span class="request-name">
+              <span
+                v-if="req.childName"
+                class="request-name"
+              >
                 {{ req.childName }}
               </span>
               <span class="request-time">
@@ -279,18 +294,19 @@
               </span>
             </div>
 
-            <div
-              v-if="req.categories.length"
-              class="request-categories"
+            <p
+              v-if="req.category"
+              class="request-category-name"
             >
-              <span
-                v-for="(category, idx) in req.categories"
-                :key="idx"
-                class="category-tag"
-              >
-                {{ category }}
-              </span>
-            </div>
+              {{ req.category }}
+            </p>
+
+            <p
+              v-if="req.status === 'APPROVED' && formatAllowDeadline()"
+              class="temp-deadline"
+            >
+              {{ formatAllowDeadline() }}
+            </p>
 
             <p
               v-if="req.reason"
@@ -324,12 +340,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 import {
-  getCategoryPolicyGroups
+  getCategoryPolicyParentGroups
 } from '@/api/categoryPolicy'
 
 import {
   getPermissions,
-  getPermissionHistory,
   approvePermission,
   rejectPermission
 } from '@/api/permissions'
@@ -359,12 +374,131 @@ const childId = ref(
 // 카테고리 정책
 // ========================================
 
-const allowList = ref([])
-const cautionList = ref([])
-const blockList = ref([])
-
+const parentGroups = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
+
+const POLICY_SECTIONS = [
+  { key: 'ALLOW', label: '허용' },
+  { key: 'CAUTION', label: '주의' },
+  { key: 'BLOCK', label: '차단' },
+]
+
+function normalizePolicy(policy) {
+  return policy === 'WATCH' ? 'CAUTION' : policy
+}
+
+function policyClass(policy) {
+  if (policy === 'ALLOW') return 'allow'
+  if (policy === 'CAUTION' || policy === 'WATCH') return 'caution'
+  if (policy === 'BLOCK') return 'block'
+  return ''
+}
+
+function isFlatGroup(group) {
+  return group.name === '기타'
+}
+
+function getTodayEnd() {
+  const date = new Date()
+  date.setHours(24, 0, 0, 0)
+  return date
+}
+
+function isSameLocalDay(dateValue) {
+  const date = parseCreatedAt(dateValue)
+  if (!date) return false
+
+  const now = new Date()
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  )
+}
+
+function formatAllowDeadline(until = getTodayEnd()) {
+  const end = until instanceof Date ? until : parseCreatedAt(until)
+  if (!end || end.getTime() <= Date.now()) return ''
+  return '오늘 24:00까지 허용'
+}
+
+function requestKey(req) {
+  return `${req.id}-${req.category || ''}`
+}
+
+const temporaryAllowMap = computed(() => {
+  const map = new Map()
+  const until = getTodayEnd()
+  if (until.getTime() <= Date.now()) return map
+
+  normalizedRequests.value.forEach((req) => {
+    if (req.status !== 'APPROVED') return
+    if (req.updatedAt && !isSameLocalDay(req.updatedAt) && !isSameLocalDay(req.createdAt)) {
+      return
+    }
+    if (req.category) map.set(req.category, until)
+    req.categories.forEach((name) => map.set(name, until))
+  })
+
+  return map
+})
+
+function withEffectivePolicy(item) {
+  const untilFromPermission = temporaryAllowMap.value.get(item.categoryName) ?? null
+  const untilFromPolicy = parseCreatedAt(
+    item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null
+  )
+  const temporaryUntil = untilFromPermission || untilFromPolicy
+  const isTemp = temporaryUntil && temporaryUntil.getTime() > Date.now()
+
+  return {
+    ...item,
+    temporaryUntil: isTemp ? temporaryUntil : null,
+    effectivePolicy: isTemp ? 'ALLOW' : normalizePolicy(item.policy),
+  }
+}
+
+const policySections = computed(() =>
+  POLICY_SECTIONS.map((section) => ({
+    ...section,
+    groups: parentGroups.value
+      .map((group) => ({
+        name: group.name,
+        items: group.items
+          .map(withEffectivePolicy)
+          .filter((item) => item.effectivePolicy === section.key),
+      }))
+      .filter((group) => group.items.length > 0),
+  }))
+)
+
+const expandedPolicyGroups = ref({})
+
+function policyGroupKey(policy, name) {
+  return `${policy}:${name}`
+}
+
+function isPolicyGroupExpanded(policy, name) {
+  const key = policyGroupKey(policy, name)
+  if (Object.prototype.hasOwnProperty.call(expandedPolicyGroups.value, key)) {
+    return !!expandedPolicyGroups.value[key]
+  }
+
+  const group = policySections.value
+    .find((section) => section.key === policy)
+    ?.groups.find((item) => item.name === name)
+
+  return !!group?.items.some((item) => item.temporaryUntil)
+}
+
+function togglePolicyGroup(policy, name) {
+  const key = policyGroupKey(policy, name)
+  expandedPolicyGroups.value = {
+    ...expandedPolicyGroups.value,
+    [key]: !isPolicyGroupExpanded(policy, name),
+  }
+}
 
 
 // ========================================
@@ -462,17 +596,28 @@ function getCategoryLabel(category) {
 }
 
 function extractCategories(permission) {
-  if (!Array.isArray(permission?.categories)) return []
+  if (typeof permission?.category === 'string' && permission.category) {
+    return [permission.category]
+  }
+
+  if (!Array.isArray(permission?.categories)) {
+    const single = getCategoryLabel(permission?.category)
+    return single ? [single] : []
+  }
+
   return permission.categories.map(getCategoryLabel).filter(Boolean)
 }
 
 function normalizePermissionRequest(permission) {
+  const categories = extractCategories(permission)
+
   return {
     id: permission.id,
-    childName: permission.child?.name ?? '자녀',
+    childName: permission.child?.name ?? permission.childName ?? '',
     reason: permission.reason ?? '',
     status: permission.status ?? 'PENDING',
-    categories: extractCategories(permission),
+    category: permission.category || categories[0] || '',
+    categories,
     createdAt: permission.createdAt,
     updatedAt: permission.updatedAt ?? null,
   }
@@ -481,16 +626,16 @@ function normalizePermissionRequest(permission) {
 function extractPermissionsList(payload) {
   if (!payload) return []
 
+  if (Array.isArray(payload)) {
+    return payload
+  }
+
   if (Array.isArray(payload.permissions)) {
     return payload.permissions
   }
 
   if (Array.isArray(payload.items)) {
     return payload.items
-  }
-
-  if (Array.isArray(payload)) {
-    return payload
   }
 
   if (payload.isExist && payload.permission) {
@@ -513,12 +658,34 @@ function matchesSelectedChild(permission) {
   return Number(permissionChildId) === Number(childId.value)
 }
 
-function mergePermissionRequests(currentList, historyList) {
+function mergePermissionRequests(list) {
   const merged = new Map()
 
-  ;[...currentList, ...historyList].forEach((permission) => {
+  list.forEach((permission) => {
     if (!permission?.id || !matchesSelectedChild(permission)) return
-    merged.set(permission.id, permission)
+
+    const categories = extractCategories(permission)
+    const names = categories.length ? categories : ['']
+
+    names.forEach((category) => {
+      const key = `${permission.id}::${category}`
+      const existing = merged.get(key)
+      if (!existing) {
+        merged.set(key, {
+          ...permission,
+          category,
+          categories: category ? [category] : [],
+        })
+        return
+      }
+
+      if (!existing.updatedAt && permission.updatedAt) {
+        existing.updatedAt = permission.updatedAt
+      }
+      if (permission.status && permission.status !== existing.status) {
+        existing.status = permission.status
+      }
+    })
   })
 
   return Array.from(merged.values())
@@ -528,8 +695,8 @@ function mergePermissionRequests(currentList, historyList) {
 // ========================================
 // 카테고리 정책 조회
 //
-// GET
-// /api/v1/category-policies/groups?childId=...
+// GET /api/v1/category-policies/parent-groups?childId=...
+// data: [{ name, categoryPolicyList: [{ id, categoryName, policy }] }]
 // ========================================
 
 async function fetchCategoryPolicies() {
@@ -556,7 +723,7 @@ async function fetchCategoryPolicies() {
     )
 
     const res =
-      await getCategoryPolicyGroups(
+      await getCategoryPolicyParentGroups(
         authStore.accessToken,
         childId.value
       )
@@ -566,41 +733,17 @@ async function fetchCategoryPolicies() {
       res
     )
 
-    // 이전 데이터 초기화
-    allowList.value = []
-    cautionList.value = []
-    blockList.value = []
-
-
-    if (
-      res.success &&
-      Array.isArray(res.data)
-    ) {
-
-      res.data.forEach(group => {
-
-        const list =
-          group.categoryPolicyList || []
-
-        if (group.policy === 'ALLOW') {
-          allowList.value = list
-        }
-
-        else if (
-          group.policy === 'CAUTION'
-        ) {
-          cautionList.value = list
-        }
-
-        else if (
-          group.policy === 'BLOCK'
-        ) {
-          blockList.value = list
-        }
-
-      })
-
-    }
+    parentGroups.value = Array.isArray(res.data)
+      ? res.data.map((group) => ({
+          name: group.name,
+          items: (group.categoryPolicyList || []).map((item) => ({
+            id: item.id,
+            categoryName: item.categoryName,
+            policy: item.policy,
+            expiresAt: item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null,
+          })),
+        }))
+      : []
 
   } catch (error) {
 
@@ -652,28 +795,13 @@ async function fetchPermissions() {
   isPermissionLoading.value = true
 
   try {
-    const [currentResult, historyResult] = await Promise.allSettled([
-      getPermissions(
-        authStore.accessToken,
-        childId.value
-      ),
-      getPermissionHistory(
-        authStore.accessToken,
-        childId.value
-      ),
-    ])
-
-    const currentList = currentResult.status === 'fulfilled'
-      ? extractPermissionsList(currentResult.value.data)
-      : []
-
-    const historyList = historyResult.status === 'fulfilled'
-      ? extractPermissionsList(historyResult.value.data)
-      : []
+    const result = await getPermissions(
+      authStore.accessToken,
+      childId.value
+    )
 
     permissionRequests.value = mergePermissionRequests(
-      currentList,
-      historyList
+      extractPermissionsList(result.data)
     )
 
   } catch (error) {
@@ -825,23 +953,106 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.policy-label.allow {
-  color: #34c759;
+.toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.policy-label.caution {
+.toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.toggle-title {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: #191b1e;
+}
+
+.toggle-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b9097;
+}
+
+.toggle-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.toggle-chevron.open {
+  transform: rotate(90deg);
+}
+
+.toggle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 0 6px 8px;
+}
+
+.flat-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flat-item {
+  margin: 0;
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #191b1e;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.temp-deadline {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
   color: #ff9500;
-}
-
-.policy-label.block {
-  color: #ff3b30;
 }
 
 .policy-item {
   margin: 0;
   font-size: 14px;
   color: #191b1e;
-  padding-left: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.policy-badge.allow,
+.policy-label.allow {
+  color: #34c759;
+}
+
+.policy-badge.caution,
+.policy-label.caution {
+  color: #ff9500;
+}
+
+.policy-badge.block,
+.policy-label.block {
+  color: #ff3b30;
 }
 
 .empty-policy {
@@ -994,7 +1205,15 @@ onMounted(async () => {
   flex: 1;
 }
 
+.request-category-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #191b1e;
+}
+
 .request-time {
+  margin-left: auto;
   font-size: 12px;
   color: #8b9097;
 }

@@ -79,6 +79,8 @@ import SendFail from '@/pages/Parents/Allowance/SendFail.vue'
 import SendComplete from '@/pages/Parents/Allowance/SendComplete.vue'
 import PaymentChange from '@/pages/Parents/Payment/PaymentChange.vue'
 import PaymentChangeComplete from '@/pages/Parents/Payment/PaymentChangeComplete.vue'
+import PaymentPasswordSetting from '@/pages/Parents/Payment/PaymentPasswordSetting.vue'
+import PaymentPasswordSettingDone from '@/pages/Parents/Payment/PaymentPasswordSettingDone.vue'
 import RegularAllowance from '@/pages/Parents/Allowance/RegularAllowance.vue'
 import RegularAllowanceComplete from '@/pages/Parents/Allowance/RegularAllowanceComplete.vue'
 import ChildDetail from '@/pages/Parents/Child/ChildDetail.vue'
@@ -92,6 +94,7 @@ import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
 import QuestDetails from '@/pages/Parents/Quest/QuestDetail.vue'
 import QuestApproval from '@/pages/Parents/Quest/QuestApproval.vue';'@/pages/Parents/QuestApproval.vue'
+import ParentsNotification from '@/pages/Parents/ParentsNotification.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -195,6 +198,12 @@ const router = createRouter({
       name: 'child-notification',
       component: ChildNotification,
     },
+    // 부모 알림페이지
+    {
+      path: '/parents/notification',
+      name: 'parents-notification',
+      component: ParentsNotification,
+    },
     // QR스캔
     {
       path: '/child/payment/scan',
@@ -242,6 +251,16 @@ const router = createRouter({
       path: '/parents/mypage',
       name: 'parents-mypage',
       component : Mypage,
+    },
+    {
+      path: '/parents/mypage/payment-password',
+      name: 'parents-payment-password',
+      component: PaymentPasswordSetting,
+    },
+    {
+      path: '/parents/mypage/payment-password/done',
+      name: 'parents-payment-password-done',
+      component: PaymentPasswordSettingDone,
     },
     // 자녀 결제 비밀번호 설정
     {

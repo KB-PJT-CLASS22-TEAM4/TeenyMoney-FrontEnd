@@ -18,7 +18,15 @@
         }"
         @click="changeTab(tab.value)"
       >
-        {{ tab.label }}
+        <span class="tab-label">
+          {{ tab.label }}
+          <span
+            v-if="tab.value === 'ONGOING' && pendingApprovalCount > 0"
+            class="tab-badge"
+          >
+            {{ pendingApprovalCount > 99 ? '99+' : pendingApprovalCount }}
+          </span>
+        </span>
       </button>
     </div>
 
@@ -515,6 +523,9 @@ const activeTab =
 const quests =
   ref([])
 
+const pendingApprovalCount =
+  ref(0)
+
 const nextCursor =
   ref(null)
 
@@ -794,6 +805,12 @@ async function loadQuests() {
       res.data?.nextCursor ??
       null
 
+    await refreshPendingApprovalCount(
+      activeTab.value === 'ONGOING'
+        ? quests.value
+        : null
+    )
+
   } catch (error) {
 
     console.error(
@@ -812,6 +829,40 @@ async function loadQuests() {
 
     isLoading.value =
       false
+  }
+}
+
+
+function countPendingApprovals(items) {
+  return (items || []).filter(
+    (quest) => quest.status === 'PENDING'
+  ).length
+}
+
+async function refreshPendingApprovalCount(ongoingItems) {
+  if (Array.isArray(ongoingItems)) {
+    pendingApprovalCount.value =
+      countPendingApprovals(ongoingItems)
+    return
+  }
+
+  try {
+    const res = await getQuests(
+      authStore.accessToken,
+      'ONGOING'
+    )
+
+    const items = Array.isArray(res.data?.items)
+      ? res.data.items
+      : []
+
+    pendingApprovalCount.value =
+      countPendingApprovals(items)
+  } catch (error) {
+    console.error(
+      '승인 요청 수 조회 실패:',
+      error
+    )
   }
 }
 
@@ -1478,8 +1529,13 @@ onMounted(() => {
 }
 
 .tab {
+  position: relative;
   flex: 1;
   height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   border: none;
   border-bottom: 2px solid transparent;
@@ -1495,6 +1551,27 @@ onMounted(() => {
 .tab.active {
   color: #ffbc00;
   border-bottom-color: #ffbc00;
+}
+
+.tab-label {
+  position: relative;
+  display: inline-block;
+}
+
+.tab-badge {
+  position: absolute;
+  top: -7px;
+  right: -11px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
 }
 
 

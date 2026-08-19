@@ -20,7 +20,7 @@ export async function registerPaymentPassword(accessToken, password) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({ password: Number(password) }),
+        body: JSON.stringify({ password: String(password) }),
     }
   )
 
