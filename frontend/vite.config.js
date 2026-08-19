@@ -22,6 +22,8 @@ export default defineConfig({
         target: 'https://www.teenymoney.kro.kr',
         changeOrigin: true,
         secure: true,
+        timeout: 60000,
+        proxyTimeout: 60000,
       },
     },
   },
