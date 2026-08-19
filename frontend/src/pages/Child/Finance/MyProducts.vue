@@ -37,6 +37,22 @@ const repaymentTypeMap = {
 const statusMap = {
   PENDING: { label: '승인 대기 중', color: 'orange' },
   ACTIVE: null,
+  TERMINATED: { label: '중도해지 완료', color: 'red' },
+  CANCELLED: { label: '중도해지 완료', color: 'red' },
+  CLOSED: { label: '중도해지 완료', color: 'red' },
+  REPAID: { label: '상환 완료', color: 'green' },
+}
+
+// 해지(중도해지/만기 등으로 종료)된 계약인지 판별
+// 백엔드가 status 문자열(TERMINATED 등)로 줄지, terminated boolean으로 줄지 확실치 않아 둘 다 체크
+function isEnrollmentTerminated(p) {
+  return (
+    p.terminated === true ||
+    p.status === 'TERMINATED' ||
+    p.status === 'CANCELLED' ||
+    p.status === 'CLOSED' ||
+    p.status === 'REPAID'
+  )
 }
 
 // 날짜 파싱 유틸
@@ -105,6 +121,7 @@ function mapEnrolledProduct(p) {
   const isSaving = p.productType === 'SAVING'
   const isDeposit = p.productType === 'DEPOSIT'
   const isPending = p.status === 'PENDING'
+  const isTerminated = isEnrollmentTerminated(p)
   const isFreeSaving = isSaving && p.savingsType === 'FREE'
 
   const statusInfo = statusMap[p.status] ?? {
@@ -118,7 +135,11 @@ function mapEnrolledProduct(p) {
   const currentTotal = p.currentAmount ?? 0
 
   let infoText = ''
-  if (isPending) {
+  if (isTerminated) {
+    infoText = p.status === 'REPAID'
+      ? '대출이 모두 상환 완료됐어요.'
+      : '중도해지가 완료된 상품이에요.'
+  } else if (isPending) {
     infoText = '부모님이 승인하면 시작돼요. 조금만 기다려주세요!'
   } else if (isSaving) {
     if (isFreeSaving) {
@@ -165,6 +186,7 @@ function mapEnrolledProduct(p) {
     status: statusInfo.label,
     statusColor: statusInfo.color,
     isPending,
+    isTerminated,
     pendingSummary,
     isLoan,
     productId: p.productId,
@@ -210,6 +232,9 @@ async function fetchWalletBalance() {
 async function loadProducts() {
   try {
     const data = await getMyEnrolledFinancialProducts(authStore.accessToken)
+    // TODO: 해지된 상품이 실제로 어떤 필드(status 문자열 / terminated boolean)로 오는지
+    // 확인 후 이 로그는 지워도 됩니다.
+    console.log('가입 상품 목록 원본:', JSON.stringify(data))
     myProducts.value = (data || []).map(mapEnrolledProduct)
 
     // 대출 상품 상세 API 연동
@@ -245,13 +270,23 @@ onMounted(() => {
 })
 
 const filteredProducts = computed(() => {
-  return activeCategory.value === '전체'
+  const base = activeCategory.value === '전체'
     ? myProducts.value
     : myProducts.value.filter((p) => p.category === activeCategory.value)
+  // 중도해지 등으로 종료된 상품은 진행 중 목록에서 제외
+  return base.filter((p) => !p.isTerminated)
 })
 
 const pendingProducts = computed(() => filteredProducts.value.filter((p) => p.isPending))
 const activeProducts = computed(() => filteredProducts.value.filter((p) => !p.isPending))
+
+// 완료(중도해지/만기 등)된 상품 — 진행 중 목록과는 별도로 모아서 보여줌
+const completedProducts = computed(() => {
+  const base = activeCategory.value === '전체'
+    ? myProducts.value
+    : myProducts.value.filter((p) => p.category === activeCategory.value)
+  return base.filter((p) => p.isTerminated)
+})
 
 // 중도해지 이동
 function goToCancel(product) {
@@ -504,15 +539,33 @@ function onScroll() {
               <span>이체하기</span>
             </button>
 
-            <!-- [우측] 중도해지 링크 버튼 -->
+            <!-- [우측] 중도해지/조기상환 링크 버튼 -->
             <button
               type="button"
               class="btn-cancel-link"
               @click="goToCancel(product)"
             >
-              중도해지
+              {{ product.isLoan ? '조기상환' : '중도해지' }}
             </button>
           </div>
+        </div>
+      </template>
+
+      <!-- 완료됨 (중도해지 등으로 종료된 상품) -->
+      <template v-if="completedProducts.length">
+        <h2 class="group-title">완료됨</h2>
+        <div v-for="product in completedProducts" :key="product.id" class="card completed">
+          <div class="title-with-badge">
+            <span class="prod-title">{{ product.title }}</span>
+            <span class="origin-badge" :class="product.originType">
+              {{ product.originLabel }}
+            </span>
+          </div>
+          <p class="status-line">
+            {{ product.displayTypeLabel }} · <span class="status-text" :class="product.statusColor">{{ product.status }}</span>
+          </p>
+          <p v-if="product.hasDateRange" class="date-range">{{ product.startDate }} ~ {{ product.maturityDate }}</p>
+          <p v-if="product.infoText" class="info-text">{{ product.infoText }}</p>
         </div>
       </template>
     </div>
@@ -795,6 +848,11 @@ function onScroll() {
 
 .card.pending {
   padding: 14px 16px;
+}
+
+.card.completed {
+  opacity: 0.65;
+  background: #f7f8fa;
 }
 
 .pending-top {

@@ -283,37 +283,15 @@ function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
 function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
 
 // ==== 오늘만 허용 매핑 정보 ====
-const CATEGORY_LABELS = {
-  1: '편의점',
-  2: '카페·디저트',
-  3: '문구·도서·완구',
-  4: '게임',
-  5: 'PC방·노래방',
-  6: '패션·뷰티',
-  7: '대중교통',
-  8: '통신',
-  9: '영화·공연·테마파크',
-  10: '온라인쇼핑',
-  11: '학원·교육',
-  12: '유흥·성인업소',
-  13: '사행성·도박',
-  14: '성인숙박업',
-  15: '일반숙박업',
-  16: '생활용품·잡화',
-  17: '외식·숙박',
-  18: '의료·건강',
-  19: '문화·여가',
-  20: '생활서비스',
-  21: '기타',
-}
+// CATEGORY_LABELS는 더 이상 필요 없음 — API가 category를 이미 이름 문자열로 내려줌
 
 const allowRequests = computed(() => {
-  const permission = allowStore.todayPermission
-  if (!permission) return []
-  return permission.categories.map(categoryId => ({
-    id: categoryId,
-    label: CATEGORY_LABELS[categoryId] ?? `${categoryId}`,
-    status: permission.status,
+  const list = allowStore.todayPermission
+  if (!Array.isArray(list) || list.length === 0) return []
+  return list.map(item => ({
+    id: item.id,
+    label: item.category,   // 예: "PC방·노래방"
+    status: item.status,    // PENDING / APPROVED / REJECTED
   }))
 })
 
@@ -321,7 +299,7 @@ function onClickAllowCard(item) {
   if (item.status === 'PENDING') {
     router.push({
       name: 'child-todayallow-edit',
-      query: { id: allowStore.todayPermission?.id, label: item.label },
+      query: { id: item.id, label: item.label },
     })
   }
 }
@@ -627,7 +605,7 @@ onMounted(async () => {
       .slice(0, 3)
 
     // 오늘만 허용 상태 데이터 패치
-    await allowStore.fetchTodayPermission(authStore.accessToken)
+    await allowStore.fetchTodayPermission(authStore.accessToken , authStore.memberId)
   } catch (e) {
     console.error('홈 데이터 조회 실패:', e.message)
   }
