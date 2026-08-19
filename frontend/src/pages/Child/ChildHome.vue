@@ -253,6 +253,7 @@ import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { ref, computed, onMounted } from 'vue'
+import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
@@ -581,7 +582,7 @@ function mapToFinanceCard(p) {
   }
 }
 
-onMounted(async () => {
+async function load() {
   try {
     userName.value = authStore.name ?? ''
 
@@ -644,7 +645,10 @@ onMounted(async () => {
   } catch (e) {
     console.error('홈 데이터 조회 실패:', e.message)
   }
-})
+}
+
+onMounted(load)
+useRefreshOnVisible(load)
 
 function onTabSelect(key) {
   if (key === 'home')    router.push({ name: 'child-home' })

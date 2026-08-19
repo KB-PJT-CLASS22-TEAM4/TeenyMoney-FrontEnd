@@ -4,7 +4,7 @@
       class="nav-item"
       :class="{ 'nav-item-active': active === 'home' }"
       type="button"
-      @click="active !== 'home' && router.push('/parents/home')"
+      @click="router.push('/parents/home')"
     >
       <img
         :src="active === 'home' ? iconHomeAlive : iconHome"
@@ -18,7 +18,7 @@
       class="nav-item"
       :class="{ 'nav-item-active': active === 'child' }"
       type="button"
-      @click="active !== 'child' && router.push('/parents/childlist')"
+      @click="router.push('/parents/childlist')"
     >
       <img
         :src="active === 'child' ? iconChildAlive : iconChild"
@@ -32,7 +32,7 @@
       class="nav-item"
       :class="{ 'nav-item-active': active === 'quest' }"
       type="button"
-      @click="active !== 'quest' && router.push('/parents/quest')"
+      @click="router.push('/parents/quest')"
     >
       <img
         :src="active === 'quest' ? iconQuestAlive : iconQuest"
@@ -46,7 +46,7 @@
       class="nav-item"
       :class="{ 'nav-item-active': active === 'mypage' }"
       type="button"
-      @click="active !== 'mypage' && router.push('/parents/mypage')"
+      @click="router.push('/parents/mypage')"
     >
       <img
         :src="active === 'mypage' ? iconMypageAlive : iconMypage"

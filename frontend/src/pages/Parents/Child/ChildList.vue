@@ -148,7 +148,7 @@ async function unlinkChild(child) {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: white;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -160,6 +160,8 @@ async function unlinkChild(child) {
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 4px;
+  background: #ffffff;
+
 }
 
 .nav-title {
@@ -209,7 +211,8 @@ async function unlinkChild(child) {
 .child-card {
   background-color: white;
   border-radius: 16px;
-  border: 1px solid #f0f1f3;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   padding: 16px;
   display: flex;
   flex-direction: column;

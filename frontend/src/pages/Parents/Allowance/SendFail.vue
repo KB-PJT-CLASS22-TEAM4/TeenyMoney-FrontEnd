@@ -11,32 +11,96 @@
     <div class="content">
       <img src="@/assets/logo.svg" alt="" class="logo" />
       <h2 class="title">잔액이 부족합니다</h2>
-      <p class="desc">현재 지갑의 잔액이 결제 금액보다 적습니다.<br />결제 수단을 변경하거나 충전해 주세요.</p>
+      <p class="desc">현재 지갑의 잔액이 보낼 금액보다 적습니다.<br />결제 수단을 변경하거나 충전해 주세요.</p>
 
-      <!-- 잔액 카드 -->
       <div class="balance-card">
-        <p class="bank-name">국민은행</p>
-        <p class="account-number">4225 9765 0008 6141</p>
+        <p
+          v-if="isLoading"
+          class="bank-name"
+        >
+          결제수단을 불러오는 중...
+        </p>
+        <template v-else>
+          <p class="bank-name">
+            {{ paymentName }}
+          </p>
+          <p class="account-number">
+            {{ paymentNumber }}
+          </p>
+        </template>
         <div class="balance-row">
           <span class="balance-label">현재 잔액</span>
-          <!-- TODO: API 연동 후 실제 잔액으로 교체 -->
-          <span class="balance-amount">{{ Number(route.query.balance).toLocaleString() }}원</span>
+          <span class="balance-amount">
+            {{ isLoading ? '조회 중...' : `${Number(walletBalance || 0).toLocaleString()}원` }}
+          </span>
         </div>
       </div>
 
-      <!-- 버튼 -->
-      <button class="btn btn-secondary" @click="router.push('/parents/payment/change')">결제수단 변경하기</button>
-      <button class="btn btn-primary" @click="router.push('/parents/charge')">금액 충전하기</button>
+      <button class="btn btn-secondary" type="button" @click="router.push('/parents/payment/change')">결제수단 변경하기</button>
+      <button class="btn btn-primary" type="button" @click="router.push('/parents/charge')">금액 충전하기</button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { getChargeMethods } from '@/api/charge'
+import { getMyWallet } from '@/api/wallet'
 
 const router = useRouter()
-const route = useRoute()
+const authStore = useAuthStore()
+
+const isLoading = ref(true)
+const walletBalance = ref(0)
+const paymentName = ref('등록된 결제수단 없음')
+const paymentNumber = ref('-')
+
+function pickCurrentMethod(methods) {
+  const list = Array.isArray(methods) ? methods : []
+  const usable = list.filter(
+    (method) => method.type === 'CARD' && method.status === 'ACTIVE'
+  )
+  return usable.find((method) => method.primary) || usable[0] || null
+}
+
+function getPaymentName(payment) {
+  if (!payment) return '등록된 결제수단 없음'
+  return payment.cardCompany || payment.bankName || payment.accountBank || '카드'
+}
+
+function getPaymentNumber(payment) {
+  if (!payment) return '-'
+  return payment.maskedCardNumber || payment.accountNumber || '-'
+}
+
+onMounted(async () => {
+  if (!authStore.accessToken) {
+    isLoading.value = false
+    return
+  }
+
+  try {
+    const [methodsRes, walletRes] = await Promise.allSettled([
+      getChargeMethods(authStore.accessToken),
+      getMyWallet(authStore.accessToken),
+    ])
+
+    if (methodsRes.status === 'fulfilled') {
+      const method = pickCurrentMethod(methodsRes.value.data)
+      paymentName.value = getPaymentName(method)
+      paymentNumber.value = getPaymentNumber(method)
+    }
+
+    if (walletRes.status === 'fulfilled') {
+      walletBalance.value = walletRes.value.data?.balance ?? 0
+    }
+  } finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <style scoped>
@@ -44,7 +108,7 @@ const route = useRoute()
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
 }
@@ -55,6 +119,8 @@ const route = useRoute()
   justify-content: space-between;
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
+  background: #ffffff;
+
 }
 
 .back-btn, .alarm-btn {
@@ -78,7 +144,11 @@ const route = useRoute()
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 40px 16px 20px;
+  margin: 16px;
+  padding: 32px 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .logo {

@@ -43,9 +43,8 @@
           v-else-if="currentPayment"
           class="current-card"
         >
-          <img
-            src="@/assets/logo.svg"
-            alt=""
+          <CardCompanyLogo
+            :card-company="currentPayment.cardCompany"
             class="card-icon"
           />
 
@@ -108,9 +107,8 @@
             @click="selectedId = payment.id"
           >
             <!-- 카드 정보 -->
-            <img
-              src="@/assets/logo.svg"
-              alt=""
+            <CardCompanyLogo
+              :card-company="payment.cardCompany"
               class="card-icon"
             />
 
@@ -178,6 +176,7 @@
         <button
           class="add-btn"
           type="button"
+          :disabled="isCheckingPassword"
           @click="toggleAddForm"
         >
           <span class="add-icon">
@@ -343,6 +342,7 @@
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
+import CardCompanyLogo from '@/components/CardCompanyLogo.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -351,7 +351,7 @@ import {
   onMounted,
 } from 'vue'
 
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 import {
@@ -361,7 +361,10 @@ import {
   setPrimaryChargeMethod,
 } from '@/api/charge'
 
+import { getMyInfo } from '@/api/member'
+
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const alertModal = useAlertModal()
 
@@ -386,6 +389,8 @@ const deletingId = ref(null)
 const showAddForm = ref(false)
 
 const isRegistering = ref(false)
+
+const isCheckingPassword = ref(false)
 
 const cardForm = ref({
   cardNumber: '',
@@ -439,6 +444,10 @@ const canRegisterCard = computed(() => {
 
 onMounted(async () => {
   await loadPaymentMethods()
+
+  if (route.query.openAdd === '1' && paymentMethods.value.length === 0) {
+    showAddForm.value = true
+  }
 })
 
 /* =========================
@@ -535,9 +544,42 @@ function getPaymentNumber(payment) {
    카드 추가 폼 토글
 ========================= */
 
-function toggleAddForm() {
-  showAddForm.value =
-    !showAddForm.value
+async function toggleAddForm() {
+  if (showAddForm.value) {
+    showAddForm.value = false
+    return
+  }
+
+  if (isCheckingPassword.value) return
+
+  isCheckingPassword.value = true
+
+  try {
+    const me = await getMyInfo(authStore.accessToken)
+
+    if (!me?.hasPaymentPassword) {
+      await alertModal.showAlert(
+        '결제수단을 등록하려면 결제 비밀번호를 먼저 설정해주세요.',
+        '결제 비밀번호 설정'
+      )
+      router.push({
+        name: 'parents-payment-password',
+        query: { from: 'payment-change' },
+      })
+      return
+    }
+
+    showAddForm.value = true
+  } catch (error) {
+    if (error.message === 'LOGIN_REQUIRED') return
+
+    alertModal.showAlert(
+      error.message ||
+        '결제 비밀번호 확인에 실패했습니다.'
+    )
+  } finally {
+    isCheckingPassword.value = false
+  }
 }
 
 /* =========================
@@ -789,7 +831,7 @@ async function handleChange() {
 
   margin: 0 auto;
 
-  background-color: #ffffff;
+  background: #f8fafc;
 
   display: flex;
   flex-direction: column;
@@ -854,6 +896,11 @@ async function handleChange() {
 
 .section {
   width: 100%;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
 }
 
 .section-label {
@@ -871,9 +918,11 @@ async function handleChange() {
 .empty-card {
   padding: 20px 16px;
 
-  background-color: #f7f8fa;
+  background-color: #ffffff;
 
   border-radius: 16px;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 
   text-align: center;
 
@@ -894,9 +943,11 @@ async function handleChange() {
 
   background-color: #ffffff;
 
-  border: 1px solid #f0f1f3;
+  border: none;
 
   border-radius: 16px;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 
   box-sizing: border-box;
 }
@@ -905,11 +956,13 @@ async function handleChange() {
   width: 36px;
   height: 36px;
 
-  padding: 6px;
+  padding: 0;
 
-  background-color: #f4f5f7;
+  background-color: transparent;
 
   border-radius: 8px;
+
+  object-fit: contain;
 
   box-sizing: border-box;
 }
@@ -1135,6 +1188,11 @@ async function handleChange() {
 
 .add-chevron.opened {
   transform: rotate(90deg);
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .action-area {

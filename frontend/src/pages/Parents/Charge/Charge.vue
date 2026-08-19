@@ -98,9 +98,8 @@
             class="selected-payment-info"
           >
             <div class="payment-icon-wrap">
-              <img
-                src="@/assets/logo.svg"
-                alt=""
+              <CardCompanyLogo
+                :card-company="selectedPaymentMethod.cardCompany"
                 class="payment-icon"
               />
             </div>
@@ -198,9 +197,8 @@
             >
               <div class="payment-info">
                 <div class="payment-icon-wrap">
-                  <img
-                    src="@/assets/logo.svg"
-                    alt=""
+                  <CardCompanyLogo
+                    :card-company="method.cardCompany"
                     class="payment-icon"
                   />
                 </div>
@@ -276,6 +274,13 @@
 
     <ParentBottomNav active="home" />
     <AlertHost :modal="alertModal" />
+    <PaymentPasswordOverlay
+      ref="passwordOverlay"
+      :show="showPasswordGate"
+      :submitting="isCharging"
+      @close="closePasswordGate"
+      @submit="handlePasswordSubmit"
+    />
   </div>
 </template>
 
@@ -283,6 +288,8 @@
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
+import PaymentPasswordOverlay from '@/components/PaymentPasswordOverlay.vue'
+import CardCompanyLogo from '@/components/CardCompanyLogo.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -300,6 +307,7 @@ import {
 } from '@/api/charge'
 
 import { getMyWallet } from '@/api/wallet'
+import { getMyInfo } from '@/api/member'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -318,6 +326,10 @@ const isPaymentOpen = ref(false)
 const isMethodLoading = ref(false)
 
 const isCharging = ref(false)
+
+const showPasswordGate = ref(false)
+
+const passwordOverlay = ref(null)
 
 const quickAmounts = [
   {
@@ -483,8 +495,31 @@ function goToPaymentChange() {
   )
 }
 
+function closePasswordGate() {
+  if (isCharging.value) return
+  showPasswordGate.value = false
+}
+
+function getSelectedChargeMethod() {
+  return (
+    paymentMethods.value.find(
+      (method) =>
+        method.id ===
+        selectedMethodId.value
+    ) ?? null
+  )
+}
+
+function isPasswordMismatchMessage(message) {
+  return /불일치|일치하지|잘못된 비밀/.test(String(message ?? ''))
+}
+
+function isPasswordNotSetMessage(message) {
+  return /설정되지 않았|등록되지 않았|먼저 설정/.test(String(message ?? ''))
+}
+
 async function handleCharge() {
-  if (isCharging.value) {
+  if (isCharging.value || showPasswordGate.value) {
     return
   }
 
@@ -505,12 +540,7 @@ async function handleCharge() {
     return
   }
 
-  const selectedMethod =
-    paymentMethods.value.find(
-      (method) =>
-        method.id ===
-        selectedMethodId.value
-    )
+  const selectedMethod = getSelectedChargeMethod()
 
   if (!selectedMethod) {
     alertModal.showAlert(
@@ -533,16 +563,56 @@ async function handleCharge() {
     return
   }
 
+  try {
+    const me = await getMyInfo(authStore.accessToken)
+    if (!me?.hasPaymentPassword) {
+      await alertModal.showAlert(
+        '충전하려면 결제 비밀번호를 먼저 설정해주세요.',
+        '결제 비밀번호 설정'
+      )
+      router.push({
+        name: 'parents-payment-password',
+        query: { from: 'charge' },
+      })
+      return
+    }
+  } catch (error) {
+    if (error.message === 'LOGIN_REQUIRED') return
+    alertModal.showAlert(
+      error.message || '회원 정보를 확인하지 못했습니다.'
+    )
+    return
+  }
+
+  showPasswordGate.value = true
+}
+
+async function handlePasswordSubmit(pin) {
+  if (isCharging.value) return
+
+  const selectedMethod = getSelectedChargeMethod()
+
+  if (!selectedMethod) {
+    showPasswordGate.value = false
+    alertModal.showAlert(
+      '선택한 카드를 찾을 수 없습니다.'
+    )
+    await loadPaymentMethods()
+    return
+  }
+
   isCharging.value = true
 
   try {
     const res = await chargeWallet(
       authStore.accessToken,
       Number(chargeAmount.value),
-      selectedMethod.id
+      selectedMethod.id,
+      pin
     )
 
     if (res.success) {
+      showPasswordGate.value = false
       router.push({
         path:
           '/parents/charge/complete',
@@ -558,6 +628,40 @@ async function handleCharge() {
       '충전 실패:',
       error
     )
+
+    passwordOverlay.value?.reset()
+
+    if (error.message === 'LOGIN_REQUIRED') {
+      showPasswordGate.value = false
+      return
+    }
+
+    if (isPasswordNotSetMessage(error.message)) {
+      showPasswordGate.value = false
+      await alertModal.showAlert(
+        '충전하려면 결제 비밀번호를 먼저 설정해주세요.',
+        '결제 비밀번호 설정'
+      )
+      router.push({
+        name: 'parents-payment-password',
+        query: { from: 'charge' },
+      })
+      return
+    }
+
+    if (
+      isPasswordMismatchMessage(error.message) ||
+      /비밀번호|password/i.test(error.message || '')
+    ) {
+      await alertModal.showAlert(
+        error.message ||
+          '결제 비밀번호가 일치하지 않습니다.',
+        '비밀번호 불일치'
+      )
+      return
+    }
+
+    showPasswordGate.value = false
 
     await loadPaymentMethods()
 
@@ -587,7 +691,7 @@ button {
   flex-direction: column;
   margin: 0 auto;
   padding-bottom: 70px;
-  background-color: #ffffff;
+  background: #f8fafc;
 }
 
 .nav {
@@ -631,8 +735,15 @@ button {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   padding: 20px 16px;
+}
+
+.section {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .section-label {
@@ -777,8 +888,9 @@ button {
 }
 
 .payment-icon {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .payment-name-row {

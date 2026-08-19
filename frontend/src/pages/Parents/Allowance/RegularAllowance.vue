@@ -134,20 +134,26 @@
         >
           <!-- 선택된 자녀가 있을 때 -->
           <div
-            v-if="selectedChild"
-            class="selected-child"
+            v-if="selectedChildren.length"
+            class="selected-child-list"
           >
-            <div class="selected-avatar">
-              <img
-                :src="CHILD_PROFILE_IMAGE"
-                alt=""
-                class="selected-avatar-img"
-              />
-            </div>
+            <div
+              v-for="child in selectedChildren"
+              :key="child.id"
+              class="selected-child"
+            >
+              <div class="selected-avatar">
+                <img
+                  :src="CHILD_PROFILE_IMAGE"
+                  alt=""
+                  class="selected-avatar-img"
+                />
+              </div>
 
-            <span class="selected-child-name">
-              {{ selectedChild.name }}
-            </span>
+              <span class="selected-child-name">
+                {{ child.name }}
+              </span>
+            </div>
           </div>
 
           <!-- 선택 전 -->
@@ -192,28 +198,43 @@
           </button>
         </div>
 
-        <!-- 날짜 입력 -->
-        <div class="day-input-wrap">
+        <!-- 매주: 요일 선택 -->
+        <div
+          v-if="cycle === 'WEEKLY'"
+          class="weekday-btns"
+        >
+          <button
+            v-for="day in WEEKDAY_OPTIONS"
+            :key="day.value"
+            type="button"
+            class="weekday-btn"
+            :class="{ active: Number(dayOfCycle) === day.value }"
+            @click="dayOfCycle = day.value"
+          >
+            {{ day.label }}
+          </button>
+        </div>
+
+        <!-- 매월: 날짜 입력 (1~28일) -->
+        <div
+          v-else
+          class="day-input-wrap"
+        >
           <input
             v-model="dayOfCycle"
             type="number"
             class="day-input"
-            :min="1"
-            :max="cycle === 'WEEKLY' ? 7 : 31"
+            min="1"
+            max="28"
             placeholder="1"
+            inputmode="numeric"
+            @input="clampMonthlyDay"
           />
 
           <span class="day-unit">
-            {{ cycle === 'WEEKLY' ? '요일' : '일' }}
+            일
           </span>
         </div>
-
-        <p
-          v-if="cycle === 'WEEKLY'"
-          class="day-hint"
-        >
-          1=월요일 · 7=일요일
-        </p>
       </div>
 
       <!-- 지급 금액 설정 -->
@@ -367,9 +388,9 @@
               class="modal-child-item"
               :class="{
                 selected:
-                  selectedChildId === child.id
+                  selectedChildIds.includes(child.id)
               }"
-              @click="selectChild(child)"
+              @click="toggleChild(child)"
             >
               <div class="modal-child-left">
                 <div class="modal-avatar">
@@ -390,11 +411,11 @@
                 class="check-circle"
                 :class="{
                   checked:
-                    selectedChildId === child.id
+                    selectedChildIds.includes(child.id)
                 }"
               >
                 <span
-                  v-if="selectedChildId === child.id"
+                  v-if="selectedChildIds.includes(child.id)"
                   class="check-mark"
                 >
                   ✓
@@ -407,7 +428,7 @@
           <button
             type="button"
             class="modal-confirm-btn"
-            :disabled="!selectedChildId"
+            :disabled="selectedChildIds.length === 0"
             @click="closeChildModal"
           >
             선택 완료
@@ -457,13 +478,23 @@ const WEEKDAY_LABELS = [
   '일요일',
 ]
 
+const WEEKDAY_OPTIONS = [
+  { value: 1, label: '월' },
+  { value: 2, label: '화' },
+  { value: 3, label: '수' },
+  { value: 4, label: '목' },
+  { value: 5, label: '금' },
+  { value: 6, label: '토' },
+  { value: 7, label: '일' },
+]
+
 const router = useRouter()
 const authStore = useAuthStore()
 const alertModal = useAlertModal()
 
 const children = ref([])
 const schedules = ref([])
-const selectedChildId = ref(null)
+const selectedChildIds = ref([])
 const editingScheduleId = ref(null)
 const cycle = ref('MONTHLY')
 const dayOfCycle = ref(1)
@@ -473,14 +504,14 @@ const isScheduleLoading = ref(false)
 const isSaving = ref(false)
 const isChildModalOpen = ref(false)
 
-const selectedChild = computed(() => {
-  if (!selectedChildId.value) {
-    return null
+const selectedChildren = computed(() => {
+  if (!selectedChildIds.value.length) {
+    return []
   }
 
-  return children.value.find(
-    child => child.id === selectedChildId.value
-  ) || null
+  return children.value.filter(
+    (child) => selectedChildIds.value.includes(child.id)
+  )
 })
 
 const quickAmounts = [
@@ -491,25 +522,40 @@ const quickAmounts = [
 ]
 
 const maxPaymentDay = computed(() => (
-  cycle.value === 'WEEKLY' ? 7 : 31
+  cycle.value === 'WEEKLY' ? 7 : 28
 ))
 
 const canSubmit = computed(() => {
   const day = Number(dayOfCycle.value)
 
   return (
-    selectedChildId.value &&
+    selectedChildIds.value.length > 0 &&
     day >= 1 &&
     day <= maxPaymentDay.value &&
     Number(amount.value) > 0
   )
 })
 
-watch(cycle, () => {
-  if (Number(dayOfCycle.value) > maxPaymentDay.value) {
-    dayOfCycle.value = maxPaymentDay.value
+watch(cycle, (nextCycle) => {
+  if (nextCycle === 'WEEKLY') {
+    const day = Number(dayOfCycle.value)
+    if (day < 1 || day > 7) {
+      dayOfCycle.value = 1
+    }
+    return
+  }
+
+  if (Number(dayOfCycle.value) > 28) {
+    dayOfCycle.value = 28
   }
 })
+
+function clampMonthlyDay() {
+  const day = Number(dayOfCycle.value)
+  if (!Number.isFinite(day)) return
+  if (day > 28) dayOfCycle.value = 28
+  if (day < 1) dayOfCycle.value = 1
+}
 
 function childName(childId) {
   return children.value.find(child => child.id === childId)?.name || '자녀'
@@ -564,9 +610,9 @@ function handleScheduleError(error, fallbackMessage) {
   alertModal.showAlert(error.message || fallbackMessage)
 }
 
-function buildPayload() {
+function buildPayload(childId) {
   return {
-    childId: Number(selectedChildId.value),
+    childId: Number(childId),
     amount: Number(amount.value),
     cycleType: cycle.value,
     paymentDay: Number(dayOfCycle.value),
@@ -628,15 +674,35 @@ function closeChildModal() {
   isChildModalOpen.value = false
 }
 
-function selectChild(child) {
-  selectedChildId.value = child.id
+function toggleChild(child) {
+  if (editingScheduleId.value) {
+    selectedChildIds.value =
+      selectedChildIds.value.includes(child.id) ? [] : [child.id]
+    return
+  }
+
+  if (selectedChildIds.value.includes(child.id)) {
+    selectedChildIds.value = selectedChildIds.value.filter(
+      (id) => id !== child.id
+    )
+    return
+  }
+
+  selectedChildIds.value = [...selectedChildIds.value, child.id]
 }
 
 function startEdit(schedule) {
   editingScheduleId.value = schedule.id
-  selectedChildId.value = schedule.childId
+  selectedChildIds.value = [schedule.childId]
   cycle.value = schedule.cycleType === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY'
-  dayOfCycle.value = schedule.paymentDay
+
+  const day = Number(schedule.paymentDay) || 1
+  if (cycle.value === 'WEEKLY') {
+    dayOfCycle.value = day >= 1 && day <= 7 ? day : 1
+  } else {
+    dayOfCycle.value = Math.min(Math.max(day, 1), 28)
+  }
+
   amount.value = schedule.amount
 }
 
@@ -650,7 +716,7 @@ function clearAmount() {
 
 function resetForm() {
   editingScheduleId.value = null
-  selectedChildId.value = null
+  selectedChildIds.value = []
   cycle.value = 'MONTHLY'
   dayOfCycle.value = 1
   amount.value = ''
@@ -669,13 +735,11 @@ async function handleSave() {
   isSaving.value = true
 
   try {
-    const payload = buildPayload()
-
     if (editingScheduleId.value) {
       await updateAllowanceSchedule(
         authStore.accessToken,
         editingScheduleId.value,
-        payload
+        buildPayload(selectedChildIds.value[0])
       )
 
       await fetchSchedules()
@@ -683,21 +747,26 @@ async function handleSave() {
       return
     }
 
-    const res = await createAllowanceSchedule(
-      authStore.accessToken,
-      payload
-    )
+    const created = []
+
+    for (const childId of selectedChildIds.value) {
+      const res = await createAllowanceSchedule(
+        authStore.accessToken,
+        buildPayload(childId)
+      )
+      created.push(res)
+    }
 
     router.push({
       path: '/parents/regular-allowance/complete',
       query: {
-        childName: selectedChild.value?.name,
-        childId: selectedChildId.value,
+        childName: selectedChildren.value.map((child) => child.name).join(', '),
+        childId: selectedChildIds.value[0],
         cycle: cycle.value,
         day: dayOfCycle.value,
         amount: amount.value,
         cycleLabel: formatCycleLabel(cycle.value, Number(dayOfCycle.value)),
-        nextPaymentDate: res?.data?.nextPaymentDate || '',
+        nextPaymentDate: created[0]?.data?.nextPaymentDate || '',
       },
     })
   } catch (error) {
@@ -812,7 +881,7 @@ button {
   flex-direction: column;
   margin: 0 auto;
   padding-bottom: 70px;
-  background-color: white;
+  background: #f8fafc;
 }
 
 /* 헤더 */
@@ -854,8 +923,15 @@ button {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   padding: 20px 16px;
+}
+
+.section {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .section-label {
@@ -978,12 +1054,6 @@ button {
   color: #d14b4b;
 }
 
-.day-hint {
-  margin: 8px 0 0;
-  color: #8b9097;
-  font-size: 12px;
-}
-
 .reset-btn {
   width: 100%;
   height: 44px;
@@ -1008,6 +1078,13 @@ button {
   border-radius: 12px;
   background-color: #ffffff;
   cursor: pointer;
+}
+
+.selected-child-list {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .selected-child {
@@ -1068,6 +1145,30 @@ button {
 }
 
 .cycle-btn.active {
+  color: #191b1e;
+  background-color: #ffbc00;
+  font-weight: 700;
+}
+
+.weekday-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.weekday-btn {
+  flex: 1;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  color: #8b9097;
+  background-color: #f4f5f7;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.weekday-btn.active {
   color: #191b1e;
   background-color: #ffbc00;
   font-weight: 700;

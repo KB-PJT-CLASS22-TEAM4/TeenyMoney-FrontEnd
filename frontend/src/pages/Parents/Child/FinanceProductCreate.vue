@@ -344,7 +344,7 @@ async function handleSubmit() {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
 }
@@ -356,6 +356,8 @@ async function handleSubmit() {
   position: relative;
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
+  background: #ffffff;
+
 }
 
 .back-btn,
@@ -392,13 +394,21 @@ async function handleSubmit() {
   padding: 16px 16px 32px;
 }
 
+.section {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
 .type-tabs {
   display: flex;
   gap: 0;
   padding: 4px;
   margin-bottom: 18px;
   border-radius: 999px;
-  background: #f3f4f6;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .type-tab {
@@ -446,7 +456,7 @@ async function handleSubmit() {
   padding: 16px;
   margin-bottom: 12px;
   border-radius: 16px;
-  background: #f8fafc;
+  background: #f4f5f7;
 }
 
 .form-card-title {

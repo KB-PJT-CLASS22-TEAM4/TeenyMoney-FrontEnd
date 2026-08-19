@@ -105,8 +105,26 @@ function getIcon(referenceType) {
   return ICONS[referenceType] || ICONS.DEFAULT
 }
 
-// referenceType별 상세 화면 라우팅 (대상 화면 생기면 이름 맞춰서 연결)
+function isTodayAllowNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (
+    type === 'PERMISSION' ||
+    type === 'TODAY_ALLOW' ||
+    type === 'TODAYALLOW' ||
+    type === 'TODAY_PERMISSION'
+  ) {
+    return true
+  }
+
+  return /오늘만\s*허용/.test(`${n.title || ''} ${n.detail || ''}`)
+}
+
+// referenceType별 상세 화면 라우팅
 function goToReference(n) {
+  if (isTodayAllowNotification(n)) {
+    router.push({ name: 'child-todayallow-request' })
+    return
+  }
   if (n.referenceType === 'PAYMENT') {
     router.push({ name: 'child-transaction' })
   } else if (n.referenceType === 'QUEST') {
@@ -114,7 +132,6 @@ function goToReference(n) {
   } else if (n.referenceType === 'FINANCE') {
     router.push({ name: 'child-finance-myproducts' })
   }
-  // ALLOWANCE/FAMILY 등 다른 타입은 대상 화면 확정되면 추가
 }
 
 // ==== 날짜/시간 포맷 ====

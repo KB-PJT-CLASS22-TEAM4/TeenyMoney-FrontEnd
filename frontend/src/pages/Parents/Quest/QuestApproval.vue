@@ -256,7 +256,7 @@ function formatDate(value) {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #f4f5f7;
+  background: #f8fafc;
 }
 
 .nav {
@@ -304,6 +304,7 @@ function formatDate(value) {
   padding: 20px;
   border-radius: 16px;
   background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .status-wrap {

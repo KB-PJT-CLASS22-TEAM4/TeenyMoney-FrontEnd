@@ -106,7 +106,7 @@ const nextPaymentDate = computed(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   padding-bottom: 70px;
@@ -114,6 +114,8 @@ const nextPaymentDate = computed(() => {
 
 .nav {
   padding: 18px 20px;
+  background: #ffffff;
+
 }
 
 .back-btn {
@@ -130,7 +132,11 @@ const nextPaymentDate = computed(() => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 40px 16px 20px;
+  margin: 16px;
+  padding: 32px 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .check-circle {

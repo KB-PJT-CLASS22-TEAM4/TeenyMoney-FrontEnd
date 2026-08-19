@@ -29,7 +29,7 @@
       </div>
 
       <!-- 버튼 -->
-      <button class="btn btn-primary" @click="router.push('/child/home')">
+      <button class="btn btn-primary" type="button" @click="goToChildHome">
         자녀 지갑으로 가기
       </button>
       <button class="btn btn-secondary" @click="router.push('/parents/home')">
@@ -50,6 +50,20 @@ import { useRouter, useRoute } from 'vue-router'
 const router = useRouter()
 const route = useRoute()
 
+function goToChildHome() {
+  const childId = Number(route.query.childId)
+
+  if (childId) {
+    router.push({
+      name: 'parents-child-detail',
+      params: { childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-child-list' })
+}
+
 // TODO: API 연동 후 실제 거래 시간으로 교체
 const now = new Date()
 const currentTime = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
@@ -60,7 +74,7 @@ const currentTime = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   padding-bottom: 70px;
@@ -70,6 +84,8 @@ const currentTime = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(
   display: flex;
   align-items: center;
   padding: 18px 20px;
+  background: #ffffff;
+
 }
 
 .back-btn {
@@ -86,7 +102,11 @@ const currentTime = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 20px 16px;
+  margin: 16px;
+  padding: 32px 20px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .logo {
@@ -112,9 +132,10 @@ const currentTime = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px 0;
-  border-top: 1px solid #f0f1f3;
-  border-bottom: 1px solid #f0f1f3;
+  padding: 20px;
+  border: none;
+  border-radius: 16px;
+  background: #f4f5f7;
   margin: 8px 0;
 }
 

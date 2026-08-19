@@ -4,15 +4,13 @@ const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
 
-const BASE_URL = `${API_BASE_URL}/api/v1/members/me`
-
 // 결제 비밀번호 최초 등록
 // POST /api/v1/members/me/payment-password
 export async function registerPaymentPassword(accessToken, password) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${BASE_URL}/payment-password`,
+    `${API_BASE_URL}/api/v1/members/me/payment-password`,
     {
       method: 'POST',
       headers: {
@@ -20,7 +18,7 @@ export async function registerPaymentPassword(accessToken, password) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-        body: JSON.stringify({ password: String(password) }),
+      body: JSON.stringify({ password: Number(password) }),
     }
   )
 

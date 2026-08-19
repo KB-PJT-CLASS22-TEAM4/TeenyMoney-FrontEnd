@@ -151,12 +151,12 @@
           >
             <p class="place-name">
               {{ place.categoryName }}
-            </p>
-            <p
-              v-if="isTemporaryAllow(place)"
-              class="temp-deadline"
-            >
-              {{ formatAllowDeadline() }}
+              <span
+                v-if="isTemporaryAllow(place)"
+                class="temp-deadline"
+              >
+                {{ formatAllowDeadline() }}
+              </span>
             </p>
 
             <div class="place-btns">
@@ -247,7 +247,7 @@ import {
   updateCategoryPolicies,
 } from '@/api/categoryPolicy'
 
-import { getPermissions } from '@/api/permissions'
+import { getPermissions, getPermissionHistory } from '@/api/permissions'
 
 
 const router = useRouter()
@@ -337,12 +337,61 @@ function formatAllowDeadline(until = getTodayEnd()) {
   return '오늘 24:00까지 허용'
 }
 
-function extractPermissionCategory(permission) {
-  if (typeof permission?.category === 'string' && permission.category) {
-    return [permission.category]
+function parsePermissionDate(value) {
+  if (!value) return null
+  if (Array.isArray(value)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = value
+    return new Date(year, month - 1, day, hour, minute, second)
   }
-  if (!Array.isArray(permission?.categories)) return []
-  return permission.categories.filter((name) => typeof name === 'string' && name)
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function isSameLocalDay(dateValue) {
+  const date = parsePermissionDate(dateValue)
+  if (!date) return false
+  const now = new Date()
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  )
+}
+
+function extractPermissionKeys(permission) {
+  const keys = []
+
+  function push(value) {
+    if (value == null || value === '') return
+    if (typeof value === 'object') {
+      const name =
+        value.categoryName
+        ?? value.category
+        ?? value.merchantCategoryName
+        ?? value.name
+      const id = value.id ?? value.categoryId ?? value.merchantCategoryId
+      if (name) keys.push(String(name))
+      if (id != null) keys.push(String(id))
+      return
+    }
+    keys.push(String(value))
+  }
+
+  push(permission?.category)
+  if (Array.isArray(permission?.categories)) {
+    permission.categories.forEach(push)
+  }
+
+  return keys
+}
+
+function extractPermissionsList(payload) {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload.permissions)) return payload.permissions
+  if (Array.isArray(payload.items)) return payload.items
+  if (payload.permission) return [payload.permission]
+  return []
 }
 
 const temporaryAllowMap = computed(() => {
@@ -351,8 +400,11 @@ const temporaryAllowMap = computed(() => {
   if (until.getTime() <= Date.now()) return map
 
   approvedPermissions.value.forEach((permission) => {
-    extractPermissionCategory(permission).forEach((name) => {
-      map.set(name, until)
+    const day = permission.updatedAt || permission.approvedAt || permission.createdAt
+    if (day && !isSameLocalDay(day)) return
+
+    extractPermissionKeys(permission).forEach((key) => {
+      map.set(key, until)
     })
   })
 
@@ -362,6 +414,7 @@ const temporaryAllowMap = computed(() => {
 function isTemporaryAllow(place) {
   if (place.userOverride) return false
   if (temporaryAllowMap.value.has(place.categoryName)) return true
+  if (temporaryAllowMap.value.has(String(place.id))) return true
 
   const until = place.expiresAt ? new Date(place.expiresAt) : null
   return !!(until && !Number.isNaN(until.getTime()) && until.getTime() > Date.now())
@@ -401,24 +454,28 @@ async function fetchApprovedPermissions() {
   }
 
   try {
-    const res = await getPermissions(
-      authStore.accessToken,
-      childId.value
-    )
-    const payload = res.data
-    const list = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload?.permissions)
-        ? payload.permissions
-        : Array.isArray(payload?.items)
-          ? payload.items
-          : payload?.permission
-            ? [payload.permission]
-            : []
+    const [permRes, historyRes] = await Promise.allSettled([
+      getPermissions(authStore.accessToken, childId.value),
+      getPermissionHistory(authStore.accessToken, childId.value),
+    ])
 
-    approvedPermissions.value = list.filter(
-      (permission) => permission?.status === 'APPROVED'
-    )
+    const fromPermissions =
+      permRes.status === 'fulfilled'
+        ? extractPermissionsList(permRes.value.data)
+        : []
+    const fromHistory =
+      historyRes.status === 'fulfilled'
+        ? extractPermissionsList(historyRes.value.data)
+        : []
+
+    const merged = new Map()
+    ;[...fromPermissions, ...fromHistory].forEach((permission) => {
+      if (permission?.status !== 'APPROVED') return
+      const key = permission.id ?? permission.permissionId ?? JSON.stringify(permission)
+      merged.set(key, permission)
+    })
+
+    approvedPermissions.value = Array.from(merged.values())
   } catch (error) {
     console.error('오늘만 허용 승인 내역 조회 실패:', error)
     approvedPermissions.value = []
@@ -586,11 +643,6 @@ function setGroupStatus(groupName, policy) {
     place.policy = policy
     place.userOverride = true
   })
-
-  expandedGroups.value = {
-    ...expandedGroups.value,
-    [groupName]: true,
-  }
 }
 
 
@@ -766,7 +818,7 @@ onMounted(() => {
   min-height: 100dvh;
   margin: 0 auto;
   padding-bottom: 160px;
-  background-color: #ffffff;
+  background: #f8fafc;
   color: #191b1e;
   display: flex;
   flex-direction: column;
@@ -849,7 +901,8 @@ onMounted(() => {
   padding: 0 14px;
   height: 44px;
   border-radius: 12px;
-  background-color: #f4f5f7;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .search-icon {
@@ -977,13 +1030,17 @@ onMounted(() => {
 }
 
 .place-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   margin: 0 0 8px;
   font-size: 15px;
   font-weight: 700;
 }
 
 .temp-deadline {
-  margin: -4px 0 12px;
+  margin: 0;
   font-size: 12px;
   font-weight: 700;
   color: #ff9500;

@@ -12,17 +12,33 @@
     </div>
 
     <div class="confirm-wrap">
-      <button class="confirm-btn" type="button" @click="goMypage">확인</button>
+      <button class="confirm-btn" type="button" @click="goNext">확인</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 
-function goMypage() {
+function goNext() {
+  const from = route.query.from
+
+  if (from === 'payment-change') {
+    router.replace({
+      name: 'payment-change',
+      query: { openAdd: '1' },
+    })
+    return
+  }
+
+  if (from === 'charge') {
+    router.replace({ name: 'charge' })
+    return
+  }
+
   router.replace({ name: 'parents-mypage' })
 }
 </script>
@@ -37,7 +53,7 @@ function goMypage() {
   min-height: 100dvh;
   margin: 0 auto;
   padding: 40px 0 30px;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .center {
@@ -46,7 +62,13 @@ function goMypage() {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 32px;
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  margin: 24px 16px;
+  padding: 40px 24px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .check-circle {

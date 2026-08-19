@@ -205,7 +205,8 @@ export async function deleteChargeMethod(
 export async function chargeWallet(
   accessToken,
   amount,
-  paymentMethodId
+  paymentMethodId,
+  password
 ) {
   ensureAccessToken(accessToken)
 
@@ -218,6 +219,16 @@ export async function chargeWallet(
   const idempotencyKey =
     crypto.randomUUID()
 
+  const payload = {
+    amount,
+    idempotencyKey,
+    paymentMethodId,
+  }
+
+  if (password != null && password !== '') {
+    payload.password = Number(password)
+  }
+
   const response = await fetch(
     `${API_BASE_URL}/api/v1/charge`,
     {
@@ -227,11 +238,7 @@ export async function chargeWallet(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({
-        amount,
-        idempotencyKey,
-        paymentMethodId,
-      }),
+      body: JSON.stringify(payload),
     }
   )
 

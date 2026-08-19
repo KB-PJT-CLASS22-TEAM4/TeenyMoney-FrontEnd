@@ -40,7 +40,7 @@ onMounted(async () => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -57,6 +57,11 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  margin: 0 16px;
+  padding: 32px 24px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 /* 스피너 */

@@ -71,9 +71,11 @@ import Charge from '@/pages/Parents/Charge/Charge.vue'
 import Charging from '@/pages/Parents/Charge/Charging.vue'
 import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
+import Faq from '@/pages/Faq.vue'
 import HarmfulCategory from '@/pages/Parents/Harmful/HarmfulCategory.vue'
 import PlaceList from '@/pages/Parents/Harmful/PlaceList.vue'
 import SendAllowance from '@/pages/Parents/Allowance/SendAllowance.vue'
+import RequestList from '@/pages/Parents/RequestList.vue'
 import SendingAllowance from '@/pages/Parents/Allowance/SendingAllowance.vue'
 import SendFail from '@/pages/Parents/Allowance/SendFail.vue'
 import SendComplete from '@/pages/Parents/Allowance/SendComplete.vue'
@@ -253,6 +255,16 @@ const router = createRouter({
       component : Mypage,
     },
     {
+      path: '/parents/faq',
+      name: 'parents-faq',
+      component: Faq,
+    },
+    {
+      path: '/child/faq',
+      name: 'child-faq',
+      component: Faq,
+    },
+    {
       path: '/parents/mypage/payment-password',
       name: 'parents-payment-password',
       component: PaymentPasswordSetting,
@@ -378,6 +390,11 @@ const router = createRouter({
   { path: '/parents/send-allowance', 
     name: 'send-allowance', 
     component: SendAllowance 
+  },
+  {
+    path: '/parents/requests',
+    name: 'parents-request-list',
+    component: RequestList,
   },
   {
     path: '/parents/sending-allowance',

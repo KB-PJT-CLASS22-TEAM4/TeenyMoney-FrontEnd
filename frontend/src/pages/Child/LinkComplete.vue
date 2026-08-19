@@ -12,7 +12,7 @@
 
     <div class="body">
       <!-- 티니 캐릭터 -->
-      <img src="@/assets/rabbit.png" class="character" alt="티니머니 캐릭터" />
+      <img :src="CHILD_PROFILE_IMAGE" class="character" alt="티니머니 캐릭터" />
 
       <div class="heading">
         <h2 class="title">연동 완료!</h2>
@@ -42,6 +42,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getMyParent } from '@/api/families'
 import { useAuthStore } from '@/stores/auth'
+import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter();
 const authStore = useAuthStore();

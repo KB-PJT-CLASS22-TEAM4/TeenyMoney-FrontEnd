@@ -87,11 +87,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
-import {
-  getMyNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '@/api/notification'
+import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notification'
+import { getChildren } from '@/api/children'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -110,7 +107,78 @@ function getIcon(referenceType) {
   return ICONS[referenceType] || ICONS.DEFAULT
 }
 
-function goToReference(n) {
+function isTodayAllowNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (
+    type === 'PERMISSION' ||
+    type === 'TODAY_ALLOW' ||
+    type === 'TODAYALLOW' ||
+    type === 'TODAY_PERMISSION'
+  ) {
+    return true
+  }
+
+  return /오늘만\s*허용/.test(`${n.title || ''} ${n.detail || ''}`)
+}
+
+function isFamilyLinkNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (type === 'FAMILY' || type === 'LINK' || type === 'CHILD_LINK') {
+    return true
+  }
+
+  return /연결됐|연동됐|연결되었|연동되었/.test(`${n.title || ''} ${n.detail || ''}`)
+}
+
+function goToChildDetail(childId) {
+  if (childId) {
+    router.push({
+      name: 'parents-child-detail',
+      params: { childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-child-list' })
+}
+
+async function resolveChildId(n) {
+  const fromNoti = n.childId ?? n.referenceId
+
+  try {
+    const res = await getChildren(authStore.accessToken)
+    const children = Array.isArray(res?.data) ? res.data : []
+    const matched = children.find(
+      (child) => Number(child.childId) === Number(fromNoti)
+    )
+    return matched?.childId ?? children[0]?.childId ?? fromNoti
+  } catch {
+    return fromNoti
+  }
+}
+
+async function goToTodayAllow(n) {
+  const childId = await resolveChildId(n)
+  router.push({
+    name: 'parents-harmful-category',
+    query: childId ? { childId } : {},
+  })
+}
+
+async function goToFamilyLink(n) {
+  const childId = await resolveChildId(n)
+  goToChildDetail(childId)
+}
+
+async function goToReference(n) {
+  if (isTodayAllowNotification(n)) {
+    await goToTodayAllow(n)
+    return
+  }
+  if (isFamilyLinkNotification(n)) {
+    await goToFamilyLink(n)
+    return
+  }
   if (n.referenceType === 'PAYMENT') {
     router.push({ name: 'parents-transaction' })
     return
@@ -203,6 +271,7 @@ function mapNotification(n) {
     read: n.isRead,
     referenceType: n.referenceType,
     referenceId: n.referenceId,
+    childId: n.childId ?? n.child?.childId ?? n.child?.id ?? null,
     icon: getIcon(n.referenceType),
     createdDate,
     dateLabel: createdDate ? formatDateLabel(createdDate) : '',
@@ -290,7 +359,7 @@ async function readOne(n) {
     }
   }
 
-  goToReference(n)
+  await goToReference(n)
 }
 
 onMounted(() => {
@@ -306,7 +375,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .nav {
@@ -315,6 +384,8 @@ onMounted(() => {
   height: 56px;
   padding: 0 8px 0 4px;
   flex-shrink: 0;
+  background: #ffffff;
+
 }
 
 .back-btn {
@@ -345,8 +416,9 @@ onMounted(() => {
 .sub-bar {
   display: flex;
   justify-content: flex-end;
-  padding: 0 20px 6px;
+  padding: 8px 20px;
   flex-shrink: 0;
+  background: #ffffff;
 }
 
 .mark-read {
@@ -368,7 +440,7 @@ onMounted(() => {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 0 0;
+  padding: 10px 16px 16px;
 }
 
 .state-msg {
@@ -396,7 +468,7 @@ onMounted(() => {
 }
 
 .group {
-  padding: 6px 20px 8px;
+  padding: 6px 0 8px;
 }
 
 .date-label {
@@ -410,7 +482,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 15px 0;
+  padding: 15px 16px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   cursor: pointer;
 }
 

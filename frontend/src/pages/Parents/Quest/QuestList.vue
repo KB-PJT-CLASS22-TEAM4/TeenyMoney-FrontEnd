@@ -1464,7 +1464,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   padding-bottom: 90px;
 }
 
@@ -1811,6 +1811,8 @@ onMounted(() => {
   border-radius: 16px;
 
   background: #ffffff;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .quest-item {
