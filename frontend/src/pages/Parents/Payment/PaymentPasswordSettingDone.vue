@@ -53,7 +53,7 @@ function goNext() {
   min-height: 100dvh;
   margin: 0 auto;
   padding: 40px 0 30px;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .center {
@@ -62,7 +62,13 @@ function goNext() {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 32px;
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  margin: 24px 16px;
+  padding: 40px 24px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .check-circle {

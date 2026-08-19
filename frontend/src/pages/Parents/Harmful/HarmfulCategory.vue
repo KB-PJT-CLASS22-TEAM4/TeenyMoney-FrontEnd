@@ -1122,7 +1122,7 @@ onMounted(async () => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   padding-bottom: 70px;

@@ -1816,7 +1816,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: white;
+  background: #f8fafc;
   padding-bottom: 90px;
 }
 
@@ -1895,7 +1895,8 @@ onMounted(() => {
 .info-card {
   background-color: white;
   border-radius: 16px;
-  border: 1px solid #f0f1f3;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -2088,6 +2089,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .section-label {

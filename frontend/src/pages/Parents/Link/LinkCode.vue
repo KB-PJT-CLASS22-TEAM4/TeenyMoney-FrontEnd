@@ -218,7 +218,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background-color: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   padding-bottom: 90px;
@@ -229,6 +229,8 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 18px 20px 6px;
+  background: #ffffff;
+
 }
 
 .back-btn {
@@ -257,13 +259,14 @@ onMounted(() => {
 }
 
 .code-card {
-  background-color: #f4f5f7;
-  border-radius: 16px;
+  background-color: #ffffff;
+  border-radius: 20px;
   padding: 28px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .code-label {
@@ -348,6 +351,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .guide-title {

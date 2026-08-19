@@ -355,7 +355,7 @@ onMounted(async () => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   padding-bottom: 90px;
@@ -368,6 +368,8 @@ onMounted(async () => {
   position: relative;
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
+  background: #ffffff;
+
 }
 
 .back-btn {
@@ -411,7 +413,8 @@ onMounted(async () => {
   padding: 14px 16px;
   margin-bottom: 16px;
   border-radius: 16px;
-  background: #f8fafc;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .child-info-left {
@@ -444,7 +447,9 @@ onMounted(async () => {
 .approval-tabs {
   display: flex;
   gap: 18px;
-  margin-bottom: 16px;
+  margin: 0 -16px 16px;
+  padding: 0 16px;
+  background: #ffffff;
   border-bottom: 1px solid #f0f1f3;
 }
 
@@ -469,7 +474,8 @@ onMounted(async () => {
   padding: 16px;
   margin-bottom: 14px;
   border-radius: 16px;
-  background: #f8fafc;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .clickable {
@@ -587,7 +593,8 @@ onMounted(async () => {
   margin-bottom: 12px;
   border-radius: 16px;
   background: #ffffff;
-  border: 1px solid #eef0f3;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .product-head {

@@ -1529,7 +1529,7 @@ async function handleCreate() {
 
   padding-bottom: 80px;
 
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 
@@ -1597,9 +1597,16 @@ async function handleCreate() {
   display: flex;
   flex-direction: column;
 
-  gap: 20px;
+  gap: 16px;
 
   padding: 20px 16px;
+}
+
+.section {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .section-label {

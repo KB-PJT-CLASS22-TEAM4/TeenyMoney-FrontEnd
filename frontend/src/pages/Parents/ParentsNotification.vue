@@ -375,7 +375,7 @@ onMounted(() => {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .nav {
@@ -384,6 +384,8 @@ onMounted(() => {
   height: 56px;
   padding: 0 8px 0 4px;
   flex-shrink: 0;
+  background: #ffffff;
+
 }
 
 .back-btn {
@@ -414,8 +416,9 @@ onMounted(() => {
 .sub-bar {
   display: flex;
   justify-content: flex-end;
-  padding: 0 20px 6px;
+  padding: 8px 20px;
   flex-shrink: 0;
+  background: #ffffff;
 }
 
 .mark-read {
@@ -437,7 +440,7 @@ onMounted(() => {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 0 0;
+  padding: 10px 16px 16px;
 }
 
 .state-msg {
@@ -465,7 +468,7 @@ onMounted(() => {
 }
 
 .group {
-  padding: 6px 20px 8px;
+  padding: 6px 0 8px;
 }
 
 .date-label {
@@ -479,7 +482,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 15px 0;
+  padding: 15px 16px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   cursor: pointer;
 }
 

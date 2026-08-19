@@ -98,9 +98,8 @@
             class="selected-payment-info"
           >
             <div class="payment-icon-wrap">
-              <img
-                src="@/assets/logo.svg"
-                alt=""
+              <CardCompanyLogo
+                :card-company="selectedPaymentMethod.cardCompany"
                 class="payment-icon"
               />
             </div>
@@ -198,9 +197,8 @@
             >
               <div class="payment-info">
                 <div class="payment-icon-wrap">
-                  <img
-                    src="@/assets/logo.svg"
-                    alt=""
+                  <CardCompanyLogo
+                    :card-company="method.cardCompany"
                     class="payment-icon"
                   />
                 </div>
@@ -291,6 +289,7 @@ import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import PaymentPasswordOverlay from '@/components/PaymentPasswordOverlay.vue'
+import CardCompanyLogo from '@/components/CardCompanyLogo.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -692,7 +691,7 @@ button {
   flex-direction: column;
   margin: 0 auto;
   padding-bottom: 70px;
-  background-color: #ffffff;
+  background: #f8fafc;
 }
 
 .nav {
@@ -736,8 +735,15 @@ button {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
   padding: 20px 16px;
+}
+
+.section {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .section-label {
@@ -882,8 +888,9 @@ button {
 }
 
 .payment-icon {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
 .payment-name-row {
