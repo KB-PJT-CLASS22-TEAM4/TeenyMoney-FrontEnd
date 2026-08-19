@@ -277,18 +277,17 @@ export function useParentRequests() {
     }
 
     if (item.type === 'quest') {
-      try {
-        const verificationId = await findVerificationId(item.questId)
-        router.push({
-          name: 'ParentQuestApproval',
-          params: {
-            questId: item.questId,
-            verificationId,
-          },
-        })
-      } catch (error) {
-        alertModal.showAlert(error.message || '인증 요청을 열 수 없습니다.')
+      if (item.questId == null) {
+        alertModal.showAlert('인증 요청을 열 수 없습니다.')
+        return
       }
+
+      router.push({
+        name: 'quest-detail',
+        params: {
+          questId: item.questId,
+        },
+      })
       return
     }
 
