@@ -34,8 +34,6 @@
         v-if="homeRequests.length"
         class="request-section"
       >
-        <p class="request-section-title">처리할 요청</p>
-
         <article
           v-for="item in homeRequests"
           :key="item.key"

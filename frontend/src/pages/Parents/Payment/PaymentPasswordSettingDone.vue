@@ -12,17 +12,33 @@
     </div>
 
     <div class="confirm-wrap">
-      <button class="confirm-btn" type="button" @click="goMypage">확인</button>
+      <button class="confirm-btn" type="button" @click="goNext">확인</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 
-function goMypage() {
+function goNext() {
+  const from = route.query.from
+
+  if (from === 'payment-change') {
+    router.replace({
+      name: 'payment-change',
+      query: { openAdd: '1' },
+    })
+    return
+  }
+
+  if (from === 'charge') {
+    router.replace({ name: 'charge' })
+    return
+  }
+
   router.replace({ name: 'parents-mypage' })
 }
 </script>

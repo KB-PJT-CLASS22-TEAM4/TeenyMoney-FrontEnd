@@ -55,12 +55,18 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { registerPaymentPassword } from '@/api/password'
+import {
+  markPaymentPasswordSet,
+  registerPaymentPassword,
+  savePaymentPassword,
+  verifyPaymentPassword,
+} from '@/api/password'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const pin = ref('')
@@ -96,8 +102,38 @@ async function submitPin() {
   submitting.value = true
   try {
     await registerPaymentPassword(authStore.accessToken, pin.value)
-    router.replace({ name: 'parents-payment-password-done' })
+    router.replace({
+      name: 'parents-payment-password-done',
+      query: route.query,
+    })
   } catch (e) {
+    if (/이미/.test(e.message || '')) {
+      try {
+        await verifyPaymentPassword(authStore.accessToken, pin.value)
+        savePaymentPassword(pin.value)
+      } catch (verifyError) {
+        if (!/확인할 수 없습니다/.test(verifyError.message || '')) {
+          errorMsg.value =
+            verifyError.message || '결제 비밀번호가 일치하지 않습니다.'
+          isError.value = true
+          setTimeout(() => {
+            pin.value = ''
+            isError.value = false
+          }, 500)
+          return
+        }
+
+        savePaymentPassword(pin.value)
+      }
+
+      markPaymentPasswordSet()
+      router.replace({
+        name: 'parents-payment-password-done',
+        query: route.query,
+      })
+      return
+    }
+
     errorMsg.value = e.message || '결제 비밀번호 등록에 실패했습니다.'
     isError.value = true
     setTimeout(() => {

@@ -276,6 +276,13 @@
 
     <ParentBottomNav active="home" />
     <AlertHost :modal="alertModal" />
+    <PaymentPasswordOverlay
+      ref="passwordOverlay"
+      :show="showPasswordGate"
+      :submitting="isCharging"
+      @close="closePasswordGate"
+      @submit="handlePasswordSubmit"
+    />
   </div>
 </template>
 
@@ -283,6 +290,7 @@
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
+import PaymentPasswordOverlay from '@/components/PaymentPasswordOverlay.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -300,6 +308,11 @@ import {
 } from '@/api/charge'
 
 import { getMyWallet } from '@/api/wallet'
+import {
+  isPasswordNotSetMessage,
+  markPaymentPasswordSet,
+  verifyPaymentPassword,
+} from '@/api/password'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -318,6 +331,10 @@ const isPaymentOpen = ref(false)
 const isMethodLoading = ref(false)
 
 const isCharging = ref(false)
+
+const showPasswordGate = ref(false)
+
+const passwordOverlay = ref(null)
 
 const quickAmounts = [
   {
@@ -483,8 +500,23 @@ function goToPaymentChange() {
   )
 }
 
+function closePasswordGate() {
+  if (isCharging.value) return
+  showPasswordGate.value = false
+}
+
+function getSelectedChargeMethod() {
+  return (
+    paymentMethods.value.find(
+      (method) =>
+        method.id ===
+        selectedMethodId.value
+    ) ?? null
+  )
+}
+
 async function handleCharge() {
-  if (isCharging.value) {
+  if (isCharging.value || showPasswordGate.value) {
     return
   }
 
@@ -505,12 +537,7 @@ async function handleCharge() {
     return
   }
 
-  const selectedMethod =
-    paymentMethods.value.find(
-      (method) =>
-        method.id ===
-        selectedMethodId.value
-    )
+  const selectedMethod = getSelectedChargeMethod()
 
   if (!selectedMethod) {
     alertModal.showAlert(
@@ -533,16 +560,75 @@ async function handleCharge() {
     return
   }
 
+  showPasswordGate.value = true
+}
+
+async function handlePasswordSubmit(pin) {
+  if (isCharging.value) return
+
+  const selectedMethod = getSelectedChargeMethod()
+
+  if (!selectedMethod) {
+    showPasswordGate.value = false
+    alertModal.showAlert(
+      '선택한 카드를 찾을 수 없습니다.'
+    )
+    await loadPaymentMethods()
+    return
+  }
+
   isCharging.value = true
+
+  try {
+    await verifyPaymentPassword(
+      authStore.accessToken,
+      pin
+    )
+  } catch (error) {
+    isCharging.value = false
+    passwordOverlay.value?.reset()
+
+    if (error.message === 'LOGIN_REQUIRED') {
+      showPasswordGate.value = false
+      return
+    }
+
+    if (
+      isPasswordNotSetMessage(error.message) ||
+      /확인할 수 없습니다/.test(error.message || '')
+    ) {
+      showPasswordGate.value = false
+      await alertModal.showAlert(
+        '충전하려면 결제 비밀번호를 먼저 설정해주세요.',
+        '결제 비밀번호 설정'
+      )
+      router.push({
+        name: 'parents-payment-password',
+        query: { from: 'charge' },
+      })
+      return
+    }
+
+    await alertModal.showAlert(
+      error.message ||
+        '결제 비밀번호가 일치하지 않습니다.',
+      '비밀번호 불일치'
+    )
+    return
+  }
+
+  markPaymentPasswordSet()
 
   try {
     const res = await chargeWallet(
       authStore.accessToken,
       Number(chargeAmount.value),
-      selectedMethod.id
+      selectedMethod.id,
+      pin
     )
 
     if (res.success) {
+      showPasswordGate.value = false
       router.push({
         path:
           '/parents/charge/complete',
@@ -558,6 +644,27 @@ async function handleCharge() {
       '충전 실패:',
       error
     )
+
+    passwordOverlay.value?.reset()
+
+    if (error.message === 'LOGIN_REQUIRED') {
+      showPasswordGate.value = false
+      return
+    }
+
+    const isPasswordError =
+      /비밀번호|password/i.test(error.message || '')
+
+    if (isPasswordError) {
+      await alertModal.showAlert(
+        error.message ||
+          '결제 비밀번호가 일치하지 않습니다.',
+        '비밀번호 불일치'
+      )
+      return
+    }
+
+    showPasswordGate.value = false
 
     await loadPaymentMethods()
 

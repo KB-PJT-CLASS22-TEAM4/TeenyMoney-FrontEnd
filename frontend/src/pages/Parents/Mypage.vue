@@ -111,14 +111,19 @@
 
       <!-- 비밀번호 변경 -->
       <section class="menu-card">
-        <button
-          type="button"
-          class="menu-button menu-border"
-          @click="goToPaymentPassword"
-        >
-          <span>결제 비밀번호 설정</span>
-          <span class="chevron">›</span>
-        </button>
+        <div class="payment-password-block menu-border">
+          <button
+            type="button"
+            class="menu-button"
+            @click="goToPaymentPassword"
+          >
+            <span>결제 비밀번호 설정</span>
+            <span class="chevron">›</span>
+          </button>
+          <p class="payment-password-current">
+            현재 비밀번호 {{ currentPaymentPassword }}
+          </p>
+        </div>
 
         <button
           type="button"
@@ -311,6 +316,7 @@ import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
+import { getStoredPaymentPassword } from '@/api/password'
 import { getChildren } from '@/api/children'
 import { unlinkFamily } from '@/api/families'
 import {
@@ -362,6 +368,10 @@ const formattedBirthDate = computed(() => {
   }
 
   return member.birthDate.replaceAll('-', '.')
+})
+
+const currentPaymentPassword = computed(() => {
+  return getStoredPaymentPassword(authStore.memberId) || '미설정'
 })
 
 /* =========================
@@ -907,6 +917,15 @@ button {
 
 .menu-border {
   border-bottom: 1px solid #f0f1f3;
+}
+
+.payment-password-current {
+  margin: -4px 0 0;
+  padding: 0 16px 12px;
+  color: #8b9097;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .chevron {

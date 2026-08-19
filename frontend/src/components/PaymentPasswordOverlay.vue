@@ -1,0 +1,252 @@
+<template>
+  <div v-if="show" class="overlay">
+    <div class="pay-pw-screen">
+      <header class="nav">
+        <button
+          class="icon-btn"
+          type="button"
+          aria-label="닫기"
+          :disabled="submitting"
+          @click="emit('close')"
+        >
+          <img
+            src="@/assets/icons/icon-back.svg"
+            alt=""
+            class="back-icon"
+          />
+        </button>
+        <h1 class="nav-title">결제 비밀번호</h1>
+      </header>
+
+      <div class="lock-area">
+        <div class="lock-icon">
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="none">
+            <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#ffffff" stroke-width="1.8"/>
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffffff" stroke-width="1.8"/>
+            <circle cx="12" cy="15" r="1.3" fill="#ffffff"/>
+          </svg>
+        </div>
+        <p class="lock-text">결제 비밀번호를 입력해 주세요</p>
+
+        <div class="dots">
+          <span
+            v-for="n in 6"
+            :key="n"
+            class="dot"
+            :class="{ filled: pin.length >= n }"
+          ></span>
+        </div>
+      </div>
+
+      <div class="keypad">
+        <button
+          v-for="k in ['1','2','3','4','5','6','7','8','9']"
+          :key="k"
+          class="key"
+          type="button"
+          @click="press(k)"
+        >
+          {{ k }}
+        </button>
+        <span class="key empty"></span>
+        <button class="key" type="button" @click="press('0')">0</button>
+        <button class="key" type="button" aria-label="지우기" @click="remove">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
+            <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z" stroke="#15171b" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M13 9l4 4M17 9l-4 4" stroke="#15171b" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch } from 'vue'
+
+const props = defineProps({
+  show: {
+    type: Boolean,
+    default: false,
+  },
+  submitting: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['submit', 'close'])
+
+const pin = ref('')
+const PIN_LENGTH = 6
+
+watch(
+  () => props.show,
+  (visible) => {
+    if (!visible) {
+      pin.value = ''
+    }
+  }
+)
+
+watch(pin, (val) => {
+  if (val.length === PIN_LENGTH && !props.submitting) {
+    emit('submit', val)
+  }
+})
+
+function press(num) {
+  if (pin.value.length >= PIN_LENGTH || props.submitting) return
+  pin.value += num
+}
+
+function remove() {
+  if (props.submitting) return
+  pin.value = pin.value.slice(0, -1)
+}
+
+function reset() {
+  pin.value = ''
+}
+
+defineExpose({ reset })
+</script>
+
+<style scoped>
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  justify-content: center;
+  background: #ffffff;
+}
+
+.pay-pw-screen {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 360px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: #ffffff;
+}
+
+.nav {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 56px;
+  padding: 0 8px 0 4px;
+}
+
+.icon-btn {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.back-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.nav-title {
+  flex: 1;
+  margin: 0;
+  font-weight: 700;
+  font-size: 17px;
+  color: #191b1e;
+  text-align: center;
+  padding-right: 40px;
+}
+
+.lock-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40px;
+}
+
+.lock-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 76px;
+  height: 76px;
+  background: #ffbc00;
+  border-radius: 50%;
+}
+
+.lock-text {
+  margin: 30px 0 0;
+  font-weight: 700;
+  font-size: 16px;
+  color: #15171b;
+  text-align: center;
+}
+
+.dots {
+  display: flex;
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  transition: background 0.15s;
+}
+
+.dot.filled {
+  background: #ffbc00;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 24px;
+  width: 260px;
+  margin-top: 40px;
+}
+
+.key {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 56px;
+  border: none;
+  background: transparent;
+  font-weight: 500;
+  font-size: 26px;
+  color: #15171b;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.key:active {
+  background: #f4f5f6;
+}
+
+.key.empty {
+  cursor: default;
+}
+
+.key.empty:active {
+  background: transparent;
+}
+</style>
