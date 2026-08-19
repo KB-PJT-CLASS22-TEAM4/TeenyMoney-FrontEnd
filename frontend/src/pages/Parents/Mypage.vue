@@ -113,6 +113,15 @@
       <section class="menu-card">
         <button
           type="button"
+          class="menu-button menu-border"
+          @click="goToPaymentPassword"
+        >
+          <span>결제 비밀번호 설정</span>
+          <span class="chevron">›</span>
+        </button>
+
+        <button
+          type="button"
           class="menu-button"
           @click="goToPasswordChange"
         >
@@ -570,6 +579,10 @@ function goToPasswordChange() {
   router.push(
     '/parents/mypage/password'
   )
+}
+
+function goToPaymentPassword() {
+  router.push({ name: 'parents-payment-password' })
 }
 
 /* =========================
