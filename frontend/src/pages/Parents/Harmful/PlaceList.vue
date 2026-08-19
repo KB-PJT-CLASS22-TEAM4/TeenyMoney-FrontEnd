@@ -83,26 +83,62 @@
         :key="group.name"
         class="place-group"
       >
-        <button
+        <div
           v-if="!isFlatGroup(group)"
-          class="toggle-header"
-          type="button"
-          :aria-expanded="isGroupExpanded(group.name)"
-          @click="toggleGroup(group.name)"
+          class="group-head"
         >
-          <p class="group-title">
-            {{ group.name }}
-          </p>
-          <span class="toggle-count">
-            {{ group.items.length }}
-          </span>
-          <img
-            src="@/assets/icons/icon-chevron.svg"
-            alt=""
-            class="toggle-chevron"
-            :class="{ open: isGroupExpanded(group.name) }"
-          />
-        </button>
+          <button
+            class="toggle-header"
+            type="button"
+            :aria-expanded="isGroupExpanded(group.name)"
+            @click="toggleGroup(group.name)"
+          >
+            <p class="group-title">
+              {{ group.name }}
+            </p>
+            <span class="toggle-count">
+              {{ group.items.length }}
+            </span>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="toggle-chevron"
+              :class="{ open: isGroupExpanded(group.name) }"
+            />
+          </button>
+
+          <div class="place-btns group-btns">
+            <button
+              class="status-btn"
+              type="button"
+              :class="{ 'active-allow': isGroupAllowActive(group) }"
+              @click="setGroupStatus(group.name, 'ALLOW')"
+            >
+              <span v-if="isGroupAllowActive(group)">✓</span>
+              허용
+            </button>
+
+            <button
+              class="status-btn"
+              type="button"
+              :class="{ 'active-caution': isGroupCautionActive(group) }"
+              @click="setGroupStatus(group.name, 'WATCH')"
+            >
+              <span v-if="isGroupCautionActive(group)">✓</span>
+              주의
+            </button>
+
+            <button
+              class="status-btn"
+              type="button"
+              :class="{ 'active-block': isGroupBlockActive(group) }"
+              @click="setGroupStatus(group.name, 'BLOCK')"
+            >
+              <span v-if="isGroupBlockActive(group)">✓</span>
+              차단
+            </button>
+          </div>
+        </div>
 
         <div
           v-if="isFlatGroup(group) || isGroupExpanded(group.name)"
@@ -346,6 +382,18 @@ function isBlockActive(place) {
   return place.policy === 'BLOCK'
 }
 
+function isGroupAllowActive(group) {
+  return group.items.length > 0 && group.items.every(isAllowActive)
+}
+
+function isGroupCautionActive(group) {
+  return group.items.length > 0 && group.items.every(isCautionActive)
+}
+
+function isGroupBlockActive(group) {
+  return group.items.length > 0 && group.items.every(isBlockActive)
+}
+
 async function fetchApprovedPermissions() {
   if (!authStore.accessToken || !childId.value) {
     approvedPermissions.value = []
@@ -528,6 +576,21 @@ function setStatus(id, policy) {
       policy,
     }
   )
+}
+
+function setGroupStatus(groupName, policy) {
+  const group = parentGroups.value.find((item) => item.name === groupName)
+  if (!group) return
+
+  group.items.forEach((place) => {
+    place.policy = policy
+    place.userOverride = true
+  })
+
+  expandedGroups.value = {
+    ...expandedGroups.value,
+    [groupName]: true,
+  }
 }
 
 
@@ -847,6 +910,16 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-btns {
+  padding: 0 2px 2px;
 }
 
 .toggle-header {
