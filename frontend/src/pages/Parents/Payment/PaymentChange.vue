@@ -43,8 +43,8 @@
           v-else-if="currentPayment"
           class="current-card"
         >
-          <PaymentMethodLogo
-            :payment="currentPayment"
+          <CardCompanyLogo
+            :card-company="currentPayment.cardCompany"
             class="card-icon"
           />
 
@@ -107,8 +107,8 @@
             @click="selectedId = payment.id"
           >
             <!-- 카드 정보 -->
-            <PaymentMethodLogo
-              :payment="payment"
+            <CardCompanyLogo
+              :card-company="payment.cardCompany"
               class="card-icon"
             />
 
@@ -222,20 +222,13 @@
               카드번호
             </label>
 
-            <div class="card-number-row">
-              <PaymentMethodLogo
-                :card-number="cardForm.cardNumber"
-                class="card-icon"
-              />
-
-              <input
-                v-model="cardForm.cardNumber"
-                type="text"
-                class="form-input"
-                inputmode="numeric"
-                placeholder="카드번호를 입력해주세요"
-              />
-            </div>
+            <input
+              v-model="cardForm.cardNumber"
+              type="text"
+              class="form-input"
+              inputmode="numeric"
+              placeholder="카드번호를 입력해주세요"
+            />
           </div>
 
           <!-- 유효기간 -->
@@ -349,7 +342,7 @@
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
-import PaymentMethodLogo from '@/components/PaymentMethodLogo.vue'
+import CardCompanyLogo from '@/components/CardCompanyLogo.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -1289,12 +1282,6 @@ async function handleChange() {
 
 .form-input:focus {
   border-color: #ffbc00;
-}
-
-.card-number-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .register-btn {

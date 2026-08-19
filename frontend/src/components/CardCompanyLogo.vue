@@ -10,15 +10,11 @@
 import { computed, ref, watch } from 'vue'
 import {
   DEFAULT_PAYMENT_LOGO,
-  getPaymentMethodLogo,
-} from '@/utils/paymentMethodLogo'
+  getCardCompanyLogo,
+} from '@/utils/cardCompanyLogo'
 
 const props = defineProps({
-  payment: {
-    type: Object,
-    default: null,
-  },
-  cardNumber: {
+  cardCompany: {
     type: String,
     default: '',
   },
@@ -28,11 +24,11 @@ const failed = ref(false)
 
 const src = computed(() => {
   if (failed.value) return DEFAULT_PAYMENT_LOGO
-  return getPaymentMethodLogo(props.payment, props.cardNumber)
+  return getCardCompanyLogo(props.cardCompany)
 })
 
 watch(
-  () => [props.payment, props.cardNumber],
+  () => props.cardCompany,
   () => {
     failed.value = false
   }
