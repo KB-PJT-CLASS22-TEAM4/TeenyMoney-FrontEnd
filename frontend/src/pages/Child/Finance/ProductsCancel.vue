@@ -3,7 +3,12 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getTeenyScore } from '@/api/teenyScore'
-import { getTerminationQuote, terminateEnrollment } from '@/api/finance'
+import {
+  getTerminationQuote,
+  terminateEnrollment,
+  getEarlyRepaymentQuote,
+  executeEarlyRepayment,
+} from '@/api/finance'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
@@ -48,7 +53,7 @@ const productTypePath = computed(() => {
 // ---- 티니점수(현재 점수) 조회 ----
 const currentScore = ref(0)
 
-// ---- 중도해지 예상 조회 ----
+// ================== 예·적금 중도해지 ==================
 const quote = ref(null)
 const isLoadingQuote = ref(true)
 const quoteError = ref('')
@@ -70,16 +75,6 @@ async function loadQuote() {
     isLoadingQuote.value = false
   }
 }
-
-onMounted(async () => {
-  try {
-    const res = await getTeenyScore(authStore.accessToken, authStore.memberId)
-    currentScore.value = res?.data?.teenyScore ?? res?.teenyScore ?? 0
-  } catch (e) {
-    console.error('티니점수 조회 실패:', e.message)
-  }
-  await loadQuote()
-})
 
 const appliedRatePercent = computed(() => {
   if (!quote.value?.appliedEarlyTerminationRate) return 0
@@ -128,6 +123,104 @@ function closeModalAndNavigate() {
   showSuccessModal.value = false
   router.push({ name: 'child-finance-myproducts' })
 }
+
+// ================== 대출 조기상환 ==================
+const repayAmount = ref(0)
+const repayQuote = ref(null)
+const isLoadingRepayQuote = ref(false)
+const repayQuoteError = ref('')
+const agreeRepay = ref(false)
+const isRepaySubmitting = ref(false)
+const repaySubmitError = ref('')
+const repayFinalResult = ref(null)
+const showRepaySuccessModal = ref(false)
+
+function onRepayAmountInput(e) {
+  const raw = e.target.value.replace(/[^0-9]/g, '')
+  repayAmount.value = raw ? parseInt(raw, 10) : 0
+  // 금액이 바뀌면 이전 조회 결과는 무효화
+  repayQuote.value = null
+  agreeRepay.value = false
+}
+
+const canFetchRepayQuote = computed(() => isLoan.value && repayAmount.value > 0 && !isLoadingRepayQuote.value)
+
+async function fetchRepayQuote() {
+  if (!canFetchRepayQuote.value) return
+  isLoadingRepayQuote.value = true
+  repayQuoteError.value = ''
+  repayQuote.value = null
+  try {
+    const res = await getEarlyRepaymentQuote(authStore.accessToken, product.id, repayAmount.value)
+    repayQuote.value = res?.data ?? res
+  } catch (e) {
+    console.error('조기상환 예상 조회 실패:', e.message)
+    repayQuoteError.value = e.message || '예상 금액을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
+  } finally {
+    isLoadingRepayQuote.value = false
+  }
+}
+
+const repayWillBeFullyPaid = computed(() => repayQuote.value?.remainingOutstandingPrincipal === 0)
+const repayScoreDelta = computed(() => repayQuote.value?.scoreChange ?? 0)
+const repayEstimatedScore = computed(() => {
+  const next = currentScore.value + repayScoreDelta.value
+  return Math.max(0, Math.min(1000, next))
+})
+
+function generateIdempotencyKey() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
+const canSubmitRepay = computed(() =>
+  isLoan.value && !!repayQuote.value && agreeRepay.value && !isRepaySubmitting.value
+)
+
+async function handleRepaySubmit() {
+  if (!canSubmitRepay.value) return
+  isRepaySubmitting.value = true
+  repaySubmitError.value = ''
+  try {
+    const res = await executeEarlyRepayment(authStore.accessToken, product.id, {
+      amount: repayAmount.value,
+      idempotencyKey: generateIdempotencyKey(),
+    })
+    repayFinalResult.value = res?.data ?? res
+    showRepaySuccessModal.value = true
+  } catch (e) {
+    console.error('조기상환 실행 실패:', e)
+    repaySubmitError.value =
+      e.status === 409
+        ? '상환 중인 대출이 아니거나 잔액이 부족해요.'
+        : e.status === 400
+          ? '남은 상환 금액을 초과했어요. 금액을 다시 확인해주세요.'
+          : (e.message || '조기상환 처리에 실패했어요. 잠시 후 다시 시도해주세요.')
+  } finally {
+    isRepaySubmitting.value = false
+  }
+}
+
+function closeRepayModalAndNavigate() {
+  showRepaySuccessModal.value = false
+  router.push({ name: 'child-finance-myproducts' })
+}
+
+onMounted(async () => {
+  try {
+    const res = await getTeenyScore(authStore.accessToken, authStore.memberId)
+    currentScore.value = res?.data?.teenyScore ?? res?.teenyScore ?? 0
+  } catch (e) {
+    console.error('티니점수 조회 실패:', e.message)
+  }
+  await loadQuote()
+})
 </script>
 
 <template>
@@ -139,7 +232,7 @@ function closeModalAndNavigate() {
           <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1 class="nav-title">중도해지</h1>
+      <h1 class="nav-title">{{ isLoan ? '조기상환' : '중도해지' }}</h1>
       <ChildNavActions />
     </div>
 
@@ -155,12 +248,134 @@ function closeModalAndNavigate() {
         <p class="prod-desc">{{ desc }}</p>
       </section>
 
+      <!-- ================== 대출: 조기상환 폼 ================== -->
       <template v-if="isLoan">
-        <section class="card notice-card">
-          <p class="prod-desc notice-text">대출은 별도의 중도상환 정책이 적용돼요. 상환 관련 문의는 상품 상세에서 확인해주세요.</p>
+
+        <!-- 금액 입력 카드 -->
+        <section class="card">
+          <h3 class="card-section-title">상환할 금액</h3>
+          <div class="amount-input-box">
+            <input
+              type="text"
+              inputmode="numeric"
+              class="amount-input"
+              placeholder="0"
+              :value="repayAmount ? repayAmount.toLocaleString() : ''"
+              @input="onRepayAmountInput"
+            />
+            <span class="currency">원</span>
+          </div>
+          <button
+            type="button"
+            class="quote-btn"
+            :disabled="!canFetchRepayQuote"
+            @click="fetchRepayQuote"
+          >
+            {{ isLoadingRepayQuote ? '조회 중...' : '예상 금액 조회' }}
+          </button>
+          <p v-if="repayQuoteError" class="submit-error">{{ repayQuoteError }}</p>
         </section>
+
+        <!-- 조회 결과 카드 -->
+        <template v-if="repayQuote">
+          <section class="card summary-card">
+            <span class="summary-label">
+              {{ repayWillBeFullyPaid ? '완납 후 남는 원금' : '상환 후 남는 원금' }}
+            </span>
+            <h2 class="summary-amount">{{ repayQuote.remainingOutstandingPrincipal.toLocaleString() }}원</h2>
+            <div v-if="repayWillBeFullyPaid" class="paid-off-badge">
+              이 대출은 이번 상환으로 완전히 종료돼요
+            </div>
+          </section>
+
+          <section class="card detail-card">
+            <h3 class="card-section-title">상환 내역</h3>
+            <div class="detail-rows">
+              <div class="detail-row">
+                <span class="d-label">연체이자 충당</span>
+                <span class="d-value">{{ repayQuote.paidInterestAmount.toLocaleString() }}원</span>
+              </div>
+              <div class="detail-row">
+                <span class="d-label">원금 상환</span>
+                <span class="d-value">{{ repayQuote.paidPrincipalAmount.toLocaleString() }}원</span>
+              </div>
+              <div class="detail-row">
+                <span class="d-label">남은 연체이자</span>
+                <span class="d-value">{{ repayQuote.remainingOverdueInterest.toLocaleString() }}원</span>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="detail-row final-row">
+              <span class="final-label">남은 원금</span>
+              <span class="final-amount">{{ repayQuote.remainingOutstandingPrincipal.toLocaleString() }}원</span>
+            </div>
+          </section>
+
+          <!-- 티니점수 변화 카드 -->
+          <section class="card score-card">
+            <h3 class="card-section-title">티니점수 변화</h3>
+
+            <div class="score-status-group">
+              <div class="score-col left">
+                <span class="s-label">현재 점수</span>
+                <span class="s-val">{{ currentScore }}점</span>
+              </div>
+
+              <div class="score-col center">
+                <span class="up-badge" v-if="repayScoreDelta > 0">▲ {{ repayScoreDelta }}점</span>
+                <span class="drop-badge" v-else-if="repayScoreDelta < 0">▼ {{ Math.abs(repayScoreDelta) }}점</span>
+                <span class="flat-badge" v-else>변화 없음</span>
+                <span class="drop-sub" v-if="repayScoreDelta !== 0">{{ repayScoreDelta > 0 ? '증가' : '감소' }}</span>
+              </div>
+
+              <div class="score-col right">
+                <span class="s-label">상환 후 예상</span>
+                <span class="s-val" :class="{ red: repayScoreDelta < 0, blue: repayScoreDelta > 0 }">{{ repayEstimatedScore }}점</span>
+              </div>
+            </div>
+
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: (repayEstimatedScore / 1000) * 100 + '%' }"></div>
+              </div>
+              <div class="progress-labels">
+                <span>0점</span>
+                <span>1000점</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 동의 체크박스 및 액션 버튼 -->
+          <section class="action-section">
+            <div class="checkbox-wrapper" @click="agreeRepay = !agreeRepay">
+              <div class="custom-checkbox" :class="{ checked: agreeRepay }">
+                <svg v-if="agreeRepay" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="checkbox-label">위 내용을 확인하였으며, 조기상환에 동의합니다.</span>
+            </div>
+
+            <p v-if="repaySubmitError" class="submit-error">{{ repaySubmitError }}</p>
+
+            <button
+              type="button"
+              class="submit-btn"
+              :class="{ active: canSubmitRepay }"
+              :disabled="!canSubmitRepay"
+              @click="handleRepaySubmit"
+            >
+              {{ isRepaySubmitting ? '처리 중...' : '조기상환 신청' }}
+            </button>
+
+            <button type="button" class="cancel-btn" @click="goToMyProducts">돌아가기</button>
+          </section>
+        </template>
       </template>
 
+      <!-- ================== 예·적금: 중도해지 (기존 로직) ================== -->
       <template v-else-if="isLoadingQuote">
         <section class="card notice-card">
           <p class="prod-desc">예상 해지 금액을 불러오는 중이에요...</p>
@@ -253,7 +468,7 @@ function closeModalAndNavigate() {
         </section>
       </template>
 
-      <!-- 동의 체크박스 및 액션 버튼 -->
+      <!-- 동의 체크박스 및 액션 버튼 (예·적금) -->
       <section class="action-section" v-if="!isLoan && quote">
         <div class="checkbox-wrapper" @click="agreeCancel = !agreeCancel">
           <div class="custom-checkbox" :class="{ checked: agreeCancel }">
@@ -300,8 +515,31 @@ function closeModalAndNavigate() {
       </div>
     </Transition>
 
-    <!-- 해지는 되돌리기 어려운 결정이라 말풍선 없이 캐릭터만 노출 -->
-    <Chatbot v-if="!showSuccessModal" hint-text="" />
+    <!-- 조기상환 완료 모달 -->
+    <Transition name="modal-fade">
+      <div v-if="showRepaySuccessModal" class="modal-overlay" @click.self="closeRepayModalAndNavigate">
+        <div class="modal-card">
+          <div class="modal-icon warning">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 class="modal-title">
+            {{ repayFinalResult?.remainingOutstandingPrincipal === 0 ? '대출이 모두 상환되었어요' : '조기상환이 완료되었어요' }}
+          </h3>
+          <p class="modal-desc">
+            <strong>{{ (repayFinalResult?.requestedAmount ?? repayAmount).toLocaleString() }}원</strong>을 상환했어요.<br/>
+            남은 원금은 <strong>{{ (repayFinalResult?.remainingOutstandingPrincipal ?? 0).toLocaleString() }}원</strong>이에요.
+          </p>
+          <button type="button" class="modal-confirm-btn" @click="closeRepayModalAndNavigate">
+            확인
+          </button>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- 해지/상환은 되돌리기 어려운 결정이라 말풍선 없이 캐릭터만 노출 -->
+    <Chatbot v-if="!showSuccessModal && !showRepaySuccessModal" hint-text="" />
   </div>
 </template>
 
@@ -434,6 +672,69 @@ function closeModalAndNavigate() {
   font-weight: 600;
 }
 
+/* 조기상환 금액 입력 */
+.amount-input-box {
+  display: flex;
+  align-items: center;
+  background: #f4f6f8;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.amount-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  color: #15171b;
+  outline: none;
+  width: 100%;
+}
+.amount-input::placeholder {
+  color: #b0b5bc;
+}
+
+.currency {
+  font-size: 16px;
+  font-weight: 700;
+  color: #15171b;
+  margin-left: 4px;
+}
+
+.quote-btn {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  border: 1.3px solid #ffbc00;
+  background: #fff9e6;
+  color: #a16a00;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.quote-btn:disabled {
+  border-color: #e7e9ec;
+  background: #f2f4f6;
+  color: #b0b5bc;
+  cursor: not-allowed;
+}
+
+.paid-off-badge {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eef8ee;
+  color: #2e8540;
+  font-weight: 700;
+  font-size: 11.5px;
+}
+
 /* 요약 카드 */
 .summary-card {
   display: flex;
@@ -477,7 +778,7 @@ function closeModalAndNavigate() {
   color: #9aa0a8;
 }
 
-/* 해지 내역 카드 */
+/* 해지/상환 내역 카드 */
 .card-section-title {
   margin: 0 0 14px;
   font-weight: 800;
@@ -569,10 +870,26 @@ function closeModalAndNavigate() {
   color: #e0554f;
 }
 
+.s-val.blue {
+  color: #4d8ad6;
+}
+
 .drop-badge {
   font-weight: 800;
   font-size: 13px;
   color: #e0554f;
+}
+
+.up-badge {
+  font-weight: 800;
+  font-size: 13px;
+  color: #2e8540;
+}
+
+.flat-badge {
+  font-weight: 700;
+  font-size: 12px;
+  color: #9aa0a8;
 }
 
 .drop-sub {
@@ -713,7 +1030,7 @@ function closeModalAndNavigate() {
   color: #15171b;
 }
 
-/* 해지 완료 모달 */
+/* 완료 모달 */
 .modal-overlay {
   position: absolute;
   top: 0;
