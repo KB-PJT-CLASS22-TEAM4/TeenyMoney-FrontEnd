@@ -145,11 +145,11 @@
         </div>
       </section>
 
-      <!-- ────────── 다가오는 금융 일정 (타임라인 카드 형태) ────────── -->
+      <!-- ────────── 다가오는 일정 (금융상품 + 퀘스트 마감, 타임라인 카드 형태) ────────── -->
       <section class="schedule-section">
         <div class="schedule-head">
           <div class="schedule-head-left">
-            <span class="schedule-title">다가오는 금융 일정</span>
+            <span class="schedule-title">다가오는 일정</span>
             <span class="schedule-count">{{ upcomingSchedules.length }}</span>
           </div>
         </div>
@@ -182,7 +182,7 @@
 
         <!-- 일정이 없을 때 -->
         <div v-else class="schedule-empty">
-          <p class="empty-text">예정된 금융 일정이 없어요</p>
+          <p class="empty-text">예정된 일정이 없어요</p>
         </div>
       </section>
 
@@ -258,6 +258,7 @@ import { useAllowRequestStore } from '@/stores/allowRequest'
 import { getMyWallet } from '@/api/wallet'
 import { getTeenyScore, getTeenyScoreGrades } from '@/api/teenyScore'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
+import { getQuests } from '@/api/quest'
 
 const router    = useRouter()
 const authStore  = useAuthStore()
@@ -426,6 +427,17 @@ function calcNextDueDate(startRaw, paidCount) {
   return next
 }
 
+// 날짜 기준 D-day/일자 문자열 및 diffDays 계산 (금융상품/퀘스트 공통)
+function calcDdayInfo(targetDate) {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diffTime = targetDate.getTime() - today.getTime()
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`
+  const dateStr = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+  return { diffDays, dday, dateStr }
+}
+
 // 금융상품 API 응답 → 다가오는 일정 아이템 매핑 (🚦 신호등 색상 매핑)
 function mapToScheduleItem(p) {
   const isLoan = p.productType === 'LOAN'
@@ -443,13 +455,7 @@ function mapToScheduleItem(p) {
 
   if (!targetDate) return null
 
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const diffTime = targetDate.getTime() - today.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-  const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`
-  const dateStr = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+  const { diffDays, dday, dateStr } = calcDdayInfo(targetDate)
 
   let title = ''
   let desc = ''
@@ -478,13 +484,37 @@ function mapToScheduleItem(p) {
   }
 
   return {
-    id: p.enrollmentId,
+    id: `finance-${p.enrollmentId}`,
     dday,
     dateStr,
     title,
     desc,
     typeLabel,
     badgeTheme,
+    diffDays,
+  }
+}
+
+// 퀘스트 API 응답 → 다가오는 일정 아이템 매핑 (🟣 퀘스트: 보라색)
+function mapToQuestScheduleItem(q) {
+  const parts = parseDateParts(q.deadline)
+  if (!parts) return null
+  const targetDate = new Date(parts.y, parts.m - 1, parts.d)
+
+  const { diffDays, dday, dateStr } = calcDdayInfo(targetDate)
+
+  const desc = q.rewardAmount
+    ? `완료하면 ${q.rewardAmount.toLocaleString()}원 받아요`
+    : '퀘스트 마감이 다가와요'
+
+  return {
+    id: `quest-${q.questId}`,
+    dday,
+    dateStr,
+    title: `${q.title} 마감`,
+    desc,
+    typeLabel: '퀘스트',
+    badgeTheme: 'purple',
     diffDays,
   }
 }
@@ -542,11 +572,12 @@ onMounted(async () => {
   try {
     userName.value = authStore.name ?? ''
 
-    const [walletRes, scoreRes, gradesRes, enrolledRes] = await Promise.all([
+    const [walletRes, scoreRes, gradesRes, enrolledRes, questRes] = await Promise.all([
       getMyWallet(authStore.accessToken),
       getTeenyScore(authStore.accessToken, authStore.memberId),
       getTeenyScoreGrades(authStore.accessToken),
       getMyEnrolledFinancialProducts(authStore.accessToken).catch(() => []),
+      getQuests(authStore.accessToken, 'ONGOING', null, null).catch(() => null),
     ])
 
     // 지갑 및 거래내역
@@ -573,19 +604,27 @@ onMounted(async () => {
       : null
     nextGradeMinScore.value = next ? next.minScore : null
 
-    // 내 금융 상품 목록 매핑
+    // 금융상품 일정 매핑
+    let financeSchedules = []
     if (Array.isArray(enrolledRes)) {
       const activeProducts = enrolledRes.filter(p => p.status !== 'PENDING')
       finances.value = activeProducts.map(mapToFinanceCard)
-
-      // 가장 가까운 일정 순으로 3개 추출
-      const schedules = activeProducts
-        .map(mapToScheduleItem)
-        .filter(Boolean)
-        .sort((a, b) => a.diffDays - b.diffDays)
-
-      upcomingSchedules.value = schedules.slice(0, 3)
+      financeSchedules = activeProducts.map(mapToScheduleItem).filter(Boolean)
     }
+
+    // 퀘스트(진행 중, 마감일 있는 것) 일정 매핑
+    let questSchedules = []
+    const questItems = questRes?.data?.items ?? []
+    questSchedules = questItems
+      .filter((q) => q.status === 'IN_PROGRESS' && q.deadline)
+      .map(mapToQuestScheduleItem)
+      .filter(Boolean)
+
+    // 금융상품 + 퀘스트 일정을 합쳐 가장 가까운(최신) 순으로 3개만 노출 (지난 일정은 제외)
+    upcomingSchedules.value = [...financeSchedules, ...questSchedules]
+      .filter((item) => item.diffDays >= 0)
+      .sort((a, b) => a.diffDays - b.diffDays)
+      .slice(0, 3)
 
     // 오늘만 허용 상태 데이터 패치
     await allowStore.fetchTodayPermission(authStore.accessToken)
@@ -1064,7 +1103,7 @@ function onTabSelect(key) {
   line-height: 1;
 }
 
-/* ────────── 다가오는 금융 일정 (타임라인 카드 형태) ────────── */
+/* ────────── 다가오는 일정 (타임라인 카드 형태) ────────── */
 .schedule-section {
   padding: 16px 18px 0;
 }
@@ -1157,6 +1196,12 @@ function onTabSelect(key) {
   color: #e5484d;
 }
 
+/* 🟣 퀘스트 테마 */
+.tile--purple {
+  background: #f3eefc;
+  color: #7c3aed;
+}
+
 /* 상세 내용 영역 */
 .schedule-detail {
   flex: 1;
@@ -1204,6 +1249,12 @@ function onTabSelect(key) {
 .badge-text--red {
   background: #fff0f0;
   color: #e5484d;
+}
+
+/* 🟣 퀘스트 뱃지 텍스트 테마 */
+.badge-text--purple {
+  background: #f3eefc;
+  color: #7c3aed;
 }
 
 .schedule-desc {
