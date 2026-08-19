@@ -72,34 +72,30 @@
           </p>
 
           <div class="home-request-actions">
-            <template v-if="item.type === 'finance'">
-              <button
-                class="home-request-btn primary"
-                type="button"
-                @click="openRequestDetail(item)"
-              >
-                확인하기
-              </button>
-            </template>
-
-            <template v-else>
-              <button
-                class="home-request-btn ghost"
-                type="button"
-                :disabled="processingKey === item.key"
-                @click="handleRejectRequest(item)"
-              >
-                거절
-              </button>
-              <button
-                class="home-request-btn primary"
-                type="button"
-                :disabled="processingKey === item.key"
-                @click="handleApproveRequest(item)"
-              >
-                {{ processingKey === item.key ? '처리 중...' : '승인' }}
-              </button>
-            </template>
+            <button
+              class="home-request-btn view"
+              type="button"
+              :disabled="processingKey === item.key"
+              @click="openRequestDetail(item)"
+            >
+              확인하기
+            </button>
+            <button
+              class="home-request-btn ghost"
+              type="button"
+              :disabled="processingKey === item.key"
+              @click="handleRejectRequest(item)"
+            >
+              거절
+            </button>
+            <button
+              class="home-request-btn primary"
+              type="button"
+              :disabled="processingKey === item.key"
+              @click="handleApproveRequest(item)"
+            >
+              {{ processingKey === item.key ? '처리 중...' : '승인' }}
+            </button>
           </div>
         </article>
       </section>
@@ -326,7 +322,11 @@ import {
   approveQuestVerification,
   rejectQuestVerification,
 } from '@/api/quest'
-import * as financialProductsApi from '@/api/financialProducts'
+import {
+  getFinancialProductApprovalRequests,
+  approveFinancialProductApprovalRequest,
+  rejectFinancialProductApprovalRequest,
+} from '@/api/financialProducts'
 import {
   extractApprovalRequestList,
   normalizeApprovalRequest,
@@ -519,7 +519,7 @@ async function fetchPendingRequests() {
             { status: 'fulfilled', value: res },
           ]),
       getQuests(authStore.accessToken, 'ONGOING'),
-      financialProductsApi.getFinancialProductApprovalRequests(
+      getFinancialProductApprovalRequests(
         authStore.accessToken
       ),
     ])
@@ -637,6 +637,13 @@ async function handleApproveRequest(item) {
     if (!confirmed) return
   }
 
+  if (item.type === 'finance') {
+    const confirmed = await alertModal.showConfirm(
+      `${item.childName || '자녀'}님의 ${item.title} 가입을 승인할까요?`
+    )
+    if (!confirmed) return
+  }
+
   processingKey.value = item.key
 
   try {
@@ -644,6 +651,15 @@ async function handleApproveRequest(item) {
       await approvePermission(authStore.accessToken, item.id)
       pendingPermissions.value = pendingPermissions.value.filter(
         (permission) => getPermissionId(permission) !== item.id
+      )
+    } else if (item.type === 'finance') {
+      await approveFinancialProductApprovalRequest(
+        authStore.accessToken,
+        item.productType,
+        item.enrollmentId
+      )
+      pendingFinances.value = pendingFinances.value.filter(
+        (finance) => finance.enrollmentId !== item.enrollmentId
       )
     } else {
       const verificationId = await findVerificationId(item.questId)
@@ -672,13 +688,32 @@ async function handleRejectRequest(item) {
   }
 
   if (processingKey.value) return
+
+  if (item.type === 'finance') {
+    const confirmed = await alertModal.showConfirm(
+      `${item.childName || '자녀'}님의 ${item.title} 가입을 거절할까요?`
+    )
+    if (!confirmed) return
+  }
+
   processingKey.value = item.key
 
   try {
-    await rejectPermission(authStore.accessToken, item.id)
-    pendingPermissions.value = pendingPermissions.value.filter(
-      (permission) => getPermissionId(permission) !== item.id
-    )
+    if (item.type === 'finance') {
+      await rejectFinancialProductApprovalRequest(
+        authStore.accessToken,
+        item.productType,
+        item.enrollmentId
+      )
+      pendingFinances.value = pendingFinances.value.filter(
+        (finance) => finance.enrollmentId !== item.enrollmentId
+      )
+    } else {
+      await rejectPermission(authStore.accessToken, item.id)
+      pendingPermissions.value = pendingPermissions.value.filter(
+        (permission) => getPermissionId(permission) !== item.id
+      )
+    }
   } catch (error) {
     console.error('요청 거절 실패:', error)
     alertModal.showAlert(error.message || '거절에 실패했습니다.')
@@ -1003,8 +1038,8 @@ button {
 }
 
 .home-request-badge.finance {
-  background: #e8f0fb;
-  color: #2563eb;
+  background: #fff3e0;
+  color: #ff9500;
 }
 
 .home-request-child {
@@ -1044,7 +1079,7 @@ button {
   height: 40px;
   border-radius: 8px;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -1052,6 +1087,12 @@ button {
 .home-request-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.home-request-btn.view {
+  background: #ffffff;
+  border: 1px solid #eceef1;
+  color: #191b1e;
 }
 
 .home-request-btn.ghost {

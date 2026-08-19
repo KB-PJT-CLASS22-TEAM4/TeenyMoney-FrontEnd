@@ -366,8 +366,8 @@ onMounted(async () => {
 }
 
 .status-badge.pending {
-  background: #eef2f7;
-  color: #8b9097;
+  background: #fff3e0;
+  color: #ff9500;
 }
 
 .status-badge.approved {
