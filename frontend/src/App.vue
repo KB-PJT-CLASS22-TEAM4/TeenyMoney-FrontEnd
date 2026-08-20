@@ -1,13 +1,36 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import LoginRequiredModal from '@/components/LoginRequiredModal.vue'
 import ParentMenu from '@/components/Parents/ParentMenu.vue'
 import ChildMenu from '@/components/Child/ChildMenu.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useSseStore } from '@/stores/sse'
 
 const route = useRoute()
 const isParentRoute = computed(() => route.path.startsWith('/parents'))
 const isChildRoute = computed(() => route.path.startsWith('/child'))
+
+// 실시간 화면 동기화 연결을 여기 한 곳에서만 만든다.
+//
+// 로그인 여부만 보고 붙였다 뗀다. auth 스토어에서 직접 부르지 않는 이유는 두 스토어가
+// 서로를 import하게 되기 때문이고(순환 참조), immediate로 두면 이미 로그인된 채
+// 앱이 뜨는 경우(새로고침)까지 이 한 줄이 같이 처리한다.
+const authStore = useAuthStore()
+const sseStore = useSseStore()
+
+watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => {
+    if (isAuthenticated) {
+      sseStore.connect()
+      return
+    }
+
+    sseStore.disconnect()
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
