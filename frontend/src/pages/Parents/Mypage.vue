@@ -229,6 +229,7 @@
           <button
             type="button"
             class="menu-button"
+            @click="goToTerms"
           >
             <span class="menu-label">약관 및 정책</span>
             <span class="chevron">›</span>
@@ -608,6 +609,10 @@ function goToLogin() {
 
 function goToFaq() {
   router.push({ name: 'parents-faq' })
+}
+
+function goToTerms() {
+  router.push({ name: 'parents-terms' })
 }
 
 function openProfilePicker() {

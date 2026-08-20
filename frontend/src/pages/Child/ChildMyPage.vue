@@ -148,7 +148,7 @@ function goFaq() {
   router.push({ name: 'child-faq' })
 }
 function goPolicy() {
-  // 약관 및 정책
+  router.push({ name: 'child-terms' })
 }
 
 //=========로그아웃=============
