@@ -147,7 +147,11 @@
             aria-label="전체 거래내역 보기"
             @click="router.push('/parents/transaction')"
           >
-            <span class="chev">›</span>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
+            />
           </button>
         </div>
 
@@ -655,6 +659,11 @@ button {
   border: none;
   background: transparent;
   cursor: pointer;
+}
+
+.chevron-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .tx-item {
