@@ -22,12 +22,14 @@
       <!-- 연동된 보호자 -->
       <div class="guardian-row">
         <div class="avatar">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-            <circle cx="12" cy="8" r="4" stroke="#b9bec5" stroke-width="1.8"/>
-            <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="#b9bec5" stroke-width="1.8"/>
-          </svg>
+          <img
+            :src="guardian.profileImageUrl || PARENT_PROFILE_IMAGE"
+            alt=""
+            class="avatar-img"
+            :class="{ photo: isCustomParentPhoto }"
+          />
         </div>
-        <span class="guardian-name">{{ guardian.name }}</span>
+        <span class="guardian-name">{{ guardian.name || '보호자' }}</span>
         <span class="linked-badge">✓ 연동됨</span>
       </div>
     </div>
@@ -38,22 +40,36 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getMyParent } from '@/api/families'
 import { useAuthStore } from '@/stores/auth'
-import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
+import {
+  CHILD_PROFILE_IMAGE,
+  PARENT_PROFILE_IMAGE,
+  pickProfileImageUrl,
+  resolveProfileImageUrl,
+} from '@/utils/profileImages'
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-const guardian = ref({ name: '' });
+const guardian = ref({ name: '', profileImageUrl: '' });
+
+const isCustomParentPhoto = computed(() =>
+  Boolean(guardian.value.profileImageUrl)
+  && guardian.value.profileImageUrl !== PARENT_PROFILE_IMAGE
+)
 
 onMounted(async () => {
   try {
     const res = await getMyParent(authStore.accessToken)
     if (res.data) {
-      guardian.value.name = res.data.name
+      guardian.value.name = res.data.name || ''
+      guardian.value.profileImageUrl = resolveProfileImageUrl(
+        pickProfileImageUrl(res.data),
+        PARENT_PROFILE_IMAGE
+      )
     }
   } catch (e) {
     console.error('부모 정보 조회 실패:', e.message)
@@ -161,7 +177,18 @@ function goHome() {
   height: 40px;
   background: #e5e7eb;
   border-radius: 50%;
+  overflow: hidden;
   flex: none;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.avatar-img.photo {
+  object-fit: cover;
 }
 
 .guardian-name {

@@ -104,7 +104,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getMyParent } from '@/api/families'
 import { useAuthStore } from '@/stores/auth'
-import { PARENT_PROFILE_IMAGE, resolveProfileImageUrl } from '@/utils/profileImages'
+import { PARENT_PROFILE_IMAGE, pickProfileImageUrl, resolveProfileImageUrl } from '@/utils/profileImages'
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -119,7 +119,7 @@ onMounted(async () => {
       guardian.value.name = res.data.name || ''
       guardian.value.relation = res.data.relation || '보호자'
       guardian.value.profileImageUrl = resolveProfileImageUrl(
-        res.data.profileImageUrl,
+        pickProfileImageUrl(res.data),
         PARENT_PROFILE_IMAGE
       )
     }
