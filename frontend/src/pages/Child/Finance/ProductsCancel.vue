@@ -9,12 +9,31 @@ import {
   getEarlyRepaymentQuote,
   executeEarlyRepayment,
 } from '@/api/finance'
+import { getFinanceTerm } from '@/constants/financeTerms'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import FinanceTermModal from '@/components/Child/FinanceTermModal.vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+
+// 어려운 금융 용어 설명 모달 상태
+const showTermModal = ref(false)
+const activeTermData = ref(null)
+
+function openTermModal(termName) {
+  const data = getFinanceTerm(termName)
+  if (data) {
+    activeTermData.value = data
+    showTermModal.value = true
+  }
+}
+
+function closeTermModal() {
+  showTermModal.value = false
+  activeTermData.value = null
+}
 
 // 스크롤바 제어
 const isScrolling = ref(false)
@@ -76,9 +95,21 @@ async function loadQuote() {
   }
 }
 
+// 경과율 구간별 적용 이율 비율 (약정금리 대비 비율)
+function getTerminationTierRate(progress) {
+  const p = Number(progress ?? 0)
+  if (p < 25) return 10
+  if (p < 50) return 30
+  if (p < 75) return 60
+  if (p < 100) return 80
+  return 100
+}
+
+const progressPercent = computed(() => quote.value?.progressPercent ?? 0)
+
+// 항상 명세 규칙(25% 미만 -> 10%, 25~49% -> 30%, 50~74% -> 60%, 75%이상 -> 80%)에 따라 산출
 const appliedRatePercent = computed(() => {
-  if (!quote.value?.appliedEarlyTerminationRate) return 0
-  return Math.round(quote.value.appliedEarlyTerminationRate * 100)
+  return getTerminationTierRate(progressPercent.value)
 })
 
 const totalRefund = computed(() => quote.value?.finalAmount ?? 0)
@@ -244,6 +275,12 @@ onMounted(async () => {
         <div class="title-row">
           <span class="badge" :class="badgeColor">{{ product.category }}</span>
           <span class="prod-title">{{ product.title }}</span>
+          <button
+            type="button"
+            class="btn-help-inline"
+            @click.stop="openTermModal(isLoan ? '조기상환' : '중도해지')"
+            aria-label="도움말 보기"
+          >?</button>
         </div>
         <p class="prod-desc">{{ desc }}</p>
       </section>
@@ -412,7 +449,7 @@ onMounted(async () => {
               <span class="d-value">{{ quote.progressPercent ?? 0 }}%</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">적용 이율 비율</span>
+              <span class="d-label">중도해지 적용 이율</span>
               <span class="d-value blue">약정금리의 {{ appliedRatePercent }}%</span>
             </div>
             <div class="detail-row">
@@ -538,8 +575,14 @@ onMounted(async () => {
       </div>
     </Transition>
 
-    <!-- 해지/상환은 되돌리기 어려운 결정이라 말풍선 없이 캐릭터만 노출 -->
-    <Chatbot v-if="!showSuccessModal && !showRepaySuccessModal" hint-text="" />
+    <!-- 금융 용어 사전 도움말 모달 -->
+    <FinanceTermModal
+      :show="showTermModal"
+      :term-data="activeTermData"
+      @close="closeTermModal"
+    />
+
+    <Chatbot v-if="!showSuccessModal && !showRepaySuccessModal" hint-text="중도해지나 조기상환이 궁금하세요?" />
   </div>
 </template>
 
@@ -553,7 +596,7 @@ onMounted(async () => {
   height: 730px;
   margin: 0 auto;
   padding-top: 50px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
@@ -563,7 +606,7 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 2px 20px 10px;
-  background: #ffffff;
+  background: #f8fafc;
   flex: none;
 }
 
@@ -587,7 +630,7 @@ onMounted(async () => {
   min-height: 0;
   overflow-y: auto;
   padding: 8px 20px 20px;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .scroll::-webkit-scrollbar {
@@ -606,7 +649,7 @@ onMounted(async () => {
 
 /* 통일된 화이트 카드 스타일 */
 .card {
-  background: #fdfdfd;
+  background: #ffffff;
   border: 1.3px solid #f0f1f3;
   border-radius: 16px;
   padding: 16px;
@@ -623,6 +666,34 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-bottom: 8px;
+}
+
+.btn-help-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 800;
+  cursor: pointer;
+  vertical-align: middle;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-help-inline:hover {
+  background: #ffbc00;
+  border-color: #ffbc00;
+  color: #15171b;
+  transform: scale(1.18);
 }
 
 .badge {
@@ -833,7 +904,7 @@ onMounted(async () => {
 .final-amount {
   font-weight: 800;
   font-size: 16.5px;
-  color: #ffbc00;
+  color: #15171b;
 }
 
 /* 티니점수 변화 카드 */
@@ -913,7 +984,7 @@ onMounted(async () => {
 
 .progress-fill {
   height: 100%;
-  background: #ffbc00;
+  background: #e0554f;
   border-radius: 999px;
   transition: width 0.3s ease;
 }

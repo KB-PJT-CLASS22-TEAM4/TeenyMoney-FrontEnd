@@ -2,11 +2,13 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { getFinancialProducts } from '@/api/finance'
+import { getFinancialProducts, getMyEnrolledFinancialProducts } from '@/api/finance'
 import { getTeenyScore } from '@/api/teenyScore'
+import { getFinanceTerm } from '@/constants/financeTerms'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import FinanceTermModal from '@/components/Child/FinanceTermModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -21,9 +23,101 @@ watch(activeTab, (val) => {
   }
 })
 
-// 상품 종류 필터
-const activeCategory = ref('전체')
+// 필터 옵션 목록
 const categories = ['전체', '적금', '예금', '대출']
+const interestTypeOptions = ['전체', '단리', '복리']
+const originOptions = ['전체', '가족 상품', '금융기관']
+const sortOptions = ['기본순', '금리 높은순', '기간 짧은순', '기간 긴순']
+
+const STORAGE_KEY = 'teeny_finance_filter_state'
+
+function loadSavedFilter() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch (e) {
+    console.warn('필터 복원 실패:', e)
+  }
+  return null
+}
+
+const saved = loadSavedFilter()
+
+// 적용된 필터 상태 (이전 저장값 유지)
+const appliedCategory = ref(saved?.category || '전체')
+const appliedInterestType = ref(saved?.interestType || '전체')
+const appliedOrigin = ref(saved?.origin || '전체')
+const appliedSort = ref(saved?.sort || '기본순')
+
+function saveFilterState() {
+  try {
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        category: appliedCategory.value,
+        interestType: appliedInterestType.value,
+        origin: appliedOrigin.value,
+        sort: appliedSort.value,
+      })
+    )
+  } catch (e) {
+    console.warn('필터 저장 실패:', e)
+  }
+}
+
+// 바텀시트 모달 상태
+const showFilterSheet = ref(false)
+const tempCategory = ref('전체')
+const tempInterestType = ref('전체')
+const tempOrigin = ref('전체')
+const tempSort = ref('기본순')
+
+function openFilterSheet() {
+  tempCategory.value = appliedCategory.value
+  tempInterestType.value = appliedInterestType.value
+  tempOrigin.value = appliedOrigin.value
+  tempSort.value = appliedSort.value
+  showFilterSheet.value = true
+}
+
+function closeFilterSheet() {
+  showFilterSheet.value = false
+}
+
+function applyFilter() {
+  appliedCategory.value = tempCategory.value
+  appliedInterestType.value = tempInterestType.value
+  appliedOrigin.value = tempOrigin.value
+  appliedSort.value = tempSort.value
+  saveFilterState()
+  showFilterSheet.value = false
+}
+
+function resetFilter() {
+  tempCategory.value = '전체'
+  tempInterestType.value = '전체'
+  tempOrigin.value = '전체'
+  tempSort.value = '기본순'
+}
+
+// 필터 적용 개수 (기본값 아닌 것)
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (appliedCategory.value !== '전체') count++
+  if (appliedInterestType.value !== '전체') count++
+  if (appliedOrigin.value !== '전체') count++
+  if (appliedSort.value !== '기본순') count++
+  return count
+})
+
+const filterSummaryText = computed(() => {
+  const parts = []
+  if (appliedCategory.value !== '전체') parts.push(appliedCategory.value)
+  if (appliedInterestType.value !== '전체') parts.push(appliedInterestType.value)
+  if (appliedOrigin.value !== '전체') parts.push(appliedOrigin.value)
+  if (appliedSort.value !== '기본순') parts.push(appliedSort.value)
+  return parts.length > 0 ? parts.join(' · ') : '전체 필터'
+})
 
 // 상품 타입 매핑
 const typeMap = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
@@ -64,6 +158,11 @@ const interestTypeMap = {
 const savingsTypeMap = {
   FREE: '자유적금',
   FIXED: '정액적금',
+}
+const repaymentTypeMap = {
+  EQUAL_PRINCIPAL_INTEREST: '원리금균등',
+  EQUAL_PRINCIPAL: '원금균등',
+  BULLET: '만기일시상환',
 }
 
 // 내 티니 등급 및 점수
@@ -199,6 +298,12 @@ function mapProduct(p) {
   }
 
   if (isLoan) {
+    const repDesc = repaymentTypeMap[p.repaymentType] || '원리금균등'
+    details.push({
+      label: '상환방식',
+      value: repDesc,
+      color: '',
+    })
     details.push({ label: '티니점수 조건', value: scoreValue, color: scoreColor })
   }
 
@@ -207,6 +312,7 @@ function mapProduct(p) {
   return {
     id: `${p.productType}-${p.productId}`,
     productId: p.productId,
+    productType: p.productType,
     availableTerms: terms,
     category: typeMap[p.productType] ?? p.productType,
     badgeColor: badgeColorMap[p.productType] ?? 'blue',
@@ -219,6 +325,7 @@ function mapProduct(p) {
     locked: isLoan && !p.eligible,
     requiredGradeName: p.requiredGradeName,
     gradeColor: scoreColor,
+    interestType: interestTypeMap[p.interestCalculationType] || (isLoan ? '단리' : ''),
     rates: ratesList,
     baseRate,
     finalAppliedRateNum,
@@ -226,6 +333,15 @@ function mapProduct(p) {
     combinedRateText,
     details,
   }
+}
+
+function normalizeProductType(type) {
+  if (!type) return ''
+  const upper = String(type).toUpperCase()
+  if (upper === 'SAVING' || upper === 'SAVINGS') return 'SAVING'
+  if (upper === 'DEPOSIT' || upper === 'DEPOSITS') return 'DEPOSIT'
+  if (upper === 'LOAN' || upper === 'LOANS') return 'LOAN'
+  return upper
 }
 
 // [API] 금융상품 목록 및 티니점수 조회
@@ -246,9 +362,38 @@ onMounted(async () => {
       }
     }
 
-    // 2. 금융상품 목록 조회
-    const data = await getFinancialProducts(authStore.accessToken)
-    const mapped = data.map(mapProduct)
+    // 2. 금융상품 목록 및 내 가입 상품 병렬 조회
+    const [data, enrolledData] = await Promise.all([
+      getFinancialProducts(authStore.accessToken),
+      getMyEnrolledFinancialProducts(authStore.accessToken).catch(() => []),
+    ])
+
+    // 활성 가입 상품 맵 (카테고리-상품ID 복합키로만 정확하게 매핑)
+    const enrolledMap = new Map()
+    ;(enrolledData || []).forEach((item) => {
+      const isTerminated = (
+        item.terminated === true ||
+        item.status === 'TERMINATED' ||
+        item.status === 'CANCELLED' ||
+        item.status === 'CLOSED' ||
+        item.status === 'REPAID'
+      )
+      if (!isTerminated && item.productId) {
+        const key = `${normalizeProductType(item.productType)}-${item.productId}`
+        enrolledMap.set(key, item.status)
+      }
+    })
+
+    const mapped = (data || []).map((p) => {
+      const prod = mapProduct(p)
+      const lookupKey = `${normalizeProductType(prod.productType || prod.category)}-${prod.productId}`
+      const enrolledStatus = enrolledMap.get(lookupKey)
+      if (enrolledStatus) {
+        prod.isEnrolled = true
+        prod.enrolledStatus = enrolledStatus
+      }
+      return prod
+    })
 
     const seen = new Set()
     products.value = mapped.filter((p) => {
@@ -264,13 +409,52 @@ onMounted(async () => {
   }
 })
 
-// 필터 + 찜 정렬
+// 필터 + 정렬 로직
 const filteredProducts = computed(() => {
-  const list =
-    activeCategory.value === '전체'
-      ? [...products.value]
-      : products.value.filter((p) => p.category === activeCategory.value)
-  return list.sort((a, b) => Number(b.liked) - Number(a.liked))
+  let list = [...products.value]
+
+  // 1. 카테고리 필터
+  if (appliedCategory.value !== '전체') {
+    list = list.filter((p) => p.category === appliedCategory.value)
+  }
+
+  // 2. 이자방식 필터 (단리 / 복리)
+  if (appliedInterestType.value !== '전체') {
+    list = list.filter((p) => p.interestType === appliedInterestType.value)
+  }
+
+  // 3. 출처 필터 (가족 / 금융기관)
+  if (appliedOrigin.value === '가족 상품') {
+    list = list.filter((p) => p.originType === 'family')
+  } else if (appliedOrigin.value === '금융기관') {
+    list = list.filter((p) => p.originType === 'bank')
+  }
+
+  // 4. 정렬
+  if (appliedSort.value === '금리 높은순') {
+    list.sort((a, b) => {
+      const rateA = a.finalAppliedRateNum ?? a.baseRate ?? 0
+      const rateB = b.finalAppliedRateNum ?? b.baseRate ?? 0
+      return rateB - rateA
+    })
+  } else if (appliedSort.value === '기간 짧은순') {
+    list.sort((a, b) => {
+      const minA = a.availableTerms?.length ? Math.min(...a.availableTerms) : 99
+      const minB = b.availableTerms?.length ? Math.min(...b.availableTerms) : 99
+      return minA - minB
+    })
+  } else if (appliedSort.value === '기간 긴순') {
+    list.sort((a, b) => {
+      const maxA = a.availableTerms?.length ? Math.max(...a.availableTerms) : 0
+      const maxB = b.availableTerms?.length ? Math.max(...b.availableTerms) : 0
+      return maxB - maxA
+    })
+  } else {
+    // 기본순: 찜 우선
+    list.sort((a, b) => Number(b.liked) - Number(a.liked))
+  }
+
+  return list
 })
 
 // 찜 토글
@@ -300,9 +484,86 @@ function onScroll() {
   }, 800)
 }
 
+// 자격 미달 커스텀 모달 상태
+const showIneligibleModal = ref(false)
+const ineligibleMessage = ref('')
+
+function openIneligibleModal(msg) {
+  ineligibleMessage.value = msg || '아직은 가입할 수 없는 상품이에요!\n티니점수를 올려서 등급을 달성해 보세요.'
+  showIneligibleModal.value = true
+}
+
+function closeIneligibleModal() {
+  showIneligibleModal.value = false
+}
+
+// 어려운 금융 용어 설명 모달 상태
+const showTermModal = ref(false)
+const activeTermData = ref(null)
+
+function openTermModal(termName) {
+  const data = getFinanceTerm(termName)
+  if (data) {
+    activeTermData.value = data
+    showTermModal.value = true
+  }
+}
+
+function closeTermModal() {
+  showTermModal.value = false
+  activeTermData.value = null
+}
+
+function hasValueHelp(val) {
+  if (!val) return false
+  return !!getFinanceTerm(val)
+}
+
+function hasTermHelp(label, val) {
+  if (label === '티니점수 조건' || label === '이자방식' || label === '적립방식' || label === '상환방식') {
+    return !hasValueHelp(val)
+  }
+  return false
+}
+
+function openTermModalByText(label, val) {
+  if (val && getFinanceTerm(val)) {
+    openTermModal(val)
+  } else if (label && getFinanceTerm(label)) {
+    openTermModal(label)
+  }
+}
+
+// 이미 가입된 상품 안내 모달 상태
+const showAlreadyEnrolledModal = ref(false)
+const alreadyEnrolledProduct = ref(null)
+
+function openAlreadyEnrolledModal(product) {
+  alreadyEnrolledProduct.value = product
+  showAlreadyEnrolledModal.value = true
+}
+
+function closeAlreadyEnrolledModal() {
+  showAlreadyEnrolledModal.value = false
+}
+
+function goToMyProductsTab() {
+  showAlreadyEnrolledModal.value = false
+  router.push({ name: 'child-finance-myproducts' })
+}
+
 function goToApply(product) {
+  if (product.isEnrolled) {
+    openAlreadyEnrolledModal(product)
+    return
+  }
+
   if (!product.eligible) {
-    alert('아직은 가입할 수 없는 상품이에요!')
+    openIneligibleModal(
+      product.requiredGradeName
+        ? `${product.requiredGradeName} 등급 이상부터 가입할 수 있는 상품이에요!\n티니점수를 더 모아보세요.`
+        : '아직은 가입할 수 없는 상품이에요!\n티니점수를 올려서 등급을 달성해 보세요.'
+    )
     return
   }
 
@@ -349,30 +610,34 @@ function goToApply(product) {
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <!-- 신규 상품 / 나의 상품 탭 -->
-      <div class="tabs">
+      <!-- 탭 스위처 -->
+      <div class="tab-switcher">
         <button
           v-for="tab in tabs"
           :key="tab"
-          class="tab"
-          :class="{ off: tab !== activeTab }"
+          class="tab-btn"
+          :class="{ active: tab === activeTab }"
           @click="activeTab = tab"
-        >{{ tab }}</button>
+        >
+          <span class="tab-label">{{ tab }}</span>
+        </button>
       </div>
 
-      <!-- 상품 종류 필터 -->
-      <div class="filters">
-        <button
-          v-for="c in categories"
-          :key="c"
-          class="chip"
-          :class="{ off: c !== activeCategory }"
-          @click="activeCategory = c"
-        >{{ c }}</button>
-      </div>
+      <!-- 상단 카운트 및 인라인 필터 버튼 -->
+      <div class="list-header-row">
+        <p class="count-row">상품<span class="count-num">{{ filteredProducts.length }}</span></p>
 
-      <!-- 상품 카운트 -->
-      <p class="count-row">상품<span class="count-num">{{ filteredProducts.length }}</span></p>
+        <button class="filter-chip-btn" :class="{ active: activeFilterCount > 0 }" @click="openFilterSheet">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" class="filter-icon">
+            <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="filter-summary-text">{{ filterSummaryText }}</span>
+          <span v-if="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</span>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+      </div>
 
       <!-- 상품 카드 리스트 -->
       <TransitionGroup name="card-move" tag="div">
@@ -393,6 +658,10 @@ function goToApply(product) {
                   <!-- 가족 상품 / 은행 출처 배지 -->
                   <span class="origin-badge" :class="product.originType">
                     {{ product.originLabel }}
+                  </span>
+                  <!-- 이미 가입하여 이용 중/승인대기 배지 -->
+                  <span v-if="product.isEnrolled" class="enrolled-badge" :class="product.enrolledStatus === 'PENDING' ? 'pending' : 'active'">
+                    {{ product.enrolledStatus === 'PENDING' ? '승인 대기 중' : '이용 중' }}
                   </span>
                 </div>
               </div>
@@ -417,8 +686,26 @@ function goToApply(product) {
 
             <div class="details">
               <div v-for="(d, i) in product.details" :key="i" class="detail-row">
-                <span class="d-label">{{ d.label }}</span>
-                <span class="d-value" :class="d.color">{{ d.value }}</span>
+                <span class="d-label">
+                  {{ d.label }}
+                  <button
+                    v-if="hasTermHelp(d.label, d.value)"
+                    type="button"
+                    class="btn-help-inline"
+                    @click.stop="openTermModalByText(d.label, d.value)"
+                    aria-label="도움말 보기"
+                  >?</button>
+                </span>
+                <span class="d-value" :class="d.color">
+                  {{ d.value }}
+                  <button
+                    v-if="hasValueHelp(d.value)"
+                    type="button"
+                    class="btn-help-inline"
+                    @click.stop="openTermModal(d.value)"
+                    aria-label="도움말 보기"
+                  >?</button>
+                </span>
               </div>
             </div>
           </div>
@@ -441,6 +728,123 @@ function goToApply(product) {
     <BottomTabBar active="finance" @select="onTabSelect" />
 
     <Chatbot hint-text="금리가 어떻게 계산되는지 궁금하세요?" />
+
+    <!-- 신규 상품 필터 바텀시트 -->
+    <transition name="sheet">
+      <div v-if="showFilterSheet" class="sheet-dim" @click.self="closeFilterSheet">
+        <div class="sheet">
+          <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <h3 class="sheet-title">상품 필터 및 정렬</h3>
+            <button class="sheet-reset-btn" type="button" @click="resetFilter">초기화</button>
+          </div>
+
+          <!-- 1. 상품 종류 -->
+          <p class="sheet-group-title">상품 종류</p>
+          <div class="sheet-chips">
+            <button
+              v-for="c in categories"
+              :key="c"
+              type="button"
+              class="s-chip"
+              :class="{ on: c === tempCategory }"
+              @click="tempCategory = c"
+            >{{ c }}</button>
+          </div>
+
+          <!-- 2. 이자 방식 -->
+          <p class="sheet-group-title">이자 방식</p>
+          <div class="sheet-chips">
+            <button
+              v-for="it in interestTypeOptions"
+              :key="it"
+              type="button"
+              class="s-chip"
+              :class="{ on: it === tempInterestType }"
+              @click="tempInterestType = it"
+            >{{ it }}</button>
+          </div>
+
+          <!-- 3. 상품 출처 -->
+          <p class="sheet-group-title">상품 출처</p>
+          <div class="sheet-chips">
+            <button
+              v-for="o in originOptions"
+              :key="o"
+              type="button"
+              class="s-chip"
+              :class="{ on: o === tempOrigin }"
+              @click="tempOrigin = o"
+            >{{ o }}</button>
+          </div>
+
+          <!-- 4. 정렬 기준 -->
+          <p class="sheet-group-title">정렬</p>
+          <div class="sheet-chips">
+            <button
+              v-for="s in sortOptions"
+              :key="s"
+              type="button"
+              class="s-chip"
+              :class="{ on: s === tempSort }"
+              @click="tempSort = s"
+            >{{ s }}</button>
+          </div>
+
+          <button class="sheet-apply" type="button" @click="applyFilter">적용하기</button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 자격 미달 커스텀 알림 모달 -->
+    <div v-if="showIneligibleModal" class="custom-modal-backdrop" @click.self="closeIneligibleModal">
+      <div class="custom-modal-dialog">
+        <div class="modal-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="#ffffff" stroke-width="2.2"/>
+            <path d="M12 8v5M12 16h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4 class="modal-title">가입 조건 안내</h4>
+        <p class="modal-desc">{{ ineligibleMessage }}</p>
+        <button type="button" class="btn-modal-confirm" @click="closeIneligibleModal">
+          확인
+        </button>
+      </div>
+    </div>
+
+    <!-- 이미 가입된 상품 안내 모달 -->
+    <div v-if="showAlreadyEnrolledModal" class="custom-modal-backdrop" @click.self="closeAlreadyEnrolledModal">
+      <div class="custom-modal-dialog">
+        <div class="modal-icon-wrap danger">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="#ffffff" stroke-width="2.2"/>
+            <path d="M12 8v5M12 16h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4 class="modal-title">이미 신청/가입한 상품이에요</h4>
+        <p class="modal-desc">
+          현재 <strong>{{ alreadyEnrolledProduct?.enrolledStatus === 'PENDING' ? '부모님 승인 대기' : '이용' }} 중</strong>인 금융상품이에요.<br>
+          '나의 상품' 탭에서 진행 현황을 확인해 보세요!
+        </p>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-modal-sub" @click="closeAlreadyEnrolledModal">
+            닫기
+          </button>
+          <button type="button" class="btn-modal-main" @click="goToMyProductsTab">
+            나의 상품 보기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 금융 용어 사전 도움말 모달 -->
+    <FinanceTermModal
+      :show="showTermModal"
+      :term-data="activeTermData"
+      @close="closeTermModal"
+    />
   </div>
 </template>
 
@@ -454,7 +858,7 @@ function goToApply(product) {
   height: 730px;
   margin: 0 auto;
   padding-top: 50px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
@@ -465,6 +869,7 @@ function goToApply(product) {
   align-items: center;
   gap: 12px;
   padding: 2px 20px 10px;
+  background: #f8fafc;
 }
 
 .icon-btn {
@@ -487,6 +892,7 @@ function goToApply(product) {
   flex: 1;
   overflow-y: auto;
   padding: 8px 20px 20px;
+  background: #f8fafc;
 }
 .scroll::-webkit-scrollbar {
   width: 3px;
@@ -500,66 +906,66 @@ function goToApply(product) {
   background: #d8dbdf;
 }
 
-/* 신규/나의 상품 탭 */
-.tabs {
+/* 탭 스위처 */
+.tab-switcher {
   display: flex;
-  padding: 5px;
-  background: #f2f4f6;
-  border-radius: 12px;
+  align-items: flex-start;
+  border-bottom: 1.2px solid #e2e8f0;
+  background: #f8fafc;
   margin-bottom: 16px;
 }
 
-.tab {
+.tab-btn {
   flex: 1;
-  border: none;
-  padding: 8px 0;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 15px;
-  color: #15171b;
-  background: #ffffff;
-  border-radius: 9px;
-  cursor: pointer;
-}
-
-.tab.off {
-  background: transparent;
-  color: #9ca1a8;
-  font-weight: 600;
-}
-
-/* 상품 종류 필터 */
-.filters {
   display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.chip {
-  padding: 7px 16px;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-radius: 999px;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 13px;
-  color: #15171b;
-  background: #ffbc00;
+  background: transparent;
+  padding: 12px 0 11px;
   cursor: pointer;
+  position: relative;
+  min-height: 43px;
 }
 
-.chip.off {
-  background: #ffffff;
-  border: 1.3px solid #e7e9ec;
-  color: #4a4e55;
-  font-weight: 600;
+.tab-label {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #b9bec5;
+  transition: color 0.15s ease;
 }
 
-/* 상품 카운트 */
+.tab-btn.active .tab-label {
+  color: #191b1e;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: -1px;
+  height: 2.5px;
+  background: #ffbc00;
+  border-radius: 999px;
+}
+
+/* 목록 상단 헤더 (카운트 + 인라인 필터 버튼) */
+.list-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 10px;
+}
+
 .count-row {
   font-weight: 800;
   font-size: 16px;
   color: #15171b;
-  margin: 0 0 14px;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .count-num {
@@ -567,9 +973,240 @@ function goToApply(product) {
   margin-left: 6px;
 }
 
+.filter-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1.2px solid #e2e8f0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  color: #475569;
+  max-width: 220px;
+  transition: all 0.2s ease;
+}
+
+/* 커스텀 안내 모달 */
+.custom-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.custom-modal-dialog {
+  width: 100%;
+  max-width: 290px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-sizing: border-box;
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-icon-wrap {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #ffbc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-icon-wrap.info {
+  background: #3b82f6;
+}
+
+.modal-icon-wrap.danger {
+  background: #ef4444;
+}
+
+.btn-help-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  vertical-align: middle;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-help-inline:hover {
+  background: #ffbc00;
+  border-color: #ffbc00;
+  color: #15171b;
+  transform: scale(1.18);
+}
+
+.enrolled-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: -0.2px;
+}
+
+.enrolled-badge.active {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.enrolled-badge.pending {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.modal-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-modal-sub {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-modal-main {
+  flex: 1.5;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.modal-title {
+  margin: 0 0 6px;
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #15171b;
+}
+
+.modal-desc {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.btn-modal-confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-modal-confirm:active {
+  opacity: 0.85;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.filter-chip-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.filter-chip-btn.active {
+  background: #fffdf2;
+  border-color: #ffbc00;
+  color: #b45309;
+}
+
+.filter-icon {
+  flex-shrink: 0;
+}
+
+.filter-summary-text {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron-icon {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.filter-chip-btn.active .chevron-icon {
+  color: #d97706;
+}
+
+.filter-badge {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffbc00;
+  color: #15171b;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
 /* 상품 카드 */
 .card {
   position: relative;
+  background: #ffffff;
   border: 1.3px solid #eaedf1;
   border-radius: 14px;
   padding: 17px;
@@ -758,4 +1395,151 @@ function goToApply(product) {
 .d-value.yellow { color: #b8901f; }
 .d-value.red { color: #e0554f; }
 .d-value.orange { color: #f57c00; }
+
+/* 바텀시트 */
+.sheet-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.sheet {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 16px 20px 28px;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.sheet-handle-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sheet-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.sheet-reset-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.sheet-reset-btn:hover {
+  color: #64748b;
+}
+
+.sheet-group-title {
+  margin: 16px 0 10px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #8b9097;
+}
+
+.sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.s-chip {
+  padding: 8px 16px;
+  border: 1px solid #e7e9ec;
+  border-radius: 999px;
+  background: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  color: #959ba3;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.s-chip.on {
+  background: #fff8e6;
+  border-color: #ffbc00;
+  color: #d97706;
+}
+
+/* 찜한 상품 토글 행 */
+.sheet-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 24px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.sheet-toggle-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.sheet-apply {
+  width: 100%;
+  height: 48px;
+  margin-top: 24px;
+  border: none;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.25);
+}
+.sheet-apply:hover {
+  background: #f5b300;
+}
+
+/* 바텀시트 트랜지션 */
+.sheet-enter-active, .sheet-leave-active {
+  transition: opacity 0.25s ease;
+}
+.sheet-enter-active .sheet, .sheet-leave-active .sheet {
+  transition: transform 0.25s ease;
+}
+.sheet-enter-from, .sheet-leave-to {
+  opacity: 0;
+}
+.sheet-enter-from .sheet, .sheet-leave-to .sheet {
+  transform: translateY(100%);
+}
 </style>
