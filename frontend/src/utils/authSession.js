@@ -10,18 +10,38 @@ export function ensureAccessToken(accessToken) {
   return accessToken
 }
 
+const PUBLIC_AUTH_API_PATHS = [
+  '/api/v1/auth/phone-verification/',
+  '/api/v1/auth/legal-guardian-verification/',
+  '/api/v1/auth/check-email',
+  '/api/v1/auth/signup',
+]
+
+const PUBLIC_PAGE_PATHS = ['/login', '/signup', '/']
+
+export function isPublicAuthApiUrl(url) {
+  if (typeof url !== 'string') return false
+  return PUBLIC_AUTH_API_PATHS.some((path) => url.includes(path))
+}
+
 export function isAuthApiUrl(url) {
   return typeof url === 'string'
     && url.includes('/api/v1/')
     && !url.includes('/api/v1/auth/')
 }
 
-export function handleUnauthorizedResponse(response, url) {
-  if (!isAuthApiUrl(url)) return
-  if (response.status !== 401 && response.status !== 403) return
+export function isPublicPagePath(pathname = window.location.pathname) {
+  return PUBLIC_PAGE_PATHS.some((path) => (
+    path === '/'
+      ? pathname === '/'
+      : pathname === path || pathname.startsWith(`${path}/`)
+  ))
+}
 
-  const publicPaths = ['/login', '/signup', '/']
-  if (publicPaths.includes(window.location.pathname)) return
+export function handleUnauthorizedResponse(response, url) {
+  if (isPublicAuthApiUrl(url) || !isAuthApiUrl(url)) return
+  if (response.status !== 401 && response.status !== 403) return
+  if (isPublicPagePath()) return
 
   const authStore = useAuthStore()
 

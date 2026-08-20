@@ -8,6 +8,10 @@ const BASE_URL = `${API_BASE_URL}/api/v1/auth`;
 
 console.log(import.meta.env.VITE_API_BASE_URL);
 
+const PUBLIC_FETCH_INIT = {
+  credentials: 'omit',
+};
+
 async function parseJsonSafe(response) {
   const text = await response.text();
 
@@ -28,13 +32,16 @@ function isApiSuccess(response, result) {
 
 // 이메일 중복 확인
 export async function checkEmail(email) {
-  const res = await fetch(`${BASE_URL}/check-email?email=${email}`);
+  const res = await fetch(`${BASE_URL}/check-email?email=${email}`, {
+    ...PUBLIC_FETCH_INIT,
+  });
   return res.json();
 }
 
 // 휴대폰 인증 번호 발송
 export async function sendPhoneVerificationCode(phoneNumber) {
   const res = await fetch(`${BASE_URL}/phone-verification/send`, {
+    ...PUBLIC_FETCH_INIT,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -53,6 +60,7 @@ export async function confirmPhoneVerificationCode(
   verificationCode,
 ) {
   const res = await fetch(`${BASE_URL}/phone-verification/confirm`, {
+    ...PUBLIC_FETCH_INIT,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -77,6 +85,7 @@ export async function confirmPhoneVerificationCode(
 // 회원가입
 export async function signup(form) {
   const res = await fetch(`${BASE_URL}/signup`, {
+    ...PUBLIC_FETCH_INIT,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -142,6 +151,7 @@ export async function reissue() {
 // 법정대리인 인증번호 발송
 export async function sendGuardianVerificationCode(phoneNumber) {
   const res = await fetch(`${BASE_URL}/legal-guardian-verification/send`, {
+    ...PUBLIC_FETCH_INIT,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ phoneNumber }),
@@ -152,6 +162,7 @@ export async function sendGuardianVerificationCode(phoneNumber) {
 // 법정대리인 인증번호 확인
 export async function confirmGuardianVerification(data) {
   const res = await fetch(`${BASE_URL}/legal-guardian-verification/confirm`, {
+    ...PUBLIC_FETCH_INIT,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

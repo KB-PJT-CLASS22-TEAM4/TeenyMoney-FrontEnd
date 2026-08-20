@@ -112,7 +112,7 @@ export async function createFinancialProduct(accessToken, payload) {
   const segment = toProductPathSegment(payload?.productType)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/${segment}`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${payload.childId}/${segment}`,
     {
       method: 'POST',
       headers: authHeaders(accessToken, true),
