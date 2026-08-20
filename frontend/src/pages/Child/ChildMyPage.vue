@@ -477,7 +477,7 @@ function onScroll() {
       :show="showLogoutModal"
       title="로그아웃할까요?"
       confirm-text="로그아웃"
-      description="더 이상 티니머니를 이용할 수 없습니다"
+      description="로그아웃 하시겠습니까?"
       cancel-text="취소"
       @confirm="confirmLogout"
       @cancel="cancelLogout"
