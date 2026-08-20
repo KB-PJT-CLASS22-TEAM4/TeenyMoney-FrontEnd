@@ -383,11 +383,15 @@
           class="info-row"
         >
           <p class="info-label">
-            거절 코드
+            거절 사유
           </p>
 
           <p class="info-value">
-            {{ quest.declineReasonCode }}
+            {{
+              formatDeclineReasonCode(
+                quest.declineReasonCode
+              )
+            }}
           </p>
         </div>
 
@@ -413,25 +417,33 @@
     >
       <div class="section">
         <p class="section-label">
-          제목
+          <span>제목</span>
+          <span class="char-count">
+            {{ editForm.title.length }}/50
+          </span>
         </p>
 
         <input
           v-model="editForm.title"
           type="text"
           class="input"
+          maxlength="50"
           placeholder="퀘스트 제목"
         />
       </div>
 
       <div class="section">
         <p class="section-label">
-          내용
+          <span>내용</span>
+          <span class="char-count">
+            {{ editForm.content.length }}/500
+          </span>
         </p>
 
         <textarea
           v-model="editForm.content"
           class="textarea"
+          maxlength="500"
           rows="4"
           placeholder="퀘스트 내용"
         ></textarea>
@@ -534,6 +546,44 @@
           alt=""
           class="shield-icon"
         />
+      </button>
+
+      <button
+        class="teeny-score-row"
+        type="button"
+        @click="
+          editForm.verificationRequirement =
+            editForm.verificationRequirement === 'PHOTO_REQUIRED'
+              ? 'FREE'
+              : 'PHOTO_REQUIRED'
+        "
+      >
+        <div
+          class="checkbox"
+          :class="{
+            checked:
+              editForm.verificationRequirement === 'PHOTO_REQUIRED'
+          }"
+        >
+          <img
+            v-if="
+              editForm.verificationRequirement === 'PHOTO_REQUIRED'
+            "
+            src="@/assets/icons/icon-check.svg"
+            alt=""
+            class="check-icon"
+          />
+        </div>
+
+        <div class="teeny-score-text">
+          <p class="teeny-score-title">
+            사진 인증 필요
+          </p>
+
+          <p class="teeny-score-desc">
+            켜면 자녀가 퀘스트를 인증할 때 사진을 올려야 합니다.
+          </p>
+        </div>
       </button>
 
       <div class="edit-btns">
@@ -1225,6 +1275,24 @@ async function handleUpdate() {
   }
 
   if (
+    editForm.value.title.trim().length > 50
+  ) {
+    alertModal.showAlert(
+      '제목은 50자까지 입력할 수 있어요.'
+    )
+    return
+  }
+
+  if (
+    editForm.value.content.trim().length > 500
+  ) {
+    alertModal.showAlert(
+      '내용은 500자까지 입력할 수 있어요.'
+    )
+    return
+  }
+
+  if (
     !editForm.value.deadline
   ) {
     alertModal.showAlert(
@@ -1407,6 +1475,26 @@ function getRequirementLabel(
 
   return (
     map[value] ||
+    value ||
+    '-'
+  )
+}
+
+function formatDeclineReasonCode(
+  value
+) {
+  const map = {
+    NOT_ENOUGH_TIME: '시간이 부족해요',
+    TOO_DIFFICULT: '너무 어려워요',
+    REWARD_NOT_ENOUGH: '보상이 부족해요',
+    HARD_TO_VERIFY: '인증하기 어려워요',
+    CANNOT_DO_NOW: '지금은 할 수 없어요',
+    OTHER: '기타',
+  }
+
+  return (
+    map[value] ||
+    map[String(value || '').toUpperCase()] ||
     value ||
     '-'
   )
@@ -1713,10 +1801,19 @@ onMounted(() => {
 }
 
 .section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin: 0;
   color: #8b9097;
   font-size: 13px;
   font-weight: 600;
+}
+
+.char-count {
+  color: #b0b4ba;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .input,
@@ -1787,6 +1884,10 @@ onMounted(() => {
   border-radius: 12px;
   background: #fff8e1;
   text-align: left;
+}
+
+.teeny-score-row + .teeny-score-row {
+  margin-top: 10px;
 }
 
 .checkbox {

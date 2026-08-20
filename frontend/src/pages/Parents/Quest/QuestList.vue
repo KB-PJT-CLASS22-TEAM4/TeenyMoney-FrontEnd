@@ -476,9 +476,11 @@ import {
   ref,
   computed,
   onMounted,
+  watch,
 } from 'vue'
 
 import {
+  useRoute,
   useRouter,
 } from 'vue-router'
 
@@ -506,6 +508,9 @@ import {
 const router =
   useRouter()
 
+const route =
+  useRoute()
+
 const authStore =
   useAuthStore()
 const alertModal = useAlertModal()
@@ -520,9 +525,6 @@ const isLoading =
 
 const errorMessage =
   ref('')
-
-const activeTab =
-  ref('AVAILABLE')
 
 const quests =
   ref([])
@@ -588,6 +590,30 @@ const tabs = [
     value: 'COMPLETED',
   },
 ]
+
+function resolveQuestTab(raw) {
+  const value = String(raw || '').trim().toUpperCase()
+
+  if (value === 'ONGOING' || value === '진행중' || value === '진행 중') {
+    return 'ONGOING'
+  }
+
+  if (value === 'COMPLETED' || value === '완료') {
+    return 'COMPLETED'
+  }
+
+  if (value === 'AVAILABLE' || value === '시작가능' || value === '시작 가능') {
+    return 'AVAILABLE'
+  }
+
+  return null
+}
+
+const activeTab =
+  ref(
+    resolveQuestTab(route.query.tab) ||
+    'AVAILABLE'
+  )
 
 
 /* =========================
@@ -1403,6 +1429,15 @@ function getStatusClass(
 onMounted(() => {
   loadQuests()
 })
+
+watch(
+  () => route.query.tab,
+  async (tab) => {
+    const next = resolveQuestTab(tab)
+    if (!next || next === activeTab.value) return
+    await changeTab(next)
+  }
+)
 </script>
 
 

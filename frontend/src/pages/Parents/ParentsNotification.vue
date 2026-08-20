@@ -300,6 +300,15 @@ async function goToFinanceApproval(n) {
   router.push({ name: 'parents-child-list' })
 }
 
+function getQuestListTabFromNotification(n) {
+  const text = `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
+
+  if (/거절/.test(text)) return 'COMPLETED'
+  if (/인증해\s*주세요|인증해주세요|인증해줘/.test(text)) return 'ONGOING'
+
+  return null
+}
+
 async function goToReference(n) {
   if (isTodayAllowNotification(n)) {
     await goToTodayAllow(n)
@@ -318,7 +327,11 @@ async function goToReference(n) {
     return
   }
   if (n.referenceType === 'QUEST') {
-    router.push({ name: 'parents-quest-list' })
+    const tab = getQuestListTabFromNotification(n)
+    router.push({
+      name: 'parents-quest-list',
+      query: tab ? { tab } : {},
+    })
     return
   }
   if (n.referenceType === 'ALLOWANCE') {

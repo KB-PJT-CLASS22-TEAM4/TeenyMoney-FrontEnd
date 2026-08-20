@@ -230,7 +230,7 @@ const STATUS_ICON_COLORS = {
 }
 const iconColor = computed(() => STATUS_ICON_COLORS[quest.value.subStatus] ?? STATUS_ICON_COLORS.IN_PROGRESS)
 
-const photoRequired = computed(() => true)
+const photoRequired = computed(() => quest.value.verificationRequirement === 'PHOTO_REQUIRED')
 const textRequired = computed(() => quest.value.verificationRequirement === 'TEXT_REQUIRED')
 
 const photoFile = ref(null)
@@ -293,7 +293,7 @@ function capturePhoto() {
 }
 
 const canSubmit = computed(() => {
-  if (!photoFile.value) return false
+  if (photoRequired.value && !photoFile.value) return false
   if (textRequired.value) return content.value.trim().length > 0
   return true
 })

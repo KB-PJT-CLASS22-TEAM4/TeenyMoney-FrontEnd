@@ -73,13 +73,17 @@
       ========================== -->
       <div class="section">
         <p class="section-label">
-          제목
+          <span>제목</span>
+          <span class="char-count">
+            {{ form.title.length }}/50
+          </span>
         </p>
 
         <input
           v-model="form.title"
           type="text"
           class="input"
+          maxlength="50"
           placeholder="예: 방 청소하기, 일기 쓰기"
         />
       </div>
@@ -90,12 +94,16 @@
       ========================== -->
       <div class="section">
         <p class="section-label">
-          내용
+          <span>내용</span>
+          <span class="char-count">
+            {{ form.content.length }}/500
+          </span>
         </p>
 
         <textarea
           v-model="form.content"
           class="textarea"
+          maxlength="500"
           placeholder="상세한 수행 방법이나 규칙을 적어주세요."
           rows="4"
         />
@@ -207,13 +215,9 @@
 
 
       <!-- =========================
-           신뢰도 점수
+           신뢰도 · 인증 방식
       ========================== -->
-      <div class="section">
-        <p class="section-label">
-          신뢰도 점수
-        </p>
-
+      <div class="section option-box">
         <button
           class="teeny-score-row"
           :class="{
@@ -268,6 +272,80 @@
 
             <p class="teeny-score-desc">
               수행 완료 시 신뢰도 점수가 상승합니다.
+            </p>
+          </div>
+
+          <span
+            class="teeny-score-switch"
+            aria-hidden="true"
+          >
+            <span class="teeny-score-knob"></span>
+          </span>
+        </button>
+
+        <div class="option-divider"></div>
+
+        <button
+          class="teeny-score-row"
+          :class="{
+            on: isPhotoRequired
+          }"
+          type="button"
+          role="switch"
+          :aria-checked="isPhotoRequired"
+          @click="togglePhotoRequired"
+        >
+          <div
+            class="teeny-score-icon"
+            aria-hidden="true"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <path
+                d="M4 8V7a2 2 0 0 1 2-2h2l1.2-1.6A1 1 0 0 1 10 3h4a1 1 0 0 1 .8.4L16 5h2a2 2 0 0 1 2 2v1"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <rect
+                x="3.5"
+                y="8"
+                width="17"
+                height="12"
+                rx="2.5"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <circle
+                cx="12"
+                cy="14"
+                r="3.2"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+            </svg>
+          </div>
+
+          <div class="teeny-score-text">
+            <div class="teeny-score-title-row">
+              <p class="teeny-score-title">
+                사진 인증 필요
+              </p>
+
+              <span class="teeny-score-badge">
+                {{
+                  isPhotoRequired
+                    ? '필요'
+                    : '선택'
+                }}
+              </span>
+            </div>
+
+            <p class="teeny-score-desc">
+              켜면 자녀가 퀘스트를 인증할 때 사진을 올려야 합니다.
             </p>
           </div>
 
@@ -443,7 +521,10 @@
         class="calendar-overlay"
         @click.self="closeCalendar"
       >
-        <div class="calendar-modal">
+        <div
+          class="calendar-modal"
+          @click="openTimeMenu = null"
+        >
 
           <!-- 헤더 -->
           <div class="calendar-header">
@@ -556,57 +637,73 @@
             </p>
 
             <div class="time-select-wrap">
-
-              <select
-                v-model="selectedHour"
-                class="time-select"
-              >
-                <option
-                  v-for="hour in 24"
-                  :key="hour - 1"
-                  :value="
-                    String(
-                      hour - 1
-                    ).padStart(
-                      2,
-                      '0'
-                    )
-                  "
-                  :disabled="
-                    isHourDisabled(
-                      String(hour - 1).padStart(2, '0')
-                    )
-                  "
+              <div class="time-dropdown">
+                <button
+                  type="button"
+                  class="time-select"
+                  :class="{ open: openTimeMenu === 'hour' }"
+                  @click.stop="toggleTimeMenu('hour')"
                 >
-                  {{
-                    String(
-                      hour - 1
-                    ).padStart(
-                      2,
-                      '0'
-                    )
-                  }}시
-                </option>
-              </select>
+                  <span>{{ selectedHour }}시</span>
+                  <span class="time-caret" aria-hidden="true"></span>
+                </button>
 
-              <span class="time-colon">
-                :
-              </span>
-
-              <select
-                v-model="selectedMinute"
-                class="time-select"
-              >
-                <option
-                  v-for="minute in ['00', '10', '20', '30', '40', '50']"
-                  :key="minute"
-                  :value="minute"
-                  :disabled="isMinuteDisabled(minute)"
+                <div
+                  v-if="openTimeMenu === 'hour'"
+                  class="time-menu"
+                  @click.stop
                 >
-                  {{ minute }}분
-                </option>
-              </select>
+                  <button
+                    v-for="hour in hourOptions"
+                    :key="hour"
+                    type="button"
+                    class="time-option"
+                    :class="{
+                      active: selectedHour === hour,
+                      disabled: isHourDisabled(hour),
+                    }"
+                    :disabled="isHourDisabled(hour)"
+                    @click="pickHour(hour)"
+                  >
+                    {{ hour }}시
+                  </button>
+                </div>
+              </div>
 
+              <span class="time-colon">:</span>
+
+              <div class="time-dropdown">
+                <button
+                  type="button"
+                  class="time-select"
+                  :class="{ open: openTimeMenu === 'minute' }"
+                  @click.stop="toggleTimeMenu('minute')"
+                >
+                  <span>{{ selectedMinute }}분</span>
+                  <span class="time-caret" aria-hidden="true"></span>
+                </button>
+
+                <div
+                  v-if="openTimeMenu === 'minute'"
+                  class="time-menu"
+                  @click.stop
+                >
+                  <button
+                    v-for="minute in minuteOptions"
+                    :key="minute"
+                    type="button"
+                    class="time-option"
+                    :class="{
+                      active: selectedMinute === minute,
+                      disabled: isMinuteDisabled(minute),
+                    }"
+                    :disabled="isMinuteDisabled(minute)"
+                    @click="pickMinute(minute)"
+                  >
+                    {{ minute }}분
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -738,6 +835,19 @@ const form =
       'PHOTO_REQUIRED',
   })
 
+const isPhotoRequired =
+  computed(() =>
+    form.value.verificationRequirement ===
+    'PHOTO_REQUIRED'
+  )
+
+function togglePhotoRequired() {
+  form.value.verificationRequirement =
+    isPhotoRequired.value
+      ? 'FREE'
+      : 'PHOTO_REQUIRED'
+}
+
 
 // =========================
 // 커스텀 달력
@@ -767,6 +877,44 @@ const selectedHour =
 
 const selectedMinute =
   ref('00')
+
+const hourOptions =
+  Array.from(
+    { length: 24 },
+    (_, hour) => String(hour).padStart(2, '0')
+  )
+
+const minuteOptions =
+  ['00', '10', '20', '30', '40', '50']
+
+const openTimeMenu =
+  ref(null)
+
+function toggleTimeMenu(menu) {
+  openTimeMenu.value =
+    openTimeMenu.value === menu
+      ? null
+      : menu
+}
+
+function pickHour(hour) {
+  if (isHourDisabled(hour)) return
+  selectedHour.value = hour
+  openTimeMenu.value = null
+
+  if (isMinuteDisabled(selectedMinute.value)) {
+    const nextMinute = minuteOptions.find(
+      (minute) => !isMinuteDisabled(minute)
+    )
+    if (nextMinute) selectedMinute.value = nextMinute
+  }
+}
+
+function pickMinute(minute) {
+  if (isMinuteDisabled(minute)) return
+  selectedMinute.value = minute
+  openTimeMenu.value = null
+}
 
 
 const daysInMonth =
@@ -868,6 +1016,9 @@ function closeCalendar() {
 
   isCalendarOpen.value =
     false
+
+  openTimeMenu.value =
+    null
 }
 
 
@@ -1239,8 +1390,10 @@ const canSubmit =
       selectedChildIds.value.length > 0 &&
 
       form.value.title.trim() &&
+      form.value.title.trim().length <= 50 &&
 
       form.value.content.trim() &&
+      form.value.content.trim().length <= 500 &&
 
       form.value.deadline &&
 
@@ -1601,12 +1754,23 @@ async function handleCreate() {
 }
 
 .section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
   margin: 0 0 10px;
 
   color: #8b9097;
 
   font-size: 13px;
   font-weight: 600;
+}
+
+.char-count {
+  color: #b0b4ba;
+
+  font-size: 12px;
+  font-weight: 500;
 }
 
 
@@ -1920,6 +2084,16 @@ async function handleCreate() {
   );
 
   box-shadow: 0 4px 12px rgba(255, 188, 0, 0.12);
+}
+
+.option-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option-divider {
+  display: none;
 }
 
 .teeny-score-icon {
@@ -2582,15 +2756,23 @@ async function handleCreate() {
   gap: 8px;
 }
 
-.time-select {
-  flex: 1;
+.time-dropdown {
+  position: relative;
 
+  flex: 1;
+}
+
+.time-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
   height: 42px;
 
-  padding: 0 10px;
+  padding: 0 12px;
 
-  border:
-    1px solid #e0e2e6;
+  border: 1px solid #e0e2e6;
 
   border-radius: 9px;
 
@@ -2601,10 +2783,99 @@ async function handleCreate() {
   color: #191b1e;
 
   font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
 }
 
-.time-select:focus {
+.time-select.open {
   border-color: #ffbc00;
+
+  background: #fffdf6;
+}
+
+.time-caret {
+  width: 8px;
+  height: 8px;
+
+  border-right: 1.6px solid #8b9097;
+  border-bottom: 1.6px solid #8b9097;
+
+  transform: rotate(45deg) translateY(-2px);
+
+  transition: transform 0.2s ease;
+}
+
+.time-select.open .time-caret {
+  transform: rotate(225deg) translateY(-2px);
+
+  border-color: #ffbc00;
+}
+
+.time-menu {
+  position: absolute;
+
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+
+  max-height: 168px;
+
+  overflow-y: auto;
+
+  padding: 6px;
+
+  border: 1px solid #eee3c4;
+
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  box-shadow: 0 10px 24px rgba(25, 27, 30, 0.12);
+}
+
+.time-option {
+  display: block;
+
+  width: 100%;
+
+  padding: 9px 10px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: #191b1e;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  text-align: left;
+
+  cursor: pointer;
+}
+
+.time-option + .time-option {
+  margin-top: 2px;
+}
+
+.time-option:hover:not(:disabled) {
+  background: #fff8e1;
+}
+
+.time-option.active {
+  background: #ffbc00;
+
+  color: #191b1e;
+}
+
+.time-option.disabled,
+.time-option:disabled {
+  color: #c5c8cd;
+
+  cursor: not-allowed;
 }
 
 .time-colon {

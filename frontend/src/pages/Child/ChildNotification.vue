@@ -125,6 +125,15 @@ function isTodayAllowNotification(n) {
   return /오늘만\s*허용/.test(`${n.title || ''} ${n.detail || ''}`)
 }
 
+function getQuestListTabFromNotification(n) {
+  const text = `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
+
+  if (/거절/.test(text)) return 'completed'
+  if (/인증해\s*주세요|인증해주세요|인증해줘/.test(text)) return 'ongoing'
+
+  return null
+}
+
 // referenceType별 상세 화면 라우팅
 function goToReference(n) {
   if (isTodayAllowNotification(n)) {
@@ -134,7 +143,11 @@ function goToReference(n) {
   if (n.referenceType === 'PAYMENT') {
     router.push({ name: 'child-transaction' })
   } else if (n.referenceType === 'QUEST') {
-    router.push({ name: 'child-quest-list' })
+    const tab = getQuestListTabFromNotification(n)
+    router.push({
+      name: 'child-quest-list',
+      query: tab ? { tab } : {},
+    })
   } else if (n.referenceType === 'FINANCE') {
     router.push({ name: 'child-finance-myproducts' })
   }
