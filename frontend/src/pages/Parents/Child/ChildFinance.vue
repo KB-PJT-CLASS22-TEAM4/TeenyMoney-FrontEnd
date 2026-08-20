@@ -54,7 +54,10 @@
             v-if="pendingApprovals.length"
             class="pending-section"
           >
-            <p class="group-title">처리 필요{{ pendingApprovals.length }}</p>
+            <p class="pending-heading">
+              처리 필요
+              <span class="pending-count">{{ pendingApprovals.length }}</span>
+            </p>
 
             <div
               v-for="item in pendingApprovals"
@@ -461,6 +464,31 @@ onMounted(async () => {
   margin-bottom: 18px;
 }
 
+.pending-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+}
+
+.pending-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .child-info-left {
   display: flex;
   align-items: center;
@@ -491,9 +519,8 @@ onMounted(async () => {
 .approval-tabs {
   display: flex;
   gap: 18px;
-  margin-bottom: 16px;
-  padding: 0;
-  background: transparent;
+  margin: 0 -16px 16px;
+  padding: 0 16px;
   border-bottom: 1px solid #f0f1f3;
 }
 
@@ -520,6 +547,12 @@ onMounted(async () => {
   border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.pending-card {
+  border: 1.5px solid #ffd86a;
+  background: #fff9e8;
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.16);
 }
 
 .clickable {
@@ -555,8 +588,8 @@ onMounted(async () => {
 }
 
 .pending-badge {
-  background: #fff3e0;
-  color: #ff9500;
+  background: #ffbc00;
+  color: #191b1e;
 }
 
 .completed-badge.approved {

@@ -270,16 +270,9 @@ export function useParentRequests() {
     }
 
     if (item.type === 'quest') {
-      if (item.questId == null) {
-        alertModal.showAlert('인증 요청을 열 수 없습니다.')
-        return
-      }
-
       router.push({
-        name: 'quest-detail',
-        params: {
-          questId: item.questId,
-        },
+        name: 'parents-quest-list',
+        query: { tab: 'ONGOING' },
       })
       return
     }
