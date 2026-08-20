@@ -85,6 +85,7 @@ import { makeFamilyCode } from '@/api/families'
 import AlertHost from '@/components/AlertHost.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
+import { useServerEvents } from '@/composables/useServerEvents'
 import { parseServerDate } from '@/utils/datetime'
 
 const router = useRouter()

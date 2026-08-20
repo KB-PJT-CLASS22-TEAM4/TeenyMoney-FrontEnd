@@ -1,5 +1,6 @@
 import { watch } from 'vue'
 import { useSseStore } from '@/stores/sse'
+import { useServerEvents } from '@/composables/useServerEvents'
 
 /**
  * 서버가 "화면이 낡았다"고 알려오면 이 화면의 데이터를 다시 부른다.
