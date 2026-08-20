@@ -247,7 +247,7 @@ function goBack() {
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
-  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .scroll {
@@ -504,9 +504,10 @@ function goBack() {
 }
 
 .guide-row.current {
-  background: #fafcf8;
+  background: #eaf4dc;
   border-radius: 14px;
-  border-bottom: none;
+  border: 1px solid #d5e6b8;
+  border-bottom: 1px solid #d5e6b8;
   padding: 14px 10px;
 }
 

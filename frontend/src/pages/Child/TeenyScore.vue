@@ -430,7 +430,7 @@ function onTabSelect(key) {
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
-  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .scroll-area {
