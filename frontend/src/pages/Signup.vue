@@ -1382,10 +1382,10 @@ async function verifyGuardianCode() {
         formatPhoneForApi(guardianPhone),
 
       privacyTermsVersion:
-        toTermsVersionNumber(privacyTerm.value),
+        formatTermsVersion(privacyTerm.value),
 
       serviceTermsVersion:
-        toTermsVersionNumber(serviceTerm.value),
+        formatTermsVersion(serviceTerm.value),
 
       relationship:
         guardian.relationship,
@@ -1532,6 +1532,8 @@ function toggleAllTerms() {
   if (next) {
     maybeOpenGuardian()
   }
+
+  closeTermModal()
 }
 
 async function openTermDetail(term) {

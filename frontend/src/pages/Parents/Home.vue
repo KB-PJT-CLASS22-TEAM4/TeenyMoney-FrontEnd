@@ -198,6 +198,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getMyWallet } from '@/api/wallet'
 import { useParentRequests } from '@/composables/useParentRequests'
 import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
+import { useServerEvents } from '@/composables/useServerEvents'
 import { PARENT_PROFILE_IMAGE } from '@/utils/profileImages'
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
@@ -282,6 +283,9 @@ function load() {
 
 onMounted(load)
 useRefreshOnVisible(load)
+// 자녀가 결제하거나 승인 요청을 보내면 이 화면이 낡는다.
+// 자녀 결제는 부모에게 알림이 조건부로만 가므로(주의 업종 + 3등급 이하) 알림으로는 못 메운다.
+useServerEvents(load)
 </script>
 
 
