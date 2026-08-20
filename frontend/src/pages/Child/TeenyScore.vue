@@ -26,10 +26,19 @@
             <div class="donut-wrap">
               <svg width="130" height="130" viewBox="0 0 130 130">
                 <circle cx="65" cy="65" r="52" fill="none" stroke="#f1f5f9" stroke-width="12"/>
-                <circle cx="65" cy="65" r="52" fill="none" :stroke="gradeColor" stroke-width="12"
-                        :stroke-dasharray="`${donutFill} ${donutCircumference}`"
-                        stroke-dashoffset="0" stroke-linecap="round"
-                        transform="rotate(-90 65 65)"/>
+                <circle
+                  class="donut-fill"
+                  cx="65"
+                  cy="65"
+                  r="52"
+                  fill="none"
+                  :stroke="gradeColor"
+                  stroke-width="12"
+                  :stroke-dasharray="donutCircumference"
+                  :stroke-dashoffset="donutOffset"
+                  stroke-linecap="round"
+                  transform="rotate(-90 65 65)"
+                />
               </svg>
               <div class="donut-center">
                 <span class="donut-label">티니점수</span>
@@ -215,7 +224,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
@@ -377,6 +386,23 @@ const donutFill = computed(() => {
   const ratio = (score.value - SCORE_MIN.value) / total
   return Math.min(1, Math.max(0, ratio)) * donutCircumference
 })
+const animatedDonutFill = ref(0)
+const donutOffset = computed(() => donutCircumference - animatedDonutFill.value)
+
+watch(loading, async (isLoading) => {
+  if (isLoading) {
+    animatedDonutFill.value = 0
+    return
+  }
+
+  animatedDonutFill.value = 0
+  await nextTick()
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      animatedDonutFill.value = donutFill.value
+    })
+  })
+})
 
 const benefits = computed(() => [
   { tag: '금리 혜택', title: '저축 기본 이자 우대', desc: `연 +${bonusRate.value}%p 우대 금리 자동 적용` },
@@ -498,6 +524,10 @@ function onTabSelect(key) {
   width: 130px;
   height: 130px;
   flex-shrink: 0;
+}
+
+.donut-fill {
+  transition: stroke-dashoffset 0.4s ease-out;
 }
 
 .donut-center {
