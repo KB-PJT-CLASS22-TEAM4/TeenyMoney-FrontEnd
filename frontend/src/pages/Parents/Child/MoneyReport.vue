@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport } from '@/api/report'
 import { getChildren } from '@/api/children'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import { formatTeenyScoreEventCode } from '@/utils/teenyScoreEventLabels'
 
 const router = useRouter()
 const route = useRoute()
@@ -579,7 +580,7 @@ onMounted(async () => {
           >
             <div>
               <strong>{{ reason.description }}</strong>
-              <span>{{ reason.eventCode }}</span>
+              <span>{{ formatTeenyScoreEventCode(reason.eventCode) }}</span>
             </div>
             <b :class="{ minus: reason.amount < 0 }">
               {{ reason.amount > 0 ? '+' : '' }}{{ reason.amount }}점
@@ -655,7 +656,7 @@ onMounted(async () => {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 16px 24px;
+  padding: 16px 16px 24px;
   scrollbar-width: none;
 }
 

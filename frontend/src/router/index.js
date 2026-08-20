@@ -472,6 +472,11 @@ const router = createRouter({
     component: ChildFinance,
   },
   {
+    path: '/parents/finance/create',
+    name: 'parents-finance-create',
+    component: FinanceProductCreate,
+  },
+  {
     path: '/parents/children/:childId/finance/create',
     name: 'parents-child-finance-create',
     component: FinanceProductCreate,

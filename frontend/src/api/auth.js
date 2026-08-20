@@ -30,7 +30,14 @@ function publicJsonHeaders() {
   return {
     Accept: 'application/json',
     'Content-Type': 'application/json',
-  };
+  }
+}
+
+function publicFetch(url, init = {}) {
+  return fetch(url, {
+    ...init,
+    credentials: 'omit',
+  })
 }
 
 // CSRF 토큰 먼저 받기
@@ -44,47 +51,45 @@ async function getCsrfToken() {
 
 // 이메일 중복 확인
 export async function checkEmail(email) {
-  const res = await fetch(`${BASE_URL}/check-email?email=${email}`);
-  return res.json();
+  const res = await publicFetch(`${BASE_URL}/check-email?email=${email}`)
+  return res.json()
 }
 
-// 휴대폰 인증 번호 발송 (회원가입, 로그인 토큰 없음)
 export async function sendPhoneVerificationCode(phoneNumber) {
-  const res = await fetch(`${BASE_URL}/phone-verification/send`, {
+  const res = await publicFetch(`${BASE_URL}/phone-verification/send`, {
     method: 'POST',
     headers: publicJsonHeaders(),
     body: JSON.stringify({
       phoneNumber,
     }),
-  });
+  })
 
-  return res.json();
+  return res.json()
 }
 
-// 회원가입
 export async function signup(form) {
-  const res = await fetch(`${BASE_URL}/signup`, {
+  const res = await publicFetch(`${BASE_URL}/signup`, {
     method: 'POST',
     headers: publicJsonHeaders(),
     body: JSON.stringify(form),
-  });
+  })
 
-  return res.json();
+  return res.json()
 }
 
-// 로그인
 export async function login(email, password) {
-  const csrfToken = await getCsrfToken();
+  const csrfToken = await getCsrfToken()
 
   const res = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'X-XSRF-TOKEN': csrfToken,
     },
     body: JSON.stringify({ email, password }),
-  });
-  return res.json();
+  })
+  return res.json()
 }
 
 // 로그아웃
@@ -117,21 +122,20 @@ export async function reissue() {
 
 // 법정대리인 인증번호 발송 (로그인 토큰 없음)
 export async function sendGuardianVerificationCode(phoneNumber) {
-  const res = await fetch(`${BASE_URL}/legal-guardian-verification/send`, {
+  const res = await publicFetch(`${BASE_URL}/legal-guardian-verification/send`, {
     method: 'POST',
     headers: publicJsonHeaders(),
     body: JSON.stringify({ phoneNumber }),
-  });
-  return res.json();
+  })
+  return res.json()
 }
 
-// 법정대리인 인증번호 확인 (로그인 토큰 없음, 10분 유효 동의 토큰 발급)
 export async function confirmGuardianVerification(data) {
-  const res = await fetch(`${BASE_URL}/legal-guardian-verification/confirm`, {
+  const res = await publicFetch(`${BASE_URL}/legal-guardian-verification/confirm`, {
     method: 'POST',
     headers: publicJsonHeaders(),
     body: JSON.stringify(data),
-  });
+  })
 
   const result = await parseJsonSafe(res);
 

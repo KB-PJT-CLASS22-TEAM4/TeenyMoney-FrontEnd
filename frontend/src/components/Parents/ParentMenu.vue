@@ -90,11 +90,14 @@
                       v-for="child in children"
                       :key="child.childId"
                       class="child-pick-btn"
+                      :class="{
+                        current: isCurrentChild(child.childId),
+                      }"
                       type="button"
                       @click="goWithChild(child.childId)"
                     >
                       {{ child.name }}
-                      <span>선택</span>
+                      <span>{{ isCurrentChild(child.childId) ? '현재' : '선택' }}</span>
                     </button>
                   </template>
                 </div>
@@ -164,7 +167,9 @@ const menuGroups = [
   },
 ]
 
-const currentChildId = computed(() => route.params.childId || null)
+const currentChildId = computed(() =>
+  route.params.childId || route.query.childId || null
+)
 
 watch(isOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
@@ -274,23 +279,36 @@ function currentItem() {
     .find((item) => item.key === selectingFor.value)
 }
 
+function isCurrentChild(childId) {
+  return (
+    currentChildId.value != null &&
+    String(currentChildId.value) === String(childId)
+  )
+}
+
 function handleItem(item) {
   if (!item.needsChild) {
     go(item.path)
     return
   }
 
-  const childId = currentChildId.value || (
-    children.value.length === 1 ? children.value[0].childId : null
-  )
+  if (selectingFor.value === item.key) {
+    selectingFor.value = null
+    return
+  }
 
-  if (childId) {
-    const target = childTargetPath(item, childId)
+  const canSkipPicker =
+    !currentChildId.value &&
+    !isChildrenLoading.value &&
+    children.value.length === 1
+
+  if (canSkipPicker) {
+    const target = childTargetPath(item, children.value[0].childId)
     go(target.path, target.query)
     return
   }
 
-  selectingFor.value = selectingFor.value === item.key ? null : item.key
+  selectingFor.value = item.key
 }
 
 function goWithChild(childId) {
@@ -435,6 +453,11 @@ function goWithChild(childId) {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.child-pick-btn.current {
+  border-color: #ffd86a;
+  background: #fff9e8;
 }
 
 .child-pick-btn span {

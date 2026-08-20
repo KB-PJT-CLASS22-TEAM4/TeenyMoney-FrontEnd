@@ -19,44 +19,6 @@
         </div>
       </section>
 
-      <section
-        v-if="!isLoading && !errorMessage && pendingApprovals.length"
-        class="pending-section"
-      >
-        <p class="group-title">처리가 필요해요 {{ pendingApprovals.length }}</p>
-
-        <div
-          v-for="item in pendingApprovals"
-          :key="item.enrollmentId"
-          class="pending-card clickable"
-          role="button"
-          tabindex="0"
-          @click="goApprovalDetail(item)"
-          @keydown.enter="goApprovalDetail(item)"
-        >
-          <div class="pending-top">
-            <p class="pending-title">{{ item.title }}</p>
-            <span class="pending-badge">승인 대기</span>
-          </div>
-          <p class="pending-meta">
-            {{ formatPendingMeta(item) }}
-          </p>
-        </div>
-      </section>
-
-      <div class="approval-tabs">
-        <button
-          v-for="tab in approvalTabs"
-          :key="tab.value"
-          class="approval-tab"
-          :class="{ active: activeApprovalTab === tab.value }"
-          type="button"
-          @click="activeApprovalTab = tab.value"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
       <div v-if="isLoading" class="state-box">불러오는 중입니다...</div>
       <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
 
@@ -74,59 +36,112 @@
           </button>
         </div>
 
-        <div v-if="activeApprovalTab === 'pending'">
-          <template v-for="group in groupedActiveProducts" :key="group.label">
-            <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+        <section
+          v-if="filteredCustomProducts.length"
+          class="custom-section"
+        >
+          <p class="group-title">
+            등록한 상품 {{ filteredCustomProducts.length }}
+          </p>
 
-            <div
-              v-for="product in group.items"
-              :key="product.enrollmentId"
-              class="product-card"
-            >
-              <div class="product-head">
-                <p class="product-title">{{ product.title }}</p>
-                <span class="product-rate">{{ product.rateText }}</span>
-              </div>
-
-              <p class="product-amount-label">
-                누적 금액
-                <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
-              </p>
-
-              <div class="progress-bar-bg">
-                <div
-                  class="progress-bar-fill"
-                  :style="{ width: product.progress + '%' }"
-                ></div>
-              </div>
-
-              <div class="product-foot">
-                <span>
-                  {{ product.periodMonths }}개월
-                  <template v-if="product.totalPayments">
-                    ({{ product.paymentCount }}회납)
-                  </template>
-                </span>
-                <span>만기 {{ product.maturityDate }}</span>
-              </div>
+          <div
+            v-for="product in filteredCustomProducts"
+            :key="product.key"
+            class="product-card"
+          >
+            <div class="product-head">
+              <p class="product-title">{{ product.title }}</p>
+              <span class="product-rate">{{ product.rateText }}</span>
             </div>
-          </template>
+            <p class="custom-meta">
+              {{ product.category }}
+              <template v-if="product.limitText">
+                · {{ product.limitText }}
+              </template>
+            </p>
+            <button
+              class="delete-btn"
+              type="button"
+              :disabled="deletingKey === product.key"
+              @click="handleDeleteCustomProduct(product)"
+            >
+              {{ deletingKey === product.key ? '삭제 중...' : '삭제' }}
+            </button>
+          </div>
+        </section>
+
+        <section
+          v-if="pendingApprovals.length"
+          class="pending-section"
+        >
+          <p class="pending-heading">
+            처리 필요
+            <span class="pending-count">{{ pendingApprovals.length }}</span>
+          </p>
 
           <div
-            v-if="!groupedActiveProducts.length"
-            class="empty-box"
+            v-for="item in pendingApprovals"
+            :key="item.enrollmentId"
+            class="pending-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
           >
-            {{ emptyCategoryMessage }}
+            <div class="pending-top">
+              <p class="pending-title">{{ item.title }}</p>
+              <span class="pending-badge">승인 대기</span>
+            </div>
+            <p class="pending-meta">
+              {{ formatPendingMeta(item) }}
+            </p>
           </div>
-        </div>
+        </section>
 
-        <div v-else class="completed-list">
+        <template v-for="group in groupedActiveProducts" :key="group.label">
+          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+
           <div
-            v-if="!filteredCompletedApprovals.length"
-            class="empty-box"
+            v-for="product in group.items"
+            :key="product.enrollmentId"
+            class="product-card"
           >
-            처리 완료된 승인 요청이 없습니다.
+            <div class="product-head">
+              <p class="product-title">{{ product.title }}</p>
+              <span class="product-rate">{{ product.rateText }}</span>
+            </div>
+
+            <p class="product-amount-label">
+              누적 금액
+              <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
+            </p>
+
+            <div class="progress-bar-bg">
+              <div
+                class="progress-bar-fill"
+                :style="{ width: product.progress + '%' }"
+              ></div>
+            </div>
+
+            <div class="product-foot">
+              <span>
+                {{ product.periodMonths }}개월
+                <template v-if="product.totalPayments">
+                  ({{ product.paymentCount }}회납)
+                </template>
+              </span>
+              <span>만기 {{ product.maturityDate }}</span>
+            </div>
           </div>
+        </template>
+
+        <section
+          v-if="filteredCompletedApprovals.length"
+          class="completed-list"
+        >
+          <p class="group-title">
+            처리 완료 {{ filteredCompletedApprovals.length }}
+          </p>
 
           <div
             v-for="item in filteredCompletedApprovals"
@@ -148,6 +163,18 @@
             </div>
             <p class="pending-meta">{{ formatPendingMeta(item) }}</p>
           </div>
+        </section>
+
+        <div
+          v-if="
+            !groupedActiveProducts.length &&
+            !pendingApprovals.length &&
+            !filteredCustomProducts.length &&
+            !filteredCompletedApprovals.length
+          "
+          class="empty-box"
+        >
+          {{ emptyCategoryMessage }}
         </div>
       </template>
     </div>
@@ -162,22 +189,26 @@
     </button>
 
     <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import AlertHost from '@/components/AlertHost.vue'
 
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { useAlertModal } from '@/composables/useAlertModal'
 import { getChildren } from '@/api/children'
 import * as financialProductsApi from '@/api/financialProducts'
 import {
   fetchAllChildFinancialProducts,
   fetchChildApprovalRequests,
+  fetchChildCustomProducts,
 } from '@/utils/financialProductMapper'
 import { parseServerDate } from '@/utils/datetime'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
@@ -185,22 +216,20 @@ import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 const childId = Number(route.params.childId)
 
 const childName = ref('자녀')
 const approvalRequests = ref([])
 const activeProducts = ref([])
+const customProducts = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
-const activeApprovalTab = ref('pending')
+const deletingKey = ref('')
 const activeCategory = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
-const approvalTabs = [
-  { label: '대기중', value: 'pending' },
-  { label: '처리완료', value: 'completed' },
-]
 
 const pendingApprovals = computed(() =>
   [...approvalRequests.value.filter((item) => item.isPending)].sort((a, b) => {
@@ -254,6 +283,16 @@ const groupedActiveProducts = computed(() => {
     label,
     items,
   }))
+})
+
+const filteredCustomProducts = computed(() => {
+  if (activeCategory.value === '전체') {
+    return customProducts.value
+  }
+
+  return customProducts.value.filter(
+    (item) => item.category === activeCategory.value
+  )
 })
 
 const emptyCategoryMessage = computed(() => {
@@ -333,7 +372,7 @@ async function fetchProducts() {
   errorMessage.value = ''
 
   try {
-    const [approvals, products] = await Promise.all([
+    const [approvals, products, created] = await Promise.all([
       fetchChildApprovalRequests(
         authStore.accessToken,
         childId,
@@ -344,17 +383,24 @@ async function fetchProducts() {
         childId,
         financialProductsApi,
       ),
+      fetchChildCustomProducts(
+        authStore.accessToken,
+        childId,
+        financialProductsApi,
+      ).catch(() => []),
     ])
 
     approvalRequests.value = mergeApprovalRequests(approvals, products)
     activeProducts.value = products.filter(
       (item) => !item.isPending && item.status !== 'REJECTED',
     )
+    customProducts.value = created
   } catch (error) {
     console.error('금융 상품 조회 실패:', error)
     errorMessage.value = error.message || '금융 상품을 불러오지 못했습니다.'
     approvalRequests.value = []
     activeProducts.value = []
+    customProducts.value = []
   } finally {
     isLoading.value = false
   }
@@ -375,6 +421,34 @@ function goCreate() {
   router.push({
     path: `/parents/children/${childId}/finance/create`,
   })
+}
+
+async function handleDeleteCustomProduct(product) {
+  if (deletingKey.value) return
+
+  const confirmed = await alertModal.showConfirm(
+    `"${product.title}" 상품을 삭제할까요?`
+  )
+  if (!confirmed) return
+
+  deletingKey.value = product.key
+
+  try {
+    await financialProductsApi.deleteFinancialProduct(
+      authStore.accessToken,
+      childId,
+      product.productType,
+      product.productId,
+    )
+    customProducts.value = customProducts.value.filter(
+      (item) => item.key !== product.key
+    )
+    alertModal.showAlert('상품을 삭제했습니다.')
+  } catch (error) {
+    alertModal.showAlert(error.message || '상품 삭제에 실패했습니다.')
+  } finally {
+    deletingKey.value = ''
+  }
 }
 
 onMounted(async () => {
@@ -458,7 +532,32 @@ onMounted(async () => {
 }
 
 .pending-section {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+}
+
+.pending-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+}
+
+.pending-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .child-info-left {
@@ -488,31 +587,6 @@ onMounted(async () => {
   color: #191b1e;
 }
 
-.approval-tabs {
-  display: flex;
-  gap: 18px;
-  margin: 0 -16px 16px;
-  padding: 0 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #f0f1f3;
-}
-
-.approval-tab {
-  padding: 0 0 10px;
-  border: none;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: #8b9097;
-  cursor: pointer;
-}
-
-.approval-tab.active {
-  color: #191b1e;
-  font-weight: 800;
-  border-bottom: 2px solid #ffbc00;
-}
-
 .pending-card,
 .completed-card {
   padding: 16px;
@@ -520,6 +594,12 @@ onMounted(async () => {
   border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.pending-card {
+  border: 1.5px solid #ffd86a;
+  background: #fff9e8;
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.16);
 }
 
 .clickable {
@@ -555,8 +635,8 @@ onMounted(async () => {
 }
 
 .pending-badge {
-  background: #fff3e0;
-  color: #ff9500;
+  background: #ffbc00;
+  color: #191b1e;
 }
 
 .completed-badge.approved {
@@ -630,6 +710,33 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 800;
   color: #191b1e;
+}
+
+.custom-section {
+  margin-bottom: 18px;
+}
+
+.custom-meta {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #8b9097;
+}
+
+.delete-btn {
+  width: 100%;
+  height: 40px;
+  border: 1.5px solid #e0e2e6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #ff3b30;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .product-card {

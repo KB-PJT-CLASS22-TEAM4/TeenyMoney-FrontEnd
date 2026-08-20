@@ -73,26 +73,26 @@
           <p class="info-label">연체 수수료</p>
           <p class="info-value">연 {{ request.lateFeeRate }}%</p>
         </div>
-      </section>
-    </div>
 
-    <div v-if="request?.isPending" class="action-bar">
-      <button
-        class="btn btn-secondary"
-        type="button"
-        :disabled="isProcessing"
-        @click="openConfirm('reject')"
-      >
-        거절
-      </button>
-      <button
-        class="btn btn-primary"
-        type="button"
-        :disabled="isProcessing"
-        @click="openConfirm('approve')"
-      >
-        승인
-      </button>
+        <div v-if="request.isPending" class="action-bar">
+          <button
+            class="btn btn-secondary"
+            type="button"
+            :disabled="isProcessing"
+            @click="openConfirm('reject')"
+          >
+            거절
+          </button>
+          <button
+            class="btn btn-primary"
+            type="button"
+            :disabled="isProcessing"
+            @click="openConfirm('approve')"
+          >
+            승인
+          </button>
+        </div>
+      </section>
     </div>
 
     <ConfirmModal
@@ -273,7 +273,7 @@ onMounted(async () => {
   background: #f8fafc;
   display: flex;
   flex-direction: column;
-  padding-bottom: 100px;
+  padding-bottom: 24px;
 }
 
 .nav {
@@ -421,25 +421,17 @@ onMounted(async () => {
 }
 
 .action-bar {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 360px;
-  max-width: 100%;
   display: flex;
-  gap: 8px;
-  padding: 12px 16px 24px;
-  background: #ffffff;
-  border-top: 1px solid #f0f1f3;
-  box-sizing: border-box;
+  gap: 10px;
+  margin-top: 6px;
+  padding-top: 14px;
 }
 
 .btn {
   flex: 1;
-  height: 48px;
+  height: 50px;
   border: none;
-  border-radius: 12px;
+  border-radius: 11px;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
@@ -452,8 +444,8 @@ onMounted(async () => {
 
 .btn-secondary {
   background: #ffffff;
-  color: #191b1e;
-  border: 1px solid #e7e9ec;
+  color: #ff3b30;
+  border: 1.5px solid #e0e2e6;
 }
 
 .btn:disabled {

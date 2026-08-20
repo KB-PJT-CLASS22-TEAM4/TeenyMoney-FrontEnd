@@ -89,7 +89,7 @@ function goHome() {
   background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
-  font-family: 'Pretendard', 'Inter', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   color: #15171b;
 }
 

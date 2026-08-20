@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/stores/auth'
 import {
   handleUnauthorizedResponse,
-  isPublicAuthApiUrl,
+  shouldOmitLoginSession,
 } from '@/utils/authSession'
 
 const PUBLIC_ROUTE_NAMES = new Set([
@@ -20,7 +20,7 @@ function getRequestUrl(input) {
   return input?.url
 }
 
-function withoutAccessToken(input, init = {}) {
+function withoutLoginSession(input, init = {}) {
   const headers = new Headers(
     init.headers || (input instanceof Request ? input.headers : undefined),
   )
@@ -29,6 +29,7 @@ function withoutAccessToken(input, init = {}) {
   return {
     ...init,
     headers,
+    credentials: 'omit',
   }
 }
 
@@ -37,12 +38,12 @@ export function setupFetchAuthInterceptor() {
 
   window.fetch = async (input, init) => {
     const url = getRequestUrl(input)
-    const nextInit = isPublicAuthApiUrl(url)
-      ? withoutAccessToken(input, init)
+    const nextInit = shouldOmitLoginSession(url)
+      ? withoutLoginSession(input, init)
       : init
     const response = await originalFetch(input, nextInit)
 
-    if (!isPublicAuthApiUrl(url)) {
+    if (!shouldOmitLoginSession(url)) {
       handleUnauthorizedResponse(response, url)
     }
 
@@ -53,6 +54,11 @@ export function setupFetchAuthInterceptor() {
 export function setupAuthRouterGuard(router) {
   router.beforeEach((to) => {
     const authStore = useAuthStore()
+
+    if (to.name === 'signup') {
+      authStore.clearUser()
+      authStore.closeLoginModal()
+    }
 
     if (isPublicRoute(to) || authStore.isAuthenticated) {
       return true
