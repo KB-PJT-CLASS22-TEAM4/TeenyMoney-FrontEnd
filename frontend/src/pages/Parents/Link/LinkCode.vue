@@ -47,7 +47,7 @@
         </div>
         <div class="guide-item">
           <span class="step">2</span>
-          <p>이 코드 6자리를 입력해주세요</p>
+          <p>로그인 후 이 코드 6자리를 입력해주세요</p>
         </div>
         <div class="guide-item">
           <span class="step">3</span>
