@@ -101,7 +101,7 @@
             </div>
 
             <div>
-              <p class="allowance-main">요청 목록 확인하기</p>
+              <p class="allowance-main">요청 목록 확인</p>
             </div>
           </div>
 

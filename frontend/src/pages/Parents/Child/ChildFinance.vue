@@ -82,11 +82,7 @@
           <div
             v-for="item in pendingApprovals"
             :key="item.enrollmentId"
-            class="pending-card clickable"
-            role="button"
-            tabindex="0"
-            @click="goApprovalDetail(item)"
-            @keydown.enter="goApprovalDetail(item)"
+            class="pending-card"
           >
             <div class="pending-top">
               <p class="pending-title">{{ item.title }}</p>
@@ -95,6 +91,31 @@
             <p class="pending-meta">
               {{ formatPendingMeta(item) }}
             </p>
+            <div class="pending-actions">
+              <button
+                class="detail-btn"
+                type="button"
+                @click="goApprovalDetail(item)"
+              >
+                상세보기
+              </button>
+              <button
+                class="reject-btn"
+                type="button"
+                :disabled="processingKey === item.enrollmentId"
+                @click="handleRejectApproval(item)"
+              >
+                거절
+              </button>
+              <button
+                class="approve-btn"
+                type="button"
+                :disabled="processingKey === item.enrollmentId"
+                @click="handleApproveApproval(item)"
+              >
+                {{ processingKey === item.enrollmentId ? '처리 중...' : '승인' }}
+              </button>
+            </div>
           </div>
         </section>
 
@@ -227,6 +248,7 @@ const customProducts = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const deletingKey = ref('')
+const processingKey = ref('')
 const activeCategory = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
@@ -415,6 +437,56 @@ function goApprovalDetail(item) {
       enrollmentId: item.enrollmentId,
     },
   })
+}
+
+async function handleApproveApproval(item) {
+  if (processingKey.value) return
+
+  const confirmed = await alertModal.showConfirm(
+    `${childName.value}님의 ${item.title} 가입을 승인할까요?`
+  )
+  if (!confirmed) return
+
+  processingKey.value = item.enrollmentId
+
+  try {
+    await financialProductsApi.approveFinancialProductApprovalRequest(
+      authStore.accessToken,
+      toProductType(item),
+      item.enrollmentId,
+    )
+    alertModal.showAlert('가입 신청을 승인했습니다.')
+    await fetchProducts()
+  } catch (error) {
+    alertModal.showAlert(error.message || '승인에 실패했습니다.')
+  } finally {
+    processingKey.value = ''
+  }
+}
+
+async function handleRejectApproval(item) {
+  if (processingKey.value) return
+
+  const confirmed = await alertModal.showConfirm(
+    `${childName.value}님의 ${item.title} 가입을 거절할까요?`
+  )
+  if (!confirmed) return
+
+  processingKey.value = item.enrollmentId
+
+  try {
+    await financialProductsApi.rejectFinancialProductApprovalRequest(
+      authStore.accessToken,
+      toProductType(item),
+      item.enrollmentId,
+    )
+    alertModal.showAlert('가입 신청을 거절했습니다.')
+    await fetchProducts()
+  } catch (error) {
+    alertModal.showAlert(error.message || '거절에 실패했습니다.')
+  } finally {
+    processingKey.value = ''
+  }
 }
 
 function goCreate() {
@@ -653,6 +725,48 @@ onMounted(async () => {
   margin: 0;
   font-size: 12px;
   color: #8b9097;
+}
+
+.pending-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.detail-btn,
+.reject-btn,
+.approve-btn {
+  flex: 1;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detail-btn:disabled,
+.reject-btn:disabled,
+.approve-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.detail-btn {
+  border: 1px solid #e0e2e6;
+  background: #ffffff;
+  color: #191b1e;
+}
+
+.reject-btn {
+  border: 1px solid #e0e2e6;
+  background: #ffffff;
+  color: #ff3b30;
+}
+
+.approve-btn {
+  border: none;
+  background: #ffbc00;
+  color: #191b1e;
 }
 
 .pending-btns {
