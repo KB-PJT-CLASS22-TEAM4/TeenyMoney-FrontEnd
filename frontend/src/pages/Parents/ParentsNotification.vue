@@ -720,6 +720,18 @@ onMounted(() => {
   background: #f2f4f6;
   border-radius: 50%;
   flex: none;
+  line-height: 0;
+}
+
+.icon-circle > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.icon-circle :deep(svg) {
+  display: block;
 }
 
 .noti-text {

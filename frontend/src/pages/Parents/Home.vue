@@ -338,7 +338,7 @@ button {
 .hero-section {
   position: relative;
   overflow: hidden;
-  padding: 36px 18px 28px;
+  padding: 0 18px 28px;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
