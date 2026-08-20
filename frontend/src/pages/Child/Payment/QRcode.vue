@@ -138,8 +138,7 @@ const isExpired = computed(() => remainSec.value <= 0)
   min-height: 730px;
   margin: 0 auto;
   padding: 50px 0 20px;
-  background: #ffffff;
-  border: 1px solid #eceef1;
+  background: #f8fafc;
 }
 
 /* 상단 네비 */
