@@ -36,12 +36,18 @@
 
         <!-- 대출 상환 방식 표시 (대출일 때만) -->
         <div class="row border-top" v-if="isLoan">
-          <span class="row-label">상환 방식</span>
+          <span class="row-label">
+            상환 방식
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal(confirmData.repaymentTypeDesc)" aria-label="도움말 보기">?</button>
+          </span>
           <span class="row-value">{{ confirmData.repaymentTypeDesc }}</span>
         </div>
 
         <div class="row border-top multiline">
-          <span class="row-label">적용금리</span>
+          <span class="row-label">
+            적용금리
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal('단리')" aria-label="도움말 보기">?</button>
+          </span>
           <div class="row-value-group">
             <span class="row-value highlight-blue">{{ confirmData.appliedRate }}</span>
             <span class="row-subtext">{{ confirmData.cancelPenaltyNote }}</span>
@@ -152,20 +158,46 @@
       </div>
     </Transition>
 
+    <!-- 금융 용어 사전 도움말 모달 -->
+    <FinanceTermModal
+      :show="showTermModal"
+      :term-data="activeTermData"
+      @close="closeTermModal"
+    />
+
     <!-- 확인/제출 단계라 말풍선 없이 캐릭터만 노출 -->
-    <Chatbot v-if="!showSuccessModal" hint-text="" />
+    <Chatbot v-if="!showSuccessModal" hint-text="금융 계약 내용이 궁금하세요?" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { getFinanceTerm } from '@/constants/financeTerms';
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import FinanceTermModal from '@/components/Child/FinanceTermModal.vue';
 import { formatRepaymentType } from '@/utils/financialProductMapper'
 
 const router = useRouter();
 const route = useRoute();
+
+// 어려운 금융 용어 설명 모달 상태
+const showTermModal = ref(false);
+const activeTermData = ref(null);
+
+function openTermModal(termName) {
+  const data = getFinanceTerm(termName);
+  if (data) {
+    activeTermData.value = data;
+    showTermModal.value = true;
+  }
+}
+
+function closeTermModal() {
+  showTermModal.value = false;
+  activeTermData.value = null;
+}
 
 const isScrolling = ref(false);
 let scrollTimer = null;
@@ -183,11 +215,20 @@ const isLoan      = rawCategory === '대출'
 const savingsType = route.query.savingsType || ''
 const isFreeSaving = savingsType === '자유적금'
 
-// 만기일 계산
-function calcMaturityDate(periodMonths) {
+// 만기일 계산 (사용자가 선택한 상환일/이체일 반영)
+function calcMaturityDate(periodMonths, customDay) {
   const d = new Date()
-  d.setMonth(d.getMonth() + Number(periodMonths || 0))
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  const monthsToAdd = Number(periodMonths || 0)
+  const targetMonthIndex = d.getMonth() + monthsToAdd
+  const targetYear = d.getFullYear() + Math.floor(targetMonthIndex / 12)
+  const targetMonth = ((targetMonthIndex % 12) + 12) % 12
+
+  const preferredDay = Number(customDay) || d.getDate()
+  const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate()
+  const finalDay = Math.min(preferredDay, lastDayOfTargetMonth)
+
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${targetYear}.${pad(targetMonth + 1)}.${pad(finalDay)}`
 }
 
 const amount    = Number(route.query.amount)    || 0
@@ -242,6 +283,8 @@ const productTypeDesc = computed(() => {
   return isFreeSaving ? '자유적립식 · 원할 때 자유롭게 저축' : '정액적립식 · 매월 정기 저축'
 })
 
+const selectedPaymentDay = Number(route.query.paymentDay) || 1
+
 const confirmData = reactive({
   title:            route.query.title || '금융 상품',
   productTypeDesc,
@@ -252,10 +295,10 @@ const confirmData = reactive({
   repaymentTypeDesc,
   appliedRate,
   cancelPenaltyNote,
-  autoTransfer:     route.query.autoTransfer === 'true' || route.query.autoTransfer === true,
-  transferDay:      route.query.paymentDay || 1,
+  autoTransfer:     route.query.autoTransfer === 'true' || route.query.autoTransfer === true || isLoan,
+  transferDay:      selectedPaymentDay,
   debitAccount:     '티니머니 지갑',
-  maturityDate:     calcMaturityDate(period),
+  maturityDate:     calcMaturityDate(period, selectedPaymentDay),
   principal,
   interest,
   score:            expectedScore.value,
@@ -298,7 +341,7 @@ const closeModalAndNavigate = () => {
   height: 730px;
   margin: 0 auto;
   padding-top: 50px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
@@ -309,6 +352,7 @@ const closeModalAndNavigate = () => {
   align-items: center;
   gap: 12px;
   padding: 0 20px 10px;
+  background: #f8fafc;
   flex: none;
 }
 
@@ -333,6 +377,7 @@ const closeModalAndNavigate = () => {
   min-height: 0;
   overflow-y: auto;
   padding: 4px 20px 16px;
+  background: #f8fafc;
 }
 
 .scroll::-webkit-scrollbar {
@@ -412,9 +457,38 @@ const closeModalAndNavigate = () => {
 }
 
 .row-label {
+  font-size: 14px;
+  color: #64748b;
   font-weight: 500;
-  font-size: 13.5px;
-  color: #8b9097;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-help-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  vertical-align: middle;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-help-inline:hover {
+  background: #ffbc00;
+  border-color: #ffbc00;
+  color: #15171b;
+  transform: scale(1.18);
 }
 
 .row-value {
