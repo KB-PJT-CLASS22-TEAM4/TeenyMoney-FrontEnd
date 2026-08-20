@@ -200,7 +200,7 @@
               form.rewardAmount = 0
             "
           >
-            지움
+            초기화
           </button>
         </div>
       </div>
