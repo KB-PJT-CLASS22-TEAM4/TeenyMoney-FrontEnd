@@ -672,68 +672,6 @@ async function onProfileFileChange(event) {
   }
 }
 
-function openProfilePicker() {
-  if (isUploadingProfile.value) {
-    return
-  }
-
-  profileFileInput.value?.click()
-}
-
-async function onProfileFileChange(event) {
-  const file = event.target.files?.[0]
-  event.target.value = ''
-
-  if (!file) {
-    return
-  }
-
-  if (!file.type.startsWith('image/')) {
-    alertModal.showAlert('이미지 파일만 선택할 수 있어요.')
-    return
-  }
-
-  if (file.size > PROFILE_IMAGE_MAX_BYTES) {
-    alertModal.showAlert('프로필 사진은 5MB 이하만 업로드할 수 있어요.')
-    return
-  }
-
-  if (!authStore.accessToken) {
-    alertModal.showAlert('로그인이 필요합니다.')
-    return
-  }
-
-  clearLocalPreview()
-  localPreviewUrl.value = URL.createObjectURL(file)
-  isUploadingProfile.value = true
-
-  try {
-    const data = await updateMyProfileImage(
-      authStore.accessToken,
-      file
-    )
-
-    if (data?.profileImageUrl) {
-      member.profileImageUrl = data.profileImageUrl
-      clearLocalPreview()
-    } else {
-      const refreshed = await getMyInfo(authStore.accessToken)
-      if (refreshed?.profileImageUrl) {
-        member.profileImageUrl = refreshed.profileImageUrl
-        clearLocalPreview()
-      }
-    }
-  } catch (error) {
-    console.error('프로필 이미지 변경 실패:', error)
-    clearLocalPreview()
-    alertModal.showAlert(
-      error.message || '프로필 이미지를 변경하지 못했습니다.'
-    )
-  } finally {
-    isUploadingProfile.value = false
-  }
-}
-
 /* =========================
    로그아웃
 ========================= */
