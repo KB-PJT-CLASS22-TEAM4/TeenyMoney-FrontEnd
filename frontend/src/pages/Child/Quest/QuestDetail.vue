@@ -58,20 +58,26 @@
       <!-- 부모님이 작성한 퀘스트 내용 -->
       <div class="parent-note">
         <div class="parent-avatar">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+          <img
+            v-if="parentProfileImage"
+            :src="parentProfileImage"
+            alt="부모님 프로필"
+            class="parent-avatar-img"
+          />
+          <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="none">
             <circle cx="12" cy="8.5" r="3.6" fill="#fff"/>
             <path d="M5 20c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5" fill="#fff"/>
           </svg>
         </div>
         <div class="parent-bubble">
-          <span class="parent-name">부모님이 남긴 내용</span>
+          <span class="parent-name">{{ parentName ? `${parentName}님이 남긴 내용` : '부모님이 남긴 내용' }}</span>
           <p class="parent-text">{{ quest.content }}</p>
         </div>
       </div>
 
       <!-- 이전 반려 안내 -->
       <div v-if="quest.lastRejectionReason" class="card reject-card">
-        <span class="reject-label">이전 인증이 반려됐어요</span>
+        <span class="reject-label">인증이 반려되었습니다</span>
         <p class="reject-reason">{{ quest.lastRejectionReason }}</p>
         <span class="reject-remaining">재시도 {{ quest.remainingCount }}회 남음</span>
       </div>
@@ -134,8 +140,26 @@
         {{ quest.subStatus === 'REJECTED' ? '다시 인증하기' : '퀘스트 인증하기' }}
       </button>
 
-      <div v-else class="pending-note">
-        <span>부모님이 확인하고 있어요. 조금만 기다려주세요!</span>
+      <!-- 안내 배너 -->
+      <div v-else class="notice-banner" :class="quest.subStatus === 'REJECTED' ? 'rejected' : 'pending'">
+        <div class="notice-banner-icon">
+          <svg v-if="quest.subStatus === 'REJECTED'" viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <path d="M12 9v4.5M12 16.2v.1" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="8.5" stroke="#dc2626" stroke-width="1.8"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="none">
+            <circle cx="12" cy="12" r="8.5" stroke="#d97706" stroke-width="1.8"/>
+            <path d="M12 7v5l3 2" stroke="#d97706" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p class="notice-banner-text">
+          <template v-if="quest.subStatus === 'REJECTED'">
+            부모님이 인증을 반려했어요! 다시 요청해보세요
+          </template>
+          <template v-else>
+            부모님이 확인하고 있어요. 조금만 기다려주세요!
+          </template>
+        </p>
       </div>
 
     </div>
@@ -148,6 +172,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 import { getQuestDetail, submitQuestVerification } from '@/api/quest'
+import { getMyParent } from '@/api/families'
+import { PARENT_PROFILE_IMAGE, resolveProfileImageUrl } from '@/utils/profileImages'
 import { calcKstDDay, formatKstDateTime, getKstParts, parseServerDate } from '@/utils/datetime'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
@@ -155,6 +181,9 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const questStore = useQuestStore()
+
+const parentName = ref('')
+const parentProfileImage = ref('')
 
 const isViewOnly = computed(() => route.query.view === '1')
 
@@ -189,11 +218,15 @@ async function loadQuest() {
   try {
     const result = await getQuestDetail(route.params.questId, authStore.accessToken)
     const d = result.data
+    const isRejectedStatus = d.status === 'REJECTED' ||
+      d.latestVerification?.status === 'REJECTED' ||
+      Boolean(d.latestVerification?.rejectionReason)
+
     quest.value = {
       id: d.questId,
       title: d.title,
       content: d.content,
-      subStatus: d.status,
+      subStatus: isRejectedStatus ? 'REJECTED' : d.status,
       score: null, // 티니점수 값은 API에 없음(teenyScoreEnabled 여부만 존재)
       dDay: calcDDay(d.deadline),
       rewardAmount: d.rewardAmount ?? 0,
@@ -217,7 +250,25 @@ async function loadQuest() {
   }
 }
 
-onMounted(loadQuest)
+async function loadParentProfile() {
+  try {
+    const res = await getMyParent(authStore.accessToken)
+    if (res?.data) {
+      parentName.value = res.data.name || ''
+      parentProfileImage.value = resolveProfileImageUrl(
+        res.data.profileImageUrl,
+        PARENT_PROFILE_IMAGE
+      )
+    }
+  } catch (e) {
+    console.warn('부모 프로필 조회 실패:', e.message)
+  }
+}
+
+onMounted(() => {
+  loadQuest()
+  loadParentProfile()
+})
 
 // 제출 시점 인증 일시 미리보기 (실제 저장 시각은 서버 응답 기준)
 const nowLabel = formatKstDateTime(new Date())
@@ -225,7 +276,7 @@ const nowLabel = formatKstDateTime(new Date())
 // 상태별 아이콘 색 - QuestList.vue와 동일한 팔레트
 const STATUS_ICON_COLORS = {
   IN_PROGRESS: { bg: '#e8f0fb', stroke: '#4585d6' },
-  PENDING:     { bg: '#fff6dd', stroke: '#d99a00' },
+  PENDING:     { bg: '#fffbeb', stroke: '#ffbc00' },
   REJECTED:    { bg: '#fbe9e9', stroke: '#e5484d' },
 }
 const iconColor = computed(() => STATUS_ICON_COLORS[quest.value.subStatus] ?? STATUS_ICON_COLORS.IN_PROGRESS)
@@ -309,7 +360,8 @@ async function submit() {
       image: photoFile.value,
     })
     questStore.invalidateTab('ongoing')
-    router.back()
+    const targetTab = route.query.fromTab || 'ongoing'
+    router.push({ name: 'child-quest-list', query: { tab: targetTab } })
   } catch (e) {
     alert(e.message || '인증 제출에 실패했습니다.')
   } finally {
@@ -318,7 +370,8 @@ async function submit() {
 }
 
 function goBack() {
-  router.back()
+  const targetTab = route.query.fromTab || 'ongoing'
+  router.push({ name: 'child-quest-list', query: { tab: targetTab } })
 }
 
 // 화면을 벗어날 때 카메라 스트림이 계속 켜져있지 않도록 정리
@@ -507,16 +560,27 @@ onBeforeUnmount(() => {
 }
 
 .parent-avatar {
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6fa3f2, #4585d6);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 8px rgba(69, 133, 214, .3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  border: 1.5px solid #ffffff;
+  box-sizing: border-box;
+}
+
+.parent-avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%;
 }
 
 .parent-bubble {
@@ -577,17 +641,18 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  height: 140px;
+  aspect-ratio: 1 / 1;
   border: 1.5px dashed #d8dbe0;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #fafbfc;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   padding: 0;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .photo-upload.filled {
@@ -731,13 +796,40 @@ onBeforeUnmount(() => {
 
 .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.pending-note {
-  text-align: center;
-  padding: 16px 0;
-  font-size: 13px;
-  color: #d99a00;
-  background: #fff6dd;
-  border-radius: 12px;
-  font-weight: 600;
+.notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+
+.notice-banner.pending {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+.notice-banner.rejected {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.notice-banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notice-banner-text {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: keep-all;
 }
 </style>
