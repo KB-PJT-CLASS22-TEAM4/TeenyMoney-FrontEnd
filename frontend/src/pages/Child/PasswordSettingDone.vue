@@ -37,8 +37,7 @@ function goHome() {
   min-height: 730px;
   margin: 0 auto;
   padding: 40px 0 30px;
-  background: #ffffff;
-  border: 1px solid #eceef1;
+  background: #f8fafc;
 }
 
 .center {
@@ -96,7 +95,7 @@ function goHome() {
   font-family: inherit;
   font-weight: 700;
   font-size: 16px;
-  color: #ffffff;
+  color: #191b1e;
   cursor: pointer;
 }
 

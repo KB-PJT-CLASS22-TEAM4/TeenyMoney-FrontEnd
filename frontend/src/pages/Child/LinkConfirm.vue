@@ -1,36 +1,101 @@
 <template>
   <div class="confirm-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <button class="back-btn" @click="goBack">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- 상단 네비게이션 -->
+    <header class="nav">
+      <button class="back-btn" type="button" aria-label="뒤로가기" @click="goBack">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+          <path d="M15 19l-7-7 7-7" stroke="#191b1e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       <h1 class="nav-title">보호자 연동</h1>
-    </div>
+      <div class="nav-right-placeholder"></div>
+    </header>
 
-    <div class="body">
-      <div class="heading">
-        <h2 class="title">이 보호자가 맞나요?</h2>
-        <p class="subtitle">연동하면 함께 용돈을 관리할 수 있어요</p>
-      </div>
+    <!-- 스크롤 본문 영역 -->
+    <main class="body-content">
+      <!-- 상단 타이틀 -->
+      <section class="heading-section">
+        <span class="step-badge">가족 연결 확인</span>
+        <h2 class="main-title">
+          연동할 보호자 정보를<br />
+          <span class="highlight-text">확인해 주세요</span>
+        </h2>
+        <p class="sub-desc">
+          연동 후 부모님과 함께 안전하게 용돈을 관리할 수 있어요
+        </p>
+      </section>
 
-      <!-- 보호자 카드 -->
-      <div class="guardian-card">
-        <div class="avatar">
-          <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
-            <circle cx="16" cy="11" r="5" stroke="#b9bec5" stroke-width="2.4"/>
-            <path d="M7 27c0-5 4-8 9-8s9 3 9 8" stroke="#b9bec5" stroke-width="2.4"/>
-          </svg>
+      <!-- 보호자 프로필 카드 -->
+      <section class="guardian-hero-card">
+        <div class="profile-header">
+          <div class="avatar-box">
+            <img
+              v-if="guardian.profileImageUrl"
+              :src="guardian.profileImageUrl"
+              alt="보호자 프로필"
+              class="avatar-img"
+            />
+            <img
+              v-else
+              :src="PARENT_PROFILE_IMAGE"
+              alt="보호자 기본 프로필"
+              class="avatar-img default"
+            />
+          </div>
+
+          <div class="guardian-identity">
+            <div class="name-row">
+              <strong class="guardian-name">{{ guardian.name || '보호자' }}</strong>
+              <span class="relation-pill">{{ guardian.relation || '보호자' }}</span>
+            </div>
+            <span class="guardian-status">티니머니 패밀리 멤버</span>
+          </div>
         </div>
-        <p class="guardian-name">{{ guardian.name }}</p>
-        <p class="guardian-relation">보호자 · {{ guardian.relation }}</p>
-      </div>
-    </div>
 
-    <!-- 연동하기 버튼 -->
-    <button class="cta" @click="goToCompletePage">연동하기</button>
+        <div class="card-divider"></div>
+
+        <!-- 혜택/기능 안내 리스트 -->
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="bullet-dot"></span>
+            <div class="feature-text">
+              <span class="feature-title">용돈 지급 및 송금</span>
+              <span class="feature-desc">부모님에게 바로 용돈을 받고 보낼 수 있어요</span>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <span class="bullet-dot"></span>
+            <div class="feature-text">
+              <span class="feature-title">안심 소비 관리</span>
+              <span class="feature-desc">유해 가맹점 차단 및 오늘만 허용 요청</span>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <span class="bullet-dot"></span>
+            <div class="feature-text">
+              <span class="feature-title">퀘스트 및 금융 미션</span>
+              <span class="feature-desc">미션을 완료하고 보상금을 획득하세요</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 안내 팁 박스 -->
+      <section class="notice-box">
+        <p class="notice-text">
+          가족 연동 해제 및 변경은 마이페이지 설정에서 언제든지 관리할 수 있습니다.
+        </p>
+      </section>
+    </main>
+
+    <!-- 하단 고정 액션 버튼 -->
+    <footer class="bottom-action-bar">
+      <button class="submit-button" type="button" @click="goToCompletePage">
+        이 보호자로 연동하기
+      </button>
+    </footer>
   </div>
 </template>
 
@@ -39,18 +104,24 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getMyParent } from '@/api/families'
 import { useAuthStore } from '@/stores/auth'
+import { PARENT_PROFILE_IMAGE, resolveProfileImageUrl } from '@/utils/profileImages'
 
 const router = useRouter();
 const authStore = useAuthStore();
 
-const guardian = ref({ name: '', relation: '보호자' });
+const guardian = ref({ name: '', relation: '가족', profileImageUrl: '' });
 
 // 페이지 진입 시 연동된 부모 정보 조회
 onMounted(async () => {
   try {
     const res = await getMyParent(authStore.accessToken)
-    if (res.data) {
-      guardian.value.name = res.data.name
+    if (res?.data) {
+      guardian.value.name = res.data.name || ''
+      guardian.value.relation = res.data.relation || '보호자'
+      guardian.value.profileImageUrl = resolveProfileImageUrl(
+        res.data.profileImageUrl,
+        PARENT_PROFILE_IMAGE
+      )
     }
   } catch (e) {
     console.error('부모 정보 조회 실패:', e.message)
@@ -71,118 +142,283 @@ function goToCompletePage() {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  min-height: 730px;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
   margin: 0 auto;
-  padding: 50px 0 20px;
   background: #ffffff;
-  border: 1px solid #eceef1;
+  color: #191b1e;
+  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
 }
 
-/* 상단 네비 */
+/* 상단 네비게이션 */
 .nav {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 2px 16px 6px;
+  justify-content: space-between;
+  position: relative;
+  height: 60px;
+  padding: 0 16px;
+  background: #ffffff;
+  box-sizing: border-box;
+  z-index: 10;
 }
 
 .back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   border: none;
   background: transparent;
   cursor: pointer;
+  border-radius: 50%;
   padding: 0;
-  display: flex;
+  transition: background 0.15s ease;
+}
+
+.back-btn:hover {
+  background: #f1f5f9;
 }
 
 .nav-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   margin: 0;
   font-weight: 700;
-  font-size: 15px;
-  color: #15171b;
+  font-size: 17px;
+  color: #191b1e;
+  letter-spacing: -0.3px;
 }
 
-.body {
+.nav-right-placeholder {
+  width: 40px;
+}
+
+/* 본문 영역 */
+.body-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  padding: 12px 20px 24px;
+  box-sizing: border-box;
+}
+
+/* 타이틀 섹션 */
+.heading-section {
+  margin-bottom: 24px;
+}
+
+.step-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #d97706;
+  background: #fef3c7;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  letter-spacing: -0.2px;
+}
+
+.main-title {
+  margin: 0 0 8px;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.highlight-text {
+  color: #2563eb;
+}
+
+.sub-desc {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
+}
+
+/* 보호자 프로필 히어로 카드 */
+.guardian-hero-card {
+  position: relative;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 20px;
+  padding: 24px 20px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.profile-header {
+  display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 16px 20px 0;
+  gap: 16px;
 }
 
-.heading {
+.avatar-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #ffffff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px #e2e8f0;
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-img.default {
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.guardian-identity {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+.name-row {
+  display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.title {
-  margin: 50px 0 0;
+.guardian-name {
+  font-size: 20px;
   font-weight: 800;
-  font-size: 18px;
-  color: #15171b;
+  color: #0f172a;
+  letter-spacing: -0.4px;
 }
 
-.subtitle {
-  margin: 0;
-  font-weight: 500;
+.relation-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #dbeafe;
+}
+
+.guardian-status {
   font-size: 13px;
-  color: #8b9097;
+  color: #64748b;
+  font-weight: 500;
 }
 
-/* 보호자 카드 */
-.guardian-card {
+/* 카드 내부 구분선 */
+.card-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 20px 0 16px;
+}
+
+/* 혜택/기능 리스트 */
+.feature-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 258px;
-  padding: 34px 18px 26px;
-  border: 1px solid #e4e1e1;
-  border-radius: 8px;
+  gap: 14px;
 }
 
-.avatar {
+.feature-item {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 64px;
-  height: 64px;
-  background: #e5e7eb;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bullet-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  margin-bottom: 6px;
+  background: #94a3b8;
+  margin-top: 8px;
+  flex-shrink: 0;
 }
 
-.guardian-name {
-  margin: 0;
-  font-weight: 800;
-  font-size: 17px;
-  color: #15171b;
+.feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.guardian-relation {
-  margin: 0;
-  font-weight: 500;
+.feature-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.2px;
+}
+
+.feature-desc {
   font-size: 12.5px;
-  color: #b9bec5;
+  color: #64748b;
+  line-height: 1.35;
 }
 
-/* 연동하기 버튼 */
-.cta {
-width: 318px;
-  margin: auto auto 0;
-  padding: 15px;
+/* 안내 팁 박스 */
+.notice-box {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+.notice-text {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.45;
+  letter-spacing: -0.2px;
+}
+
+/* 하단 고정 액션 버튼 */
+.bottom-action-bar {
+  padding: 16px 20px 24px;
+  background: #ffffff;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.submit-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 54px;
   border: none;
-  border-radius: 4px;
+  border-radius: 14px;
   background: #ffbc00;
   color: #191b1e;
+  font-size: 16px;
   font-weight: 700;
-  font-size: 14.5px;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 188, 0, 0.35);
+  transition: all 0.15s ease-in-out;
 }
 
-.cta:active {
-  filter: brightness(0.97);
+.submit-button:hover {
+  background: #f5b300;
+  box-shadow: 0 6px 18px rgba(255, 188, 0, 0.45);
+}
+
+.submit-button:active {
+  transform: scale(0.985);
+  box-shadow: 0 2px 8px rgba(255, 188, 0, 0.25);
 }
 </style>

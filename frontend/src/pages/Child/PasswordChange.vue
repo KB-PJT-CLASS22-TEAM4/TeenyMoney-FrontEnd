@@ -1,20 +1,20 @@
 <template>
   <div class="pay-pw-screen">
-    <!-- 상단 네비 -->
+    <!-- 상단 네비 (중앙 타이틀 + 우측 X 닫기 버튼) -->
     <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="nav-placeholder"></div>
+      <h1 class="nav-title">결제 비밀번호 변경</h1>
+      <button class="icon-btn close-btn" type="button" @click="goBack" aria-label="닫기">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1 class="nav-title">결제 비밀번호 변경</h1>
-      <ChildNavActions />
     </div>
 
     <!-- 자물쇠 + 안내 -->
     <div class="lock-area">
       <div class="lock-icon">
-        <svg :class="{ shake: isError }" viewBox="0 0 24 24" width="40" height="40" fill="none">
+        <svg :class="{ shake: isError }" viewBox="0 0 24 24" width="34" height="34" fill="none">
           <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#ffffff" stroke-width="1.8"/>
           <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffffff" stroke-width="1.8"/>
           <circle cx="12" cy="15" r="1.3" fill="#ffffff"/>
@@ -39,15 +39,15 @@
 
     <!-- 숫자 키패드 -->
     <div class="keypad">
-      <button v-for="k in ['1','2','3','4','5','6','7','8','9']" :key="k" class="key" @click="press(k)">
+      <button v-for="k in ['1','2','3','4','5','6','7','8','9']" :key="k" type="button" class="key" @click="press(k)">
         {{ k }}
       </button>
       <span class="key empty"></span>
-      <button class="key" @click="press('0')">0</button>
-      <button class="key" @click="remove" aria-label="지우기">
+      <button type="button" class="key" @click="press('0')">0</button>
+      <button class="key" type="button" @click="remove" aria-label="지우기">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
-          <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z" stroke="#15171b" stroke-width="1.5" stroke-linejoin="round"/>
-          <path d="M13 9l4 4M17 9l-4 4" stroke="#15171b" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z" stroke="#0f172a" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M13 9l4 4M17 9l-4 4" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </button>
     </div>
@@ -57,27 +57,29 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import { useAuthStore } from '@/stores/auth'
+import { registerPaymentPassword } from '@/api/password'
 
 const router = useRouter()
+const authStore = useAuthStore()
+
+// 1단계: 기존 비밀번호 입력 ('current')
+// 2단계: 새 비밀번호 입력   ('new')
+// 3단계: 새 비밀번호 확인   ('confirm')
+const step = ref('current')
 
 const pin = ref('')
+const currentPin = ref('')
+const newPin = ref('')
 const isError = ref(false)
 const errorMsg = ref('')
 const PIN_LENGTH = 6
 
-// 단계: 'current'(기존 비번 확인) → 'new'(새 비번 입력)
-const step = ref('current')
-
-// 더미: 기존 비번이 123456이라고 가정 (나중에 API 검증으로 교체)
-const DUMMY_CURRENT = '123456'
-
-// 단계별 안내 문구
-const guideText = computed(() =>
-  step.value === 'current'
-    ? '기존 비밀번호를 입력해 주세요'
-    : '새 비밀번호 6자리를 입력해 주세요'
-)
+const guideText = computed(() => {
+  if (step.value === 'current') return '기존 결제 비밀번호를 입력해 주세요'
+  if (step.value === 'new')     return '새로운 결제 비밀번호를 입력해 주세요'
+  return '새 비밀번호를 한 번 더 입력해 주세요'
+})
 
 function press(num) {
   if (pin.value.length >= PIN_LENGTH) return
@@ -97,26 +99,38 @@ function goBack() {
 // 6자리 다 채워지면 단계별 처리
 watch(pin, (val) => {
   if (val.length === PIN_LENGTH) {
-    handleSubmit()
+    handleStepComplete(val)
   }
 })
 
-function handleSubmit() {
+async function handleStepComplete(entered) {
   if (step.value === 'current') {
-    // 1단계: 기존 비번 확인
-    // TODO: [API] 기존 비번 검증 (지금은 더미 123456)
-    if (pin.value === DUMMY_CURRENT) {
-      pin.value = ''          // 입력 초기화
-      step.value = 'new'      // 새 비번 입력 단계로
-    } else {
-      handleError('기존 비밀번호가 일치하지 않습니다')
+    // 1단계: 기존 비밀번호 저장 후 다음 단계로
+    // (서버 검증 API가 있다면 여기서 호출, 없으면 새 비밀번호 입력으로)
+    currentPin.value = entered
+    pin.value = ''
+    step.value = 'new'
+
+  } else if (step.value === 'new') {
+    // 2단계: 새 비밀번호 저장 후 확인 단계로
+    newPin.value = entered
+    pin.value = ''
+    step.value = 'confirm'
+
+  } else if (step.value === 'confirm') {
+    // 3단계: 새 비밀번호와 일치하는지 확인
+    if (entered !== newPin.value) {
+      handleError('비밀번호가 일치하지 않습니다')
+      return
     }
-  } else {
-    // 2단계: 새 비번 입력 완료
-    // TODO: [API] 새 비번 저장
-    //   POST /api/v1/... { paymentPassword: pin.value }
-    //   headers: { Authorization: `Bearer ${accessToken}` }
-    console.log('새 결제 비밀번호:', pin.value)
+
+    // 서버에 등록/변경 API 호출
+    try {
+      await registerPaymentPassword(authStore.accessToken, newPin.value)
+    } catch (e) {
+      handleError(e.message || '비밀번호 변경에 실패했습니다')
+      return
+    }
 
     // 완료 화면 재사용 (설정 완료 화면과 동일)
     router.push({ name: 'child-password-setting-done' })
@@ -144,18 +158,22 @@ function handleError(msg = '다시 시도해 주세요') {
   min-height: 730px;
   margin: 0 auto;
   padding: 40px 0 30px;
-  background: #ffffff;
-  border: 1px solid #eceef1;
+  background: #f8fafc;
 }
 
 /* 상단 네비 */
 .nav {
+  position: relative;
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: space-between;
   width: 100%;
   padding: 12px 20px;
+}
+
+.nav-placeholder {
+  width: 30px;
 }
 
 .icon-btn {
@@ -168,13 +186,20 @@ function handleError(msg = '다시 시도해 주세요') {
   background: transparent;
   cursor: pointer;
   padding: 0;
+  z-index: 2;
 }
 
 .nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   margin: 0;
   font-weight: 700;
   font-size: 16px;
   color: #15171b;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* 자물쇠 + 안내 */
@@ -182,43 +207,50 @@ function handleError(msg = '다시 시도해 주세요') {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 40px;
+  width: 100%;
+  margin-top: 54px;
 }
 
 .lock-icon {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 76px;
-  height: 76px;
+  width: 66px;
+  height: 66px;
   background: #ffbc00;
   border-radius: 50%;
 }
 
 .lock-text {
-  margin: 30px 0 0;
-  font-weight: 700;
-  font-size: 16px;
-  color: #15171b;
+  margin: 28px 0 0;
+  font-weight: 600;
+  font-size: 19px;
+  color: #0f172a;
+  letter-spacing: -0.4px;
+  text-align: center;
 }
 
 /* 6자리 점 */
 .dots {
   display: flex;
+  justify-content: center;
+  align-items: center;
   gap: 20px;
+  width: 100%;
   margin-top: 40px;
 }
 
 .dot {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #e5e7eb;
-  transition: background 0.15s;
+  background: #cbd5e1;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .dot.filled {
   background: #ffbc00;
+  transform: scale(1.05);
 }
 
 .dot.error {
@@ -261,7 +293,7 @@ function handleError(msg = '다시 시도해 주세요') {
   align-items: center;
   width: 100%;
   max-width: 320px;
-  margin: 40px auto 0;
+  margin: 54px auto 0;
   padding: 0;
   gap: 8px 0;
   box-sizing: border-box;
@@ -278,11 +310,11 @@ function handleError(msg = '다시 시도해 주세요') {
   padding: 0;
   border: none;
   background: transparent;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 26px;
   line-height: 1;
   text-align: center;
-  color: #15171b;
+  color: #0f172a;
   cursor: pointer;
   border-radius: 12px;
   appearance: none;
