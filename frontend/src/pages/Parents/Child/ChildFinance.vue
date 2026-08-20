@@ -49,6 +49,40 @@
           </button>
         </div>
 
+        <section
+          v-if="filteredCustomProducts.length"
+          class="custom-section"
+        >
+          <p class="group-title">
+            등록한 상품 {{ filteredCustomProducts.length }}
+          </p>
+
+          <div
+            v-for="product in filteredCustomProducts"
+            :key="product.key"
+            class="product-card"
+          >
+            <div class="product-head">
+              <p class="product-title">{{ product.title }}</p>
+              <span class="product-rate">{{ product.rateText }}</span>
+            </div>
+            <p class="custom-meta">
+              {{ product.category }}
+              <template v-if="product.limitText">
+                · {{ product.limitText }}
+              </template>
+            </p>
+            <button
+              class="delete-btn"
+              type="button"
+              :disabled="deletingKey === product.key"
+              @click="handleDeleteCustomProduct(product)"
+            >
+              {{ deletingKey === product.key ? '삭제 중...' : '삭제' }}
+            </button>
+          </div>
+        </section>
+
         <div v-if="activeApprovalTab === 'pending'">
           <section
             v-if="pendingApprovals.length"
@@ -165,22 +199,26 @@
     </button>
 
     <ParentBottomNav active="child" />
+    <AlertHost :modal="alertModal" />
   </div>
 </template>
 
 <script setup>
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import AlertHost from '@/components/AlertHost.vue'
 
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { useAlertModal } from '@/composables/useAlertModal'
 import { getChildren } from '@/api/children'
 import * as financialProductsApi from '@/api/financialProducts'
 import {
   fetchAllChildFinancialProducts,
   fetchChildApprovalRequests,
+  fetchChildCustomProducts,
 } from '@/utils/financialProductMapper'
 import { parseServerDate } from '@/utils/datetime'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
@@ -188,14 +226,17 @@ import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const alertModal = useAlertModal()
 
 const childId = Number(route.params.childId)
 
 const childName = ref('자녀')
 const approvalRequests = ref([])
 const activeProducts = ref([])
+const customProducts = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
+const deletingKey = ref('')
 const activeApprovalTab = ref('pending')
 const activeCategory = ref('전체')
 
@@ -257,6 +298,16 @@ const groupedActiveProducts = computed(() => {
     label,
     items,
   }))
+})
+
+const filteredCustomProducts = computed(() => {
+  if (activeCategory.value === '전체') {
+    return customProducts.value
+  }
+
+  return customProducts.value.filter(
+    (item) => item.category === activeCategory.value
+  )
 })
 
 const emptyCategoryMessage = computed(() => {
@@ -336,7 +387,7 @@ async function fetchProducts() {
   errorMessage.value = ''
 
   try {
-    const [approvals, products] = await Promise.all([
+    const [approvals, products, created] = await Promise.all([
       fetchChildApprovalRequests(
         authStore.accessToken,
         childId,
@@ -347,17 +398,24 @@ async function fetchProducts() {
         childId,
         financialProductsApi,
       ),
+      fetchChildCustomProducts(
+        authStore.accessToken,
+        childId,
+        financialProductsApi,
+      ).catch(() => []),
     ])
 
     approvalRequests.value = mergeApprovalRequests(approvals, products)
     activeProducts.value = products.filter(
       (item) => !item.isPending && item.status !== 'REJECTED',
     )
+    customProducts.value = created
   } catch (error) {
     console.error('금융 상품 조회 실패:', error)
     errorMessage.value = error.message || '금융 상품을 불러오지 못했습니다.'
     approvalRequests.value = []
     activeProducts.value = []
+    customProducts.value = []
   } finally {
     isLoading.value = false
   }
@@ -378,6 +436,34 @@ function goCreate() {
   router.push({
     path: `/parents/children/${childId}/finance/create`,
   })
+}
+
+async function handleDeleteCustomProduct(product) {
+  if (deletingKey.value) return
+
+  const confirmed = await alertModal.showConfirm(
+    `"${product.title}" 상품을 삭제할까요?`
+  )
+  if (!confirmed) return
+
+  deletingKey.value = product.key
+
+  try {
+    await financialProductsApi.deleteFinancialProduct(
+      authStore.accessToken,
+      childId,
+      product.productType,
+      product.productId,
+    )
+    customProducts.value = customProducts.value.filter(
+      (item) => item.key !== product.key
+    )
+    alertModal.showAlert('상품을 삭제했습니다.')
+  } catch (error) {
+    alertModal.showAlert(error.message || '상품 삭제에 실패했습니다.')
+  } finally {
+    deletingKey.value = ''
+  }
 }
 
 onMounted(async () => {
@@ -663,6 +749,33 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 800;
   color: #191b1e;
+}
+
+.custom-section {
+  margin-bottom: 18px;
+}
+
+.custom-meta {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #8b9097;
+}
+
+.delete-btn {
+  width: 100%;
+  height: 40px;
+  border: 1.5px solid #e0e2e6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #ff3b30;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .product-card {

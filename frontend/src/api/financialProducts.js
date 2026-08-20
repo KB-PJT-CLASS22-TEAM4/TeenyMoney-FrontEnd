@@ -133,6 +133,44 @@ export async function createFinancialProduct(accessToken, payload) {
   return parseResponse(response)
 }
 
+export async function getChildCustomProducts(accessToken, childId, productType) {
+  ensureAccessToken(accessToken)
+  if (!childId) throw new Error('자녀 정보가 필요합니다.')
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/${toProductPathSegment(productType)}`,
+    {
+      method: 'GET',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}
+
+export async function deleteFinancialProduct(
+  accessToken,
+  childId,
+  productType,
+  productId
+) {
+  ensureAccessToken(accessToken)
+  if (!childId) throw new Error('자녀 정보가 필요합니다.')
+  if (productId == null || productId === '') {
+    throw new Error('상품 정보가 필요합니다.')
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/${toProductPathSegment(productType)}/${productId}`,
+    {
+      method: 'DELETE',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}
+
 function toApiProductType(categoryOrType) {
   const map = {
     적금: 'SAVING',
