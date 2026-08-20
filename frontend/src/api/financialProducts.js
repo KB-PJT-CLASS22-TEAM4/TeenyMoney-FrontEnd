@@ -53,7 +53,7 @@ export async function getChildSavingProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/custom-savings`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/savings`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -67,7 +67,7 @@ export async function getChildDepositProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/custom-deposits`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/deposits`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -81,7 +81,7 @@ export async function getChildLoanProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/custom-loans`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/loans`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),

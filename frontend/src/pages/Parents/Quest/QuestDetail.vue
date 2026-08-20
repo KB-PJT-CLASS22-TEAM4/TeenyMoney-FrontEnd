@@ -299,24 +299,14 @@
             검토 일시
           </p>
 
-          <div
-            v-if="showReviewHistoryList"
-            class="review-history"
-          >
-            <p
-              v-for="item in reviewHistory"
-              :key="item.key"
-              class="info-value review-history-line"
-            >
-              {{ formatReviewHistoryLine(item) }}
-            </p>
-          </div>
-
-          <p
-            v-else
-            class="info-value"
-          >
-            {{ firstReviewDateText }}
+          <p class="info-value">
+            {{
+              formatDate(
+                getVerificationReviewedAt(
+                  quest.latestVerification
+                )
+              )
+            }}
           </p>
         </div>
 
@@ -684,7 +674,6 @@ import {
 
 import {
   getQuestDetail,
-  getQuestVerifications,
   updateQuest,
   deleteQuest,
   approveQuestVerification,
@@ -698,7 +687,6 @@ import {
 
 import {
   formatKstDateTime,
-  parseServerDate,
   toKstDatetimeLocalValue,
   utcIsoFromKstDatetimeLocal,
 } from '@/utils/datetime'
@@ -721,9 +709,6 @@ const questId =
 
 const quest =
   ref(null)
-
-const verificationList =
-  ref([])
 
 const isLoading =
   ref(false)
@@ -878,26 +863,6 @@ async function loadQuestDetail() {
 
     quest.value =
       res.data
-
-    try {
-      const historyRes =
-        await getQuestVerifications(
-          questId,
-          authStore.accessToken
-        )
-
-      verificationList.value =
-        extractVerificationList(
-          historyRes.data
-        )
-    } catch (error) {
-      console.error(
-        '인증 내역 조회 실패:',
-        error
-      )
-      verificationList.value =
-        []
-    }
 
   } catch (error) {
     console.error(
@@ -1371,12 +1336,6 @@ function formatReward(
   ).toLocaleString()}원`
 }
 
-function parseDateValue(
-  value
-) {
-  return parseServerDate(value)
-}
-
 function formatDate(
   value
 ) {
@@ -1429,269 +1388,6 @@ function getVerificationReviewedAt(
     verification?.reviewedDate ??
     null
   )
-}
-
-function getHistoryReviewedAt(
-  verification
-) {
-  const explicit =
-    verification?.reviewedAt ??
-    verification?.processedAt ??
-    verification?.reviewedDate ??
-    null
-
-  if (explicit) {
-    return explicit
-  }
-
-  const status =
-    getVerificationStatusCode(
-      verification
-    )
-
-  if (
-    status === 'APPROVED' ||
-    status === 'REJECTED' ||
-    status === 'DECLINED'
-  ) {
-    return (
-      verification?.updatedAt ??
-      null
-    )
-  }
-
-  return null
-}
-
-function getVerificationStatusCode(
-  verification
-) {
-  return String(
-    verification?.status ||
-    ''
-  ).toUpperCase()
-}
-
-function getReviewResultLabel(
-  verification
-) {
-  const status =
-    getVerificationStatusCode(
-      verification
-    )
-
-  if (status === 'APPROVED') {
-    return '허용'
-  }
-
-  if (
-    status === 'REJECTED' ||
-    status === 'DECLINED'
-  ) {
-    return '거절'
-  }
-
-  return ''
-}
-
-function getVerificationAttemptNo(
-  verification,
-  fallback
-) {
-  const count =
-    verification?.attemptNo ??
-    verification?.attemptCount ??
-    verification?.attempt ??
-    fallback
-
-  const number =
-    Number(count)
-
-  return Number.isFinite(number)
-    ? number
-    : fallback
-}
-
-function extractVerificationList(
-  data
-) {
-  if (Array.isArray(data)) {
-    return data
-  }
-
-  if (
-    !data ||
-    typeof data !== 'object'
-  ) {
-    return []
-  }
-
-  const candidates = [
-    data.content,
-    data.verifications,
-    data.verificationHistory,
-    data.verificationList,
-    data.list,
-    data.items,
-  ]
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) {
-      return candidate
-    }
-  }
-
-  return []
-}
-
-const reviewHistory =
-  computed(() => {
-    const questData =
-      quest.value
-
-    const latest =
-      questData?.latestVerification
-        ? [questData.latestVerification]
-        : []
-
-    const mergedByKey =
-      new Map()
-
-    const sources = [
-      ...verificationList.value,
-      ...extractVerificationList(
-        questData
-      ),
-      ...latest,
-    ]
-
-    sources.forEach((item, index) => {
-      if (
-        !item ||
-        typeof item !== 'object'
-      ) {
-        return
-      }
-
-      const id =
-        item.verificationId ??
-        item.id
-
-      const attempt =
-        getVerificationAttemptNo(
-          item,
-          index + 1
-        )
-
-      const key =
-        id !== null &&
-        id !== undefined
-          ? `id:${id}`
-          : `attempt:${attempt}`
-
-      const existing =
-        mergedByKey.get(key)
-
-      if (!existing) {
-        mergedByKey.set(key, item)
-        return
-      }
-
-      if (
-        !getHistoryReviewedAt(
-          existing
-        ) &&
-        getHistoryReviewedAt(item)
-      ) {
-        mergedByKey.set(key, item)
-      }
-    })
-
-    return [...mergedByKey.values()]
-      .map((item, index) => {
-        const attempt =
-          getVerificationAttemptNo(
-            item,
-            index + 1
-          )
-
-        return {
-          key:
-            item.verificationId ??
-            item.id ??
-            `attempt-${attempt}`,
-          attempt,
-          submittedAt:
-            getVerificationSubmittedAt(
-              item
-            ),
-          reviewedAt:
-            getHistoryReviewedAt(
-              item
-            ),
-          result:
-            getReviewResultLabel(
-              item
-            ),
-        }
-      })
-      .sort((a, b) => {
-        if (a.attempt !== b.attempt) {
-          return a.attempt - b.attempt
-        }
-
-        const timeA =
-          parseDateValue(
-            a.submittedAt ||
-            a.reviewedAt
-          )?.getTime() || 0
-
-        const timeB =
-          parseDateValue(
-            b.submittedAt ||
-            b.reviewedAt
-          )?.getTime() || 0
-
-        return timeA - timeB
-      })
-      .map((item, index) => ({
-        ...item,
-        attempt:
-          item.attempt > 0
-            ? item.attempt
-            : index + 1,
-      }))
-  })
-
-const showReviewHistoryList =
-  computed(() =>
-    reviewHistory.value.length > 1
-  )
-
-const firstReviewDateText =
-  computed(() => {
-    const reviewed =
-      reviewHistory.value.find(
-        (item) => item.reviewedAt
-      )
-
-    return reviewed
-      ? formatDate(reviewed.reviewedAt)
-      : '-'
-  })
-
-function formatReviewHistoryLine(
-  item
-) {
-  const dateText = item.reviewedAt
-    ? formatDate(item.reviewedAt)
-    : '-'
-
-  if (!item.result) {
-    return `${item.attempt}회 : ${dateText}`
-  }
-
-  return `${item.attempt}회 : ${dateText}, ${item.result}`
 }
 
 function toLocalDatetime(
@@ -1925,12 +1621,6 @@ onMounted(() => {
   font-size: 14px;
   line-height: 1.5;
   word-break: break-word;
-}
-
-.review-history {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .reward {
