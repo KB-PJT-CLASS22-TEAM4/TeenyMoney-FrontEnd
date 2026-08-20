@@ -147,7 +147,7 @@ function goToCompletePage() {
   max-width: 430px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   color: #191b1e;
   font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
@@ -160,7 +160,7 @@ function goToCompletePage() {
   position: relative;
   height: 60px;
   padding: 0 16px;
-  background: #ffffff;
+  background: #f8fafc;
   box-sizing: border-box;
   z-index: 10;
 }

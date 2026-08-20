@@ -11,11 +11,21 @@
         v-for="tab in tabs"
         :key="tab.key"
         class="tab"
-        :class="{ active: tab.key === active }"
+        :class="{ active: tab.key === active, 'tab-pay-circle': tab.key === 'q' }"
         @click="$emit('select', tab.key)"
       >
-        <span class="tab-icon" v-html="tab.icon"></span>
-        <span class="tab-label">{{ tab.label }}</span>
+        <template v-if="tab.key === 'q'">
+          <div class="pay-bump">
+            <div class="pay-circle-btn">
+              <span class="tab-icon pay-icon" v-html="tab.icon"></span>
+            </div>
+          </div>
+          <span class="tab-label pay-label">{{ tab.label }}</span>
+        </template>
+        <template v-else>
+          <span class="tab-icon" v-html="tab.icon"></span>
+          <span class="tab-label">{{ tab.label }}</span>
+        </template>
       </button>
     </nav>
   </div>
@@ -40,7 +50,7 @@ let startY = 0
 const tabs = [
   { key: 'home', label: '홈', icon: `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 3L3 10v10a1 1 0 0 0 1 1h5v-6h6v6h5a1 1 0 0 0 1-1V10z"/></svg>` },
   { key: 'finance', label:  '금융 상품', icon: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><rect x="3.5" y="6" width="17" height="12" rx="3" stroke="currentColor" stroke-width="1.9"/><path d="M3.5 10.5h17" stroke="currentColor" stroke-width="1.9"/></svg>` },
-  { key: 'q', label: 'QR결제', icon: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M4 8V6a2 2 0 0 1 2-2h2M20 8V6a2 2 0 0 0-2-2h-2M4 16v2a2 2 0 0 0 2 2h2M20 16v2a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>` },
+  { key: 'q', label: 'QR스캔', icon: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><path d="M4 8.5V6a2 2 0 0 1 2-2h2.5M20 8.5V6a2 2 0 0 0-2-2h-2.5M4 15.5V18a2 2 0 0 0 2 2h2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5" stroke="#15171b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
   { key: 'quest', label: '퀘스트', icon: `<svg viewBox="0 0 24 24" width="26" height="26" fill="none"><rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.7"/><rect x="9" y="2.3" width="6" height="3" rx="1" stroke="currentColor" stroke-width="1.7"/><path d="M9 10.5h6M9 14h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>` },
   { key: 'my', label: '마이', icon: `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.5-6 8-6s8 2 8 6z"/></svg>` },
 ]
@@ -174,5 +184,55 @@ onBeforeUnmount(() => {
 
 .tab.active .tab-label {
   font-weight: 700;
+}
+
+/* 페이앱 스타일 플로팅 원형 버튼 */
+.tab-pay-circle {
+  position: relative;
+  overflow: visible;
+  justify-content: flex-end;
+  padding-bottom: 4px;
+}
+
+.pay-bump {
+  position: absolute;
+  top: -35px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #eef1f4;
+  box-shadow: 0 -3px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.pay-circle-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ffbc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tab-pay-circle:active .pay-circle-btn {
+  transform: scale(0.9);
+}
+
+.pay-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-label {
+  margin-top: 2px;
 }
 </style>

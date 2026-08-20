@@ -78,7 +78,7 @@ function goHome() {
   min-height: 730px;
   margin: 0 auto;
   padding: 50px 0 20px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
 }
 

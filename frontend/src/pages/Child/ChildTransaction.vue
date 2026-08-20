@@ -42,7 +42,6 @@
           </div>
           <span class="report-banner-sub">티니가 이번 달 금융 생활을 분석해 드려요</span>
         </div>
-        <img src="@/assets/mascot/teeny-surprised.png" class="report-banner-mascot" alt="티니" />
       </button>
 
       <!-- 거래유형 필터 (전체,입금,출금) -->
@@ -260,7 +259,7 @@ function onScroll() {
   height: 730px;
   margin: 0 auto;
   padding-top: 20px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
@@ -354,25 +353,30 @@ function onScroll() {
 
 /* 2. 가로형 소비 리포트 배너 */
 .report-banner {
-  position: relative;
   width: 100%;
-  height: 64px;
+  height: 68px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   margin-top: 6px;
   margin-bottom: 16px;
-  background: #f8f9fa;
-  border: 1px solid #f0f1f3;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 14px;
   cursor: pointer;
   overflow: visible;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   transition: background 0.15s ease, transform 0.1s ease;
 }
 
+.report-banner:hover {
+  background: #fafbfc;
+}
+
 .report-banner:active {
-  background: #f1f3f5;
+  background: #f1f5f9;
   transform: scale(0.99);
 }
 
