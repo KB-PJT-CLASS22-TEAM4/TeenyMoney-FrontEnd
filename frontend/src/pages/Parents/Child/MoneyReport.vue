@@ -458,12 +458,26 @@ onMounted(async () => {
             <circle
               v-for="(seg, i) in donutSegments"
               :key="i"
+              class="donut-seg"
               cx="90" cy="90" r="66"
               fill="none"
               :stroke="seg.color"
               stroke-width="26"
               :stroke-dasharray="seg.dash"
               :stroke-dashoffset="seg.offset"
+              transform="rotate(-90 90 90)"
+            />
+            <circle
+              class="donut-reveal"
+              cx="90"
+              cy="90"
+              r="66"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="28"
+              pathLength="1"
+              stroke-dasharray="1"
+              stroke-dashoffset="0"
               transform="rotate(-90 90 90)"
             />
             <text x="90" y="84" text-anchor="middle" class="donut-label">이번 달</text>
@@ -885,7 +899,17 @@ onMounted(async () => {
   max-width: 36px;
   border-radius: 10px;
   background: #facc15;
+  transform: scaleY(0);
+  transform-origin: bottom center;
+  animation: bar-grow 0.4s ease-out forwards;
 }
+
+.bar-col:nth-child(1) .bar { animation-delay: 0.02s; }
+.bar-col:nth-child(2) .bar { animation-delay: 0.07s; }
+.bar-col:nth-child(3) .bar { animation-delay: 0.12s; }
+.bar-col:nth-child(4) .bar { animation-delay: 0.17s; }
+.bar-col:nth-child(5) .bar { animation-delay: 0.22s; }
+.bar-col:nth-child(6) .bar { animation-delay: 0.27s; }
 
 .bar.zero {
   background: #e2e8f0;
@@ -894,6 +918,8 @@ onMounted(async () => {
 .bar.upcoming {
   background: transparent;
   border: 1.5px dashed #cbd5e1;
+  transform: none;
+  animation: none;
 }
 
 .bar-label {
@@ -906,6 +932,22 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   margin: 8px 0 4px;
+}
+
+.donut-reveal {
+  animation: donut-wipe 0.6s ease-out forwards;
+}
+
+@keyframes bar-grow {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes donut-wipe {
+  to {
+    stroke-dashoffset: 1;
+  }
 }
 
 .donut-label {

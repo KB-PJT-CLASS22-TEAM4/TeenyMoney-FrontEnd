@@ -644,6 +644,15 @@ onMounted(async () => {
   height: 100%;
   border-radius: 999px;
   background: #ffbc00;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: bar-grow 0.4s ease-out forwards;
+}
+
+@keyframes bar-grow {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .product-foot {
