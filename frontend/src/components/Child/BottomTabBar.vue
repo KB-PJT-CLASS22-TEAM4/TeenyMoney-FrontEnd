@@ -66,12 +66,14 @@ function onTouchMove(event) {
   }
 
   const touch = event.touches[0]
-  const moved = Math.max(
-    Math.abs(touch.clientX - startX),
-    Math.abs(touch.clientY - startY)
-  )
+  const dx = touch.clientX - startX
+  const dy = touch.clientY - startY
 
-  if (moved >= HIDE_DISTANCE) {
+  if (Math.abs(dy) < HIDE_DISTANCE || Math.abs(dy) <= Math.abs(dx)) {
+    return
+  }
+
+  if (dy < 0) {
     isHidden.value = true
   }
 }
