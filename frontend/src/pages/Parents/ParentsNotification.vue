@@ -19,18 +19,18 @@
       <ParentNavActions />
     </header>
 
-    <div class="sub-bar">
-      <button
-        class="mark-read"
-        type="button"
-        :disabled="notifications.length === 0"
-        @click="markAllRead"
-      >
-        모두 읽음
-      </button>
-    </div>
-
     <div class="scroll">
+      <div class="mark-read-wrap">
+        <button
+          class="mark-read-btn"
+          type="button"
+          :disabled="notifications.length === 0"
+          @click="markAllRead"
+        >
+          모두 읽음
+        </button>
+      </div>
+
       <div v-if="isLoading && notifications.length === 0" class="state-msg">
         불러오는 중이에요...
       </div>
@@ -633,34 +633,35 @@ onMounted(() => {
   text-align: center;
 }
 
-.sub-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 20px;
-  flex-shrink: 0;
-  background: #ffffff;
-}
-
-.mark-read {
-  padding: 0;
-  border: none;
-  background: transparent;
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 12.7px;
-  color: #8b9097;
-  cursor: pointer;
-}
-
-.mark-read:disabled {
-  color: #d8dbdf;
-  cursor: default;
-}
-
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 16px 16px;
+  padding: 12px 16px 16px;
+}
+
+.mark-read-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.mark-read-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #e7e9ec;
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #191b1e;
+  cursor: pointer;
+}
+
+.mark-read-btn:disabled {
+  color: #d8dbdf;
+  background: #f4f5f7;
+  cursor: default;
 }
 
 .state-msg {
