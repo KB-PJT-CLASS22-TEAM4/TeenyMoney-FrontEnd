@@ -656,7 +656,7 @@ onMounted(async () => {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 16px 24px;
+  padding: 16px 16px 24px;
   scrollbar-width: none;
 }
 

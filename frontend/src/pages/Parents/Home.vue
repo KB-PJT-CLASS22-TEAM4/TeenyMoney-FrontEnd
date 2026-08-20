@@ -98,16 +98,10 @@
                 alt=""
                 class="clock-icon"
               />
-              <span
-                v-if="requests.length"
-                class="request-badge"
-              >
-                {{ requests.length > 9 ? '9+' : requests.length }}
-              </span>
             </div>
 
             <div>
-              <p class="allowance-main">요청 목록</p>
+              <p class="allowance-main">요청 목록 확인하기</p>
             </div>
           </div>
 
@@ -147,11 +141,7 @@
             aria-label="전체 거래내역 보기"
             @click="router.push('/parents/transaction')"
           >
-            <img
-              src="@/assets/icons/icon-chevron.svg"
-              alt=""
-              class="chevron-icon"
-            />
+            <span class="chev">›</span>
           </button>
         </div>
 
@@ -605,26 +595,6 @@ button {
   color: #191b1e;
 }
 
-.request-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #ff4d4f;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-  border: 1.5px solid #ffffff;
-  box-sizing: border-box;
-}
-
 .chev {
   font-size: 18px;
   color: #a1a1aa;
@@ -659,11 +629,6 @@ button {
   border: none;
   background: transparent;
   cursor: pointer;
-}
-
-.chevron-icon {
-  width: 18px;
-  height: 18px;
 }
 
 .tx-item {

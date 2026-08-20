@@ -459,6 +459,8 @@ function goWithChild(childId) {
   border-color: #ffd86a;
   background: #fff9e8;
 }
+
+.child-pick-btn span {
   color: #8b6e00;
   font-size: 11px;
 }
