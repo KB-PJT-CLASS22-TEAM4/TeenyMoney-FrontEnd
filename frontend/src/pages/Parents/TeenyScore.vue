@@ -279,6 +279,7 @@ import {
   GRADE_ID_META,
   FALLBACK_GRADE_META,
 } from '@/utils/teenyScoreGradeMeta'
+import { currentKstYearMonth, getKstParts } from '@/utils/datetime'
 
 const router = useRouter()
 const route = useRoute()
@@ -322,9 +323,7 @@ function formatYearMonthLabel(yearMonth) {
 }
 
 function calcMonthDiff(currentScore, history) {
-  const now = new Date()
-  const currentYearMonth =
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const currentYearMonth = currentKstYearMonth()
 
   const prevMonthEntry = [...history]
     .filter((item) => item.yearMonth < currentYearMonth)
@@ -359,7 +358,7 @@ const chartPoints = computed(() => {
   const innerWidth = CHART_WIDTH - CHART_PAD_X * 2
   const innerHeight = CHART_PLOT_BOTTOM - CHART_PAD_TOP
   const step = data.length > 1 ? innerWidth / (data.length - 1) : 0
-  const currentYear = `${new Date().getFullYear()}년 `
+  const currentYear = `${getKstParts().year}년 `
 
   return data.map((item, index) => {
     const x = CHART_PAD_X + (data.length > 1 ? index * step : innerWidth / 2)

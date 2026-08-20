@@ -237,6 +237,11 @@ import {
 } from '@/api/teenyScore'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
+import {
+  currentKstYearMonth,
+  formatKstRelativeDay,
+  parseServerDate,
+} from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -306,7 +311,7 @@ async function loadScoreData() {
     }
 
     const now = new Date()
-    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const currentYearMonth = currentKstYearMonth(now)
 
     const monthlyList = monthlyRes.data
     const pastMonths = monthlyList
@@ -317,14 +322,7 @@ async function loadScoreData() {
     prevMonthScore.value = prevMonthEntry ? prevMonthEntry.teenyScore : score.value
 
     const histories = [...historyRes.data].sort((a, b) => {
-      const parse = (v) => {
-        if (Array.isArray(v)) {
-          const [y, mo, d, h = 0, mi = 0, s = 0] = v
-          return new Date(y, mo - 1, d, h, mi, s).getTime()
-        }
-        const t = new Date(v).getTime()
-        return isNaN(t) ? 0 : t
-      }
+      const parse = (v) => parseServerDate(v)?.getTime() ?? 0
       return parse(b.createdAt) - parse(a.createdAt)
     })
     activities.value = histories.map((h) => ({
@@ -341,22 +339,7 @@ async function loadScoreData() {
 }
 
 function formatRelativeDate(dateVal) {
-  if (!dateVal) return '-'
-
-  let date
-  if (Array.isArray(dateVal)) {
-    const [year, month, day, hour = 0, minute = 0, second = 0] = dateVal
-    date = new Date(year, month - 1, day, hour, minute, second)
-  } else {
-    date = new Date(dateVal)
-  }
-
-  if (isNaN(date.getTime())) return '-'
-
-  const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000)
-  if (diffDays <= 0) return '오늘'
-  if (diffDays === 1) return '어제'
-  return `${diffDays}일 전`
+  return formatKstRelativeDay(dateVal)
 }
 
 onMounted(loadScoreData)

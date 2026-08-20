@@ -689,6 +689,7 @@ import {
 import {
   CHILD_PROFILE_IMAGE,
 } from '@/utils/profileImages'
+import { utcIsoFromKstDatetimeLocal } from '@/utils/datetime'
 
 
 const router =
@@ -1371,10 +1372,8 @@ function closeChildModal() {
 }
 
 
-// =========================
-// 자녀 선택
-// =========================
 
+// 자녀 선택
 function toggleChild(
   id
 ) {
@@ -1400,10 +1399,7 @@ function toggleChild(
 }
 
 
-// =========================
 // 금액
-// =========================
-
 function addAmount(
   value
 ) {
@@ -1417,10 +1413,7 @@ function addAmount(
 }
 
 
-// =========================
 // 퀘스트 생성
-// =========================
-
 async function handleCreate() {
 
   if (
@@ -1430,8 +1423,10 @@ async function handleCreate() {
     return
   }
 
-  isCreating.value =
-    true
+  isCreating.value = true
+
+  const [datePart, timePart] = form.value.deadline.split('T')
+  const deadline = utcIsoFromKstDatetimeLocal(`${datePart}T${timePart}`)
 
   try {
 
@@ -1446,10 +1441,8 @@ async function handleCreate() {
       content:
         form.value.content.trim(),
 
-      deadline:
-        new Date(
-          form.value.deadline
-        ).toISOString(),
+      deadline,
+
 
       rewardAmount:
         Number(

@@ -241,6 +241,11 @@ import {
 } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import {
+  isSameKstDay,
+  parseServerDate,
+  startOfKstDay,
+} from '@/utils/datetime'
 
 import {
   getCategoryPolicyParentGroups,
@@ -326,9 +331,7 @@ function isFlatGroup(group) {
 }
 
 function getTodayEnd() {
-  const date = new Date()
-  date.setHours(24, 0, 0, 0)
-  return date
+  return new Date(startOfKstDay(new Date()).getTime() + 86400000)
 }
 
 function formatAllowDeadline(until = getTodayEnd()) {
@@ -338,24 +341,13 @@ function formatAllowDeadline(until = getTodayEnd()) {
 }
 
 function parsePermissionDate(value) {
-  if (!value) return null
-  if (Array.isArray(value)) {
-    const [year, month, day, hour = 0, minute = 0, second = 0] = value
-    return new Date(year, month - 1, day, hour, minute, second)
-  }
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date
+  return parseServerDate(value)
 }
 
 function isSameLocalDay(dateValue) {
   const date = parsePermissionDate(dateValue)
   if (!date) return false
-  const now = new Date()
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  )
+  return isSameKstDay(date, new Date())
 }
 
 function extractPermissionKeys(permission) {
@@ -416,8 +408,8 @@ function isTemporaryAllow(place) {
   if (temporaryAllowMap.value.has(place.categoryName)) return true
   if (temporaryAllowMap.value.has(String(place.id))) return true
 
-  const until = place.expiresAt ? new Date(place.expiresAt) : null
-  return !!(until && !Number.isNaN(until.getTime()) && until.getTime() > Date.now())
+  const until = parseServerDate(place.expiresAt)
+  return !!(until && until.getTime() > Date.now())
 }
 
 function isAllowActive(place) {

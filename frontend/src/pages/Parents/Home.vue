@@ -201,6 +201,7 @@ import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
 import { PARENT_PROFILE_IMAGE } from '@/utils/profileImages'
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
+import { formatKstDateTime } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -271,19 +272,7 @@ function getAmountText(item) {
 }
 
 function formatTransactionDate(createdAt) {
-  if (!createdAt) {
-    return ''
-  }
-
-  const date = new Date(createdAt)
-
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return formatKstDateTime(createdAt)
 }
 
 function load() {

@@ -370,6 +370,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import {
+  isSameKstDay,
+  parseServerDate,
+  startOfKstDay,
+} from '@/utils/datetime'
 
 import {
   getCategoryPolicyParentGroups
@@ -433,21 +438,13 @@ function isFlatGroup(group) {
 }
 
 function getTodayEnd() {
-  const date = new Date()
-  date.setHours(24, 0, 0, 0)
-  return date
+  return new Date(startOfKstDay(new Date()).getTime() + 86400000)
 }
 
 function isSameLocalDay(dateValue) {
   const date = parseCreatedAt(dateValue)
   if (!date) return false
-
-  const now = new Date()
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  )
+  return isSameKstDay(date, new Date())
 }
 
 function formatAllowDeadline(until = getTodayEnd()) {
@@ -586,15 +583,7 @@ const requestTabs = computed(() => [
 // ========================================
 
 function parseCreatedAt(createdAt) {
-  if (!createdAt) return null
-
-  if (Array.isArray(createdAt)) {
-    const [year, month, day, hour = 0, minute = 0, second = 0] = createdAt
-    return new Date(year, month - 1, day, hour, minute, second)
-  }
-
-  const date = new Date(createdAt)
-  return Number.isNaN(date.getTime()) ? null : date
+  return parseServerDate(createdAt)
 }
 
 function formatRelativeTime(createdAt) {

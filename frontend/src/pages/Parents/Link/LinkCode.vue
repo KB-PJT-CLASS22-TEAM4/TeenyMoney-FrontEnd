@@ -85,6 +85,7 @@ import { makeFamilyCode } from '@/api/families'
 import AlertHost from '@/components/AlertHost.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
+import { parseServerDate } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -135,9 +136,11 @@ async function generateCode() {
       linkCode.value = String(res.data.code)
 
       // expiresAt 으로 남은 시간 계산 (클라이언트에서 10분 계산 금지)
-      const expiresAt = new Date(res.data.expiresAt)
+      const expiresAt = parseServerDate(res.data.expiresAt)
       const now = new Date()
-      const remainSeconds = Math.floor((expiresAt - now) / 1000)
+      const remainSeconds = expiresAt
+        ? Math.floor((expiresAt - now) / 1000)
+        : 0
       timerSeconds.value = remainSeconds > 0 ? remainSeconds : 0
 
       isExpired.value = false

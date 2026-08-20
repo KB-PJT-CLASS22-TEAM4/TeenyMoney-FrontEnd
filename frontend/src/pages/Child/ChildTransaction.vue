@@ -123,6 +123,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getMyWallet, getMyTransactions } from '@/api/wallet'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import { formatKstDate, formatKstTime } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -155,16 +156,11 @@ const typeMap = { 전체: 'ALL', 입금: 'CREDIT', 출금: 'DEBIT' }
 
 // createdAt → "2026.08.14" 형태의 날짜 포맷
 function toGroup(createdAt) {
-  const d = new Date(createdAt)
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${yyyy}.${mm}.${dd}`
+  return formatKstDate(createdAt)
 }
 
-// createdAt → "14:30" 형태의 시간 포맷
 function toTime(createdAt) {
-  return createdAt.slice(11, 16)
+  return formatKstTime(createdAt)
 }
 
 // API 응답 → 뷰 구조 변환

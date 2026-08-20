@@ -696,6 +696,13 @@ import {
   isQuestDeadlineExpiredError,
 } from '@/utils/questDeadline'
 
+import {
+  formatKstDateTime,
+  parseServerDate,
+  toKstDatetimeLocalValue,
+  utcIsoFromKstDatetimeLocal,
+} from '@/utils/datetime'
+
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router =
@@ -1273,9 +1280,9 @@ async function handleUpdate() {
         editForm.value.content.trim(),
 
       deadline:
-        new Date(
+        utcIsoFromKstDatetimeLocal(
           editForm.value.deadline
-        ).toISOString(),
+        ),
 
       rewardAmount:
         Number(
@@ -1367,77 +1374,13 @@ function formatReward(
 function parseDateValue(
   value
 ) {
-  if (
-    value === null ||
-    value === undefined ||
-    value === ''
-  ) {
-    return null
-  }
-
-  if (Array.isArray(value)) {
-    const [
-      year,
-      month,
-      day,
-      hour = 0,
-      minute = 0,
-      second = 0,
-    ] = value
-
-    const date = new Date(
-      year,
-      month - 1,
-      day,
-      hour,
-      minute,
-      second
-    )
-
-    return Number.isNaN(
-      date.getTime()
-    )
-      ? null
-      : date
-  }
-
-  const raw =
-    typeof value === 'string'
-      ? value.replace(' ', 'T')
-      : value
-
-  const date =
-    new Date(raw)
-
-  return Number.isNaN(
-    date.getTime()
-  )
-    ? null
-    : date
+  return parseServerDate(value)
 }
 
 function formatDate(
   value
 ) {
-  const date =
-    parseDateValue(value)
-
-  if (!date) {
-    return '-'
-  }
-
-  return new Intl
-    .DateTimeFormat(
-      'ko-KR',
-      {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      }
-    )
-    .format(date)
+  return formatKstDateTime(value, '-')
 }
 
 function formatAttemptCount(
@@ -1754,23 +1697,7 @@ function formatReviewHistoryLine(
 function toLocalDatetime(
   value
 ) {
-  const date =
-    parseDateValue(value)
-
-  if (!date) {
-    return ''
-  }
-
-  const offset =
-    date.getTimezoneOffset() *
-    60000
-
-  return new Date(
-    date.getTime() -
-    offset
-  )
-    .toISOString()
-    .slice(0, 16)
+  return toKstDatetimeLocalValue(value)
 }
 
 function getRequirementLabel(

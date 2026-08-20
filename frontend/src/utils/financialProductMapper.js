@@ -1,3 +1,5 @@
+import { formatKstDate } from '@/utils/datetime'
+
 const CATEGORY_MAP = {
   SAVING: '적금',
   SAVINGS: '적금',
@@ -53,18 +55,7 @@ function formatRate(value) {
 }
 
 function formatDate(value) {
-  if (!value) return '-'
-
-  if (Array.isArray(value)) {
-    const [year, month, day] = value
-    return `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`
-  }
-
-  if (typeof value === 'string') {
-    return value.slice(0, 10).replace(/-/g, '.')
-  }
-
-  return '-'
+  return formatKstDate(value, '-')
 }
 
 function calcProgress(current, target) {

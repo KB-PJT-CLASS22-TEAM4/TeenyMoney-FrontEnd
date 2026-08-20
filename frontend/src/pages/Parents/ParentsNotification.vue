@@ -97,6 +97,12 @@ import {
   extractApprovalRequestList,
   normalizeApprovalRequest,
 } from '@/utils/financialProductMapper'
+import {
+  formatKstClock12,
+  formatKstMonthDayLabel,
+  isSameKstDay,
+  parseServerDate,
+} from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -314,53 +320,23 @@ async function goToReference(n) {
 }
 
 function parseCreatedAt(raw) {
-  if (!raw) return null
-
-  if (Array.isArray(raw)) {
-    const [y, m, d, h = 0, mi = 0, s = 0] = raw
-    if (y === undefined || m === undefined || d === undefined) return null
-    const parsed = new Date(y, m - 1, d, h, mi, s)
-    return Number.isNaN(parsed.getTime()) ? null : parsed
-  }
-
-  const parsed = new Date(raw)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-function isSameDay(a, b) {
-  return a.getFullYear() === b.getFullYear()
-    && a.getMonth() === b.getMonth()
-    && a.getDate() === b.getDate()
+  return parseServerDate(raw)
 }
 
 function formatDateLabel(d) {
-  const now = new Date()
-  const yesterday = new Date(now)
-  yesterday.setDate(now.getDate() - 1)
-
-  const md = `${d.getMonth() + 1}월 ${d.getDate()}일`
-
-  if (isSameDay(d, now)) return `오늘 · ${md}`
-  if (isSameDay(d, yesterday)) return `어제 · ${md}`
-  return md
+  return formatKstMonthDayLabel(d)
 }
 
 function formatClockTime(d) {
-  const hours = d.getHours()
-  const period = hours < 12 ? '오전' : '오후'
-  let h12 = hours % 12
-  if (h12 === 0) h12 = 12
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${period} ${h12}:${mm}`
+  return formatKstClock12(d)
 }
 
 function formatTime(d) {
   const now = new Date()
 
-  if (!isSameDay(d, now)) {
-    const yesterday = new Date(now)
-    yesterday.setDate(now.getDate() - 1)
-    if (isSameDay(d, yesterday)) return '어제'
+  if (!isSameKstDay(d, now)) {
+    const yesterday = new Date(now.getTime() - 86400000)
+    if (isSameKstDay(d, yesterday)) return '어제'
     const diffDays = Math.max(1, Math.round((now - d) / 86400000))
     return `${diffDays}일 전`
   }

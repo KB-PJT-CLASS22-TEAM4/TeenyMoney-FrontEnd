@@ -1,3 +1,5 @@
+import { formatKstDate } from '@/utils/datetime'
+
 const API_BASE_URL = import.meta.env.DEV
   ? ''
   : import.meta.env.VITE_API_BASE_URL
@@ -72,30 +74,7 @@ export function formatTermsVersion(term) {
 }
 
 export function formatEffectiveAt(value) {
-  if (!value) {
-    return ''
-  }
-
-  if (Array.isArray(value) && value.length >= 3) {
-    const [year, month, day] = value
-    return `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`
-  }
-
-  if (typeof value === 'string') {
-    const date = new Date(value)
-
-    if (Number.isNaN(date.getTime())) {
-      return value
-    }
-
-    return [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      String(date.getDate()).padStart(2, '0'),
-    ].join('.')
-  }
-
-  return ''
+  return formatKstDate(value)
 }
 
 export function findServiceTerm(terms = []) {

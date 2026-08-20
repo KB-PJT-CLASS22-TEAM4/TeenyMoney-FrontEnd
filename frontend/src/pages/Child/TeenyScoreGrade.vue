@@ -123,6 +123,7 @@ import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import { parseServerDate } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -151,13 +152,7 @@ const loading = ref(true)
 const errorMsg = ref('')
 
 function parseCreatedAt(dateVal) {
-  if (!dateVal) return null
-  if (Array.isArray(dateVal)) {
-    const [year, month, day, hour = 0, minute = 0, second = 0] = dateVal
-    return new Date(year, month - 1, day, hour, minute, second)
-  }
-  const d = new Date(dateVal)
-  return isNaN(d.getTime()) ? null : d
+  return parseServerDate(dateVal)
 }
 
 async function loadData() {

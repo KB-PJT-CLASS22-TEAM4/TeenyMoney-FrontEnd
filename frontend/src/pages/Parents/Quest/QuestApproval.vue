@@ -128,6 +128,7 @@ import {
   approveQuestVerification,
   rejectQuestVerification,
 } from '@/api/quest'
+import { formatKstDateTime } from '@/utils/datetime'
 
 const router = useRouter()
 const route = useRoute()
@@ -243,11 +244,7 @@ function formatMoney(value) {
 }
 
 function formatDate(value) {
-  if (!value) return '-'
-
-  const date = new Date(value)
-
-  return date.toLocaleString('ko-KR')
+  return formatKstDateTime(value, '-')
 }
 </script>
 

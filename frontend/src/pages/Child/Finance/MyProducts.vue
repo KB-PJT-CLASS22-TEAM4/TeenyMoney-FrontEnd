@@ -7,6 +7,7 @@ import { getMyWallet } from '@/api/wallet'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import { getKstParts, parseServerDate } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -58,14 +59,10 @@ function isEnrollmentTerminated(p) {
 
 // 날짜 파싱 유틸
 function parseDateParts(raw) {
-  if (!raw) return null
-  if (Array.isArray(raw)) {
-    const [y, m, d] = raw
-    return { y, m, d }
-  }
-  const parsed = new Date(raw)
-  if (Number.isNaN(parsed.getTime())) return null
-  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+  const date = parseServerDate(raw)
+  if (!date) return null
+  const { year, month, day } = getKstParts(date)
+  return { y: year, m: month, d: day }
 }
 
 function formatDateCompact(raw) {

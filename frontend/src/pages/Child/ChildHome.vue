@@ -261,6 +261,11 @@ import { getMyWallet } from '@/api/wallet'
 import { getTeenyScore, getTeenyScoreGrades } from '@/api/teenyScore'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
 import { getQuests } from '@/api/quest'
+import {
+  getKstParts,
+  parseServerDate,
+  startOfKstDay,
+} from '@/utils/datetime'
 
 const router    = useRouter()
 const authStore  = useAuthStore()
@@ -395,28 +400,17 @@ function pad2(n) {
 }
 
 function formatTxDate(dateVal) {
-  if (!dateVal) return '-'
-  if (Array.isArray(dateVal)) {
-    const [, month, day, hour = 0, minute = 0] = dateVal
-    return `${pad2(month)}-${pad2(day)}  ${pad2(hour)}:${pad2(minute)}`
-  }
-  if (typeof dateVal === 'string' && dateVal.length >= 16) {
-    return dateVal.slice(5, 16).replace('T', '  ')
-  }
-  const d = new Date(dateVal)
-  if (isNaN(d.getTime())) return '-'
-  return `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}  ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+  const date = parseServerDate(dateVal)
+  if (!date) return '-'
+  const { month, day, hour, minute } = getKstParts(date)
+  return `${pad2(month)}-${pad2(day)}  ${pad2(hour)}:${pad2(minute)}`
 }
 
 function parseDateParts(raw) {
-  if (!raw) return null
-  if (Array.isArray(raw)) {
-    const [y, m, d] = raw
-    return { y, m, d }
-  }
-  const parsed = new Date(raw)
-  if (Number.isNaN(parsed.getTime())) return null
-  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+  const date = parseServerDate(raw)
+  if (!date) return null
+  const { year, month, day } = getKstParts(date)
+  return { y: year, m: month, d: day }
 }
 
 function formatDateCompact(raw) {
@@ -440,12 +434,12 @@ function calcNextDueDate(startRaw, paidCount) {
 
 // 날짜 기준 D-day/일자 문자열 및 diffDays 계산 (금융상품/퀘스트 공통)
 function calcDdayInfo(targetDate) {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const diffTime = targetDate.getTime() - today.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const today = startOfKstDay(new Date())
+  const target = startOfKstDay(targetDate)
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000)
   const dday = diffDays === 0 ? 'D-Day' : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`
-  const dateStr = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+  const { month, day } = getKstParts(targetDate)
+  const dateStr = `${month}/${day}`
   return { diffDays, dday, dateStr }
 }
 

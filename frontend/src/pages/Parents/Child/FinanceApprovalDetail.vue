@@ -122,6 +122,7 @@ import {
 } from '@/api/financialProducts'
 import { normalizeApprovalRequest } from '@/utils/financialProductMapper'
 import { useAuthStore } from '@/stores/auth'
+import { formatKstDateTime } from '@/utils/datetime'
 
 const router = useRouter()
 const route = useRoute()
@@ -159,20 +160,7 @@ function formatAmount(value) {
 }
 
 function formatDateTime(value) {
-  if (!value) return '-'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return String(value).slice(0, 10).replace(/-/g, '.')
-  }
-
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  const hh = String(date.getHours()).padStart(2, '0')
-  const mm = String(date.getMinutes()).padStart(2, '0')
-
-  return `${y}.${m}.${d} ${hh}:${mm}`
+  return formatKstDateTime(value, '-')
 }
 
 async function fetchDetail() {

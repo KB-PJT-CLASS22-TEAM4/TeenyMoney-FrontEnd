@@ -51,6 +51,7 @@
 import { computed } from 'vue'
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import { useRouter, useRoute } from 'vue-router'
+import { formatKstDate } from '@/utils/datetime'
 
 const WEEKDAY_LABELS = [
   '',
@@ -80,25 +81,7 @@ const cycleLabel = computed(() => {
   return `매월 ${day || ''}일`
 })
 
-const nextPaymentDate = computed(() => {
-  const value = route.query.nextPaymentDate
-
-  if (!value) {
-    return ''
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return String(value)
-  }
-
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-
-  return `${year}.${month}.${day}`
-})
+const nextPaymentDate = computed(() => formatKstDate(route.query.nextPaymentDate))
 </script>
 
 <style scoped>
