@@ -925,7 +925,7 @@ function onScroll() {
 
     <BottomTabBar active="finance" @select="onTabSelect" />
 
-    <Chatbot v-if="!showDepositSheet && !showSuccessModal && !showTransferErrorModal && !showCancelPendingModal && !showCancelPendingSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
+    <Chatbot :hide-for-modal="showDepositSheet || showSuccessModal || showTransferErrorModal || showCancelPendingModal || showCancelPendingSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
   </div>
 </template>
 

@@ -1,6 +1,6 @@
 <template>
   <!-- 진입 버튼 (FAB) + 화면별 안내 말풍선 -->
-  <div v-if="!isOpen" class="fab-wrap">
+  <div v-if="!isOpen && !hideForModal" class="fab-wrap">
     <!-- hintText가 있을 때만 말풍선 표시 -->
     <div v-if="showHint && hintText" class="fab-hint">
       <button
@@ -28,7 +28,7 @@
 
   <!-- 대화창 -->
   <transition name="chat-pop">
-    <div v-if="isOpen" class="chatbot-panel" role="dialog" aria-label="티니코치 챗봇">
+    <div v-if="isOpen && !hideForModal" class="chatbot-panel" role="dialog" aria-label="티니코치 챗봇">
       <header class="chatbot-header">
         <span class="header-title">챗봇 상담</span>
         <button class="close-btn" type="button" aria-label="닫기" @click="closeChat">
@@ -129,38 +129,40 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { sendChatbotMessage } from '@/api/chatbot'
 import { useAuthStore } from '@/stores/auth'
+import { useChatbotHintDismissed } from '@/composables/useChatbotHintDismissed'
 
 const props = defineProps({
   hintText: {
     type: String,
     default: '궁금한 게 있으면 티니코치에게 물어보세요!',
   },
+  // 화면에 모달/시트가 떠 있을 때 챗봇 진입 버튼/대화창을 완전히 숨긴다.
+  hideForModal: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const authStore = useAuthStore()
+const { isDismissed, dismiss } = useChatbotHintDismissed()
 
 const fabMascotImg = new URL('../../assets/mascot/teeny-chatbot.png', import.meta.url).href
 const panelMascotImg = new URL('../../assets/mascot/teeny-coach.png', import.meta.url).href
 
 const isOpen = ref(false)
-const showHint = ref(true)
 const draft = ref('')
 const isSending = ref(false)
 const messages = ref([])
 const conversationId = ref(null)
 const scrollArea = ref(null)
 
-watch(() => props.hintText, (newVal) => {
-  if (newVal) {
-    showHint.value = true
-  }
-})
+const showHint = computed(() => !isDismissed(props.hintText))
 
 function dismissHint() {
-  showHint.value = false
+  dismiss(props.hintText)
 }
 
 const quickQuestions = [

@@ -148,7 +148,10 @@
       </div>
     </Transition>
 
-    <Chatbot hint-text="오늘만 허용 요청 시 횟수가 차감되니 신중히 보내주세요!" />
+    <Chatbot
+      :hide-for-modal="showBlockWarningModal || showLimitReachedModal"
+      hint-text="오늘만 허용 요청 시 횟수가 차감되니 신중히 보내주세요!"
+    />
   </div>
 </template>
 

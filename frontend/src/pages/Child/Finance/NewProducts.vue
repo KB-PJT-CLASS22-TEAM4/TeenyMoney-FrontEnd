@@ -739,7 +739,10 @@ function goToApply(product) {
     <!-- 하단 탭바 -->
     <BottomTabBar active="finance" @select="onTabSelect" />
 
-    <Chatbot hint-text="금리가 어떻게 계산되는지 궁금하세요?" />
+    <Chatbot
+      :hide-for-modal="showFilterSheet || showIneligibleModal || showTermModal || showAlreadyEnrolledModal"
+      hint-text="금리가 어떻게 계산되는지 궁금하세요?"
+    />
 
     <!-- 신규 상품 필터 바텀시트 -->
     <transition name="sheet">
