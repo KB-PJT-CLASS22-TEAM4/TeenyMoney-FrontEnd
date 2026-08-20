@@ -89,6 +89,14 @@ import { useNotificationStore } from '@/stores/notification'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notification'
 import { getChildren } from '@/api/children'
+import {
+  getFinancialProductApprovalRequestDetail,
+  getFinancialProductApprovalRequests,
+} from '@/api/financialProducts'
+import {
+  extractApprovalRequestList,
+  normalizeApprovalRequest,
+} from '@/utils/financialProductMapper'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -128,6 +136,32 @@ function isFamilyLinkNotification(n) {
   }
 
   return /연결됐|연동됐|연결되었|연동되었/.test(`${n.title || ''} ${n.detail || ''}`)
+}
+
+function isFinanceApprovalNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (
+    type === 'FINANCE' ||
+    type === 'FINANCIAL_PRODUCT' ||
+    type === 'ENROLLMENT' ||
+    type === 'PRODUCT_ENROLLMENT'
+  ) {
+    return true
+  }
+
+  return /상품\s*가입|가입\s*(승인|신청|요청)|금융상품/.test(
+    `${n.title || ''} ${n.detail || ''}`
+  )
+}
+
+function inferProductType(n) {
+  const text = `${n.productType || ''} ${n.title || ''} ${n.detail || ''}`
+
+  if (/LOAN|대출/.test(text)) return 'LOAN'
+  if (/DEPOSIT|예금/.test(text)) return 'DEPOSIT'
+  if (/SAVING|적금/.test(text)) return 'SAVING'
+
+  return n.productType || null
 }
 
 function goToChildDetail(childId) {
@@ -170,6 +204,89 @@ async function goToFamilyLink(n) {
   goToChildDetail(childId)
 }
 
+function goToFinanceDetail(item) {
+  if (!item?.childId || !item?.enrollmentId) {
+    return false
+  }
+
+  router.push({
+    name: 'parents-finance-approval-detail',
+    params: {
+      childId: item.childId,
+      productType: item.productType || 'SAVING',
+      enrollmentId: item.enrollmentId,
+    },
+  })
+  return true
+}
+
+async function findFinanceApproval(n) {
+  const enrollmentId = n.enrollmentId ?? n.referenceId
+  if (enrollmentId == null || enrollmentId === '') {
+    return null
+  }
+
+  try {
+    const res = await getFinancialProductApprovalRequests(authStore.accessToken)
+    const matched = extractApprovalRequestList(res.data)
+      .map((item) => normalizeApprovalRequest(item))
+      .find((item) => Number(item.enrollmentId) === Number(enrollmentId))
+
+    if (matched) {
+      return matched
+    }
+  } catch (error) {
+    console.error('금융상품 승인 요청 목록 조회 실패:', error)
+  }
+
+  const preferred = inferProductType(n)
+  const types = preferred
+    ? [preferred, 'SAVING', 'DEPOSIT', 'LOAN'].filter(
+        (type, index, list) => list.indexOf(type) === index
+      )
+    : ['SAVING', 'DEPOSIT', 'LOAN']
+
+  const results = await Promise.allSettled(
+    types.map((type) =>
+      getFinancialProductApprovalRequestDetail(
+        authStore.accessToken,
+        type,
+        enrollmentId
+      )
+    )
+  )
+
+  const hit = results.find((result) => result.status === 'fulfilled')
+  if (hit?.value?.data) {
+    return normalizeApprovalRequest(hit.value.data)
+  }
+
+  return null
+}
+
+async function goToFinanceApproval(n) {
+  const matched = await findFinanceApproval(n)
+
+  if (goToFinanceDetail({
+    ...matched,
+    childId: matched?.childId || n.childId,
+    enrollmentId: matched?.enrollmentId ?? n.enrollmentId ?? n.referenceId,
+    productType: matched?.productType || inferProductType(n),
+  })) {
+    return
+  }
+
+  if (n.childId) {
+    router.push({
+      name: 'parents-child-finance',
+      params: { childId: n.childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-request-list' })
+}
+
 async function goToReference(n) {
   if (isTodayAllowNotification(n)) {
     await goToTodayAllow(n)
@@ -179,16 +296,16 @@ async function goToReference(n) {
     await goToFamilyLink(n)
     return
   }
+  if (isFinanceApprovalNotification(n)) {
+    await goToFinanceApproval(n)
+    return
+  }
   if (n.referenceType === 'PAYMENT') {
     router.push({ name: 'parents-transaction' })
     return
   }
   if (n.referenceType === 'QUEST') {
     router.push({ name: 'parents-quest-list' })
-    return
-  }
-  if (n.referenceType === 'FINANCE') {
-    router.push({ name: 'parents-child-list' })
     return
   }
   if (n.referenceType === 'ALLOWANCE') {
@@ -272,6 +389,8 @@ function mapNotification(n) {
     referenceType: n.referenceType,
     referenceId: n.referenceId,
     childId: n.childId ?? n.child?.childId ?? n.child?.id ?? null,
+    enrollmentId: n.enrollmentId ?? null,
+    productType: n.productType ?? n.referenceSubType ?? null,
     icon: getIcon(n.referenceType),
     createdDate,
     dateLabel: createdDate ? formatDateLabel(createdDate) : '',
