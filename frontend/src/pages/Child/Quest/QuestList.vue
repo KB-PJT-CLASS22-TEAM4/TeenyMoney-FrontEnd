@@ -278,6 +278,7 @@ import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
+import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -303,9 +304,9 @@ const availableQuests = computed(() => questStore.availableQuests)
 const ongoingQuests = computed(() => questStore.ongoingQuests)
 const completedQuests = computed(() => questStore.completedQuests)
 
-async function loadTab(tabKey) {
+async function loadTab(tabKey, opts = {}) {
   try {
-    await questStore.ensureTab(authStore.accessToken, tabKey)
+    await questStore.ensureTab(authStore.accessToken, tabKey, opts)
   } catch (e) {
     console.error(e)
   }
@@ -315,6 +316,18 @@ onMounted(() => {
   tabs.forEach((t) => loadTab(t.key))
 })
 watch(activeTab, (key) => loadTab(key))
+
+// 부모가 퀘스트를 만들거나 심사하면 이 목록이 낡는다.
+//
+// force가 필요한 이유: ensureTab은 이미 불러온 탭을 다시 부르지 않는다. 그게 이 화면의
+// 기본 동작(탭 전환 시 재요청 안 함)이라 맞지만, 서버가 바뀌었다고 알려온 경우엔 캐시가
+// 바로 그 낡은 값이다.
+//
+// QUEST로 좁히는 이유: 탭이 셋이라 신호 하나에 조회가 세 번 나간다. 홈 화면처럼 한 번에
+// 묶인 load()와 달리 빗나간 이벤트의 비용이 세 배다.
+useServerEvents(() => {
+  tabs.forEach((t) => loadTab(t.key, { force: true }))
+}, ['QUEST'])
 
 function toggleFavorite(q) {
   q.favorited = !q.favorited

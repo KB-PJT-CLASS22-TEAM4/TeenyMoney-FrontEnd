@@ -99,7 +99,6 @@ const isLoading = ref(false)      // 요청 진행 중 여부
 const rateLimitError = ref(false) // 429 에러 여부
 
 let timerInterval = null
-// let pollingInterval = null
 let currentIdempotencyKey = null  // 재시도 시 같은 키 재사용
 let abortController = null        // AbortController로 이전 요청 취소
 
@@ -145,7 +144,6 @@ async function generateCode() {
 
       isExpired.value = false
       startTimer()
-      // startPolling()
     }
   } catch (error) {
     if (error.name === 'AbortError') return  // 취소된 요청은 무시
@@ -171,32 +169,20 @@ function startTimer() {
       clearInterval(timerInterval)
       timerInterval = null
       isExpired.value = true
-      // stopPolling()
       return
     }
     timerSeconds.value -= 1
   }, 1000)
 }
 
-// function startPolling() {
-//   if (pollingInterval) clearInterval(pollingInterval)
-
-//   pollingInterval = setInterval(async () => {
-//     // TODO: 연동 완료 확인 API 연동
-//     // const res = await checkLinkStatus(authStore.accessToken)
-//     // if (res.data.linked) {
-//     //   stopPolling()
-//     //   router.push('/parents/link-complete')
-//     // }
-//   }, 3000)
-// }
-
-// function stopPolling() {
-//   if (pollingInterval) {
-//     clearInterval(pollingInterval)
-//     pollingInterval = null
-//   }
-// }
+// 자녀가 코드를 입력하는 순간 서버가 CONNECTION 신호를 보낸다. 폴링하지 않는다.
+//
+// CONNECTION만 받는 이유: 이 화면은 신호를 받으면 데이터를 다시 부르는 게 아니라
+// 화면을 아예 옮긴다. 다른 이벤트(결제, 퀘스트 등)에도 반응하면 코드를 보고 있는
+// 부모가 엉뚱하게 완료 화면으로 튕긴다.
+useServerEvents(() => {
+  router.push({ name: 'parents-link-complete' })
+}, ['CONNECTION'])
 
 function copyCode() {
   // data.code 문자열 그대로 복사
@@ -208,11 +194,10 @@ onMounted(() => {
   generateCode()
 })
 
-// onUnmounted(() => {
-//   if (timerInterval) clearInterval(timerInterval)
-//   if (abortController) abortController.abort()  // 페이지 벗어날 때 요청 취소
-//   stopPolling()
-// })
+onUnmounted(() => {
+  if (timerInterval) clearInterval(timerInterval)
+  if (abortController) abortController.abort()  // 페이지 벗어날 때 요청 취소
+})
 
 </script>
 

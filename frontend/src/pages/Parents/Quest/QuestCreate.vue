@@ -1441,8 +1441,12 @@ async function handleCreate() {
       content:
         form.value.content.trim(),
 
-      deadline,
-
+      // 서버의 deadline은 LocalDateTime(타임존 없음)이다. toISOString()으로 UTC로
+      // 바꿔 보내면 Jackson이 끝의 Z를 조용히 떼어내고 앞부분만 파싱해서, KST 기준
+      // 9시간 앞당겨진 기한이 저장된다. 달력이 넣어준 값이 이미 로컬 벽시계
+      // (YYYY-MM-DDTHH:mm)이므로 변환 없이 그대로 보낸다.
+      deadline:
+        form.value.deadline,
 
       rewardAmount:
         Number(
