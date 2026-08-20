@@ -284,13 +284,11 @@ export function useParentRequests() {
       return
     }
 
-    if (item.type === 'finance' && item.childId && item.enrollmentId) {
+    if (item.type === 'finance' && item.childId) {
       router.push({
-        name: 'parents-finance-approval-detail',
+        name: 'parents-child-finance',
         params: {
           childId: item.childId,
-          productType: item.productType || 'SAVING',
-          enrollmentId: item.enrollmentId,
         },
       })
     }

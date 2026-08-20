@@ -157,7 +157,7 @@ function isFamilyLinkNotification(n) {
   return /연결됐|연동됐|연결되었|연동되었/.test(`${n.title || ''} ${n.detail || ''}`)
 }
 
-function isFinanceApprovalNotification(n) {
+function isFinanceNotification(n) {
   const type = String(n.referenceType || '').toUpperCase()
   if (
     type === 'FINANCE' ||
@@ -166,14 +166,15 @@ function isFinanceApprovalNotification(n) {
     type === 'ENROLLMENT' ||
     type === 'PRODUCT_ENROLLMENT' ||
     type === 'SAVING' ||
+    type === 'SAVINGS' ||
     type === 'DEPOSIT' ||
     type === 'LOAN'
   ) {
     return true
   }
 
-  return /상품\s*가입|가입\s*(승인|신청|요청)|금융상품/.test(
-    `${n.title || ''} ${n.detail || ''}`
+  return /금융\s*상품|금융상품|상품\s*가입|가입\s*(승인|신청|요청|거절)|적금|예금|대출|중도해지|조기상환/.test(
+    `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
   )
 }
 
@@ -185,6 +186,36 @@ function inferProductType(n) {
   if (/SAVING|적금/.test(text)) return 'SAVING'
 
   return n.productType || null
+}
+
+function getChildKey(child) {
+  return child?.childId ?? child?.id ?? null
+}
+
+async function loadChildren() {
+  const res = await getChildren(authStore.accessToken)
+  return Array.isArray(res?.data) ? res.data : []
+}
+
+function findChildById(children, id) {
+  if (id == null || id === '') return null
+  return children.find(
+    (child) => Number(getChildKey(child)) === Number(id)
+  ) ?? null
+}
+
+function findChildByName(children, n) {
+  const text = `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
+  const matches = children.filter(
+    (child) => child.name && text.includes(child.name)
+  )
+  if (matches.length === 1) return matches[0]
+  if (matches.length > 1) {
+    return [...matches].sort(
+      (a, b) => String(b.name).length - String(a.name).length
+    )[0]
+  }
+  return null
 }
 
 function goToChildDetail(childId) {
@@ -199,18 +230,31 @@ function goToChildDetail(childId) {
   router.push({ name: 'parents-child-list' })
 }
 
-async function resolveChildId(n) {
-  const fromNoti = n.childId ?? n.referenceId
+function goToChildFinancePage(childId) {
+  if (childId) {
+    router.push({
+      name: 'parents-child-finance',
+      params: { childId },
+    })
+    return
+  }
 
+  router.push({ name: 'parents-child-list' })
+}
+
+async function resolveChildId(n) {
   try {
-    const res = await getChildren(authStore.accessToken)
-    const children = Array.isArray(res?.data) ? res.data : []
-    const matched = children.find(
-      (child) => Number(child.childId) === Number(fromNoti)
-    )
-    return matched?.childId ?? children[0]?.childId ?? fromNoti
+    const children = await loadChildren()
+    const matched =
+      findChildById(children, n.childId)
+      || findChildById(children, n.referenceId)
+      || findChildByName(children, n)
+
+    if (matched) return getChildKey(matched)
+    if (children.length === 1) return getChildKey(children[0])
+    return n.childId ?? null
   } catch {
-    return fromNoti
+    return n.childId ?? null
   }
 }
 
@@ -271,33 +315,33 @@ async function findFinanceApproval(n) {
   return null
 }
 
-async function goToFinanceApproval(n) {
-  const matched = await findFinanceApproval(n)
-  let childId = matched?.childId || n.childId
+async function goToFinancePage(n) {
+  let childId = n.childId || null
 
   if (!childId) {
     try {
-      const res = await getChildren(authStore.accessToken)
-      const children = Array.isArray(res?.data) ? res.data : []
-      const fromNoti = n.childId ?? n.referenceId
-      const found = children.find(
-        (child) => Number(child.childId) === Number(fromNoti)
-      )
-      childId = found?.childId ?? (children.length === 1 ? children[0].childId : null)
+      const children = await loadChildren()
+      const matched =
+        findChildById(children, n.childId)
+        || findChildById(children, n.referenceId)
+        || findChildByName(children, n)
+
+      if (matched) {
+        childId = getChildKey(matched)
+      } else if (children.length === 1) {
+        childId = getChildKey(children[0])
+      }
     } catch {
       childId = n.childId
     }
   }
 
-  if (childId) {
-    router.push({
-      name: 'parents-child-finance',
-      params: { childId },
-    })
-    return
+  if (!childId) {
+    const matched = await findFinanceApproval(n)
+    childId = matched?.childId || null
   }
 
-  router.push({ name: 'parents-child-list' })
+  goToChildFinancePage(childId)
 }
 
 function getQuestListTabFromNotification(n) {
@@ -318,8 +362,8 @@ async function goToReference(n) {
     await goToFamilyLink(n)
     return
   }
-  if (isFinanceApprovalNotification(n)) {
-    await goToFinanceApproval(n)
+  if (isFinanceNotification(n)) {
+    await goToFinancePage(n)
     return
   }
   if (n.referenceType === 'PAYMENT') {

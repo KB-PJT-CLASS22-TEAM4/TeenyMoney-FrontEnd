@@ -108,7 +108,21 @@ const ICONS = {
 }
 
 function getIcon(referenceType) {
-  return ICONS[referenceType] || ICONS.DEFAULT
+  const type = String(referenceType || '').toUpperCase()
+  if (
+    type === 'FINANCE' ||
+    type === 'FINANCIAL_PRODUCT' ||
+    type === 'FINANCIAL_PRODUCTS' ||
+    type === 'ENROLLMENT' ||
+    type === 'PRODUCT_ENROLLMENT' ||
+    type === 'SAVING' ||
+    type === 'SAVINGS' ||
+    type === 'DEPOSIT' ||
+    type === 'LOAN'
+  ) {
+    return ICONS.FINANCE
+  }
+  return ICONS[type] || ICONS.DEFAULT
 }
 
 function isTodayAllowNotification(n) {
@@ -134,22 +148,47 @@ function getQuestListTabFromNotification(n) {
   return null
 }
 
+function isFinanceNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (
+    type === 'FINANCE' ||
+    type === 'FINANCIAL_PRODUCT' ||
+    type === 'FINANCIAL_PRODUCTS' ||
+    type === 'ENROLLMENT' ||
+    type === 'PRODUCT_ENROLLMENT' ||
+    type === 'SAVING' ||
+    type === 'SAVINGS' ||
+    type === 'DEPOSIT' ||
+    type === 'LOAN'
+  ) {
+    return true
+  }
+
+  return /금융\s*상품|금융상품|상품\s*가입|가입\s*(승인|신청|요청|거절)|적금|예금|대출|중도해지|조기상환/.test(
+    `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
+  )
+}
+
 // referenceType별 상세 화면 라우팅
 function goToReference(n) {
   if (isTodayAllowNotification(n)) {
     router.push({ name: 'child-todayallow-request' })
     return
   }
+  if (isFinanceNotification(n)) {
+    router.push({ name: 'child-finance-myproducts' })
+    return
+  }
   if (n.referenceType === 'PAYMENT') {
     router.push({ name: 'child-transaction' })
-  } else if (n.referenceType === 'QUEST') {
+    return
+  }
+  if (n.referenceType === 'QUEST') {
     const tab = getQuestListTabFromNotification(n)
     router.push({
       name: 'child-quest-list',
       query: tab ? { tab } : {},
     })
-  } else if (n.referenceType === 'FINANCE') {
-    router.push({ name: 'child-finance-myproducts' })
   }
 }
 
