@@ -254,6 +254,7 @@ import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
+import { useServerEvents } from '@/composables/useServerEvents'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
@@ -649,6 +650,8 @@ async function load() {
 
 onMounted(load)
 useRefreshOnVisible(load)
+// 부모가 퀘스트를 만들거나 용돈을 보내면 이 화면이 낡는다. 알림 설정과 무관하게 갱신된다.
+useServerEvents(load)
 
 function onTabSelect(key) {
   if (key === 'home')    router.push({ name: 'child-home' })

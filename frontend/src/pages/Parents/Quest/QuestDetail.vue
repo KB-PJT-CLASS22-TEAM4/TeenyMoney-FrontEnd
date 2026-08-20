@@ -1272,10 +1272,10 @@ async function handleUpdate() {
       content:
         editForm.value.content.trim(),
 
+      // QuestCreate와 같은 이유로 UTC 변환을 하지 않는다. datetime-local 입력값이
+      // 이미 로컬 벽시계(YYYY-MM-DDTHH:mm)이고, 서버 필드는 LocalDateTime이다.
       deadline:
-        new Date(
-          editForm.value.deadline
-        ).toISOString(),
+        editForm.value.deadline,
 
       rewardAmount:
         Number(
