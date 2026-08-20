@@ -623,6 +623,18 @@ function goToApply(product) {
         </button>
       </div>
 
+      <!-- 은행 상품 모티브 안내 배너 -->
+      <div class="bank-disclaimer-banner">
+        <div class="banner-icon-wrap">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none">
+            <path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 3l9 7H3l9-7z" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="banner-text">
+          은행 상품은 실제 은행과 연결되지 않아요. 실제 금융기관의 금리·이자 방식을 참고해 만든 청소년 금융 체험용입니다.
+        </p>
+      </div>
+
       <!-- 상단 카운트 및 인라인 필터 버튼 -->
       <div class="list-header-row">
         <p class="count-row">상품<span class="count-num">{{ filteredProducts.length }}</span></p>
@@ -949,6 +961,39 @@ function goToApply(product) {
   height: 2.5px;
   background: #ffbc00;
   border-radius: 999px;
+}
+
+/* 은행 상품 모티브 안내 배너 */
+.bank-disclaimer-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+
+.banner-icon-wrap {
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-text {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #3b82f6;
+  word-break: keep-all;
+}
+
+.banner-text strong {
+  color: #1d4ed8;
+  font-weight: 700;
 }
 
 /* 목록 상단 헤더 (카운트 + 인라인 필터 버튼) */

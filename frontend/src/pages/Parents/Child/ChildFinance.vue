@@ -19,6 +19,31 @@
         </div>
       </section>
 
+      <section
+        v-if="!isLoading && !errorMessage && pendingApprovals.length"
+        class="pending-section"
+      >
+        <p class="group-title">처리가 필요해요 {{ pendingApprovals.length }}</p>
+
+        <div
+          v-for="item in pendingApprovals"
+          :key="item.enrollmentId"
+          class="pending-card clickable"
+          role="button"
+          tabindex="0"
+          @click="goApprovalDetail(item)"
+          @keydown.enter="goApprovalDetail(item)"
+        >
+          <div class="pending-top">
+            <p class="pending-title">{{ item.title }}</p>
+            <span class="pending-badge">승인 대기</span>
+          </div>
+          <p class="pending-meta">
+            {{ formatPendingMeta(item) }}
+          </p>
+        </div>
+      </section>
+
       <div class="approval-tabs">
         <button
           v-for="tab in approvalTabs"
@@ -50,57 +75,6 @@
         </div>
 
         <div v-if="activeApprovalTab === 'pending'">
-
-          <div
-            v-for="item in filteredPendingApprovals"
-            :key="item.enrollmentId"
-            class="pending-card clickable"
-            role="button"
-            tabindex="0"
-            @click="goApprovalDetail(item)"
-            @keydown.enter="goApprovalDetail(item)"
-          >
-            <div class="pending-top">
-              <p class="pending-title">{{ item.title }}</p>
-              <span class="pending-badge">승인 대기</span>
-            </div>
-            <p class="pending-meta">
-              {{ formatPendingMeta(item) }}
-            </p>
-          </div>
-        </div>
-
-        <div v-if="activeApprovalTab === 'completed'">
-          <div
-            v-if="!filteredCompletedApprovals.length"
-            class="empty-box"
-          >
-            처리 완료된 승인 요청이 없습니다.
-          </div>
-
-          <div
-            v-for="item in filteredCompletedApprovals"
-            :key="`${item.enrollmentId}-${item.status}`"
-            class="completed-card clickable"
-            role="button"
-            tabindex="0"
-            @click="goApprovalDetail(item)"
-            @keydown.enter="goApprovalDetail(item)"
-          >
-            <div class="pending-top">
-              <p class="pending-title">{{ item.title }}</p>
-              <span
-                class="completed-badge"
-                :class="item.status === 'REJECTED' ? 'rejected' : 'approved'"
-              >
-                {{ item.status === 'REJECTED' ? '거절' : '승인' }}
-              </span>
-            </div>
-            <p class="pending-meta">{{ formatPendingMeta(item) }}</p>
-          </div>
-        </div>
-
-        <template v-if="activeApprovalTab === 'pending'">
           <template v-for="group in groupedActiveProducts" :key="group.label">
             <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
 
@@ -144,7 +118,37 @@
           >
             {{ emptyCategoryMessage }}
           </div>
-        </template>
+        </div>
+
+        <div v-else class="completed-list">
+          <div
+            v-if="!filteredCompletedApprovals.length"
+            class="empty-box"
+          >
+            처리 완료된 승인 요청이 없습니다.
+          </div>
+
+          <div
+            v-for="item in filteredCompletedApprovals"
+            :key="`${item.enrollmentId}-${item.status}`"
+            class="completed-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
+          >
+            <div class="pending-top">
+              <p class="pending-title">{{ item.title }}</p>
+              <span
+                class="completed-badge"
+                :class="item.status === 'REJECTED' ? 'rejected' : 'approved'"
+              >
+                {{ item.status === 'REJECTED' ? '거절' : '승인' }}
+              </span>
+            </div>
+            <p class="pending-meta">{{ formatPendingMeta(item) }}</p>
+          </div>
+        </div>
       </template>
     </div>
 
@@ -175,6 +179,7 @@ import {
   fetchAllChildFinancialProducts,
   fetchChildApprovalRequests,
 } from '@/utils/financialProductMapper'
+import { parseServerDate } from '@/utils/datetime'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
@@ -198,18 +203,12 @@ const approvalTabs = [
 ]
 
 const pendingApprovals = computed(() =>
-  approvalRequests.value.filter((item) => item.isPending)
+  [...approvalRequests.value.filter((item) => item.isPending)].sort((a, b) => {
+    const left = parseServerDate(a.requestedAt)?.getTime() ?? 0
+    const right = parseServerDate(b.requestedAt)?.getTime() ?? 0
+    return right - left
+  })
 )
-
-const filteredPendingApprovals = computed(() => {
-  if (activeCategory.value === '전체') {
-    return pendingApprovals.value
-  }
-
-  return pendingApprovals.value.filter(
-    (item) => item.category === activeCategory.value
-  )
-})
 
 const completedApprovals = computed(() =>
   approvalRequests.value.filter((item) => item.isCompleted)
@@ -257,7 +256,48 @@ const groupedActiveProducts = computed(() => {
   }))
 })
 
+const emptyCategoryMessage = computed(() => {
+  if (activeCategory.value === '전체') {
+    return pendingApprovals.value.length
+      ? '가입 중인 상품이 없습니다.'
+      : '가입한 금융 상품이 없습니다.'
+  }
+
+  return `${activeCategory.value} 상품이 없습니다.`
+})
+
+function toProductType(item) {
+  const raw = String(item?.productType || item?.category || '').toUpperCase()
+  if (raw.includes('LOAN') || raw.includes('대출')) return 'LOAN'
+  if (raw.includes('DEPOSIT') || raw.includes('예금')) return 'DEPOSIT'
+  return 'SAVING'
+}
+
+function mergeApprovalRequests(approvals, products) {
+  const merged = new Map()
+
+  approvals.forEach((item) => {
+    merged.set(Number(item.enrollmentId), item)
+  })
+
+  products
+    .filter((item) => item.isPending)
+    .forEach((item) => {
+      const key = Number(item.enrollmentId)
+      if (merged.has(key)) return
+
+      merged.set(key, {
+        ...item,
+        productType: toProductType(item),
+        isPending: true,
+        isCompleted: false,
+      })
+    })
+
+  return Array.from(merged.values())
+}
 function formatPendingMeta(item) {
+
   const parts = []
 
   if (item.requestedAmount) {
@@ -306,7 +346,7 @@ async function fetchProducts() {
       ),
     ])
 
-    approvalRequests.value = approvals
+    approvalRequests.value = mergeApprovalRequests(approvals, products)
     activeProducts.value = products.filter(
       (item) => !item.isPending && item.status !== 'REJECTED',
     )
@@ -325,7 +365,7 @@ function goApprovalDetail(item) {
     name: 'parents-finance-approval-detail',
     params: {
       childId,
-      productType: item.productType,
+      productType: toProductType(item),
       enrollmentId: item.enrollmentId,
     },
   })
@@ -415,6 +455,10 @@ onMounted(async () => {
   border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.pending-section {
+  margin-bottom: 16px;
 }
 
 .child-info-left {
@@ -526,7 +570,7 @@ onMounted(async () => {
 }
 
 .pending-meta {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 12px;
   color: #8b9097;
 }
@@ -644,6 +688,15 @@ onMounted(async () => {
   height: 100%;
   border-radius: 999px;
   background: #ffbc00;
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: bar-grow 0.4s ease-out forwards;
+}
+
+@keyframes bar-grow {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .product-foot {

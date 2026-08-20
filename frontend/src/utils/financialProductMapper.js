@@ -1,3 +1,5 @@
+import { formatKstDate } from '@/utils/datetime'
+
 const CATEGORY_MAP = {
   SAVING: '적금',
   SAVINGS: '적금',
@@ -12,6 +14,8 @@ const STATUS_NORMALIZE = {
   PENDING: 'PENDING',
   WAITING: 'PENDING',
   PENDING_APPROVAL: 'PENDING',
+  WAITING_APPROVAL: 'PENDING',
+  REQUESTED: 'PENDING',
   '승인대기': 'PENDING',
   '승인 대기': 'PENDING',
   APPROVED: 'APPROVED',
@@ -21,6 +25,39 @@ const STATUS_NORMALIZE = {
   CANCELLED: 'CANCELLED',
   '승인': 'APPROVED',
   '거절': 'REJECTED',
+}
+
+const REPAYMENT_TYPE_LABELS = {
+  EQUAL_PRINCIPAL_AND_INTEREST: '원리금 균등상환',
+  EQUAL_PRINCIPAL_INTEREST: '원리금 균등상환',
+  EQUAL_PRINCIPAL: '원금 균등상환',
+  BULLET: '만기일시상환',
+  LUMP_SUM: '만기일시상환',
+}
+
+const SAVINGS_TYPE_LABELS = {
+  FREE: '자유적금',
+  FIXED: '정액적금',
+}
+
+const INTEREST_CALCULATION_LABELS = {
+  SIMPLE: '단리',
+  COMPOUND: '복리',
+}
+
+export function formatRepaymentType(value, empty = '') {
+  if (!value) return empty
+  return REPAYMENT_TYPE_LABELS[value] ?? REPAYMENT_TYPE_LABELS[String(value).toUpperCase()] ?? empty
+}
+
+export function formatSavingsType(value, empty = '') {
+  if (!value) return empty
+  return SAVINGS_TYPE_LABELS[value] ?? SAVINGS_TYPE_LABELS[String(value).toUpperCase()] ?? empty
+}
+
+export function formatInterestCalculationType(value, empty = '') {
+  if (!value) return empty
+  return INTEREST_CALCULATION_LABELS[value] ?? INTEREST_CALCULATION_LABELS[String(value).toUpperCase()] ?? empty
 }
 
 const PENDING_STATUSES = new Set([
@@ -53,18 +90,7 @@ function formatRate(value) {
 }
 
 function formatDate(value) {
-  if (!value) return '-'
-
-  if (Array.isArray(value)) {
-    const [year, month, day] = value
-    return `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`
-  }
-
-  if (typeof value === 'string') {
-    return value.slice(0, 10).replace(/-/g, '.')
-  }
-
-  return '-'
+  return formatKstDate(value, '-')
 }
 
 function calcProgress(current, target) {
@@ -118,6 +144,11 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
     id: item?.enrollmentId ?? item?.id,
     enrollmentId: item?.enrollmentId ?? item?.id,
     category,
+    productType:
+      item?.productType
+      ?? item?.productCategory
+      ?? item?.category
+      ?? fallbackCategory,
     title:
       item?.productName
       ?? item?.name
@@ -134,7 +165,17 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
       ?? item?.monthlyPayment
       ?? item?.monthlyDepositAmount
       ?? 0,
+    requestedAmount:
+      item?.requestedAmount
+      ?? item?.monthlyPaymentAmount
+      ?? item?.monthlyAmount
+      ?? 0,
     periodMonths:
+      item?.termMonths
+      ?? item?.periodMonths
+      ?? item?.period
+      ?? 0,
+    termMonths:
       item?.termMonths
       ?? item?.periodMonths
       ?? item?.period
@@ -149,6 +190,7 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
         ?? item?.endDate
         ?? item?.expiresAt
     ),
+    requestedAt: item?.requestedAt ?? item?.createdAt ?? item?.appliedAt,
     status,
     statusLabel: item?.statusLabel ?? status,
     isPending: PENDING_STATUSES.has(status) || PENDING_STATUSES.has(item?.statusLabel),

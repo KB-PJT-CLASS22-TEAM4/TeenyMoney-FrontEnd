@@ -177,6 +177,7 @@ import { getFinanceTerm } from '@/constants/financeTerms';
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import FinanceTermModal from '@/components/Child/FinanceTermModal.vue';
+import { formatRepaymentType } from '@/utils/financialProductMapper'
 
 const router = useRouter();
 const route = useRoute();
@@ -236,13 +237,7 @@ const total     = Number(route.query.total)     || 0
 const interest  = Number(route.query.interest)  || 0
 const principal = isSavings ? amount * period : amount
 
-// 대출 상환 방식 한글 표기
-const repaymentTypeMap = {
-  'EQUAL_PRINCIPAL_INTEREST': '원리금균등상환',
-  'EQUAL_PRINCIPAL': '원금균등상환',
-  'BULLET': '만기일시상환'
-}
-const repaymentTypeDesc = repaymentTypeMap[route.query.repaymentType] || '원리금균등상환'
+const repaymentTypeDesc = formatRepaymentType(route.query.repaymentType, '원리금균등상환')
 
 // 엑셀 정책 표 기반 예상 티니점수 가점
 const DEPOSIT_SCORE = { 1: 6, 3: 19, 6: 39, 12: 79 }

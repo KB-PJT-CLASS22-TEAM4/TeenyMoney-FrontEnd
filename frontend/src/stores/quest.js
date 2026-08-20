@@ -6,51 +6,10 @@ import {
   acceptQuest as acceptQuestApi,
   declineQuest as declineQuestApi,
 } from '@/api/quest'
+import { calcKstDDay, formatKstDate } from '@/utils/datetime'
 
-// deadline: ISO 문자열 또는 [y, m, d, h, mi, s] 배열(Jackson LocalDateTime 직렬화 형식) 둘 다 지원
-function parseDeadline(deadline) {
-  if (!deadline) return null
-
-  if (Array.isArray(deadline)) {
-    const [y, m, d, h = 0, mi = 0, s = 0] = deadline
-    return new Date(y, m - 1, d, h, mi, s)
-  }
-
-  let date = new Date(deadline)
-  if (Number.isNaN(date.getTime()) && typeof deadline === 'string') {
-    date = new Date(deadline.replace(' ', 'T'))
-  }
-  return Number.isNaN(date.getTime()) ? null : date
-}
-
-function calcDDay(deadline) {
-  const end = parseDeadline(deadline)
-  if (!end) return null
-  const now = new Date()
-  const diffMs = end.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
-}
-
-// raw: ISO 문자열 또는 [y, m, d] / [y, m, d, h, mi, s] 배열(Jackson 직렬화 형식) 둘 다 지원
 function formatDate(raw) {
-  if (!raw) return ''
-
-  let y, m, day
-
-  if (Array.isArray(raw)) {
-    [y, m, day] = raw
-  } else {
-    const d = new Date(raw)
-    if (Number.isNaN(d.getTime())) return ''
-    y = d.getFullYear()
-    m = d.getMonth() + 1
-    day = d.getDate()
-  }
-
-  if (y === undefined || m === undefined || day === undefined) return ''
-
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${y}.${pad(m)}.${pad(day)}`
+  return formatKstDate(raw)
 }
 
 function mapListItem(raw) {
@@ -63,7 +22,7 @@ function mapListItem(raw) {
     subStatus: raw.status,
     resultStatus: raw.status,
     deadline: raw.deadline,
-    dDay: calcDDay(raw.deadline),
+    dDay: calcKstDDay(raw.deadline),
     endedAt: formatDate(raw.endedAt),
     submittedAt: '', // 상세 조회로 보완
     lastRejectionReason: '', // 상세 조회로 보완 (ONGOING 탭의 IN_PROGRESS 항목은 fetchTab에서 채움)

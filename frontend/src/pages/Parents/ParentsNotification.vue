@@ -89,6 +89,20 @@ import { useNotificationStore } from '@/stores/notification'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { getMyNotifications, markAllNotificationsRead, markNotificationRead } from '@/api/notification'
 import { getChildren } from '@/api/children'
+import {
+  getFinancialProductApprovalRequestDetail,
+  getFinancialProductApprovalRequests,
+} from '@/api/financialProducts'
+import {
+  extractApprovalRequestList,
+  normalizeApprovalRequest,
+} from '@/utils/financialProductMapper'
+import {
+  formatKstClock12,
+  formatKstMonthDayLabel,
+  isSameKstDay,
+  parseServerDate,
+} from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -104,7 +118,20 @@ const ICONS = {
 }
 
 function getIcon(referenceType) {
-  return ICONS[referenceType] || ICONS.DEFAULT
+  const type = String(referenceType || '').toUpperCase()
+  if (
+    type === 'FINANCE' ||
+    type === 'FINANCIAL_PRODUCT' ||
+    type === 'FINANCIAL_PRODUCTS' ||
+    type === 'ENROLLMENT' ||
+    type === 'PRODUCT_ENROLLMENT' ||
+    type === 'SAVING' ||
+    type === 'DEPOSIT' ||
+    type === 'LOAN'
+  ) {
+    return ICONS.FINANCE
+  }
+  return ICONS[type] || ICONS.DEFAULT
 }
 
 function isTodayAllowNotification(n) {
@@ -128,6 +155,36 @@ function isFamilyLinkNotification(n) {
   }
 
   return /연결됐|연동됐|연결되었|연동되었/.test(`${n.title || ''} ${n.detail || ''}`)
+}
+
+function isFinanceApprovalNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (
+    type === 'FINANCE' ||
+    type === 'FINANCIAL_PRODUCT' ||
+    type === 'FINANCIAL_PRODUCTS' ||
+    type === 'ENROLLMENT' ||
+    type === 'PRODUCT_ENROLLMENT' ||
+    type === 'SAVING' ||
+    type === 'DEPOSIT' ||
+    type === 'LOAN'
+  ) {
+    return true
+  }
+
+  return /상품\s*가입|가입\s*(승인|신청|요청)|금융상품/.test(
+    `${n.title || ''} ${n.detail || ''}`
+  )
+}
+
+function inferProductType(n) {
+  const text = `${n.productType || ''} ${n.title || ''} ${n.detail || ''}`
+
+  if (/LOAN|대출/.test(text)) return 'LOAN'
+  if (/DEPOSIT|예금/.test(text)) return 'DEPOSIT'
+  if (/SAVING|적금/.test(text)) return 'SAVING'
+
+  return n.productType || null
 }
 
 function goToChildDetail(childId) {
@@ -170,6 +227,79 @@ async function goToFamilyLink(n) {
   goToChildDetail(childId)
 }
 
+async function findFinanceApproval(n) {
+  const enrollmentId = n.enrollmentId ?? n.referenceId
+  if (enrollmentId == null || enrollmentId === '') {
+    return null
+  }
+
+  try {
+    const res = await getFinancialProductApprovalRequests(authStore.accessToken)
+    const matched = extractApprovalRequestList(res.data)
+      .map((item) => normalizeApprovalRequest(item))
+      .find((item) => Number(item.enrollmentId) === Number(enrollmentId))
+
+    if (matched) {
+      return matched
+    }
+  } catch (error) {
+    console.error('금융상품 승인 요청 목록 조회 실패:', error)
+  }
+
+  const preferred = inferProductType(n)
+  const types = preferred
+    ? [preferred, 'SAVING', 'DEPOSIT', 'LOAN'].filter(
+        (type, index, list) => list.indexOf(type) === index
+      )
+    : ['SAVING', 'DEPOSIT', 'LOAN']
+
+  const results = await Promise.allSettled(
+    types.map((type) =>
+      getFinancialProductApprovalRequestDetail(
+        authStore.accessToken,
+        type,
+        enrollmentId
+      )
+    )
+  )
+
+  const hit = results.find((result) => result.status === 'fulfilled')
+  if (hit?.value?.data) {
+    return normalizeApprovalRequest(hit.value.data)
+  }
+
+  return null
+}
+
+async function goToFinanceApproval(n) {
+  const matched = await findFinanceApproval(n)
+  let childId = matched?.childId || n.childId
+
+  if (!childId) {
+    try {
+      const res = await getChildren(authStore.accessToken)
+      const children = Array.isArray(res?.data) ? res.data : []
+      const fromNoti = n.childId ?? n.referenceId
+      const found = children.find(
+        (child) => Number(child.childId) === Number(fromNoti)
+      )
+      childId = found?.childId ?? (children.length === 1 ? children[0].childId : null)
+    } catch {
+      childId = n.childId
+    }
+  }
+
+  if (childId) {
+    router.push({
+      name: 'parents-child-finance',
+      params: { childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-child-list' })
+}
+
 async function goToReference(n) {
   if (isTodayAllowNotification(n)) {
     await goToTodayAllow(n)
@@ -177,6 +307,10 @@ async function goToReference(n) {
   }
   if (isFamilyLinkNotification(n)) {
     await goToFamilyLink(n)
+    return
+  }
+  if (isFinanceApprovalNotification(n)) {
+    await goToFinanceApproval(n)
     return
   }
   if (n.referenceType === 'PAYMENT') {
@@ -187,63 +321,29 @@ async function goToReference(n) {
     router.push({ name: 'parents-quest-list' })
     return
   }
-  if (n.referenceType === 'FINANCE') {
-    router.push({ name: 'parents-child-list' })
-    return
-  }
   if (n.referenceType === 'ALLOWANCE') {
     router.push({ name: 'send-allowance' })
   }
 }
 
 function parseCreatedAt(raw) {
-  if (!raw) return null
-
-  if (Array.isArray(raw)) {
-    const [y, m, d, h = 0, mi = 0, s = 0] = raw
-    if (y === undefined || m === undefined || d === undefined) return null
-    const parsed = new Date(y, m - 1, d, h, mi, s)
-    return Number.isNaN(parsed.getTime()) ? null : parsed
-  }
-
-  const parsed = new Date(raw)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-function isSameDay(a, b) {
-  return a.getFullYear() === b.getFullYear()
-    && a.getMonth() === b.getMonth()
-    && a.getDate() === b.getDate()
+  return parseServerDate(raw)
 }
 
 function formatDateLabel(d) {
-  const now = new Date()
-  const yesterday = new Date(now)
-  yesterday.setDate(now.getDate() - 1)
-
-  const md = `${d.getMonth() + 1}월 ${d.getDate()}일`
-
-  if (isSameDay(d, now)) return `오늘 · ${md}`
-  if (isSameDay(d, yesterday)) return `어제 · ${md}`
-  return md
+  return formatKstMonthDayLabel(d)
 }
 
 function formatClockTime(d) {
-  const hours = d.getHours()
-  const period = hours < 12 ? '오전' : '오후'
-  let h12 = hours % 12
-  if (h12 === 0) h12 = 12
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${period} ${h12}:${mm}`
+  return formatKstClock12(d)
 }
 
 function formatTime(d) {
   const now = new Date()
 
-  if (!isSameDay(d, now)) {
-    const yesterday = new Date(now)
-    yesterday.setDate(now.getDate() - 1)
-    if (isSameDay(d, yesterday)) return '어제'
+  if (!isSameKstDay(d, now)) {
+    const yesterday = new Date(now.getTime() - 86400000)
+    if (isSameKstDay(d, yesterday)) return '어제'
     const diffDays = Math.max(1, Math.round((now - d) / 86400000))
     return `${diffDays}일 전`
   }
@@ -272,6 +372,8 @@ function mapNotification(n) {
     referenceType: n.referenceType,
     referenceId: n.referenceId,
     childId: n.childId ?? n.child?.childId ?? n.child?.id ?? null,
+    enrollmentId: n.enrollmentId ?? null,
+    productType: n.productType ?? n.referenceSubType ?? null,
     icon: getIcon(n.referenceType),
     createdDate,
     dateLabel: createdDate ? formatDateLabel(createdDate) : '',

@@ -26,10 +26,19 @@
             <div class="donut-wrap">
               <svg width="130" height="130" viewBox="0 0 130 130">
                 <circle cx="65" cy="65" r="52" fill="none" stroke="#f1f5f9" stroke-width="12"/>
-                <circle cx="65" cy="65" r="52" fill="none" :stroke="gradeColor" stroke-width="12"
-                        :stroke-dasharray="`${donutFill} ${donutCircumference}`"
-                        stroke-dashoffset="0" stroke-linecap="round"
-                        transform="rotate(-90 65 65)"/>
+                <circle
+                  class="donut-fill"
+                  cx="65"
+                  cy="65"
+                  r="52"
+                  fill="none"
+                  :stroke="gradeColor"
+                  stroke-width="12"
+                  :stroke-dasharray="donutCircumference"
+                  :stroke-dashoffset="donutOffset"
+                  stroke-linecap="round"
+                  transform="rotate(-90 65 65)"
+                />
               </svg>
               <div class="donut-center">
                 <span class="donut-label">티니점수</span>
@@ -215,7 +224,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
@@ -228,6 +237,11 @@ import {
 } from '@/api/teenyScore'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
+import {
+  currentKstYearMonth,
+  formatKstRelativeDay,
+  parseServerDate,
+} from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -297,7 +311,7 @@ async function loadScoreData() {
     }
 
     const now = new Date()
-    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    const currentYearMonth = currentKstYearMonth(now)
 
     const monthlyList = monthlyRes.data
     const pastMonths = monthlyList
@@ -308,14 +322,7 @@ async function loadScoreData() {
     prevMonthScore.value = prevMonthEntry ? prevMonthEntry.teenyScore : score.value
 
     const histories = [...historyRes.data].sort((a, b) => {
-      const parse = (v) => {
-        if (Array.isArray(v)) {
-          const [y, mo, d, h = 0, mi = 0, s = 0] = v
-          return new Date(y, mo - 1, d, h, mi, s).getTime()
-        }
-        const t = new Date(v).getTime()
-        return isNaN(t) ? 0 : t
-      }
+      const parse = (v) => parseServerDate(v)?.getTime() ?? 0
       return parse(b.createdAt) - parse(a.createdAt)
     })
     activities.value = histories.map((h) => ({
@@ -332,22 +339,7 @@ async function loadScoreData() {
 }
 
 function formatRelativeDate(dateVal) {
-  if (!dateVal) return '-'
-
-  let date
-  if (Array.isArray(dateVal)) {
-    const [year, month, day, hour = 0, minute = 0, second = 0] = dateVal
-    date = new Date(year, month - 1, day, hour, minute, second)
-  } else {
-    date = new Date(dateVal)
-  }
-
-  if (isNaN(date.getTime())) return '-'
-
-  const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000)
-  if (diffDays <= 0) return '오늘'
-  if (diffDays === 1) return '어제'
-  return `${diffDays}일 전`
+  return formatKstRelativeDay(dateVal)
 }
 
 onMounted(loadScoreData)
@@ -376,6 +368,23 @@ const donutFill = computed(() => {
   if (total <= 0) return 0
   const ratio = (score.value - SCORE_MIN.value) / total
   return Math.min(1, Math.max(0, ratio)) * donutCircumference
+})
+const animatedDonutFill = ref(0)
+const donutOffset = computed(() => donutCircumference - animatedDonutFill.value)
+
+watch(loading, async (isLoading) => {
+  if (isLoading) {
+    animatedDonutFill.value = 0
+    return
+  }
+
+  animatedDonutFill.value = 0
+  await nextTick()
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      animatedDonutFill.value = donutFill.value
+    })
+  })
 })
 
 const benefits = computed(() => [
@@ -498,6 +507,10 @@ function onTabSelect(key) {
   width: 130px;
   height: 130px;
   flex-shrink: 0;
+}
+
+.donut-fill {
+  transition: stroke-dashoffset 0.4s ease-out;
 }
 
 .donut-center {

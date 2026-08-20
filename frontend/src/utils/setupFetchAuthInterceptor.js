@@ -1,5 +1,8 @@
 import { useAuthStore } from '@/stores/auth'
-import { handleUnauthorizedResponse } from '@/utils/authSession'
+import {
+  handleUnauthorizedResponse,
+  isPublicAuthApiUrl,
+} from '@/utils/authSession'
 
 const PUBLIC_ROUTE_NAMES = new Set([
   'login',
@@ -12,16 +15,37 @@ export function isPublicRoute(route) {
   return PUBLIC_ROUTE_NAMES.has(route.name)
 }
 
+function getRequestUrl(input) {
+  if (typeof input === 'string') return input
+  return input?.url
+}
+
+function withoutAccessToken(input, init = {}) {
+  const headers = new Headers(
+    init.headers || (input instanceof Request ? input.headers : undefined),
+  )
+  headers.delete('Authorization')
+
+  return {
+    ...init,
+    headers,
+  }
+}
+
 export function setupFetchAuthInterceptor() {
   const originalFetch = window.fetch.bind(window)
 
   window.fetch = async (input, init) => {
-    const response = await originalFetch(input, init)
-    const url = typeof input === 'string'
-      ? input
-      : input?.url
+    const url = getRequestUrl(input)
+    const nextInit = isPublicAuthApiUrl(url)
+      ? withoutAccessToken(input, init)
+      : init
+    const response = await originalFetch(input, nextInit)
 
-    handleUnauthorizedResponse(response, url)
+    if (!isPublicAuthApiUrl(url)) {
+      handleUnauthorizedResponse(response, url)
+    }
+
     return response
   }
 }

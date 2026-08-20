@@ -23,6 +23,7 @@ import {
   extractApprovalRequestList,
   normalizeApprovalRequest,
 } from '@/utils/financialProductMapper'
+import { parseServerDate } from '@/utils/datetime'
 
 export function useParentRequests() {
   const router = useRouter()
@@ -82,15 +83,7 @@ export function useParentRequests() {
   }
 
   function parseCreatedAt(createdAt) {
-    if (!createdAt) return null
-
-    if (Array.isArray(createdAt)) {
-      const [year, month, day, hour = 0, minute = 0, second = 0] = createdAt
-      return new Date(year, month - 1, day, hour, minute, second)
-    }
-
-    const date = new Date(createdAt)
-    return Number.isNaN(date.getTime()) ? null : date
+    return parseServerDate(createdAt)
   }
 
   function formatRelativeTime(createdAt) {

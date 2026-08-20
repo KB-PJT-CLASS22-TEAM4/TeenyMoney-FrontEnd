@@ -9,6 +9,8 @@
 // - insightCode -> 문구 사전 (정의서 7.2). 실제 API 가 코드를 주기 시작하면
 //   habits 의 line / lineTeen 을 코드별 템플릿으로 바꾼다.
 
+import { todayKstDate } from '@/utils/datetime'
+
 export const AGE_BAND_TEEN_FROM = 13
 
 // 만 나이 -> JUNIOR(7~12) / TEEN(13~18)
@@ -26,12 +28,7 @@ export function ageBandFromBirthDate(birthDate, today) {
 
 // 한국 시간대 기준 오늘 'YYYY-MM-DD'
 export function todayKST(now = new Date()) {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now)
+  return todayKstDate(now)
 }
 
 export function won(n) {
