@@ -149,7 +149,7 @@ function goToCompletePage() {
   margin: 0 auto;
   background: #ffffff;
   color: #191b1e;
-  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 /* 상단 네비게이션 */

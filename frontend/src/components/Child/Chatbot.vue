@@ -403,7 +403,7 @@ async function retryMessage(idx) {
   flex-direction: column;
   overflow: hidden;
   z-index: 1000;
-  font-family: 'Pretendard', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .chatbot-header {

@@ -602,7 +602,7 @@ function onTabSelect(key) {
   background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
-  font-family: 'Pretendard', 'Inter', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .scroll {
@@ -650,7 +650,7 @@ function onTabSelect(key) {
   align-items: flex-start;
   border-bottom: 1.2px solid #f0f1f3;
   background: #ffffff;
-  font-family: 'Noto Sans KR', 'Pretendard', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .tab-btn {

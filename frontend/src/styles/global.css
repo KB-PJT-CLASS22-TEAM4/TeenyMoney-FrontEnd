@@ -1,3 +1,27 @@
+@font-face {
+  font-family: 'KBFGText';
+  src: url('../assets/fonts/KBFGTextL.woff') format('woff');
+  font-weight: 100 349;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KBFGText';
+  src: url('../assets/fonts/KBFGTextM.woff') format('woff');
+  font-weight: 350 599;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'KBFGText';
+  src: url('../assets/fonts/KBFGTextB.woff') format('woff');
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
@@ -11,6 +35,14 @@ body {
   margin: 0;
   padding: 0;
   background: #ffffff;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
 }
 
 #app {
@@ -19,4 +51,5 @@ body {
   min-height: 100dvh;
   margin: 0 auto;
   background: #ffffff;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
