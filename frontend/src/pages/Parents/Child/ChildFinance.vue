@@ -19,31 +19,6 @@
         </div>
       </section>
 
-      <section
-        v-if="!isLoading && !errorMessage && pendingApprovals.length"
-        class="pending-section"
-      >
-        <p class="group-title">처리가 필요해요 {{ pendingApprovals.length }}</p>
-
-        <div
-          v-for="item in pendingApprovals"
-          :key="item.enrollmentId"
-          class="pending-card clickable"
-          role="button"
-          tabindex="0"
-          @click="goApprovalDetail(item)"
-          @keydown.enter="goApprovalDetail(item)"
-        >
-          <div class="pending-top">
-            <p class="pending-title">{{ item.title }}</p>
-            <span class="pending-badge">승인 대기</span>
-          </div>
-          <p class="pending-meta">
-            {{ formatPendingMeta(item) }}
-          </p>
-        </div>
-      </section>
-
       <div class="approval-tabs">
         <button
           v-for="tab in approvalTabs"
@@ -75,6 +50,31 @@
         </div>
 
         <div v-if="activeApprovalTab === 'pending'">
+          <section
+            v-if="pendingApprovals.length"
+            class="pending-section"
+          >
+            <p class="group-title">처리 필요{{ pendingApprovals.length }}</p>
+
+            <div
+              v-for="item in pendingApprovals"
+              :key="item.enrollmentId"
+              class="pending-card clickable"
+              role="button"
+              tabindex="0"
+              @click="goApprovalDetail(item)"
+              @keydown.enter="goApprovalDetail(item)"
+            >
+              <div class="pending-top">
+                <p class="pending-title">{{ item.title }}</p>
+                <span class="pending-badge">승인 대기</span>
+              </div>
+              <p class="pending-meta">
+                {{ formatPendingMeta(item) }}
+              </p>
+            </div>
+          </section>
+
           <template v-for="group in groupedActiveProducts" :key="group.label">
             <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
 
@@ -113,7 +113,7 @@
           </template>
 
           <div
-            v-if="!groupedActiveProducts.length"
+            v-if="!groupedActiveProducts.length && !pendingApprovals.length"
             class="empty-box"
           >
             {{ emptyCategoryMessage }}
@@ -458,7 +458,7 @@ onMounted(async () => {
 }
 
 .pending-section {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .child-info-left {
@@ -491,9 +491,9 @@ onMounted(async () => {
 .approval-tabs {
   display: flex;
   gap: 18px;
-  margin: 0 -16px 16px;
-  padding: 0 16px;
-  background: #ffffff;
+  margin-bottom: 16px;
+  padding: 0;
+  background: transparent;
   border-bottom: 1px solid #f0f1f3;
 }
 
