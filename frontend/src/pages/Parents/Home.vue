@@ -94,7 +94,7 @@
           <div class="allowance-left">
             <div class="allowance-icon-wrap">
               <img
-                src="@/assets/icons/icon-notification.svg"
+                src="@/assets/icons/icon-exclamation.svg"
                 alt=""
                 class="clock-icon"
               />
@@ -124,7 +124,7 @@
               <img
                 src="@/assets/icons/icon-wallet.svg"
                 alt=""
-                class="clock-icon"
+                class="clock-icon wallet-icon"
               />
             </div>
 
@@ -581,15 +581,17 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: #fff8e6;
+  width: 22px;
+  height: 22px;
 }
 
 .clock-icon {
   width: 22px;
   height: 22px;
+}
+
+.wallet-icon {
+  filter: brightness(0);
 }
 
 .allowance-main {
