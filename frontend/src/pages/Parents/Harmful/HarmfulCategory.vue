@@ -16,7 +16,7 @@
       </button>
 
       <h1 class="nav-title">
-        유해 업소 설정
+        유해 업종 설정
       </h1>
 
       <ParentNavActions />
@@ -142,13 +142,13 @@
       </div>
 
 
-      <!-- 설정한 업소 목록 조회 -->
+      <!-- 설정한 업종 목록 조회 -->
       <button
         class="list-btn"
         @click="goToPlaceList"
       >
         <span>
-          설정한 업소 목록 조회
+          설정한 업종 목록 조회
         </span>
 
         <img
@@ -904,7 +904,7 @@ async function fetchCategoryPolicies() {
 
 
 // ========================================
-// 설정한 업소 목록으로 이동
+// 설정한 업종 목록으로 이동
 //
 // childId를 그대로 넘겨야 함
 // ========================================
