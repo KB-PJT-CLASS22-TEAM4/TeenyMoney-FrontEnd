@@ -16,22 +16,40 @@
       <template v-if="productCategory === 'SAVINGS' && !isFreeSaving">
         <section class="section product-info">
           <h2 class="product-name">{{ productTitle }}</h2>
-          <p class="product-type">{{ fixedSavingTypeLine }}</p>
+          <p class="product-type">
+            {{ fixedSavingTypeLine }}
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal(interestType || '정액적립식')" aria-label="도움말 보기">?</button>
+          </p>
           <p class="rate-info">{{ periodInfo }}, <span class="highlight-blue">{{ productRate }}</span></p>
           <p class="score-requirement" v-if="scoreReq">
             티니점수 <span :class="`highlight-${scoreColor}`">{{ scoreReq }}</span>
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal('티니점수')" aria-label="도움말 보기">?</button>
           </p>
           <p class="limit-info limit-info-strong" v-if="limitInfo">{{ limitInfo }}</p>
         </section>
 
         <section class="section">
           <label class="input-label">월 납입금액</label>
-          <div class="amount-display" :class="{ hasValue: savingsForm.amount > 0 }">
-            <span class="amount-value" :class="{ placeholder: savingsForm.amount === 0 }">
-              {{ savingsForm.amount ? savingsForm.amount.toLocaleString() : '0' }}
-            </span>
+          <div class="amount-input-wrap" :class="{ hasValue: savingsForm.amount > 0, error: Boolean(savingsAmountError) }">
+            <input
+              type="text"
+              inputmode="numeric"
+              class="amount-input"
+              :value="formatAmount(savingsForm.amount)"
+              @input="onAmountInput($event, savingsForm)"
+              placeholder="0"
+            />
             <span class="currency-unit" :class="{ hasValue: savingsForm.amount > 0 }">원</span>
+            <button
+              v-if="savingsForm.amount > 0"
+              type="button"
+              class="clear-amount-btn"
+              @click="savingsForm.amount = 0"
+            >
+              지우기
+            </button>
           </div>
+          <p v-if="savingsAmountError" class="amount-error-msg">{{ savingsAmountError }}</p>
           <div class="button-group">
             <button
               v-for="amt in [10000, 30000, 50000, 100000]"
@@ -72,7 +90,7 @@
             </div>
             <div class="setting-row border-top">
               <span class="setting-label">이체일</span>
-              <button type="button" class="select-btn">
+              <button type="button" class="select-btn" @click="openDayPicker('savings')">
                 <span>매월 {{ savingsForm.transferDay }}일</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B9BEC5" stroke-width="2">
                   <polyline points="9 18 15 12 9 6"/>
@@ -87,22 +105,39 @@
       <template v-else-if="productCategory === 'SAVINGS' && isFreeSaving">
         <section class="section product-info">
           <h2 class="product-name">{{ productTitle }}</h2>
-          <p class="product-type">{{ freeSavingTypeLine }}</p>
+          <p class="product-type">
+            {{ freeSavingTypeLine }}
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal('자유적립식')" aria-label="도움말 보기">?</button>
+          </p>
           <p class="rate-info">{{ periodInfo }}, <span class="highlight-blue">{{ productRate }}</span></p>
           <p class="score-requirement" v-if="scoreReq">
             티니점수 <span :class="`highlight-${scoreColor}`">{{ scoreReq }}</span>
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal('티니점수')" aria-label="도움말 보기">?</button>
           </p>
           <p class="limit-info limit-info-strong" v-if="limitInfo">{{ limitInfo }}</p>
         </section>
 
         <section class="section">
-          <label class="input-label">월 목표금액</label>
-          <div class="amount-display" :class="{ hasValue: savingsForm.amount > 0 }">
-            <span class="amount-value" :class="{ placeholder: savingsForm.amount === 0 }">
-              {{ savingsForm.amount ? savingsForm.amount.toLocaleString() : '0' }}
-            </span>
+          <label class="input-label">총 목표금액 (최소 1만원)</label>
+          <div class="amount-input-wrap" :class="{ hasValue: savingsForm.amount > 0, error: Boolean(savingsAmountError) }">
+            <input
+              type="text"
+              inputmode="numeric"
+              class="amount-input"
+              :value="formatAmount(savingsForm.amount)"
+              @input="onAmountInput($event, savingsForm)"
+              placeholder="0"
+            />
             <span class="currency-unit" :class="{ hasValue: savingsForm.amount > 0 }">원</span>
+            <button
+              v-if="savingsForm.amount > 0"
+              type="button" class="clear-amount-btn"
+              @click="savingsForm.amount = 0"
+            >
+              지우기
+            </button>
           </div>
+          <p v-if="savingsAmountError" class="amount-error-msg">{{ savingsAmountError }}</p>
           <div class="button-group">
             <button
               v-for="amt in [10000, 30000, 50000, 100000]"
@@ -145,25 +180,42 @@
       <template v-else-if="productCategory === 'DEPOSIT'">
         <section class="section product-info">
           <h2 class="product-name">{{ productTitle }}</h2>
-          <p class="product-type">{{ depositTypeLine }}</p>
+          <p class="product-type">
+            {{ depositTypeLine }}
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal(interestType || '단리')" aria-label="도움말 보기">?</button>
+          </p>
           <p class="rate-info">{{ periodInfo }}, <span class="highlight-blue">{{ productRate }}</span></p>
           <p class="score-requirement" v-if="scoreReq">
             티니점수 <span :class="`highlight-${scoreColor}`">{{ scoreReq }}</span>
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal('티니점수')" aria-label="도움말 보기">?</button>
           </p>
           <p class="limit-info limit-info-strong" v-if="limitInfo">{{ limitInfo }}</p>
         </section>
 
         <section class="section">
-          <label class="input-label">예치 금액 (최소 10만원)</label>
-          <div class="amount-display" :class="{ hasValue: depositForm.amount > 0 }">
-            <span class="amount-value" :class="{ placeholder: depositForm.amount === 0 }">
-              {{ depositForm.amount ? depositForm.amount.toLocaleString() : '0' }}
-            </span>
+          <label class="input-label">예치 금액 (최소 1만원)</label>
+          <div class="amount-input-wrap" :class="{ hasValue: depositForm.amount > 0, error: Boolean(depositAmountError) }">
+            <input
+              type="text"
+              inputmode="numeric"
+              class="amount-input"
+              :value="formatAmount(depositForm.amount)"
+              @input="onAmountInput($event, depositForm)"
+              placeholder="0"
+            />
             <span class="currency-unit" :class="{ hasValue: depositForm.amount > 0 }">원</span>
+            <button
+              v-if="depositForm.amount > 0"
+              type="button" class="clear-amount-btn"
+              @click="depositForm.amount = 0"
+            >
+              지우기
+            </button>
           </div>
+          <p v-if="depositAmountError" class="amount-error-msg">{{ depositAmountError }}</p>
           <div class="button-group">
             <button
-              v-for="amt in [100000, 150000, 200000, 250000]"
+              v-for="amt in [10000, 30000, 50000, 100000]"
               :key="amt" type="button" class="chip-btn"
               :class="{ active: depositForm.amount === amt }"
               @click="depositForm.amount = amt"
@@ -196,22 +248,39 @@
       <template v-else-if="productCategory === 'LOAN'">
         <section class="section product-info">
           <h2 class="product-name">{{ productTitle }}</h2>
-          <p class="product-type">소액대출 · 필요할 때 빌리고 매월 갚아요</p>
+          <p class="product-type">
+            소액대출 · 필요할 때 빌리고 매월 갚아요
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal('원리금균등상환')" aria-label="도움말 보기">?</button>
+          </p>
           <p class="rate-info"><span class="highlight-blue">{{ productRate }}</span></p>
           <p class="score-requirement" v-if="scoreReq">
             티니점수 <span :class="`highlight-${scoreColor}`">{{ scoreReq }}</span>
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal('티니점수')" aria-label="도움말 보기">?</button>
           </p>
           <p class="limit-info limit-info-strong" v-if="limitInfo">{{ limitInfo }}</p>
         </section>
 
         <section class="section">
           <label class="input-label">대출 금액</label>
-          <div class="amount-display" :class="{ hasValue: loanForm.amount > 0 }">
-            <span class="amount-value" :class="{ placeholder: loanForm.amount === 0 }">
-              {{ loanForm.amount ? loanForm.amount.toLocaleString() : '0' }}
-            </span>
+          <div class="amount-input-wrap" :class="{ hasValue: loanForm.amount > 0, error: Boolean(loanAmountError) }">
+            <input
+              type="text"
+              inputmode="numeric"
+              class="amount-input"
+              :value="formatAmount(loanForm.amount)"
+              @input="onAmountInput($event, loanForm)"
+              placeholder="0"
+            />
             <span class="currency-unit" :class="{ hasValue: loanForm.amount > 0 }">원</span>
+            <button
+              v-if="loanForm.amount > 0"
+              type="button" class="clear-amount-btn"
+              @click="loanForm.amount = 0"
+            >
+              지우기
+            </button>
           </div>
+          <p v-if="loanAmountError" class="amount-error-msg">{{ loanAmountError }}</p>
           <div class="button-group">
             <button
               v-for="amt in [10000, 30000, 50000, 100000]"
@@ -252,7 +321,7 @@
             </div>
             <div class="setting-row border-top">
               <span class="setting-label">상환일</span>
-              <button type="button" class="select-btn">
+              <button type="button" class="select-btn" @click="openDayPicker('loan')">
                 <span>매월 {{ loanForm.transferDay }}일</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B9BEC5" stroke-width="2">
                   <polyline points="9 18 15 12 9 6"/>
@@ -326,7 +395,78 @@
       </div>
     </div>
 
-    <Chatbot v-if="!errorModalVisible" hint-text="가입 조건이나 이자 계산이 궁금하세요?" />
+    <!-- 상환일/이체일 달력 선택 바텀시트 -->
+    <transition name="sheet-fade">
+      <div v-if="showDayPickerSheet" class="sheet-dim" @click="closeDayPicker">
+        <div class="sheet day-picker-sheet" @click.stop>
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3 class="sheet-title">{{ dayPickerTarget === 'loan' ? '매월 상환일 선택' : '매월 자동이체일 선택' }}</h3>
+            <button type="button" class="sheet-close-btn" @click="closeDayPicker" aria-label="닫기">✕</button>
+          </div>
+
+          <div class="cal-month-header">
+            <span class="cal-month-text">{{ calYear }}년 {{ calMonth }}월</span>
+            <span class="cal-selected-badge">매월 {{ selectedTempDay }}일 선택</span>
+          </div>
+
+          <div class="cal-weekdays">
+            <span
+              v-for="(w, idx) in weekDays"
+              :key="w"
+              class="cal-weekday"
+              :class="{ sunday: idx === 0, saturday: idx === 6 }"
+            >
+              {{ w }}
+            </span>
+          </div>
+
+          <div class="cal-days-grid">
+            <div
+              v-for="blank in startDayOfWeek"
+              :key="'blank-' + blank"
+              class="cal-day-cell empty"
+            ></div>
+
+            <button
+              v-for="d in daysInMonth"
+              :key="d"
+              type="button"
+              class="cal-day-cell"
+              :class="{
+                active: selectedTempDay === d,
+                today: d === todayDay,
+                sunday: (startDayOfWeek + d - 1) % 7 === 0,
+                saturday: (startDayOfWeek + d - 1) % 7 === 6,
+              }"
+              @click="selectDay(d)"
+            >
+              <span class="day-num">{{ d }}</span>
+              <span v-if="d === todayDay && selectedTempDay !== d" class="today-dot"></span>
+            </button>
+          </div>
+
+          <div class="cal-footer-info">
+            <p class="cal-notice-text">
+              매월 <strong>{{ selectedTempDay }}일</strong>에 자동으로 {{ dayPickerTarget === 'loan' ? '상환' : '이체' }}돼요
+            </p>
+          </div>
+
+          <button type="button" class="sheet-apply-btn" @click="confirmDaySelection">
+            매월 {{ selectedTempDay }}일로 설정하기
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 금융 용어 사전 도움말 모달 -->
+    <FinanceTermModal
+      :show="showTermModal"
+      :term-data="activeTermData"
+      @close="closeTermModal"
+    />
+
+    <Chatbot v-if="!errorModalVisible && !showDayPickerSheet" hint-text="금융 상품 가입이 어려우신가요?" />
   </div>
 </template>
 
@@ -335,12 +475,31 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { createSavingEnrollment, createLoanEnrollment, createDepositEnrollment } from '@/api/finance'
+import { getFinanceTerm } from '@/constants/financeTerms'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import FinanceTermModal from '@/components/Child/FinanceTermModal.vue'
 
 const router = useRouter()
 const route  = useRoute()
 const authStore = useAuthStore()
+
+// 어려운 금융 용어 설명 모달 상태
+const showTermModal = ref(false)
+const activeTermData = ref(null)
+
+function openTermModal(termName) {
+  const data = getFinanceTerm(termName)
+  if (data) {
+    activeTermData.value = data
+    showTermModal.value = true
+  }
+}
+
+function closeTermModal() {
+  showTermModal.value = false
+  activeTermData.value = null
+}
 
 const categoryMap     = { '적금': 'SAVINGS', '예금': 'DEPOSIT', '대출': 'LOAN' }
 const rawCategory     = route.query.category  || '적금'
@@ -388,9 +547,63 @@ function onScroll() {
 // 오늘 날짜의 '일(Day)'로 이체일/상환일 초기화
 const todayDay = new Date().getDate()
 
-const savingsForm = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: todayDay })
+const savingsForm = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: Math.min(todayDay, 28) })
 const depositForm = reactive({ amount: 0, period: 0 })
-const loanForm     = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: todayDay })
+const loanForm     = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: Math.min(todayDay, 28) })
+
+// 이체일/상환일 달력 선택 바텀시트 상태
+const showDayPickerSheet = ref(false)
+const dayPickerTarget = ref('savings') // 'savings' | 'loan'
+const selectedTempDay = ref(Math.min(todayDay, 28))
+
+const calYear = ref(new Date().getFullYear())
+const calMonth = ref(new Date().getMonth() + 1)
+const weekDays = ['일', '월', '화', '수', '목', '금', '토']
+
+// 이번 달의 시작 요일 (0: 일요일, ..., 6: 토요일)
+const startDayOfWeek = computed(() => {
+  return new Date(calYear.value, calMonth.value - 1, 1).getDay()
+})
+
+// 이번 달의 총 일수
+const daysInMonth = computed(() => {
+  return new Date(calYear.value, calMonth.value, 0).getDate()
+})
+
+function openDayPicker(target) {
+  dayPickerTarget.value = target
+  selectedTempDay.value = target === 'loan' ? loanForm.transferDay : savingsForm.transferDay
+  showDayPickerSheet.value = true
+}
+
+function closeDayPicker() {
+  showDayPickerSheet.value = false
+}
+
+function selectDay(d) {
+  selectedTempDay.value = d
+}
+
+function confirmDaySelection() {
+  if (dayPickerTarget.value === 'loan') {
+    loanForm.transferDay = selectedTempDay.value
+  } else {
+    savingsForm.transferDay = selectedTempDay.value
+  }
+  showDayPickerSheet.value = false
+}
+
+function formatAmount(amt) {
+  if (!amt || amt === 0) return ''
+  return amt.toLocaleString()
+}
+
+function onAmountInput(event, form) {
+  const raw = event.target.value.replace(/[^\d]/g, '')
+  const num = raw ? parseInt(raw, 10) : 0
+  form.amount = num
+  event.target.value = num > 0 ? num.toLocaleString() : ''
+}
 
 const isSubmitting = ref(false)
 
@@ -422,6 +635,58 @@ function parseRatePercent(str) {
 
 const isCompound = computed(() => interestType.value.includes('복리'))
 
+// 한도 문자열에서 최대 금액 숫자 파싱 (예: "최대 10만원" -> 100000, "100,000원" -> 100000)
+function parseMaxLimit(str) {
+  if (!str) return null
+  const cleaned = str.replace(/,/g, '')
+  const numMatches = cleaned.match(/\d+/g)
+  if (!numMatches || numMatches.length === 0) return null
+  const baseNum = parseInt(numMatches[0], 10)
+  if (str.includes('만')) return baseNum * 10000
+  if (str.includes('억')) return baseNum * 100000000
+  return baseNum
+}
+
+const maxLimitAmount = computed(() => {
+  const queryLimit = Number(route.query.maximumAmount)
+  if (Number.isFinite(queryLimit) && queryLimit > 0) return queryLimit
+  return parseMaxLimit(limitInfo.value)
+})
+
+// 최소 / 최대 금액 검증 에러 (모달 대신 입력칸 아래 실시간 경고)
+const savingsAmountError = computed(() => {
+  if (savingsForm.amount <= 0) return ''
+  if (savingsForm.amount < 10000) {
+    return '최소 10,000원 이상 입력해 주세요'
+  }
+  if (maxLimitAmount.value && savingsForm.amount > maxLimitAmount.value) {
+    return `납입한도를 초과했어요 (최대 ${maxLimitAmount.value.toLocaleString()}원)`
+  }
+  return ''
+})
+
+const depositAmountError = computed(() => {
+  if (depositForm.amount <= 0) return ''
+  if (depositForm.amount < 10000) {
+    return '최소 10,000원 이상 예치해 주세요'
+  }
+  if (maxLimitAmount.value && depositForm.amount > maxLimitAmount.value) {
+    return `예치한도를 초과했어요 (최대 ${maxLimitAmount.value.toLocaleString()}원)`
+  }
+  return ''
+})
+
+const loanAmountError = computed(() => {
+  if (loanForm.amount <= 0) return ''
+  if (loanForm.amount < 10000) {
+    return '최소 10,000원 이상 신청해 주세요'
+  }
+  if (maxLimitAmount.value && loanForm.amount > maxLimitAmount.value) {
+    return `대출한도를 초과했어요 (최대 ${maxLimitAmount.value.toLocaleString()}원)`
+  }
+  return ''
+})
+
 const pageTitle = computed(() => {
   if (productCategory.value === 'SAVINGS') return isFreeSaving.value ? '자유적금 가입' : '정액적금 가입'
   if (productCategory.value === 'DEPOSIT') return '예금 가입'
@@ -431,11 +696,11 @@ const pageTitle = computed(() => {
 
 const isFormValid = computed(() => {
   if (productCategory.value === 'SAVINGS')
-    return savingsForm.amount > 0 && savingsForm.period > 0
+    return savingsForm.amount >= 10000 && !savingsAmountError.value && savingsForm.period > 0
   if (productCategory.value === 'DEPOSIT')
-    return depositForm.amount >= 100000 && depositForm.period > 0
+    return depositForm.amount >= 10000 && !depositAmountError.value && depositForm.period > 0
   if (productCategory.value === 'LOAN')
-    return loanForm.amount > 0 && loanForm.period > 0
+    return loanForm.amount >= 10000 && !loanAmountError.value && loanForm.period > 0
   return false
 })
 
@@ -447,7 +712,8 @@ const submitLabel = computed(() =>
 )
 
 const calculatedReturn = computed(() => {
-  const rate = parseRatePercent(productRate.value) / 100
+  const queryRate = Number(route.query.myAppliedRate)
+  const rate = queryRate > 0 ? queryRate / 100 : (parseRatePercent(productRate.value) || 3.0) / 100
 
   if (productCategory.value === 'SAVINGS' && savingsForm.amount > 0 && savingsForm.period > 0) {
     const monthly = savingsForm.amount
@@ -465,7 +731,7 @@ const calculatedReturn = computed(() => {
     return { principal, interest, score: scoreTable[n] ?? 0, total: principal + interest }
   }
 
-  if (productCategory.value === 'DEPOSIT' && depositForm.amount >= 100000 && depositForm.period > 0) {
+  if (productCategory.value === 'DEPOSIT' && depositForm.amount >= 10000 && depositForm.period > 0) {
     const principal = depositForm.amount
     const n = depositForm.period
     const interest = Math.floor(
@@ -476,7 +742,7 @@ const calculatedReturn = computed(() => {
     return { principal, interest, score: DEPOSIT_MATURITY_SCORE[n] ?? 0, total: principal + interest }
   }
 
-  if (productCategory.value === 'LOAN' && loanForm.amount > 0 && loanForm.period > 0) {
+  if (productCategory.value === 'LOAN' && loanForm.amount >= 10000 && loanForm.period > 0) {
     const principal = loanForm.amount
     const n = loanForm.period
     const interest = Math.floor(principal * rate * (n / 12))
@@ -514,6 +780,9 @@ const handleSubmit = async () => {
           enrollmentId: result.enrollmentId,
           appliedRate: result.expectedAppliedRate,
           status: result.status,
+          autoTransfer: isFreeSaving.value ? false : savingsForm.autoTransfer,
+          paymentDay: isFreeSaving.value ? 1 : savingsForm.transferDay,
+          savingsType: savingsType.value,
         },
       })
     } else if (productCategory.value === 'DEPOSIT') {
@@ -546,6 +815,14 @@ const handleSubmit = async () => {
         paymentDay: loanForm.transferDay,
       })
 
+      if (result?.enrollmentId) {
+        try {
+          localStorage.setItem(`teeny_loan_principal_${result.enrollmentId}`, String(loanForm.amount))
+        } catch (e) {
+          console.warn('대출 원금 로컬 저장 실패:', e)
+        }
+      }
+
       router.push({
         name: 'product-confirm',
         query: {
@@ -558,6 +835,9 @@ const handleSubmit = async () => {
           enrollmentId: result.enrollmentId,
           appliedRate: result.expectedAppliedRate,
           status: result.status,
+          autoTransfer: loanForm.autoTransfer,
+          paymentDay: loanForm.transferDay,
+          repaymentType: route.query.repaymentType || '',
         },
       })
     }
@@ -580,7 +860,7 @@ const handleSubmit = async () => {
   height: 730px;
   margin: 0 auto;
   padding-top: 50px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
@@ -590,6 +870,7 @@ const handleSubmit = async () => {
   align-items: center;
   gap: 12px;
   padding: 0 20px 10px;
+  background: #f8fafc;
   flex: none;
 }
 .icon-btn {
@@ -611,6 +892,7 @@ const handleSubmit = async () => {
   min-height: 0;
   overflow-y: auto;
   padding: 4px 20px 16px;
+  background: #f8fafc;
 }
 .scroll::-webkit-scrollbar { width: 3px; }
 .scroll::-webkit-scrollbar-thumb {
@@ -677,24 +959,112 @@ const handleSubmit = async () => {
   margin-bottom: 10px;
 }
 
-.amount-display {
+.amount-input-wrap {
+  position: relative;
   display: flex;
-  align-items: baseline;
-  border-bottom: 1.3px solid #e7e9ec;
-  padding-bottom: 8px;
+  align-items: center;
+  border-bottom: 1.5px solid #e7e9ec;
+  padding-bottom: 6px;
   margin-bottom: 14px;
   transition: border-color 0.2s;
 }
-.amount-display.hasValue { border-bottom-color: #15171b; }
-.amount-value {
+.amount-input-wrap.hasValue {
+  border-bottom-color: #15171b;
+}
+.amount-input-wrap:focus-within {
+  border-bottom-color: #ffbc00;
+}
+.amount-input-wrap.error {
+  border-bottom-color: #e0554f !important;
+}
+
+.amount-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
   font-weight: 800;
   font-size: 26px;
   color: #15171b;
-  margin-right: 4px;
+  outline: none;
+  letter-spacing: -0.5px;
 }
-.amount-value.placeholder { color: #c6cbd2; }
-.currency-unit { font-weight: 600; font-size: 15px; color: #c6cbd2; }
-.currency-unit.hasValue { color: #15171b; }
+.amount-input::placeholder {
+  color: #c6cbd2;
+  font-weight: 700;
+}
+
+.currency-unit {
+  font-weight: 700;
+  font-size: 16px;
+  color: #c6cbd2;
+  margin-left: 4px;
+  margin-right: 14px;
+}
+.currency-unit.hasValue {
+  color: #15171b;
+}
+
+.clear-amount-btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+  transition: all 0.15s ease;
+}
+.clear-amount-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.btn-help-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  vertical-align: middle;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-help-inline:hover {
+  background: #ffbc00;
+  border-color: #ffbc00;
+  color: #15171b;
+  transform: scale(1.18);
+}
+
+.amount-error-msg {
+  margin: -6px 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0554f;
+  letter-spacing: -0.2px;
+}
 
 .button-group {
   display: flex;
@@ -960,7 +1330,200 @@ input:checked + .slider:before { transform: translateX(17px); }
 }
 
 @keyframes scaleUp {
-  from { transform: scale(0.9); opacity: 0; }
+  from { transform: scale(0.92); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+/* 날짜 선택 바텀시트 */
+.sheet-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.day-picker-sheet {
+  width: 100%;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px 22px;
+  box-sizing: border-box;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  margin: 0 auto 12px;
+}
+
+.sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sheet-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #15171b;
+}
+
+.sheet-close-btn {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* 달력 상단 헤더 */
+.cal-month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.cal-month-text {
+  font-weight: 800;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.cal-selected-badge {
+  font-weight: 700;
+  font-size: 12px;
+  color: #b45309;
+  background: #fffdf0;
+  border: 1px solid #fed7aa;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* 요일 헤더 */
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.cal-weekday {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  padding: 4px 0;
+}
+
+.cal-weekday.sunday { color: #ef4444; }
+.cal-weekday.saturday { color: #3b82f6; }
+
+/* 날짜 그리드 */
+.cal-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.cal-day-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.cal-day-cell.empty {
+  cursor: default;
+}
+
+.cal-day-cell.sunday { color: #ef4444; }
+.cal-day-cell.saturday { color: #3b82f6; }
+
+.cal-day-cell:not(.empty):hover {
+  background: #f1f5f9;
+}
+
+.cal-day-cell.active {
+  background: #ffbc00 !important;
+  color: #15171b !important;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(255, 188, 0, 0.35);
+}
+
+.today-dot {
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffbc00;
+}
+
+.cal-footer-info {
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.cal-notice-text {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cal-notice-text strong {
+  color: #1e293b;
+}
+
+.sheet-apply-btn {
+  width: 100%;
+  padding: 13px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.sheet-apply-btn:active {
+  opacity: 0.85;
+}
+
+.sheet-fade-enter-active,
+.sheet-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.sheet-fade-enter-from,
+.sheet-fade-leave-to {
+  opacity: 0;
 }
 </style>

@@ -2,7 +2,13 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { getMyEnrolledFinancialProducts, getLoanProductDetail, createSavingPayment } from '@/api/finance'
+import {
+  getMyEnrolledFinancialProducts,
+  getLoanProductDetail,
+  createSavingPayment,
+  getFinancialProducts,
+  cancelPendingEnrollment,
+} from '@/api/finance'
 import { getMyWallet } from '@/api/wallet'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
@@ -107,6 +113,41 @@ function resolveProductOrigin(p) {
   return { type: 'bank', label: comp }
 }
 
+// 대출 최초 신청 원금 안전 조회 (백엔드 실제 신청금액 최우선)
+function getOrStoreOriginalLoanPrincipal(enrollmentId, currentAmount, explicitPrincipal) {
+  const storageKey = enrollmentId ? `teeny_loan_principal_${enrollmentId}` : null
+
+  // 1. 백엔드에서 내려온 실제 신청금액(explicitPrincipal)이 있으면 최우선 적용
+  if (explicitPrincipal && explicitPrincipal > 0) {
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, String(explicitPrincipal))
+      } catch (e) {}
+    }
+    return explicitPrincipal
+  }
+
+  // 2. 현재 남은 잔액(currentAmount)이 있으면 적용
+  if (currentAmount && currentAmount > 0) {
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, String(currentAmount))
+      } catch (e) {}
+    }
+    return currentAmount
+  }
+
+  // 3. 백엔드에 금액이 0이거나 없을 때만 캐시 참조
+  if (storageKey) {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw && Number(raw) > 0) return Number(raw)
+    } catch (e) {}
+  }
+
+  return 0
+}
+
 // API 데이터 매핑
 function mapEnrolledProduct(p) {
   const isLoan = p.productType === 'LOAN'
@@ -123,8 +164,53 @@ function mapEnrolledProduct(p) {
 
   const paidCount = p.paidCount ?? 0
   const totalCount = p.totalPaymentCount ?? 0
-  const progressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0
   const currentTotal = p.currentAmount ?? 0
+
+  const maxLimit = p.maximumAmount ?? p.productMaximumAmount ?? null
+  const enrollmentId = p.enrollmentId ?? p.id ?? p.loanEnrollmentId ?? p.savingEnrollmentId ?? p.depositEnrollmentId
+
+  // 1. 대출 총 원금 (대출 신청할 때 넣은 최초 원금)
+  // 대출의 경우 p.amount, p.principalAmount, p.loanAmount, p.requestedAmount 등 실제 신청 원금 우선
+  let explicitLoanPrincipal =
+    p.principalAmount ??
+    p.originalPrincipalAmount ??
+    p.loanAmount ??
+    p.amount ??
+    p.requestedAmount ??
+    p.appliedAmount ??
+    null
+
+  const totalLoanPrincipal = isLoan
+    ? getOrStoreOriginalLoanPrincipal(enrollmentId, currentTotal, explicitLoanPrincipal)
+    : currentTotal
+
+  // 월 납입/상환 금액
+  let monthlyAmount = p.monthlyAmount ?? p.monthlyPaymentAmount ?? p.paymentAmount ?? 0
+  if (!monthlyAmount) {
+    if (isSaving && !isFreeSaving) {
+      monthlyAmount = p.amount ?? p.principalAmount ?? 0
+    } else if (isLoan && totalLoanPrincipal > 0 && p.termMonths > 0) {
+      monthlyAmount = Math.round(totalLoanPrincipal / p.termMonths)
+    }
+  }
+
+  const freeGoalAmount = (monthlyAmount > 0 && p.termMonths > 0) ? (monthlyAmount * p.termMonths) : (maxLimit ?? monthlyAmount)
+
+  // 2. 조기상환 후 남은 금액 (앞으로 갚을 돈) & 이미 상환한 금액 산출
+  // 백엔드 currentAmount는 현재 남은 잔여 원금 (승인 대기 중이면 아직 대출 실행 전이므로 totalLoanPrincipal 기준)
+  const remainingLoanAmount = (p.status === 'REPAID' || p.terminated)
+    ? 0
+    : isPending
+      ? totalLoanPrincipal
+      : currentTotal
+  const repaidLoanAmount = isPending ? 0 : Math.max(0, totalLoanPrincipal - remainingLoanAmount)
+
+  const loanProgressPercent = totalLoanPrincipal > 0
+    ? Math.min(100, Math.round((repaidLoanAmount / totalLoanPrincipal) * 100))
+    : 0
+
+  const savingProgressPercent = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0
+  const progressPercent = isLoan ? loanProgressPercent : savingProgressPercent
 
   let infoText = ''
   if (isTerminated) {
@@ -132,7 +218,7 @@ function mapEnrolledProduct(p) {
       ? '대출이 모두 상환 완료됐어요.'
       : '중도해지가 완료된 상품이에요.'
   } else if (isPending) {
-    infoText = '부모님이 승인하면 시작돼요. 조금만 기다려주세요!'
+    infoText = '부모님의 승인을 기다리고 있어요.'
   } else if (isSaving) {
     if (isFreeSaving) {
       infoText = `지금까지 총 ${currentTotal.toLocaleString()}원을 모았어요.`
@@ -147,7 +233,7 @@ function mapEnrolledProduct(p) {
   } else if (isLoan) {
     const nextDue = calcNextDueDate(p.startDate, paidCount)
     const nextDueText = nextDue ? `다음 상환일은 ${nextDue.getMonth() + 1}월 ${nextDue.getDate()}일이에요.\n` : ''
-    infoText = `${nextDueText}앞으로 갚을 돈은 ${(p.currentAmount ?? 0).toLocaleString()}원이에요.`
+    infoText = `${nextDueText}앞으로 갚을 돈은 ${remainingLoanAmount.toLocaleString()}원이에요.`
   }
 
   let pendingSummary = ''
@@ -159,6 +245,11 @@ function mapEnrolledProduct(p) {
   } else if (isDeposit) {
     const interestLabel = interestTypeMap[p.interestCalculationType] ?? p.interestCalculationType ?? '-'
     pendingSummary = `${interestLabel} | ${p.termMonths ?? '-'}개월 | 연 ${p.appliedRate ?? '-'}%`
+  } else if (isLoan) {
+    const principalStr = totalLoanPrincipal > 0 ? `신청 ${totalLoanPrincipal.toLocaleString()}원` : ''
+    const termStr = p.termMonths ? `${p.termMonths}개월` : ''
+    const rateStr = p.appliedRate ? `연 ${p.appliedRate}%` : ''
+    pendingSummary = [principalStr, termStr, rateStr].filter(Boolean).join(' | ')
   } else {
     pendingSummary = `${p.termMonths ?? '-'}개월 | 연 ${p.appliedRate ?? '-'}%`
   }
@@ -167,6 +258,30 @@ function mapEnrolledProduct(p) {
   const displayTypeLabel = isSaving
     ? (savingsTypeMap[p.savingsType] || '적금')
     : (typeMap[p.productType] ?? p.productType)
+
+  const limitLabel = isFreeSaving ? '총 목표액' : isLoan ? '신청 대출금' : isDeposit ? '예치한도' : '납입한도'
+  const limitText = isFreeSaving
+    ? (freeGoalAmount > 0 ? `${freeGoalAmount.toLocaleString()}원` : '-')
+    : isLoan
+      ? (totalLoanPrincipal > 0 ? `${totalLoanPrincipal.toLocaleString()}원` : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-'))
+      : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-')
+
+  const transferDay = p.paymentDay ?? p.transferDay ?? p.autoTransferDay ?? parseDateParts(p.startDate)?.d
+
+  let monthlyAmountLabel = isLoan
+    ? (isPending ? '월 예상 상환액' : '월 상환금액')
+    : isSaving && !isFreeSaving
+      ? '월 납입금액'
+      : isFreeSaving
+        ? '현재 모은 금액'
+        : ''
+  let monthlyAmountText = ''
+  if (isFreeSaving) {
+    monthlyAmountText = `${currentTotal.toLocaleString()}원`
+  } else if (monthlyAmount > 0 && !isDeposit) {
+    const daySuffix = transferDay ? ` (매월 ${transferDay}일)` : ''
+    monthlyAmountText = `${monthlyAmount.toLocaleString()}원${daySuffix}`
+  }
 
   return {
     id: p.enrollmentId,
@@ -185,13 +300,15 @@ function mapEnrolledProduct(p) {
     hasDateRange: !isPending,
     startDate: formatDateCompact(p.startDate),
     maturityDate: formatDateCompact(p.maturityDate),
-    hasProgress: !isPending && (isLoan || (isSaving && !isFreeSaving)),
+    hasProgress: !isPending && isSaving && !isFreeSaving,
     progressPercent,
-    progressLabel: isSaving
-      ? `납입 ${paidCount}/${totalCount}회 · ${progressPercent}%`
-      : `상환 ${paidCount}/${totalCount}회 · ${progressPercent}%`,
-    progressColor: isSaving ? 'green' : 'blue',
+    progressLabel: `납입 ${paidCount}/${totalCount}회 · ${progressPercent}%`,
+    progressColor: 'green',
     infoText,
+    monthlyAmountLabel,
+    monthlyAmountText,
+    limitLabel,
+    limitText,
     productType: p.productType,
     savingsType: p.savingsType || '',
     interestCalculationType: p.interestCalculationType || 'SIMPLE',
@@ -199,7 +316,7 @@ function mapEnrolledProduct(p) {
     lateFeeRate: 0,
     requiredGradeName: '',
     isFreeSaving,
-    principal: currentTotal,
+    principal: isLoan ? totalLoanPrincipal : currentTotal,
     appliedRate: p.appliedRate ?? 0,
     termMonths: p.termMonths ?? 0,
     startDateRaw: p.startDate,
@@ -223,11 +340,25 @@ async function fetchWalletBalance() {
 
 async function loadProducts() {
   try {
-    const data = await getMyEnrolledFinancialProducts(authStore.accessToken)
-    // TODO: 해지된 상품이 실제로 어떤 필드(status 문자열 / terminated boolean)로 오는지
-    // 확인 후 이 로그는 지워도 됩니다.
-    console.log('가입 상품 목록 원본:', JSON.stringify(data))
-    myProducts.value = (data || []).map(mapEnrolledProduct)
+    const [enrolledData, allProductsData] = await Promise.all([
+      getMyEnrolledFinancialProducts(authStore.accessToken),
+      getFinancialProducts(authStore.accessToken).catch(() => []),
+    ])
+
+    const allProductsMap = new Map()
+    ;(allProductsData || []).forEach((prod) => {
+      allProductsMap.set(`${prod.productType}-${prod.productId}`, prod)
+      allProductsMap.set(prod.productId, prod)
+    })
+
+    myProducts.value = (enrolledData || []).map((p) => {
+      const orig = allProductsMap.get(`${p.productType}-${p.productId}`) || allProductsMap.get(p.productId)
+      if (orig) {
+        if (!p.maximumAmount && orig.maximumAmount) p.maximumAmount = orig.maximumAmount
+        if (!p.interestCalculationType && orig.interestCalculationType) p.interestCalculationType = orig.interestCalculationType
+      }
+      return mapEnrolledProduct(p)
+    })
 
     // 대출 상품 상세 API 연동
     const loanProducts = myProducts.value.filter((p) => p.isLoan && p.productId)
@@ -242,8 +373,17 @@ async function loadProducts() {
             product.repaymentType = formatRepaymentType(detail.repaymentType)
             product.lateFeeRate = detail.lateFeeRate ?? 0
 
-            if (product.isPending && product.requiredGradeName) {
-              product.pendingSummary = `${product.requiredGradeName} 등급 이상 | ${product.termMonths ?? '-'}개월 | 연 ${product.appliedRate ?? '-'}%`
+            if (product.isPending) {
+              const principalStr = product.principal > 0
+                ? `신청 ${product.principal.toLocaleString()}원`
+                : (product.requiredGradeName ? `${product.requiredGradeName} 등급 이상` : '')
+              const termStr = product.termMonths ? `${product.termMonths}개월` : ''
+              const rateStr = product.appliedRate ? `연 ${product.appliedRate}%` : ''
+              product.pendingSummary = [principalStr, termStr, rateStr].filter(Boolean).join(' | ')
+
+              if (product.requiredGradeName) {
+                product.pendingSummary = `${product.requiredGradeName} 등급 이상 | ${product.termMonths ?? '-'}개월 | 연 ${product.appliedRate ?? '-'}%`
+              }
             }
           }
         } catch (e) {
@@ -279,6 +419,53 @@ const completedProducts = computed(() => {
     : myProducts.value.filter((p) => p.category === activeCategory.value)
   return base.filter((p) => p.isTerminated)
 })
+
+// 승인 대기 신청 취소 모달 상태
+const showCancelPendingModal = ref(false)
+const showCancelPendingSuccessModal = ref(false)
+const cancelTargetProduct = ref(null)
+const isCancellingPending = ref(false)
+const cancelPendingError = ref('')
+
+function openCancelPendingModal(product) {
+  cancelTargetProduct.value = product
+  cancelPendingError.value = ''
+  showCancelPendingModal.value = true
+}
+
+function closeCancelPendingModal() {
+  if (isCancellingPending.value) return
+  showCancelPendingModal.value = false
+  cancelTargetProduct.value = null
+}
+
+async function handleCancelPendingSubmit() {
+  if (!cancelTargetProduct.value || isCancellingPending.value) return
+  isCancellingPending.value = true
+  cancelPendingError.value = ''
+  try {
+    const prod = cancelTargetProduct.value
+    await cancelPendingEnrollment(authStore.accessToken, prod.productType, prod.id)
+
+    // 로컬 스토리지 정리
+    try {
+      localStorage.removeItem(`teeny_loan_principal_${prod.id}`)
+    } catch (e) {}
+
+    showCancelPendingModal.value = false
+    showCancelPendingSuccessModal.value = true
+    await loadProducts()
+  } catch (err) {
+    console.error('신청 취소 실패:', err)
+    cancelPendingError.value = err.message || '신청 취소에 실패했어요. 다시 시도해 주세요.'
+  } finally {
+    isCancellingPending.value = false
+  }
+}
+
+function closeCancelPendingSuccessModal() {
+  showCancelPendingSuccessModal.value = false
+}
 
 // 중도해지 이동
 function goToCancel(product) {
@@ -380,10 +567,23 @@ async function handleDepositSubmit() {
     showSuccessModal.value = true
   } catch (e) {
     console.error('이체 실패:', e)
-    alert(e.message || '이체에 실패했습니다. 다시 시도해주세요.')
+    openTransferErrorModal(e.message || '이체에 실패했습니다. 다시 시도해주세요.')
   } finally {
     isSubmitting.value = false
   }
+}
+
+// 이체 실패 커스텀 모달 상태
+const showTransferErrorModal = ref(false)
+const transferErrorMessage = ref('')
+
+function openTransferErrorModal(msg) {
+  transferErrorMessage.value = msg || '이체에 실패했습니다. 다시 시도해주세요.'
+  showTransferErrorModal.value = true
+}
+
+function closeTransferErrorModal() {
+  showTransferErrorModal.value = false
 }
 
 function handleSuccessConfirm() {
@@ -427,14 +627,17 @@ function onScroll() {
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <div class="tabs">
+      <!-- 탭 스위처 -->
+      <div class="tab-switcher">
         <button
           v-for="tab in tabs"
           :key="tab"
-          class="tab"
-          :class="{ off: tab !== activeTab }"
+          class="tab-btn"
+          :class="{ active: tab === activeTab }"
           @click="activeTab = tab"
-        >{{ tab }}</button>
+        >
+          <span class="tab-label">{{ tab }}</span>
+        </button>
       </div>
 
       <div class="filters">
@@ -461,6 +664,26 @@ function onScroll() {
             <span class="pending-badge">승인 대기</span>
           </div>
           <p class="pending-summary">{{ product.pendingSummary }}</p>
+          <div v-if="product.monthlyAmountText || product.limitText" class="spec-grid pending">
+            <div v-if="product.monthlyAmountText" class="spec-item">
+              <span class="spec-label">{{ product.monthlyAmountLabel }}</span>
+              <span class="spec-val highlight">{{ product.monthlyAmountText }}</span>
+            </div>
+            <div v-if="product.limitText" class="spec-item">
+              <span class="spec-label">{{ product.limitLabel }}</span>
+              <span class="spec-val">{{ product.limitText }}</span>
+            </div>
+          </div>
+          <div class="pending-bottom-row">
+            <p class="pending-info-text">{{ product.infoText }}</p>
+            <button
+              type="button"
+              class="btn-cancel-pending"
+              @click.stop="openCancelPendingModal(product)"
+            >
+              신청 취소
+            </button>
+          </div>
         </div>
       </template>
 
@@ -482,6 +705,18 @@ function onScroll() {
           </p>
 
           <p v-if="product.hasDateRange" class="date-range">{{ product.startDate }} ~ {{ product.maturityDate }}</p>
+
+          <!-- 납입 금액 및 한도 정보 박스 -->
+          <div v-if="product.monthlyAmountText || product.limitText" class="spec-grid">
+            <div v-if="product.monthlyAmountText" class="spec-item">
+              <span class="spec-label">{{ product.monthlyAmountLabel }}</span>
+              <span class="spec-val highlight">{{ product.monthlyAmountText }}</span>
+            </div>
+            <div v-if="product.limitText" class="spec-item">
+              <span class="spec-label">{{ product.limitLabel }}</span>
+              <span class="spec-val">{{ product.limitText }}</span>
+            </div>
+          </div>
 
           <div v-if="product.hasProgress" class="progress-block">
             <div class="progress-track">
@@ -627,9 +862,70 @@ function onScroll() {
       </div>
     </div>
 
+    <!-- 이체 실패 알림 모달 -->
+    <div v-if="showTransferErrorModal" class="custom-modal-backdrop" @click.self="closeTransferErrorModal">
+      <div class="custom-modal-dialog">
+        <div class="modal-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="#ffffff" stroke-width="2.2"/>
+            <path d="M12 8v5M12 16h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4 class="modal-title">이체 안내</h4>
+        <p class="modal-desc">{{ transferErrorMessage }}</p>
+        <button type="button" class="btn-modal-confirm" @click="closeTransferErrorModal">
+          확인
+        </button>
+      </div>
+    </div>
+
+    <!-- 승인 대기 신청 취소 확인 모달 -->
+    <div v-if="showCancelPendingModal" class="custom-modal-backdrop" @click.self="closeCancelPendingModal">
+      <div class="custom-modal-dialog">
+        <div class="modal-icon-wrap danger">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4 class="modal-title">가입 신청을 취소할까요?</h4>
+        <p class="modal-desc">
+          <strong>{{ cancelTargetProduct?.title }}</strong> 신청을 취소하면<br/>
+          부모님 승인 대기가 종료돼요.
+        </p>
+        <p v-if="cancelPendingError" class="modal-error-text">{{ cancelPendingError }}</p>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-modal-sub" :disabled="isCancellingPending" @click="closeCancelPendingModal">
+            돌아가기
+          </button>
+          <button type="button" class="btn-modal-danger" :disabled="isCancellingPending" @click="handleCancelPendingSubmit">
+            {{ isCancellingPending ? '취소 중...' : '신청 취소하기' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 승인 대기 신청 취소 완료 모달 -->
+    <div v-if="showCancelPendingSuccessModal" class="custom-modal-backdrop" @click.self="closeCancelPendingSuccessModal">
+      <div class="custom-modal-dialog">
+        <div class="modal-icon-wrap info">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4 class="modal-title">신청이 취소되었어요</h4>
+        <p class="modal-desc">
+          가입 신청이 정상적으로 취소되었어요.<br/>
+          언제든지 다시 신청할 수 있어요!
+        </p>
+        <button type="button" class="btn-modal-confirm" @click="closeCancelPendingSuccessModal">
+          확인
+        </button>
+      </div>
+    </div>
+
     <BottomTabBar active="finance" @select="onTabSelect" />
 
-    <Chatbot v-if="!showDepositSheet && !showSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
+    <Chatbot v-if="!showDepositSheet && !showSuccessModal && !showTransferErrorModal && !showCancelPendingModal && !showCancelPendingSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
   </div>
 </template>
 
@@ -643,7 +939,7 @@ function onScroll() {
   height: 730px;
   margin: 0 auto;
   padding-top: 50px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
@@ -653,6 +949,7 @@ function onScroll() {
   align-items: center;
   gap: 12px;
   padding: 2px 20px 10px;
+  background: #f8fafc;
 }
 
 .icon-btn {
@@ -674,6 +971,7 @@ function onScroll() {
   flex: 1;
   overflow-y: auto;
   padding: 8px 20px 20px;
+  background: #f8fafc;
 }
 .scroll::-webkit-scrollbar { width: 3px; }
 .scroll::-webkit-scrollbar-thumb {
@@ -683,29 +981,49 @@ function onScroll() {
 }
 .scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
-.tabs {
+/* 탭 스위처 */
+.tab-switcher {
   display: flex;
-  padding: 5px;
-  background: #f2f4f6;
-  border-radius: 12px;
+  align-items: flex-start;
+  border-bottom: 1.2px solid #e2e8f0;
+  background: #f8fafc;
   margin-bottom: 16px;
 }
-.tab {
+
+.tab-btn {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  padding: 8px 0;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 15px;
-  color: #15171b;
-  background: #ffffff;
-  border-radius: 9px;
-  cursor: pointer;
-}
-.tab.off {
   background: transparent;
-  color: #9ca1a8;
-  font-weight: 600;
+  padding: 12px 0 11px;
+  cursor: pointer;
+  position: relative;
+  min-height: 43px;
+}
+
+.tab-label {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 20px;
+  color: #b9bec5;
+  transition: color 0.15s ease;
+}
+
+.tab-btn.active .tab-label {
+  color: #191b1e;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: -1px;
+  height: 2.5px;
+  background: #ffbc00;
+  border-radius: 999px;
 }
 
 .filters {
@@ -747,7 +1065,7 @@ function onScroll() {
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 12px;
-  background: #fdfdfd;
+  background: #ffffff;
 }
 
 .card-top {
@@ -842,8 +1160,47 @@ function onScroll() {
   color: #9aa0a8;
 }
 
+/* 납입금액 및 한도 정보 박스 */
+.spec-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 9px 12px;
+  margin: 8px 0 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.spec-grid.pending {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.spec-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.spec-label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.spec-val {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.spec-val.highlight {
+  color: #15171b;
+  font-weight: 800;
+}
+
 .date-range {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   font-weight: 500;
   font-size: 12px;
   color: #b9bec5;
@@ -1211,6 +1568,169 @@ function onScroll() {
   transition: opacity 0.15s ease;
 }
 .btn-success-confirm:active {
+  opacity: 0.85;
+}
+
+/* 커스텀 안내/에러 모달 */
+.custom-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.custom-modal-dialog {
+  width: 100%;
+  max-width: 290px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-sizing: border-box;
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-icon-wrap {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #ffbc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-icon-wrap.warning {
+  background: #f59e0b;
+}
+
+.modal-icon-wrap.danger {
+  background: #ef4444;
+}
+
+.modal-icon-wrap.info {
+  background: #3b82f6;
+}
+
+.modal-error-text {
+  color: #ef4444;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.modal-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-modal-sub {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-modal-danger {
+  flex: 1.3;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-danger:hover {
+  background: #fecaca;
+}
+
+.pending-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.pending-info-text {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.btn-cancel-pending {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel-pending:hover {
+  background: #e2e8f0;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+.modal-title {
+  margin: 0 0 6px;
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #15171b;
+}
+
+.modal-desc {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  white-space: pre-line;
+  word-break: keep-all;
+}
+
+.btn-modal-confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-modal-confirm:active {
   opacity: 0.85;
 }
 

@@ -362,3 +362,54 @@ export async function executeEarlyRepayment(accessToken, enrollmentId, payload) 
 
   return body.data;
 }
+
+/**
+ * 승인 대기 중인 금융상품 신청 취소 (DELETE -> POST cancel -> POST terminate fallback)
+ * @param {string} accessToken
+ * @param {string} productType - 'SAVING' | 'DEPOSIT' | 'LOAN'
+ * @param {number|string} enrollmentId
+ */
+export async function cancelPendingEnrollment(accessToken, productType, enrollmentId) {
+  const t = String(productType || '').toUpperCase()
+  let typeSegment = 'saving'
+  if (t.includes('DEPOSIT')) typeSegment = 'deposit'
+  else if (t.includes('LOAN')) typeSegment = 'loan'
+
+  // 1. DELETE /financial-products/{typeSegment}-enrollments/{enrollmentId}
+  try {
+    const res = await fetch(`${BASE_URL}/financial-products/${typeSegment}-enrollments/${enrollmentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+    if (res.ok) {
+      if (res.status === 204) return { success: true }
+      const body = await res.json().catch(() => ({ success: true }))
+      if (body.success !== false) return body.data ?? body
+    }
+  } catch (err) {
+    console.warn('DELETE cancelPendingEnrollment 실패, POST cancel 시도:', err)
+  }
+
+  // 2. POST /financial-products/{typeSegment}-enrollments/{enrollmentId}/cancel
+  try {
+    const res = await fetch(`${BASE_URL}/financial-products/${typeSegment}-enrollments/${enrollmentId}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+    if (res.ok) {
+      const body = await res.json().catch(() => ({ success: true }))
+      if (body.success !== false) return body.data ?? body
+    }
+  } catch (err) {
+    console.warn('POST cancelPendingEnrollment 실패, terminate 시도:', err)
+  }
+
+  // 3. POST /financial-products/{typeSegment}-enrollments/{enrollmentId}/terminate
+  return await terminateEnrollment(accessToken, typeSegment, enrollmentId)
+}
