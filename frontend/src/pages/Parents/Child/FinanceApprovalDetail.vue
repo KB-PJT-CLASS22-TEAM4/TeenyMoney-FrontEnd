@@ -53,17 +53,17 @@
           <p class="info-label">자동이체</p>
           <p class="info-value">{{ request.autoTransfer ? '사용' : '미사용' }}</p>
         </div>
-        <div v-if="request.savingsType" class="info-row">
+        <div v-if="formatSavingsType(request.savingsType)" class="info-row">
           <p class="info-label">적금 유형</p>
-          <p class="info-value">{{ request.savingsType }}</p>
+          <p class="info-value">{{ formatSavingsType(request.savingsType) }}</p>
         </div>
-        <div v-if="request.repaymentType" class="info-row">
+        <div v-if="formatRepaymentType(request.repaymentType)" class="info-row">
           <p class="info-label">상환 방식</p>
-          <p class="info-value">{{ request.repaymentType }}</p>
+          <p class="info-value">{{ formatRepaymentType(request.repaymentType) }}</p>
         </div>
-        <div v-if="request.interestCalculationType" class="info-row">
+        <div v-if="formatInterestCalculationType(request.interestCalculationType)" class="info-row">
           <p class="info-label">이자 계산</p>
-          <p class="info-value">{{ request.interestCalculationType }}</p>
+          <p class="info-value">{{ formatInterestCalculationType(request.interestCalculationType) }}</p>
         </div>
         <div v-if="request.earlyTerminationRate != null" class="info-row">
           <p class="info-label">중도 해지 금리</p>
@@ -120,7 +120,12 @@ import {
   getFinancialProductApprovalRequestDetail,
   rejectFinancialProductApprovalRequest,
 } from '@/api/financialProducts'
-import { normalizeApprovalRequest } from '@/utils/financialProductMapper'
+import {
+  formatInterestCalculationType,
+  formatRepaymentType,
+  formatSavingsType,
+  normalizeApprovalRequest,
+} from '@/utils/financialProductMapper'
 import { useAuthStore } from '@/stores/auth'
 import { formatKstDateTime } from '@/utils/datetime'
 

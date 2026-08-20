@@ -25,6 +25,39 @@ const STATUS_NORMALIZE = {
   '거절': 'REJECTED',
 }
 
+const REPAYMENT_TYPE_LABELS = {
+  EQUAL_PRINCIPAL_AND_INTEREST: '원리금균등상환',
+  EQUAL_PRINCIPAL_INTEREST: '원리금균등상환',
+  EQUAL_PRINCIPAL: '원금균등상환',
+  BULLET: '만기일시상환',
+  LUMP_SUM: '만기일시상환',
+}
+
+const SAVINGS_TYPE_LABELS = {
+  FREE: '자유적금',
+  FIXED: '정액적금',
+}
+
+const INTEREST_CALCULATION_LABELS = {
+  SIMPLE: '단리',
+  COMPOUND: '복리',
+}
+
+export function formatRepaymentType(value, empty = '') {
+  if (!value) return empty
+  return REPAYMENT_TYPE_LABELS[value] ?? REPAYMENT_TYPE_LABELS[String(value).toUpperCase()] ?? empty
+}
+
+export function formatSavingsType(value, empty = '') {
+  if (!value) return empty
+  return SAVINGS_TYPE_LABELS[value] ?? SAVINGS_TYPE_LABELS[String(value).toUpperCase()] ?? empty
+}
+
+export function formatInterestCalculationType(value, empty = '') {
+  if (!value) return empty
+  return INTEREST_CALCULATION_LABELS[value] ?? INTEREST_CALCULATION_LABELS[String(value).toUpperCase()] ?? empty
+}
+
 const PENDING_STATUSES = new Set([
   'PENDING',
   'WAITING',
