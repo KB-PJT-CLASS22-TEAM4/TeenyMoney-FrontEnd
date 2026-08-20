@@ -579,7 +579,7 @@ function onTabSelect(key) {
   height: 730px;
   margin: 0 auto;
   padding-top: 26px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
   font-family: 'Pretendard', 'Inter', sans-serif;
@@ -629,7 +629,7 @@ function onTabSelect(key) {
   display: flex;
   align-items: flex-start;
   border-bottom: 1.2px solid #f0f1f3;
-  background: #ffffff;
+  background: #f8fafc;
   font-family: 'Noto Sans KR', 'Pretendard', sans-serif;
 }
 

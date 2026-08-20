@@ -455,7 +455,7 @@ function onScroll() {
   width: 100%;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   overflow: hidden;
 }
 
@@ -467,7 +467,7 @@ function onScroll() {
   flex-shrink: 0;
   height: 64px;
   padding: 0 20px 4px;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .nav-title {
