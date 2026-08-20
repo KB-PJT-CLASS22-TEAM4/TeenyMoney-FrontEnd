@@ -72,6 +72,8 @@ import Charging from '@/pages/Parents/Charge/Charging.vue'
 import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
 import Faq from '@/pages/Faq.vue'
+import Terms from '@/pages/Terms.vue'
+import TermsDetail from '@/pages/TermsDetail.vue'
 import HarmfulCategory from '@/pages/Parents/Harmful/HarmfulCategory.vue'
 import PlaceList from '@/pages/Parents/Harmful/PlaceList.vue'
 import SendAllowance from '@/pages/Parents/Allowance/SendAllowance.vue'
@@ -263,6 +265,26 @@ const router = createRouter({
       path: '/child/faq',
       name: 'child-faq',
       component: Faq,
+    },
+    {
+      path: '/parents/mypage/terms',
+      name: 'parents-terms',
+      component: Terms,
+    },
+    {
+      path: '/parents/mypage/terms/:code',
+      name: 'parents-terms-detail',
+      component: TermsDetail,
+    },
+    {
+      path: '/child/mypage/terms',
+      name: 'child-terms',
+      component: Terms,
+    },
+    {
+      path: '/child/mypage/terms/:code',
+      name: 'child-terms-detail',
+      component: TermsDetail,
     },
     {
       path: '/parents/mypage/payment-password',

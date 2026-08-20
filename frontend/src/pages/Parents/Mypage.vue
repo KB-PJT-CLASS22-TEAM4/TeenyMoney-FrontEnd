@@ -119,14 +119,9 @@
           </span>
         </div>
 
-        <button
-          type="button"
-          class="menu-button"
-          @click="goToPasswordChange"
-        >
+        <div class="payment-password-row">
           <span class="menu-label">비밀번호 변경</span>
-          <span class="chevron">›</span>
-        </button>
+        </div>
       </section>
 
       <!-- 연결된 자녀 -->
@@ -234,6 +229,7 @@
           <button
             type="button"
             class="menu-button"
+            @click="goToTerms"
           >
             <span class="menu-label">약관 및 정책</span>
             <span class="chevron">›</span>
@@ -611,14 +607,12 @@ function goToLogin() {
   authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
 }
 
-function goToPasswordChange() {
-  router.push(
-    '/parents/mypage/password'
-  )
-}
-
 function goToFaq() {
   router.push({ name: 'parents-faq' })
+}
+
+function goToTerms() {
+  router.push({ name: 'parents-terms' })
 }
 
 function openProfilePicker() {

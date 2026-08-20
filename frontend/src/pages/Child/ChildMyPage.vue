@@ -3,7 +3,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
 import ChildNavActions from '@/components/Child/ChildNavActions.vue';
-import { getMyInfo, getLinkedParent } from '@/api/member';
+import { getMyInfo, getLinkedParent, updateMyProfileImage } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 import { logout as logoutApi } from '@/api/auth';
 import { getNotificationSetting, updateNotificationSetting } from '@/api/notification';
@@ -16,12 +16,16 @@ import {
 const router = useRouter();
 const authStore = useAuthStore();
 
+const profileFileInput = ref(null);
+const isUploadingProfile = ref(false);
+
 // 자녀 정보 API
 const user = ref({
   name: '',
   birth: '',
   phone: '',
   email: '',
+  profileImageUrl: '',
 });
 
 // 전화번호에 하이픈을 붙여 보여주기 위한 포맷터 (숫자만 남긴 뒤 자리수에 맞춰 하이픈 삽입)
@@ -96,6 +100,9 @@ async function onToggleNotification(key, value) {
   }
 }
 
+// 결제 비밀번호 설정 여부
+const isPasswordSet = ref(false);
+
 onMounted(async () => {
   try {
     const data = await getMyInfo(authStore.accessToken);   // 토큰 넘김
@@ -104,7 +111,10 @@ onMounted(async () => {
       birth: data.birthDate,
       phone: data.phoneNumber,
       email: data.email,
+      profileImageUrl: data.profileImageUrl || '',
     };
+    // 결제 비밀번호가 등록되어 있는지 체크
+    isPasswordSet.value = data.paymentPassword != null || data.hasPaymentPassword === true;
   } catch (e) {                 // try/catch로 실패 처리
     console.log('회원정보 조회 실패:', e.message);
   }
@@ -122,6 +132,45 @@ onMounted(async () => {
   loadNotificationSetting();
 });
 
+function openProfilePicker() {
+  if (isUploadingProfile.value) return;
+  profileFileInput.value?.click();
+}
+
+async function onProfileFileChange(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    alert('이미지 파일만 선택할 수 있어요.');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('프로필 사진은 5MB 이하만 업로드할 수 있어요.');
+    return;
+  }
+
+  isUploadingProfile.value = true;
+  try {
+    const res = await updateMyProfileImage(authStore.accessToken, file);
+    if (res?.profileImageUrl) {
+      user.value.profileImageUrl = res.profileImageUrl;
+    } else {
+      const refreshed = await getMyInfo(authStore.accessToken);
+      if (refreshed?.profileImageUrl) {
+        user.value.profileImageUrl = refreshed.profileImageUrl;
+      }
+    }
+  } catch (e) {
+    console.error('프로필 이미지 변경 실패:', e);
+    alert(e.message || '프로필 이미지를 변경하지 못했습니다.');
+  } finally {
+    isUploadingProfile.value = false;
+    if (event.target) event.target.value = '';
+  }
+}
+
 function goBack() {
   router.back();
 }
@@ -134,6 +183,7 @@ function editEmail() {
 }
 
 function goPasswordSetting() {
+  if (isPasswordSet.value) return;
   // 결제 비밀번호 설정
   router.push({ name: 'child-password-setting' });
 }
@@ -148,7 +198,7 @@ function goFaq() {
   router.push({ name: 'child-faq' })
 }
 function goPolicy() {
-  // 약관 및 정책
+  router.push({ name: 'child-terms' })
 }
 
 //=========로그아웃=============
@@ -188,7 +238,6 @@ function onTabSelect(key) {
 // 스크롤 바
 const isScrolling = ref(false);
 let scrollTimer = null;
-
 function onScroll() {
   isScrolling.value = true;
   clearTimeout(scrollTimer);
@@ -216,9 +265,39 @@ function onScroll() {
 
       <!-- 프로필 -->
       <section class="profile">
-        <div class="avatar">
-          <img :src="CHILD_PROFILE_IMAGE" alt="" class="avatar-img" />
-        </div>
+        <button
+          type="button"
+          class="avatar-button"
+          :disabled="isUploadingProfile"
+          aria-label="프로필 사진 변경"
+          @click="openProfilePicker"
+        >
+          <div class="avatar">
+            <img
+              :src="user.profileImageUrl || CHILD_PROFILE_IMAGE"
+              alt="프로필 이미지"
+              class="avatar-img"
+              :class="{ 'photo-img': !!user.profileImageUrl }"
+            />
+            <span class="avatar-edit-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
+                <path
+                  d="M4 8.5h2.2l1.1-2.2h9.4L18 8.5H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5z"
+                  stroke="#191b1e"
+                  stroke-width="1.6"
+                />
+                <circle cx="12" cy="14" r="3.2" stroke="#191b1e" stroke-width="1.6"/>
+              </svg>
+            </span>
+          </div>
+        </button>
+        <input
+          ref="profileFileInput"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          class="profile-file-input"
+          @change="onProfileFileChange"
+        />
         <div class="profile-text">
           <p class="profile-name">{{ user.name }}</p>
           <p class="profile-birth">{{ user.birth }}</p>
@@ -246,9 +325,14 @@ function onScroll() {
       <hr class="divider" />
 
       <!-- 결제 비밀번호 설정 -->
-      <div class="menu-row" @click="goPasswordSetting">
+      <div class="menu-row" :class="{ 'is-locked': isPasswordSet }" @click="goPasswordSetting">
         <span class="menu-title">결제 비밀번호 설정</span>
-        <span class="chev">›</span>
+        <svg v-if="isPasswordSet" viewBox="0 0 24 24" width="18" height="18" fill="none" class="lock-ic" aria-label="설정 완료">
+          <rect x="5" y="11" width="14" height="9" rx="2" stroke="#94a3b8" stroke-width="2"/>
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#94a3b8" stroke-width="2"/>
+          <circle cx="12" cy="15.5" r="1.2" fill="#94a3b8"/>
+        </svg>
+        <span v-else class="chev">›</span>
       </div>
 
       <!-- 연결된 부모님 -->
@@ -257,7 +341,12 @@ function onScroll() {
 
         <div v-if="parent" class="parent-row">
           <div class="parent-avatar">
-            <img :src="PARENT_PROFILE_IMAGE" alt="" class="parent-avatar-img">
+            <img
+              :src="parent.profileImageUrl || PARENT_PROFILE_IMAGE"
+              alt="부모님 프로필"
+              class="parent-avatar-img"
+              :class="{ 'photo-img': !!parent.profileImageUrl }"
+            />
           </div>
           <div class="parent-text">
             <b class="parent-name">{{ parent.name }}</b>
@@ -426,7 +515,21 @@ function onScroll() {
   margin-bottom: 26px;
 }
 
+.avatar-button {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.profile-file-input {
+  display: none;
+}
+
 .avatar {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -435,13 +538,33 @@ function onScroll() {
   background: #f2f4f6;
   border-radius: 50%;
   flex: none;
-  overflow: hidden;
 }
 
 .avatar-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  border-radius: 50%;
+}
+
+.avatar-img.photo-img,
+.parent-avatar-img.photo-img {
+  object-fit: cover;
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .profile-name {
@@ -506,6 +629,15 @@ function onScroll() {
   align-items: center;
   padding: 14px 0;
   cursor: pointer;
+}
+
+.menu-row.is-locked {
+  cursor: default;
+}
+
+.lock-ic {
+  flex-shrink: 0;
+  margin-right: 4px;
 }
 
 .menu-title {
