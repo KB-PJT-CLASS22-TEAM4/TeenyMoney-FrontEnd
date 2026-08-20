@@ -2322,7 +2322,7 @@ async function handleCreate() {
   align-items: flex-start;
   justify-content: space-between;
 
-  margin-bottom: 20px;
+  margin-bottom: 28px;
 }
 
 .sheet-title {
@@ -2374,6 +2374,7 @@ async function handleCreate() {
 
   gap: 8px;
 
+  margin-top: 4px;
   margin-bottom: 20px;
 }
 

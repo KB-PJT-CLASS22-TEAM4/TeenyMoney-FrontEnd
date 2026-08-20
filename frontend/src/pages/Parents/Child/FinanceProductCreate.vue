@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page" @click="openSelect = null">
     <header class="nav">
       <button class="back-btn" type="button" aria-label="뒤로" @click="router.back()">
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
@@ -76,7 +76,7 @@
           class="type-tab"
           :class="{ active: activeType === tab.value }"
           type="button"
-          @click="activeType = tab.value"
+          @click="selectProductType(tab.value)"
         >
           {{ tab.label }}
         </button>
@@ -91,7 +91,17 @@
           </div>
         </div>
 
-        <div class="form-card">
+        <div
+          class="form-card"
+          :class="{
+            raised: [
+              'savingsType',
+              'savingInterest',
+              'depositInterest',
+              'repaymentType',
+            ].includes(openSelect),
+          }"
+        >
           <h3 class="form-card-title">기본 정보</h3>
 
           <label class="field">
@@ -109,43 +119,54 @@
 
           <template v-if="activeType === 'SAVING'">
             <div class="field-row">
-              <label class="field half">
+              <div class="field half">
                 <span class="field-label">적금 유형</span>
-                <select v-model="form.savingsType" class="field-input">
-                  <option value="FREE">자유적금</option>
-                  <option value="FIXED">정액적금</option>
-                </select>
-              </label>
+                <SelectDropdown
+                  v-model="form.savingsType"
+                  :options="savingsTypeOptions"
+                  :open="openSelect === 'savingsType'"
+                  placement="up"
+                  @toggle="toggleSelect('savingsType')"
+                />
+              </div>
 
-              <label class="field half">
+              <div class="field half">
                 <span class="field-label">금리 계산 방식</span>
-                <select v-model="form.interestCalculationType" class="field-input">
-                  <option value="SIMPLE">단리</option>
-                  <option value="COMPOUND">복리</option>
-                </select>
-              </label>
+                <SelectDropdown
+                  v-model="form.interestCalculationType"
+                  :options="interestTypeOptions"
+                  :open="openSelect === 'savingInterest'"
+                  placement="up"
+                  @toggle="toggleSelect('savingInterest')"
+                />
+              </div>
             </div>
           </template>
 
           <template v-else-if="activeType === 'DEPOSIT'">
-            <label class="field">
+            <div class="field">
               <span class="field-label">금리 계산 방식</span>
-              <select v-model="form.interestCalculationType" class="field-input">
-                <option value="SIMPLE">단리</option>
-                <option value="COMPOUND">복리</option>
-              </select>
-            </label>
+              <SelectDropdown
+                v-model="form.interestCalculationType"
+                :options="interestTypeOptions"
+                :open="openSelect === 'depositInterest'"
+                placement="up"
+                @toggle="toggleSelect('depositInterest')"
+              />
+            </div>
           </template>
 
           <template v-else-if="activeType === 'LOAN'">
-            <label class="field">
+            <div class="field">
               <span class="field-label">상환 방식</span>
-              <select v-model="form.repaymentType" class="field-input">
-                <option value="EQUAL_PRINCIPAL_AND_INTEREST">원리금 균등상환</option>
-                <option value="EQUAL_PRINCIPAL">원금 균등상환</option>
-                <option value="BULLET">만기일시상환</option>
-              </select>
-            </label>
+              <SelectDropdown
+                v-model="form.repaymentType"
+                :options="repaymentTypeOptions"
+                :open="openSelect === 'repaymentType'"
+                placement="up"
+                @toggle="toggleSelect('repaymentType')"
+              />
+            </div>
           </template>
 
           <label class="field">
@@ -237,7 +258,10 @@
           </template>
         </div>
 
-        <div class="form-card">
+        <div
+          class="form-card"
+          :class="{ raised: openSelect === 'requiredGrade' }"
+        >
           <h3 class="form-card-title">{{ limitCardTitle }}</h3>
 
           <label class="field">
@@ -262,18 +286,16 @@
             />
           </label>
 
-          <label v-if="activeType === 'LOAN'" class="field">
+          <div v-if="activeType === 'LOAN'" class="field">
             <span class="field-label">가입 가능 최소 등급</span>
-            <select v-model.number="form.requiredGradeId" class="field-input">
-              <option
-                v-for="grade in grades"
-                :key="grade.gradeId"
-                :value="grade.gradeId"
-              >
-                {{ grade.gradeName }}
-              </option>
-            </select>
-          </label>
+            <SelectDropdown
+              v-model="form.requiredGradeId"
+              :options="gradeOptions"
+              :open="openSelect === 'requiredGrade'"
+              placement="up"
+              @toggle="toggleSelect('requiredGrade')"
+            />
+          </div>
 
           <p class="helper-text">{{ helperText }}</p>
         </div>
@@ -392,6 +414,7 @@ import { createFinancialProduct } from '@/api/financialProducts'
 import { getChildren } from '@/api/children'
 import { getTeenyScoreGrades } from '@/api/teenyScore'
 import AlertHost from '@/components/AlertHost.vue'
+import SelectDropdown from '@/components/SelectDropdown.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
@@ -463,6 +486,39 @@ const productTerms = [
 const activeType = ref('DEPOSIT')
 const isSubmitting = ref(false)
 const grades = ref([...FALLBACK_GRADES])
+const openSelect = ref(null)
+
+const savingsTypeOptions = [
+  { value: 'FREE', label: '자유적금' },
+  { value: 'FIXED', label: '정액적금' },
+]
+
+const interestTypeOptions = [
+  { value: 'SIMPLE', label: '단리' },
+  { value: 'COMPOUND', label: '복리' },
+]
+
+const repaymentTypeOptions = [
+  { value: 'EQUAL_PRINCIPAL_AND_INTEREST', label: '원리금 균등상환' },
+  { value: 'EQUAL_PRINCIPAL', label: '원금 균등상환' },
+  { value: 'BULLET', label: '만기일시상환' },
+]
+
+const gradeOptions = computed(() =>
+  grades.value.map((grade) => ({
+    value: grade.gradeId,
+    label: grade.gradeName,
+  }))
+)
+
+function toggleSelect(name) {
+  openSelect.value = openSelect.value === name ? null : name
+}
+
+function selectProductType(type) {
+  activeType.value = type
+  openSelect.value = null
+}
 
 const form = reactive({
   productName: '',
@@ -1012,10 +1068,17 @@ onMounted(async () => {
 }
 
 .form-card {
+  position: relative;
+  z-index: 1;
   padding: 16px;
   margin-bottom: 12px;
   border-radius: 16px;
   background: #f4f5f7;
+  overflow: visible;
+}
+
+.form-card.raised {
+  z-index: 5;
 }
 
 .form-card-title {

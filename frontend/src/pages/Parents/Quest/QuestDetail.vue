@@ -454,11 +454,45 @@
           기한
         </p>
 
-        <input
-          v-model="editForm.deadline"
-          type="datetime-local"
-          class="input"
-        />
+        <button
+          type="button"
+          class="custom-date-input"
+          @click="isCalendarOpen = true"
+        >
+          <span
+            :class="{
+              'date-placeholder': !editForm.deadline,
+            }"
+          >
+            {{
+              editForm.deadline
+                ? formatDeadline(editForm.deadline)
+                : '기한을 선택해주세요.'
+            }}
+          </span>
+
+          <svg
+            class="calendar-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <rect
+              x="3"
+              y="5"
+              width="18"
+              height="16"
+              rx="3"
+              stroke="currentColor"
+              stroke-width="1.8"
+            />
+            <path
+              d="M8 3V7M16 3V7M3 10H21"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
       </div>
 
       <div class="section">
@@ -697,6 +731,12 @@
         </div>
       </div>
     </div>
+    <DeadlineCalendarModal
+      v-model:open="isCalendarOpen"
+      :model-value="editForm.deadline"
+      @confirm="editForm.deadline = $event"
+    />
+
     <AlertHost :modal="alertModal" />
   </div>
 </template>
@@ -705,6 +745,7 @@
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import DeadlineCalendarModal from '@/components/DeadlineCalendarModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -773,6 +814,9 @@ const errorMessage =
   ref('')
 
 const isEditMode =
+  ref(false)
+
+const isCalendarOpen =
   ref(false)
 
 /* 거절 모달 */
@@ -1246,6 +1290,18 @@ function enterEditMode() {
 function cancelEdit() {
   isEditMode.value =
     false
+
+  isCalendarOpen.value =
+    false
+}
+
+function formatDeadline(value) {
+  if (!value) return ''
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 function addQuickAmount(
@@ -1312,7 +1368,7 @@ async function handleUpdate() {
       content:
         editForm.value.content.trim(),
 
-      // QuestCreate와 같은 이유로 UTC 변환을 하지 않는다. datetime-local 입력값이
+      // QuestCreate와 같은 이유로 UTC 변환을 하지 않는다. 달력 선택값이
       // 이미 로컬 벽시계(YYYY-MM-DDTHH:mm)이고, 서버 필드는 LocalDateTime이다.
       deadline:
         editForm.value.deadline,
@@ -1828,6 +1884,38 @@ onMounted(() => {
   font-family: inherit;
   font-size: 14px;
   outline: none;
+}
+
+.custom-date-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 50px;
+  box-sizing: border-box;
+  padding: 0 15px;
+  border: 1.5px solid #e0e2e6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #191b1e;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.custom-date-input:hover {
+  border-color: #d4d6da;
+}
+
+.date-placeholder {
+  color: #b9bec5;
+}
+
+.calendar-icon {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+  color: #8b9097;
 }
 
 .textarea {
