@@ -20,7 +20,7 @@ function getRequestUrl(input) {
   return input?.url
 }
 
-function withoutAuth(input, init = {}) {
+function withoutAccessToken(input, init = {}) {
   const headers = new Headers(
     init.headers || (input instanceof Request ? input.headers : undefined),
   )
@@ -29,7 +29,6 @@ function withoutAuth(input, init = {}) {
   return {
     ...init,
     headers,
-    credentials: 'omit',
   }
 }
 
@@ -39,7 +38,7 @@ export function setupFetchAuthInterceptor() {
   window.fetch = async (input, init) => {
     const url = getRequestUrl(input)
     const nextInit = isPublicAuthApiUrl(url)
-      ? withoutAuth(input, init)
+      ? withoutAccessToken(input, init)
       : init
     const response = await originalFetch(input, nextInit)
 

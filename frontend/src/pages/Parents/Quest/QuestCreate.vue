@@ -1193,10 +1193,7 @@ function formatDeadline(
 }
 
 
-// =========================
 // 빠른 금액 선택
-// =========================
-
 const quickAmounts = [
   {
     label: '+1,000',
@@ -1215,9 +1212,8 @@ const quickAmounts = [
 ]
 
 
-// =========================
+
 // 선택된 자녀 정보
-// =========================
 
 const selectedChildren =
   computed(() => {
@@ -1254,9 +1250,7 @@ const canSubmit =
   })
 
 
-// =========================
 // 자녀 목록 조회
-// =========================
 
 async function loadChildren() {
 

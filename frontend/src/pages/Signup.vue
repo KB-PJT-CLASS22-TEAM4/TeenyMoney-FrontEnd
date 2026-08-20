@@ -112,36 +112,13 @@
             >
               {{ formattedTimer }}
             </span>
-
-            <button
-              class="confirm-btn"
-              type="button"
-              :disabled="phoneVerified || isPhoneVerifying"
-              @click="verifyPhoneCode"
-            >
-              인증
-            </button>
           </div>
 
           <p
-            v-if="phoneCodeSent && !phoneVerifyStatus"
+            v-if="phoneCodeSent"
             class="sent-text"
           >
             인증번호가 발송되었습니다
-          </p>
-
-          <p
-            v-if="phoneVerifyStatus === 'match'"
-            class="verify-status match"
-          >
-            일치
-          </p>
-
-          <p
-            v-else-if="phoneVerifyStatus === 'mismatch'"
-            class="verify-status mismatch"
-          >
-            불일치
           </p>
 
           <p
@@ -585,7 +562,6 @@ import { useRouter } from 'vue-router'
 
 import {
   confirmGuardianVerification,
-  confirmPhoneVerificationCode,
   sendGuardianVerificationCode,
   sendPhoneVerificationCode,
   signup,
@@ -651,9 +627,6 @@ const guardianVerified = ref(false)
 const guardianCodeSent = ref(false)
 const guardianVerifyStatus = ref('')
 const phoneCodeSent = ref(false)
-const phoneVerified = ref(false)
-const phoneVerifyStatus = ref('')
-const isPhoneVerifying = ref(false)
 const isGuardianVerifying = ref(false)
 const signupLoading = ref(false)
 
@@ -807,8 +780,6 @@ function formatPhoneNumberInput(event) {
       event.target.value,
     )
   phoneCodeSent.value = false
-  phoneVerified.value = false
-  phoneVerifyStatus.value = ''
 }
 
 function formatGuardianPhoneInput(event) {
@@ -833,8 +804,6 @@ function formatVerificationCodeInput(event) {
   }
 
   form.verificationCode = next
-  phoneVerified.value = false
-  phoneVerifyStatus.value = ''
 }
 
 function formatGuardianCodeInput(event) {
@@ -857,6 +826,25 @@ function formatGuardianCodeInput(event) {
 function formatPhone(value) {
   return String(value ?? '')
     .replace(/\D/g, '')
+}
+
+function formatPhoneForApi(value) {
+  const digits = formatPhone(value)
+
+  if (digits.length !== 11) {
+    return digits
+  }
+
+  return (
+    `${digits.slice(0, 3)}-` +
+    `${digits.slice(3, 7)}-` +
+    `${digits.slice(7)}`
+  )
+}
+
+function toTermsVersionNumber(term) {
+  const parsed = Number(formatTermsVersion(term))
+  return Number.isFinite(parsed) ? parsed : 1
 }
 
 /*
@@ -1187,7 +1175,7 @@ async function requestVerification() {
   try {
     const response =
       await sendPhoneVerificationCode(
-        phoneNumber,
+        formatPhoneForApi(phoneNumber),
       )
 
     console.log(
@@ -1205,8 +1193,6 @@ async function requestVerification() {
     }
 
     phoneCodeSent.value = true
-    phoneVerified.value = false
-    phoneVerifyStatus.value = ''
     startTimer()
   } catch (error) {
     console.error(
@@ -1217,59 +1203,6 @@ async function requestVerification() {
     alertModal.showAlert(
       '인증번호 발송에 실패했어요.',
     )
-  }
-}
-
-async function verifyPhoneCode() {
-  if (phoneVerified.value || isPhoneVerifying.value) {
-    return
-  }
-
-  const phoneNumber =
-    formatPhone(
-      form.phoneNumber,
-    )
-
-  if (phoneNumber.length !== 11) {
-    alertModal.showAlert(
-      '휴대폰 번호를 정확히 입력해 주세요.',
-    )
-    return
-  }
-
-  if (!phoneCodeSent.value) {
-    alertModal.showAlert(
-      '먼저 인증번호를 발송해 주세요.',
-    )
-    return
-  }
-
-  if (form.verificationCode.trim().length !== 6) {
-    phoneVerifyStatus.value = 'mismatch'
-    phoneVerified.value = false
-    return
-  }
-
-  isPhoneVerifying.value = true
-
-  try {
-    await confirmPhoneVerificationCode(
-      phoneNumber,
-      form.verificationCode.trim(),
-    )
-
-    phoneVerifyStatus.value = 'match'
-    phoneVerified.value = true
-    stopTimer()
-  } catch (error) {
-    console.error(
-      '본인 인증번호 확인 실패:',
-      error,
-    )
-    phoneVerifyStatus.value = 'mismatch'
-    phoneVerified.value = false
-  } finally {
-    isPhoneVerifying.value = false
   }
 }
 
@@ -1349,7 +1282,7 @@ async function requestGuardianVerification() {
 
     const response =
       await sendGuardianVerificationCode(
-        guardianPhone,
+        formatPhoneForApi(guardianPhone),
       )
 
     console.log(
@@ -1446,19 +1379,19 @@ async function verifyGuardianCode() {
         true,
 
       phoneNumber:
-        guardianPhone,
+        formatPhoneForApi(guardianPhone),
 
       privacyTermsVersion:
-        formatTermsVersion(privacyTerm.value),
+        toTermsVersionNumber(privacyTerm.value),
 
       serviceTermsVersion:
-        formatTermsVersion(serviceTerm.value),
+        toTermsVersionNumber(serviceTerm.value),
 
       relationship:
         guardian.relationship,
 
       verificationCode:
-        guardian.code,
+        Number(guardian.code),
     }
 
     console.log(
