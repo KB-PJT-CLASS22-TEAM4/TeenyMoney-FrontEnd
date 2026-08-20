@@ -53,7 +53,7 @@ export async function getChildSavingProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/saving`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/savings`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -67,7 +67,7 @@ export async function getChildDepositProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/deposit`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/deposits`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -81,7 +81,7 @@ export async function getChildLoanProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/loan`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/loans`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -93,16 +93,22 @@ export async function getChildLoanProducts(accessToken, childId) {
 
 function toProductPathSegment(productType) {
   const map = {
-    SAVING: 'saving',
-    SAVINGS: 'saving',
-    DEPOSIT: 'deposit',
-    LOAN: 'loan',
-    적금: 'saving',
-    예금: 'deposit',
-    대출: 'loan',
+    SAVING: 'savings',
+    SAVINGS: 'savings',
+    saving: 'savings',
+    savings: 'savings',
+    DEPOSIT: 'deposits',
+    deposit: 'deposits',
+    deposits: 'deposits',
+    LOAN: 'loans',
+    loan: 'loans',
+    loans: 'loans',
+    적금: 'savings',
+    예금: 'deposits',
+    대출: 'loans',
   }
 
-  return map[productType] || 'saving'
+  return map[productType] || map[String(productType || '').toUpperCase()] || 'savings'
 }
 
 // 부모 금융상품 등록
@@ -112,7 +118,7 @@ export async function createFinancialProduct(accessToken, payload) {
   const segment = toProductPathSegment(payload?.productType)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/${segment}`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${payload.childId}/${segment}`,
     {
       method: 'POST',
       headers: authHeaders(accessToken, true),

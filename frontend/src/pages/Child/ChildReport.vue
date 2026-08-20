@@ -6,6 +6,7 @@ import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport } from '@/api/report'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
+import { getKstParts, parseServerDate, startOfKstDay, todayKstDate } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -221,7 +222,7 @@ function mapInsight(insight, data) {
 }
 
 function mapWeeklyTrend(weeklyTrend) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayKstDate()
   return (weeklyTrend || []).map((w) => ({
     label: `${w.weekNo}주`,
     amount: w.amount ?? 0,
@@ -274,10 +275,10 @@ function mapTeenyScore(teenyScoreData) {
 }
 
 function parseDateParts(raw) {
-  if (!raw) return null
-  const parsed = new Date(raw)
-  if (Number.isNaN(parsed.getTime())) return null
-  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+  const date = parseServerDate(raw)
+  if (!date) return null
+  const { year, month, day } = getKstParts(date)
+  return { y: year, m: month, d: day }
 }
 
 function formatDateDot(raw) {
@@ -375,13 +376,14 @@ function mapSchedule(p) {
   }
   if (!targetDate) return null
 
-  const today = new Date()
-  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const diffDays = Math.round((targetDate - todayOnly) / (1000 * 60 * 60 * 24))
+  const todayOnly = startOfKstDay(new Date())
+  const target = startOfKstDay(targetDate)
+  const diffDays = Math.round((target.getTime() - todayOnly.getTime()) / 86400000)
   if (diffDays < 0) return null
 
   const dday = diffDays === 0 ? 'D-Day' : `D-${diffDays}`
-  const date = `${targetDate.getMonth() + 1}/${targetDate.getDate()}`
+  const { month, day } = getKstParts(targetDate)
+  const date = `${month}/${day}`
   const amount = p.monthlyAmount || p.currentAmount || 0
 
   let title = ''
@@ -418,11 +420,13 @@ const selectedMonth = ref('')
 const showMonthPicker = ref(false)
 
 function generateMonthOptions(count = 12) {
-  const now = new Date()
+  const { year, month } = getKstParts()
   const months = []
   for (let i = 0; i < count; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+    const idx = year * 12 + (month - 1) - i
+    const y = Math.floor(idx / 12)
+    const m = (idx % 12) + 1
+    months.push(`${y}-${String(m).padStart(2, '0')}`)
   }
   return months
 }

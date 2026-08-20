@@ -148,6 +148,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 import { getQuestDetail, submitQuestVerification } from '@/api/quest'
+import { calcKstDDay, formatKstDateTime, getKstParts, parseServerDate } from '@/utils/datetime'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const route = useRoute()
@@ -168,35 +169,19 @@ const loadError = ref('')
 
 // deadline(ISO 문자열 또는 [y,m,d,h,mi,s] 배열) → Date 객체
 function parseDeadline(deadline) {
-  if (!deadline) return null
-
-  // Jackson이 LocalDateTime을 배열로 직렬화하는 경우: [2026, 8, 20, 9, 50]
-  if (Array.isArray(deadline)) {
-    const [y, m, d, h = 0, mi = 0, s = 0] = deadline
-    return new Date(y, m - 1, d, h, mi, s)
-  }
-
-  // "2026-08-12 20:00:00"처럼 공백 구분이면 T로 바꿔서 재시도
-  let date = new Date(deadline)
-  if (Number.isNaN(date.getTime()) && typeof deadline === 'string') {
-    date = new Date(deadline.replace(' ', 'T'))
-  }
-  return Number.isNaN(date.getTime()) ? null : date
+  return parseServerDate(deadline)
 }
 
 function calcDDay(deadline) {
-  const end = parseDeadline(deadline)
-  if (!end) return null
-  const now = new Date()
-  const diffMs = end.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)
-  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+  return calcKstDDay(deadline)
 }
 
 function formatShortDate(value) {
   const d = parseDeadline(value)
   if (!d) return ''
+  const { month, day } = getKstParts(d)
   const pad = (n) => String(n).padStart(2, '0')
-  return `${pad(d.getMonth() + 1)}.${pad(d.getDate())}`
+  return `${pad(month)}.${pad(day)}`
 }
 
 async function loadQuest() {
@@ -235,8 +220,7 @@ async function loadQuest() {
 onMounted(loadQuest)
 
 // 제출 시점 인증 일시 미리보기 (실제 저장 시각은 서버 응답 기준)
-const now = new Date()
-const nowLabel = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+const nowLabel = formatKstDateTime(new Date())
 
 // 상태별 아이콘 색 - QuestList.vue와 동일한 팔레트
 const STATUS_ICON_COLORS = {

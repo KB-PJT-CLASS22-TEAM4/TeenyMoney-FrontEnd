@@ -1,3 +1,5 @@
+import { parseServerDate } from '@/utils/datetime'
+
 export function isQuestDeadlineExpiredError(error) {
   return error?.status === 400
 }
@@ -10,36 +12,9 @@ export function getExtendedDeadlineIso(
   let base = now
 
   if (currentDeadline) {
-    let parsed
+    const parsed = parseServerDate(currentDeadline)
 
-    if (Array.isArray(currentDeadline)) {
-      const [
-        y,
-        m,
-        d,
-        h = 0,
-        mi = 0,
-        s = 0,
-      ] = currentDeadline
-
-      parsed = new Date(y, m - 1, d, h, mi, s)
-    } else {
-      parsed = new Date(currentDeadline)
-
-      if (
-        Number.isNaN(parsed.getTime()) &&
-        typeof currentDeadline === 'string'
-      ) {
-        parsed = new Date(
-          currentDeadline.replace(' ', 'T'),
-        )
-      }
-    }
-
-    if (
-      !Number.isNaN(parsed.getTime()) &&
-      parsed > now
-    ) {
+    if (parsed && parsed > now) {
       base = parsed
     }
   }

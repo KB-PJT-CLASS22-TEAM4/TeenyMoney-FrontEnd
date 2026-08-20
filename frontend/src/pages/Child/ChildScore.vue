@@ -144,6 +144,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { getKstParts } from '@/utils/datetime';
 
 const router = useRouter();
 function goBack() {
@@ -191,13 +192,12 @@ const rangePercent = computed(() => {
   return ((score - g.min) / (g.max - g.min)) * 100;
 });
 
-// ponytail: 브라우저 로컬 시간 기준. 등급 확정이 KST 기준이므로 서버가 내려주는 날짜로 교체하면 정확해짐
-const now = new Date();
-const month = now.getMonth() + 1;
+const kstNow = getKstParts();
+const month = kstNow.month;
 const nextMonth = month === 12 ? 1 : month + 1;
-const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-const daysLeft = lastDay - now.getDate() + 1;
-const monthPercent = ((now.getDate() - 1) / lastDay) * 100;
+const lastDay = new Date(kstNow.year, month, 0).getDate();
+const daysLeft = lastDay - kstNow.day + 1;
+const monthPercent = ((kstNow.day - 1) / lastDay) * 100;
 
 const rate = v => (v === null ? '이용 불가' : v.toFixed(2) + '%');
 const benefits = computed(() => {

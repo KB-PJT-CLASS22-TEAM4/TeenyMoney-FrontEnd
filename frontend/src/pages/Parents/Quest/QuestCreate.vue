@@ -200,7 +200,7 @@
               form.rewardAmount = 0
             "
           >
-            지움
+            초기화
           </button>
         </div>
       </div>
@@ -689,6 +689,7 @@ import {
 import {
   CHILD_PROFILE_IMAGE,
 } from '@/utils/profileImages'
+import { utcIsoFromKstDatetimeLocal } from '@/utils/datetime'
 
 
 const router =
@@ -1193,10 +1194,7 @@ function formatDeadline(
 }
 
 
-// =========================
 // 빠른 금액 선택
-// =========================
-
 const quickAmounts = [
   {
     label: '+1,000',
@@ -1215,9 +1213,8 @@ const quickAmounts = [
 ]
 
 
-// =========================
+
 // 선택된 자녀 정보
-// =========================
 
 const selectedChildren =
   computed(() => {
@@ -1254,9 +1251,7 @@ const canSubmit =
   })
 
 
-// =========================
 // 자녀 목록 조회
-// =========================
 
 async function loadChildren() {
 
@@ -1377,10 +1372,8 @@ function closeChildModal() {
 }
 
 
-// =========================
-// 자녀 선택
-// =========================
 
+// 자녀 선택
 function toggleChild(
   id
 ) {
@@ -1406,10 +1399,7 @@ function toggleChild(
 }
 
 
-// =========================
 // 금액
-// =========================
-
 function addAmount(
   value
 ) {
@@ -1423,10 +1413,7 @@ function addAmount(
 }
 
 
-// =========================
 // 퀘스트 생성
-// =========================
-
 async function handleCreate() {
 
   if (
@@ -1436,8 +1423,10 @@ async function handleCreate() {
     return
   }
 
-  isCreating.value =
-    true
+  isCreating.value = true
+
+  const [datePart, timePart] = form.value.deadline.split('T')
+  const deadline = utcIsoFromKstDatetimeLocal(`${datePart}T${timePart}`)
 
   try {
 

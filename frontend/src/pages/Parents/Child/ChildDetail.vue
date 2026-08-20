@@ -485,6 +485,7 @@ import { getTeenyScore } from '@/api/teenyScore'
 import * as financialProductsApi from '@/api/financialProducts'
 import { fetchAllChildFinancialProducts } from '@/utils/financialProductMapper'
 import { CHILD_DETAIL_MASCOT } from '@/utils/profileImages'
+import { formatKstDateTime } from '@/utils/datetime'
 
 
 const router =
@@ -646,16 +647,7 @@ function getAmountText(item) {
 }
 
 function formatTransactionDate(createdAt) {
-  if (!createdAt) return ''
-
-  const date = new Date(createdAt)
-  return new Intl.DateTimeFormat('ko-KR', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return formatKstDateTime(createdAt)
 }
 
 

@@ -7,6 +7,8 @@ import { getMyWallet } from '@/api/wallet'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import { getKstParts, parseServerDate } from '@/utils/datetime'
+import { formatRepaymentType } from '@/utils/financialProductMapper'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -27,13 +29,6 @@ const categories = ['전체', '적금', '예금', '대출']
 const typeMap = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
 const interestTypeMap = { SIMPLE: '단리', COMPOUND: '복리' }
 const savingsTypeMap = { FREE: '자유적금', FIXED: '정액적금' }
-const repaymentTypeMap = {
-  EQUAL_PRINCIPAL_AND_INTEREST: '원리금균등',
-  EQUAL_PRINCIPAL_INTEREST: '원리금균등',
-  EQUAL_PRINCIPAL: '원금균등',
-  BULLET: '만기일시',
-  LUMP_SUM: '만기일시'
-}
 
 const statusMap = {
   PENDING: { label: '승인 대기 중', color: 'orange' },
@@ -58,14 +53,10 @@ function isEnrollmentTerminated(p) {
 
 // 날짜 파싱 유틸
 function parseDateParts(raw) {
-  if (!raw) return null
-  if (Array.isArray(raw)) {
-    const [y, m, d] = raw
-    return { y, m, d }
-  }
-  const parsed = new Date(raw)
-  if (Number.isNaN(parsed.getTime())) return null
-  return { y: parsed.getFullYear(), m: parsed.getMonth() + 1, d: parsed.getDate() }
+  const date = parseServerDate(raw)
+  if (!date) return null
+  const { year, month, day } = getKstParts(date)
+  return { y: year, m: month, d: day }
 }
 
 function formatDateCompact(raw) {
@@ -248,7 +239,7 @@ async function loadProducts() {
 
           if (detail) {
             product.requiredGradeName = detail.requiredGradeName || ''
-            product.repaymentType = repaymentTypeMap[detail.repaymentType] || detail.repaymentType || ''
+            product.repaymentType = formatRepaymentType(detail.repaymentType)
             product.lateFeeRate = detail.lateFeeRate ?? 0
 
             if (product.isPending && product.requiredGradeName) {

@@ -65,6 +65,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePaymentStore } from '@/stores/payment'
+import { formatKstDateTimeWithWeekday } from '@/utils/datetime'
 
 const router = useRouter()
 const paymentStore = usePaymentStore()
@@ -81,26 +82,7 @@ const balance = ref(result?.balance ?? 0)
 const paidAt = ref(formatPaidAt(result?.createdAt))
 
 function formatPaidAt(value) {
-  if (!value) return ''
-
-  let d
-  if (Array.isArray(value)) {
-    const [year, month, day, hour = 0, minute = 0, second = 0] = value
-    d = new Date(year, month - 1, day, hour, minute, second)
-  } else {
-    d = new Date(value)
-  }
-
-  if (isNaN(d.getTime())) return ''
-
-  const days = ['일', '월', '화', '수', '목', '금', '토']
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  const day = days[d.getDay()]
-  const hh = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${yyyy}.${mm}.${dd} (${day}) ${hh}:${min}`
+  return formatKstDateTimeWithWeekday(value)
 }
 
 function goHome() {

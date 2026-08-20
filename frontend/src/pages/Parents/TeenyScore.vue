@@ -156,20 +156,28 @@
 
               <path
                 v-if="chartAreaPath"
+                class="chart-area"
                 :d="chartAreaPath"
                 fill="url(#parentChartGradient)"
               />
               <path
                 v-if="chartPath"
+                class="chart-line"
                 :d="chartPath"
                 fill="none"
                 stroke="#ffbc00"
                 stroke-width="2.8"
                 stroke-linecap="round"
                 stroke-linejoin="round"
+                pathLength="1"
               />
 
-              <g v-for="(point, index) in chartPoints" :key="index">
+              <g
+                v-for="(point, index) in chartPoints"
+                :key="index"
+                class="chart-point"
+                :style="{ animationDelay: `${0.28 + index * 0.06}s` }"
+              >
                 <circle
                   v-if="point.isLast"
                   :cx="point.x"
@@ -271,6 +279,7 @@ import {
   GRADE_ID_META,
   FALLBACK_GRADE_META,
 } from '@/utils/teenyScoreGradeMeta'
+import { currentKstYearMonth, getKstParts } from '@/utils/datetime'
 
 const router = useRouter()
 const route = useRoute()
@@ -314,9 +323,7 @@ function formatYearMonthLabel(yearMonth) {
 }
 
 function calcMonthDiff(currentScore, history) {
-  const now = new Date()
-  const currentYearMonth =
-    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const currentYearMonth = currentKstYearMonth()
 
   const prevMonthEntry = [...history]
     .filter((item) => item.yearMonth < currentYearMonth)
@@ -351,7 +358,7 @@ const chartPoints = computed(() => {
   const innerWidth = CHART_WIDTH - CHART_PAD_X * 2
   const innerHeight = CHART_PLOT_BOTTOM - CHART_PAD_TOP
   const step = data.length > 1 ? innerWidth / (data.length - 1) : 0
-  const currentYear = `${new Date().getFullYear()}년 `
+  const currentYear = `${getKstParts().year}년 `
 
   return data.map((item, index) => {
     const x = CHART_PAD_X + (data.length > 1 ? index * step : innerWidth / 2)
@@ -793,6 +800,34 @@ onMounted(async () => {
   display: block;
   width: 100%;
   height: auto;
+}
+
+.chart-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-draw 0.6s ease-out forwards;
+}
+
+.chart-area {
+  opacity: 0;
+  animation: chart-fade 0.4s ease-out 0.18s forwards;
+}
+
+.chart-point {
+  opacity: 0;
+  animation: chart-fade 0.3s ease-out forwards;
+}
+
+@keyframes chart-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chart-fade {
+  to {
+    opacity: 1;
+  }
 }
 
 .monthly-list {

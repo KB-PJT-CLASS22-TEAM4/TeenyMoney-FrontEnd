@@ -497,6 +497,10 @@ import {
 import {
   isQuestDeadlineExpiredError,
 } from '@/utils/questDeadline'
+import {
+  formatKstClock12,
+  formatKstDate,
+} from '@/utils/datetime'
 
 
 const router =
@@ -1327,31 +1331,7 @@ function formatReward(
 function formatDate(
   value
 ) {
-
-  if (!value) {
-    return ''
-  }
-
-  const date =
-    new Date(value)
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return ''
-  }
-
-  return `${date.getFullYear()}.${
-    String(
-      date.getMonth() + 1
-    ).padStart(2, '0')
-  }.${
-    String(
-      date.getDate()
-    ).padStart(2, '0')
-  }`
+  return formatKstDate(value)
 }
 
 
@@ -1362,39 +1342,7 @@ function formatDate(
 function formatTime(
   value
 ) {
-
-  if (!value) {
-    return ''
-  }
-
-  const date =
-    new Date(value)
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return ''
-  }
-
-  const hour =
-    date.getHours()
-
-  const period =
-    hour >= 12
-      ? '오후'
-      : '오전'
-
-  const displayHour =
-    hour % 12 || 12
-
-  const minutes =
-    String(
-      date.getMinutes()
-    ).padStart(2, '0')
-
-  return `${period} ${displayHour}:${minutes}`
+  return formatKstClock12(value)
 }
 
 

@@ -46,6 +46,7 @@ import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { formatKstDateTime } from '@/utils/datetime'
 
 const router = useRouter()
 const route = useRoute()
@@ -64,9 +65,7 @@ function goToChildHome() {
   router.push({ name: 'parents-child-list' })
 }
 
-// TODO: API 연동 후 실제 거래 시간으로 교체
-const now = new Date()
-const currentTime = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+const currentTime = formatKstDateTime(new Date())
 </script>
 
 <style scoped>
