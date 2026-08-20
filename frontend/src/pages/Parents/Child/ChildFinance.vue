@@ -23,21 +23,34 @@
       <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
 
       <template v-else>
-        <div class="filters">
+        <div class="filter-row">
+          <div class="filters">
+            <button
+              v-for="category in categories"
+              :key="category"
+              class="chip"
+              :class="{ off: activeCategory !== category }"
+              type="button"
+              @click="activeCategory = category"
+            >
+              {{ category }}
+            </button>
+          </div>
+
           <button
-            v-for="category in categories"
-            :key="category"
-            class="chip"
-            :class="{ off: activeCategory !== category }"
+            class="origin-filter-btn"
+            :class="{ active: activeOrigin !== '전체' }"
             type="button"
-            @click="activeCategory = category"
+            :aria-label="`상품 구분 ${originButtonLabel}`"
+            @click="cycleOrigin"
           >
-            {{ category }}
+            <img src="@/assets/icons/icon-filter.svg" alt="" class="origin-filter-icon" />
+            <span>{{ originButtonLabel }}</span>
           </button>
         </div>
 
         <section
-          v-if="filteredCustomProducts.length"
+          v-if="showCreatedProducts && filteredCustomProducts.length"
           class="custom-section"
         >
           <p class="group-title">
@@ -50,8 +63,36 @@
             class="product-card"
           >
             <div class="product-head">
-              <p class="product-title">{{ product.title }}</p>
-              <span class="product-rate">{{ product.rateText }}</span>
+              <div class="product-title-wrap">
+                <span class="origin-badge created">등록</span>
+                <p class="product-title">{{ product.title }}</p>
+              </div>
+              <div class="product-head-actions">
+                <span class="product-rate">{{ product.rateText }}</span>
+                <button
+                  class="trash-btn"
+                  type="button"
+                  :disabled="deletingKey === product.key"
+                  :aria-label="`${product.title} 삭제`"
+                  @click="handleDeleteCustomProduct(product)"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7h10Z"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M10 11v6M14 11v6"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
             <p class="custom-meta">
               {{ product.category }}
@@ -59,19 +100,11 @@
                 · {{ product.limitText }}
               </template>
             </p>
-            <button
-              class="delete-btn"
-              type="button"
-              :disabled="deletingKey === product.key"
-              @click="handleDeleteCustomProduct(product)"
-            >
-              {{ deletingKey === product.key ? '삭제 중...' : '삭제' }}
-            </button>
           </div>
         </section>
 
         <section
-          v-if="pendingApprovals.length"
+          v-if="showEnrolledProducts && pendingApprovals.length"
           class="pending-section"
         >
           <p class="pending-heading">
@@ -119,45 +152,50 @@
           </div>
         </section>
 
-        <template v-for="group in groupedActiveProducts" :key="group.label">
-          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+        <template v-if="showEnrolledProducts">
+          <template v-for="group in groupedActiveProducts" :key="group.label">
+            <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
 
-          <div
-            v-for="product in group.items"
-            :key="product.enrollmentId"
-            class="product-card"
-          >
-            <div class="product-head">
-              <p class="product-title">{{ product.title }}</p>
-              <span class="product-rate">{{ product.rateText }}</span>
+            <div
+              v-for="product in group.items"
+              :key="product.enrollmentId"
+              class="product-card"
+            >
+              <div class="product-head">
+                <div class="product-title-wrap">
+                  <span class="origin-badge enrolled">가입</span>
+                  <p class="product-title">{{ product.title }}</p>
+                </div>
+                <span class="product-rate">{{ product.rateText }}</span>
+              </div>
+
+              <p class="product-amount-label">
+                누적 금액
+                <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
+              </p>
+
+              <div class="progress-bar-bg">
+                <div
+                  class="progress-bar-fill"
+                  :style="{ width: product.progress + '%' }"
+                ></div>
+              </div>
+
+              <div class="product-foot">
+                <span>
+                  {{ product.periodMonths }}개월
+                  <template v-if="product.totalPayments">
+                    ({{ product.paymentCount }}회납)
+                  </template>
+                </span>
+                <span>만기 {{ product.maturityDate }}</span>
+              </div>
             </div>
-
-            <p class="product-amount-label">
-              누적 금액
-              <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
-            </p>
-
-            <div class="progress-bar-bg">
-              <div
-                class="progress-bar-fill"
-                :style="{ width: product.progress + '%' }"
-              ></div>
-            </div>
-
-            <div class="product-foot">
-              <span>
-                {{ product.periodMonths }}개월
-                <template v-if="product.totalPayments">
-                  ({{ product.paymentCount }}회납)
-                </template>
-              </span>
-              <span>만기 {{ product.maturityDate }}</span>
-            </div>
-          </div>
+          </template>
         </template>
 
         <section
-          v-if="filteredCompletedApprovals.length"
+          v-if="showEnrolledProducts && filteredCompletedApprovals.length"
           class="completed-list"
         >
           <p class="group-title">
@@ -188,10 +226,7 @@
 
         <div
           v-if="
-            !groupedActiveProducts.length &&
-            !pendingApprovals.length &&
-            !filteredCustomProducts.length &&
-            !filteredCompletedApprovals.length
+            !hasVisibleProducts
           "
           class="empty-box"
         >
@@ -250,8 +285,24 @@ const errorMessage = ref('')
 const deletingKey = ref('')
 const processingKey = ref('')
 const activeCategory = ref('전체')
+const activeOrigin = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
+const origins = ['전체', '가입한 상품', '등록한 상품']
+
+const showEnrolledProducts = computed(() => activeOrigin.value !== '등록한 상품')
+const showCreatedProducts = computed(() => activeOrigin.value !== '가입한 상품')
+const originButtonLabel = computed(() => {
+  if (activeOrigin.value === '가입한 상품') return '가입'
+  if (activeOrigin.value === '등록한 상품') return '등록'
+  return '전체'
+})
+
+function cycleOrigin() {
+  const currentIndex = origins.indexOf(activeOrigin.value)
+  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % origins.length
+  activeOrigin.value = origins[nextIndex]
+}
 
 const pendingApprovals = computed(() =>
   [...approvalRequests.value.filter((item) => item.isPending)].sort((a, b) => {
@@ -317,11 +368,36 @@ const filteredCustomProducts = computed(() => {
   )
 })
 
+const hasVisibleProducts = computed(() => {
+  const hasCreated = showCreatedProducts.value && filteredCustomProducts.value.length
+  const hasEnrolled = showEnrolledProducts.value && (
+    groupedActiveProducts.value.length
+    || pendingApprovals.value.length
+    || filteredCompletedApprovals.value.length
+  )
+  return Boolean(hasCreated || hasEnrolled)
+})
+
 const emptyCategoryMessage = computed(() => {
+  if (activeOrigin.value === '등록한 상품') {
+    return activeCategory.value === '전체'
+      ? '등록한 상품이 없습니다.'
+      : `등록한 ${activeCategory.value} 상품이 없습니다.`
+  }
+
+  if (activeOrigin.value === '가입한 상품') {
+    if (activeCategory.value === '전체') {
+      return pendingApprovals.value.length
+        ? '가입 중인 상품이 없습니다.'
+        : '가입한 금융 상품이 없습니다.'
+    }
+    return `가입한 ${activeCategory.value} 상품이 없습니다.`
+  }
+
   if (activeCategory.value === '전체') {
     return pendingApprovals.value.length
       ? '가입 중인 상품이 없습니다.'
-      : '가입한 금융 상품이 없습니다.'
+      : '조회할 금융 상품이 없습니다.'
   }
 
   return `${activeCategory.value} 상품이 없습니다.`
@@ -538,6 +614,7 @@ onMounted(async () => {
 
 <style scoped>
 .page {
+  position: relative;
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
@@ -795,10 +872,47 @@ onMounted(async () => {
   border: 1px solid #e7e9ec;
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
 .filters {
   display: flex;
   gap: 8px;
-  margin: 0 0 16px;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.origin-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border: 1.3px solid #e7e9ec;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #4a4e55;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.origin-filter-btn.active {
+  border-color: #ffbc00;
+  background: #fff8e6;
+  color: #191b1e;
+}
+
+.origin-filter-icon {
+  width: 13px;
+  height: 12px;
 }
 
 .chip {
@@ -810,6 +924,7 @@ onMounted(async () => {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .chip.off {
@@ -831,25 +946,40 @@ onMounted(async () => {
 }
 
 .custom-meta {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 12px;
   color: #8b9097;
 }
 
-.delete-btn {
-  width: 100%;
-  height: 40px;
-  border: 1.5px solid #e0e2e6;
+.product-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.trash-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #eceef1;
   border-radius: 10px;
   background: #ffffff;
-  color: #ff3b30;
-  font-size: 14px;
-  font-weight: 700;
+  color: #8b9097;
   cursor: pointer;
 }
 
-.delete-btn:disabled {
-  opacity: 0.6;
+.trash-btn:hover {
+  color: #ff3b30;
+  border-color: #ffd0cd;
+  background: #fff5f5;
+}
+
+.trash-btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -868,6 +998,32 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.product-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.origin-badge {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.origin-badge.created {
+  background: #eef4ff;
+  color: #2e7bf0;
+}
+
+.origin-badge.enrolled {
+  background: #fff6d9;
+  color: #b45309;
 }
 
 .product-title {
