@@ -53,7 +53,7 @@ export async function getChildSavingProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/savings`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/custom-savings`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -67,7 +67,7 @@ export async function getChildDepositProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/deposits`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/custom-deposits`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -81,7 +81,7 @@ export async function getChildLoanProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/loans`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/custom-loans`,
     {
       method: 'GET',
       headers: authHeaders(accessToken),
@@ -93,36 +93,40 @@ export async function getChildLoanProducts(accessToken, childId) {
 
 function toProductPathSegment(productType) {
   const map = {
-    SAVING: 'savings',
-    SAVINGS: 'savings',
-    saving: 'savings',
-    savings: 'savings',
-    DEPOSIT: 'deposits',
-    deposit: 'deposits',
-    deposits: 'deposits',
-    LOAN: 'loans',
-    loan: 'loans',
-    loans: 'loans',
-    적금: 'savings',
-    예금: 'deposits',
-    대출: 'loans',
+    SAVING: 'custom-savings',
+    SAVINGS: 'custom-savings',
+    saving: 'custom-savings',
+    savings: 'custom-savings',
+    DEPOSIT: 'custom-deposits',
+    deposit: 'custom-deposits',
+    deposits: 'custom-deposits',
+    LOAN: 'custom-loans',
+    loan: 'custom-loans',
+    loans: 'custom-loans',
+    적금: 'custom-savings',
+    예금: 'custom-deposits',
+    대출: 'custom-loans',
   }
 
-  return map[productType] || map[String(productType || '').toUpperCase()] || 'savings'
+  return map[productType] || map[String(productType || '').toUpperCase()] || 'custom-savings'
 }
 
 // 부모 금융상품 등록
 export async function createFinancialProduct(accessToken, payload) {
   ensureAccessToken(accessToken)
 
-  const segment = toProductPathSegment(payload?.productType)
+  const childId = payload?.childId
+  const productType = payload?.productType
+  if (!childId) throw new Error('자녀 정보가 필요합니다.')
+
+  const { childId: _childId, productType: _productType, ...body } = payload
 
   const response = await fetch(
-    `${API_BASE_URL}/api/v1/financial-products/children/${payload.childId}/${segment}`,
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/${toProductPathSegment(productType)}`,
     {
       method: 'POST',
       headers: authHeaders(accessToken, true),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     }
   )
 
