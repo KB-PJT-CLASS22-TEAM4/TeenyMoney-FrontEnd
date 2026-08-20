@@ -315,11 +315,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-<<<<<<< HEAD
 import { useRoute, useRouter } from 'vue-router'
-=======
-import { useRouter, useRoute } from 'vue-router'
->>>>>>> 12d40c3488eabe7d8f5bdcaf751c52c23db1bb63
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
@@ -328,11 +324,7 @@ import { useQuestStore } from '@/stores/quest'
 import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
-<<<<<<< HEAD
 const route = useRoute()
-=======
-const route  = useRoute()
->>>>>>> 12d40c3488eabe7d8f5bdcaf751c52c23db1bb63
 const authStore = useAuthStore()
 const questStore = useQuestStore()
 
@@ -341,7 +333,6 @@ const tabs = [
   { key: 'ongoing',   label: '진행 중' },
   { key: 'completed', label: '완료' },
 ]
-<<<<<<< HEAD
 
 function resolveQuestTab(raw) {
   const value = String(raw || '').trim().toLowerCase()
@@ -362,15 +353,6 @@ function resolveQuestTab(raw) {
 }
 
 const activeTab = ref(resolveQuestTab(route.query.tab) || 'available')
-=======
-const activeTab = ref(route.query.tab || 'available')
-
-watch(() => route.query.tab, (newTab) => {
-  if (newTab && ['available', 'ongoing', 'completed'].includes(newTab)) {
-    activeTab.value = newTab
-  }
-})
->>>>>>> 12d40c3488eabe7d8f5bdcaf751c52c23db1bb63
 
 // 탭별 챗봇 말풍선 안내 문구
 const currentHintText = computed(() => {
