@@ -238,7 +238,7 @@ function requestApproval() {
   padding-bottom: 24px;
   background: #f8fafc;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 /* 상단 네비게이션 */

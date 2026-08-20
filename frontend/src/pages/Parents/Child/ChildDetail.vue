@@ -387,7 +387,11 @@
             aria-label="전체 거래내역 보기"
             @click="goToTransactions"
           >
-            <span class="chev">›</span>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
+            />
           </button>
         </div>
 
@@ -1339,9 +1343,9 @@ function onScroll() {
   cursor: pointer;
 }
 
-.chev {
-  font-size: 18px;
-  color: #a1a1aa;
+.chevron-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .tx-item {

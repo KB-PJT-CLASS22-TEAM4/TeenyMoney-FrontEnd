@@ -260,6 +260,14 @@ export function useParentRequests() {
     return verificationId
   }
 
+  function toFinanceProductType(value) {
+    const raw = String(value || '').toUpperCase()
+    if (raw.includes('LOAN') || raw.includes('대출')) return 'LOAN'
+    if (raw.includes('DEPOSIT') || raw.includes('예금')) return 'DEPOSIT'
+    if (raw.includes('SAVING') || raw.includes('적금')) return 'SAVING'
+    return raw || null
+  }
+
   async function openRequestDetail(item) {
     if (item.type === 'permission' && item.childId) {
       router.push({
@@ -284,12 +292,18 @@ export function useParentRequests() {
       return
     }
 
-    if (item.type === 'finance' && item.childId && item.enrollmentId) {
+    if (item.type === 'finance') {
+      const productType = toFinanceProductType(item.productType)
+      if (!item.childId || item.enrollmentId == null || !productType) {
+        alertModal.showAlert('가입 신청을 열 수 없습니다.')
+        return
+      }
+
       router.push({
         name: 'parents-finance-approval-detail',
         params: {
           childId: item.childId,
-          productType: item.productType || 'SAVING',
+          productType,
           enrollmentId: item.enrollmentId,
         },
       })

@@ -63,108 +63,114 @@
       </div>
 
       <!-- ================================
-           첫 번째 인증 대기 퀘스트 강조 카드
+           인증 대기 퀘스트 (진행 중 상단)
       ================================= -->
-      <div
-        v-if="pendingQuest && matchesSearch(pendingQuest)"
-        class="pending-card"
+      <section
+        v-if="visiblePendingQuests.length"
+        class="pending-section"
       >
-        <div
-          class="pending-content"
-          @click="goToDetail(pendingQuest.questId)"
-        >
-          <div class="pending-top">
-            <span class="pending-badge">
-              인증대기
-            </span>
+        <p class="pending-heading">
+          처리 필요
+          <span class="pending-count">{{ visiblePendingQuests.length }}</span>
+        </p>
 
-            <span class="pending-time">
+        <div
+          v-for="quest in visiblePendingQuests"
+          :key="quest.questId"
+          class="pending-card"
+        >
+          <div
+            class="pending-content"
+            @click="goToDetail(quest.questId)"
+          >
+            <div class="pending-top">
+              <span class="pending-badge">
+                인증 대기
+              </span>
+
+              <span class="pending-time">
+                {{
+                  formatTime(
+                    quest.endedAt ||
+                    quest.deadline
+                  )
+                }}
+              </span>
+            </div>
+
+            <p class="pending-child">
               {{
-                formatTime(
-                  pendingQuest.endedAt ||
-                  pendingQuest.deadline
+                quest.child?.name ||
+                '자녀'
+              }}
+            </p>
+
+            <p class="pending-title">
+              {{ quest.title }}
+            </p>
+
+            <p class="pending-reward">
+              {{
+                formatReward(
+                  quest.rewardAmount
                 )
               }}
-            </span>
+            </p>
           </div>
 
-          <p class="pending-child">
-            {{
-              pendingQuest.child.name ||
-              '자녀'
-            }}
-          </p>
+          <div class="pending-actions">
+            <button
+              type="button"
+              class="reject-btn"
+              :disabled="
+                processingQuestId ===
+                quest.questId
+              "
+              @click="
+                openRejectModal(
+                  quest
+                )
+              "
+            >
+              거절
+            </button>
 
-          <p class="pending-title">
-            {{ pendingQuest.title }}
-          </p>
-
-          <p class="pending-reward">
-            {{
-              formatReward(
-                pendingQuest.rewardAmount
-              )
-            }}
-          </p>
+            <button
+              type="button"
+              class="approve-btn"
+              :disabled="
+                processingQuestId ===
+                quest.questId
+              "
+              @click="
+                handleApprove(
+                  quest
+                )
+              "
+            >
+              {{
+                processingQuestId ===
+                quest.questId
+                  ? '처리 중...'
+                  : '승인'
+              }}
+            </button>
+          </div>
         </div>
-
-        <!-- 승인 / 거절 -->
-        <div class="pending-actions">
-          <button
-            type="button"
-            class="reject-btn"
-            :disabled="
-              processingQuestId ===
-              pendingQuest.questId
-            "
-            @click="
-              openRejectModal(
-                pendingQuest
-              )
-            "
-          >
-            거절
-          </button>
-
-          <button
-            type="button"
-            class="approve-btn"
-            :disabled="
-              processingQuestId ===
-              pendingQuest.questId
-            "
-            @click="
-              handleApprove(
-                pendingQuest
-              )
-            "
-          >
-            {{
-              processingQuestId ===
-              pendingQuest.questId
-                ? '처리 중...'
-                : '승인'
-            }}
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="detail-btn"
-          @click="
-            goToDetail(
-              pendingQuest.questId
-            )
-          "
-        >
-          상세보기
-        </button>
-      </div>
+      </section>
 
       <!-- ================================
            퀘스트 목록
       ================================= -->
-      <div class="quest-section">
+      <div
+        v-if="
+          isLoading ||
+          errorMessage ||
+          displayQuests.length ||
+          !hasVisibleQuests
+        "
+        class="quest-section"
+      >
 
         <!-- 로딩 -->
         <div
@@ -476,9 +482,11 @@ import {
   ref,
   computed,
   onMounted,
+  watch,
 } from 'vue'
 
 import {
+  useRoute,
   useRouter,
 } from 'vue-router'
 
@@ -506,6 +514,9 @@ import {
 const router =
   useRouter()
 
+const route =
+  useRoute()
+
 const authStore =
   useAuthStore()
 const alertModal = useAlertModal()
@@ -520,9 +531,6 @@ const isLoading =
 
 const errorMessage =
   ref('')
-
-const activeTab =
-  ref('AVAILABLE')
 
 const quests =
   ref([])
@@ -589,6 +597,30 @@ const tabs = [
   },
 ]
 
+function resolveQuestTab(raw) {
+  const value = String(raw || '').trim().toUpperCase()
+
+  if (value === 'ONGOING' || value === '진행중' || value === '진행 중') {
+    return 'ONGOING'
+  }
+
+  if (value === 'COMPLETED' || value === '완료') {
+    return 'COMPLETED'
+  }
+
+  if (value === 'AVAILABLE' || value === '시작가능' || value === '시작 가능') {
+    return 'AVAILABLE'
+  }
+
+  return null
+}
+
+const activeTab =
+  ref(
+    resolveQuestTab(route.query.tab) ||
+    'AVAILABLE'
+  )
+
 
 /* =========================
    검색 판별
@@ -627,24 +659,21 @@ function matchesSearch(
    인증 대기
 ========================= */
 
-const pendingQuest =
+const pendingQuests =
   computed(() => {
-
-    if (
-      activeTab.value !==
-      'ONGOING'
-    ) {
-      return null
+    if (activeTab.value !== 'ONGOING') {
+      return []
     }
 
-    return (
-      quests.value.find(
-        quest =>
-          quest.status ===
-          'PENDING'
-      ) || null
+    return quests.value.filter(
+      (quest) => quest.status === 'PENDING'
     )
   })
+
+const visiblePendingQuests =
+  computed(() =>
+    pendingQuests.value.filter((quest) => matchesSearch(quest))
+  )
 
 
 /* =========================
@@ -654,14 +683,15 @@ const pendingQuest =
 const displayQuests =
   computed(() => {
 
-    let list =
-      pendingQuest.value
-        ? quests.value.filter(
-            quest =>
-              quest.questId !==
-              pendingQuest.value.questId
-          )
-        : quests.value
+    const pendingIds = new Set(
+      pendingQuests.value.map((quest) => quest.questId)
+    )
+
+    let list = pendingIds.size
+      ? quests.value.filter(
+          (quest) => !pendingIds.has(quest.questId)
+        )
+      : quests.value
 
     const keyword =
       searchKeyword.value
@@ -703,10 +733,7 @@ const hasVisibleQuests =
   computed(() => {
 
     const hasPending =
-      pendingQuest.value &&
-      matchesSearch(
-        pendingQuest.value
-      )
+      visiblePendingQuests.value.length > 0
 
     return (
       Boolean(hasPending) ||
@@ -1403,6 +1430,15 @@ function getStatusClass(
 onMounted(() => {
   loadQuests()
 })
+
+watch(
+  () => route.query.tab,
+  async (tab) => {
+    const next = resolveQuestTab(tab)
+    if (!next || next === activeTab.value) return
+    await changeTab(next)
+  }
+)
 </script>
 
 
@@ -1504,12 +1540,13 @@ onMounted(() => {
 .tab-label {
   position: relative;
   display: inline-block;
+  padding-right: 6px;
 }
 
 .tab-badge {
   position: absolute;
   top: -7px;
-  right: -11px;
+  right: -16px;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
@@ -1624,12 +1661,46 @@ onMounted(() => {
    인증 대기
 ========================= */
 
+.pending-section {
+  margin-bottom: 18px;
+}
+
+.pending-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+}
+
+.pending-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .pending-card {
   padding: 16px;
-
+  margin-bottom: 14px;
   border-radius: 16px;
+  border: 1.5px solid #ffd86a;
+  background: #fff9e8;
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.16);
+}
 
-  background: #ffbc00;
+.pending-card:last-child {
+  margin-bottom: 0;
 }
 
 .pending-content {
@@ -1643,38 +1714,35 @@ onMounted(() => {
 }
 
 .pending-badge {
-  padding: 4px 9px;
-
-  border-radius: 20px;
-
-  background: rgba(0, 0, 0, 0.1);
-
-  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .pending-time {
   font-size: 12px;
+  color: #8b9097;
 }
 
 .pending-child {
   margin: 10px 0 3px;
-
   font-size: 12px;
-
-  opacity: 0.7;
+  color: #8b9097;
 }
 
 .pending-title {
   margin: 0;
-
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
+  color: #191b1e;
 }
 
 .pending-reward {
   margin: 5px 0 0;
-
   font-size: 13px;
   font-weight: 700;
 }
@@ -1714,9 +1782,9 @@ onMounted(() => {
 .approve-btn {
   border: none;
 
-  background: #191b1e;
+  background: #ffbc00;
 
-  color: #ffffff;
+  color: #191b1e;
 }
 
 .list-approve-btn {

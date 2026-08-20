@@ -94,20 +94,36 @@
           <div class="allowance-left">
             <div class="allowance-icon-wrap">
               <img
-                src="@/assets/icons/icon-notification.svg"
+                src="@/assets/icons/icon-exclamation.svg"
                 alt=""
                 class="clock-icon"
               />
-              <span
-                v-if="requests.length"
-                class="request-badge"
-              >
-                {{ requests.length > 9 ? '9+' : requests.length }}
-              </span>
             </div>
 
             <div>
               <p class="allowance-main">요청 목록 확인하기</p>
+            </div>
+          </div>
+
+          <span class="chev">›</span>
+        </button>
+
+        <button
+          class="allowance-card"
+          type="button"
+          @click="router.push({ name: 'parents-finance-create' })"
+        >
+          <div class="allowance-left">
+            <div class="allowance-icon-wrap">
+              <img
+                src="@/assets/icons/icon-wallet.svg"
+                alt=""
+                class="clock-icon wallet-icon"
+              />
+            </div>
+
+            <div>
+              <p class="allowance-main">금융 상품 추가</p>
             </div>
           </div>
 
@@ -528,6 +544,9 @@ button {
 }
 
 .allowance-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding: 16px 18px 0;
 }
 
@@ -556,10 +575,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: #fff8e6;
+  width: 22px;
+  height: 22px;
 }
 
 .clock-icon {
@@ -567,31 +584,15 @@ button {
   height: 22px;
 }
 
+.wallet-icon {
+  filter: brightness(0);
+}
+
 .allowance-main {
   margin: 0;
   font-size: 14px;
   font-weight: 800;
   color: #191b1e;
-}
-
-.request-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #ff4d4f;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-  border: 1.5px solid #ffffff;
-  box-sizing: border-box;
 }
 
 .chev {

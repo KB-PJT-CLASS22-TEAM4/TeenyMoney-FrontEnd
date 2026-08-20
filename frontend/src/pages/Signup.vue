@@ -559,6 +559,7 @@ import {
 } from 'vue'
 
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 import {
   confirmGuardianVerification,
@@ -578,6 +579,7 @@ import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const alertModal = useAlertModal()
 
 const form = reactive({
@@ -1797,7 +1799,11 @@ function goBack() {
   router.back()
 }
 
-onMounted(fetchTermsList)
+onMounted(() => {
+  authStore.clearUser()
+  authStore.closeLoginModal()
+  fetchTermsList()
+})
 
 onUnmounted(() => {
   if (timerInterval) {

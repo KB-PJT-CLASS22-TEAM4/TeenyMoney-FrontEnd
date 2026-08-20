@@ -24,6 +24,14 @@ export function isPublicAuthApiUrl(url) {
   return PUBLIC_AUTH_API_PATHS.some((path) => url.includes(path))
 }
 
+export function isSignupPagePath(pathname = window.location.pathname) {
+  return pathname === '/signup' || pathname.startsWith('/signup/')
+}
+
+export function shouldOmitLoginSession(url, pathname = window.location.pathname) {
+  return isPublicAuthApiUrl(url) || isSignupPagePath(pathname)
+}
+
 export function isAuthApiUrl(url) {
   return typeof url === 'string'
     && url.includes('/api/v1/')
@@ -39,7 +47,7 @@ export function isPublicPagePath(pathname = window.location.pathname) {
 }
 
 export function handleUnauthorizedResponse(response, url) {
-  if (isPublicAuthApiUrl(url) || !isAuthApiUrl(url)) return
+  if (shouldOmitLoginSession(url) || !isAuthApiUrl(url)) return
   if (response.status !== 401 && response.status !== 403) return
   if (isPublicPagePath()) return
 

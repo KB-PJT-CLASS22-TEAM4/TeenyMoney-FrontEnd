@@ -253,6 +253,106 @@ export async function fetchAllChildFinancialProducts(accessToken, childId, api) 
   return merged
 }
 
+function toCustomProductType(value, fallback = 'SAVING') {
+  const raw = String(value || fallback).toUpperCase()
+  if (raw.includes('LOAN') || raw.includes('대출')) return 'LOAN'
+  if (raw.includes('DEPOSIT') || raw.includes('예금')) return 'DEPOSIT'
+  return 'SAVING'
+}
+
+function pickCustomRate(item) {
+  if (item?.interestRate != null) return item.interestRate
+  if (item?.baseRate != null) return item.baseRate
+  if (item?.expectedAppliedRate != null) return item.expectedAppliedRate
+
+  const rates = Array.isArray(item?.rates) ? item.rates : []
+  if (!rates.length) return null
+
+  const values = rates
+    .map((rate) => rate?.interestRate ?? rate?.baseRate ?? rate?.expectedAppliedRate)
+    .filter((value) => value != null)
+
+  if (!values.length) return null
+  if (values.length === 1) return values[0]
+  return Math.min(...values)
+}
+
+function formatCustomLimit(item, productType) {
+  const min = item?.minimumMonthlyAmount ?? item?.minimumAmount
+  const max = item?.maximumMonthlyAmount ?? item?.maximumAmount
+
+  if (min != null && max != null) {
+    return `${Number(min).toLocaleString()}원 ~ ${Number(max).toLocaleString()}원`
+  }
+  if (max != null) {
+    const label = productType === 'LOAN' ? '한도' : '최대'
+    return `${label} ${Number(max).toLocaleString()}원`
+  }
+  if (min != null) {
+    return `최소 ${Number(min).toLocaleString()}원`
+  }
+  return ''
+}
+
+export function normalizeCustomProduct(item, fallbackType = 'SAVING') {
+  const productType = toCustomProductType(
+    item?.productType ?? item?.productCategory ?? item?.category ?? fallbackType,
+    fallbackType
+  )
+
+  return {
+    key: `${productType}-${item?.productId ?? item?.id}`,
+    productId: item?.productId ?? item?.id,
+    productType,
+    category: toCategoryLabel(productType),
+    title: item?.productName ?? item?.name ?? item?.title ?? '금융 상품',
+    description: item?.description ?? '',
+    rateText: formatRate(pickCustomRate(item)),
+    limitText: formatCustomLimit(item, productType),
+  }
+}
+
+function looksLikeEnrollment(item) {
+  const enrollmentId = item?.enrollmentId
+  const productId = item?.productId ?? item?.id
+  if (enrollmentId == null || productId == null) return false
+  if (Number(enrollmentId) === Number(productId)) return false
+  return true
+}
+
+export async function fetchChildCustomProducts(accessToken, childId, api) {
+  const types = [
+    { type: 'SAVING', fallbackGetter: api.getChildSavingProducts },
+    { type: 'DEPOSIT', fallbackGetter: api.getChildDepositProducts },
+    { type: 'LOAN', fallbackGetter: api.getChildLoanProducts },
+  ]
+
+  const results = await Promise.allSettled(
+    types.map(async ({ type, fallbackGetter }) => {
+      let items = []
+
+      try {
+        const res = await api.getChildCustomProducts(accessToken, childId, type)
+        items = extractFinancialProductList(res.data)
+      } catch {
+        if (typeof fallbackGetter !== 'function') return []
+        const res = await fallbackGetter(accessToken, childId)
+        items = extractFinancialProductList(res.data).filter(
+          (item) => !looksLikeEnrollment(item)
+        )
+      }
+
+      return items
+        .map((item) => normalizeCustomProduct(item, type))
+        .filter((item) => item.productId != null)
+    })
+  )
+
+  return results.flatMap((result) =>
+    result.status === 'fulfilled' ? result.value : []
+  )
+}
+
 export function extractApprovalRequestList(payload) {
   return extractFinancialProductList(payload)
 }

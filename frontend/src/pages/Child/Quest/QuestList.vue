@@ -315,7 +315,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
@@ -324,7 +324,7 @@ import { useQuestStore } from '@/stores/quest'
 import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
-const route  = useRoute()
+const route = useRoute()
 const authStore = useAuthStore()
 const questStore = useQuestStore()
 
@@ -333,13 +333,26 @@ const tabs = [
   { key: 'ongoing',   label: '진행 중' },
   { key: 'completed', label: '완료' },
 ]
-const activeTab = ref(route.query.tab || 'available')
 
-watch(() => route.query.tab, (newTab) => {
-  if (newTab && ['available', 'ongoing', 'completed'].includes(newTab)) {
-    activeTab.value = newTab
+function resolveQuestTab(raw) {
+  const value = String(raw || '').trim().toLowerCase()
+
+  if (value === 'ongoing' || value === '진행중' || value === '진행 중') {
+    return 'ongoing'
   }
-})
+
+  if (value === 'completed' || value === '완료') {
+    return 'completed'
+  }
+
+  if (value === 'available' || value === '시작가능' || value === '시작 가능') {
+    return 'available'
+  }
+
+  return null
+}
+
+const activeTab = ref(resolveQuestTab(route.query.tab) || 'available')
 
 // 탭별 챗봇 말풍선 안내 문구
 const currentHintText = computed(() => {
@@ -366,6 +379,13 @@ onMounted(() => {
   tabs.forEach((t) => loadTab(t.key))
 })
 watch(activeTab, (key) => loadTab(key))
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const next = resolveQuestTab(tab)
+    if (next) activeTab.value = next
+  }
+)
 
 // 부모가 퀘스트를 만들거나 심사하면 이 목록이 낡는다.
 //
@@ -582,7 +602,7 @@ function onTabSelect(key) {
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
-  font-family: 'Pretendard', 'Inter', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .scroll {
@@ -629,8 +649,8 @@ function onTabSelect(key) {
   display: flex;
   align-items: flex-start;
   border-bottom: 1.2px solid #f0f1f3;
-  background: #f8fafc;
-  font-family: 'Noto Sans KR', 'Pretendard', sans-serif;
+  background: #ffffff;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .tab-btn {
