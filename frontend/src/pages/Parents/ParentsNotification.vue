@@ -270,6 +270,30 @@ function goToChildFinancePage(childId) {
   router.push({ name: 'parents-child-list' })
 }
 
+function isPaymentNotification(n) {
+  const type = String(n.referenceType || '').toUpperCase()
+  if (type === 'PAYMENT' || type === 'TRANSACTION') {
+    return true
+  }
+
+  const text = `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
+  if (/결제\s*비밀번호/.test(text)) return false
+  return /자녀.{0,12}결제|결제했|결제가\s*완료|결제\s*완료/.test(text)
+}
+
+async function goToChildPayment(n) {
+  const childId = await resolveChildId(n)
+  if (childId) {
+    router.push({
+      name: 'parents-child-transaction',
+      params: { childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-child-list' })
+}
+
 async function resolveChildId(n) {
   try {
     const children = await loadChildren()
@@ -431,8 +455,8 @@ async function goToReference(n) {
     await goToFinancePage(n)
     return
   }
-  if (n.referenceType === 'PAYMENT') {
-    router.push({ name: 'parents-transaction' })
+  if (isPaymentNotification(n)) {
+    await goToChildPayment(n)
     return
   }
   if (n.referenceType === 'QUEST') {
