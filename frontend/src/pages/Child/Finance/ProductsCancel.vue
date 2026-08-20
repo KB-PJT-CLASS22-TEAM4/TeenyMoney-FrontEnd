@@ -582,7 +582,7 @@ onMounted(async () => {
       @close="closeTermModal"
     />
 
-    <Chatbot v-if="!showSuccessModal && !showRepaySuccessModal" hint-text="중도해지나 조기상환이 궁금하세요?" />
+    <Chatbot :hide-for-modal="showTermModal || showSuccessModal || showRepaySuccessModal" hint-text="중도해지나 조기상환이 궁금하세요?" />
   </div>
 </template>
 

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { requestFcmToken } from '@/firebase';
 import { updateFcmToken } from '@/api/notification';
 import { reissue as reissueApi } from '@/api/auth';
+import { resetDismissedHints } from '@/composables/useChatbotHintDismissed';
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('accessToken'));
@@ -52,6 +53,8 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('memberId');
     localStorage.removeItem('role');
     localStorage.removeItem('name');
+
+    resetDismissedHints();
   }
 
   function openLoginModal(message = '서비스를 이용하려면 로그인해 주세요.') {

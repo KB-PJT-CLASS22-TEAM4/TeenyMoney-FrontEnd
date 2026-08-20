@@ -266,7 +266,7 @@
     <BottomTabBar active="quest" @select="onTabSelect" />
 
     <!-- 탭 상태에 따라 안내 문구 분기 -->
-    <Chatbot :hint-text="currentHintText" />
+    <Chatbot :hide-for-modal="showAcceptModal || showDeclineModal" :hint-text="currentHintText" />
 
     <!-- 퀘스트 수락 완료 모달 -->
     <div v-if="showAcceptModal" class="custom-modal-backdrop" @click.self="closeAcceptModal">

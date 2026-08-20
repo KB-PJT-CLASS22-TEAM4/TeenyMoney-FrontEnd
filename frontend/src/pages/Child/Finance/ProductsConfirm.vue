@@ -166,7 +166,7 @@
     />
 
     <!-- 확인/제출 단계라 말풍선 없이 캐릭터만 노출 -->
-    <Chatbot v-if="!showSuccessModal" hint-text="금융 계약 내용이 궁금하세요?" />
+    <Chatbot :hide-for-modal="showTermModal || showSuccessModal" hint-text="금융 계약 내용이 궁금하세요?" />
   </div>
 </template>
 
