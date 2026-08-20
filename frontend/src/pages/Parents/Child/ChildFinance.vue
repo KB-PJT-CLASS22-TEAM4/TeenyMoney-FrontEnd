@@ -19,19 +19,6 @@
         </div>
       </section>
 
-      <div class="approval-tabs">
-        <button
-          v-for="tab in approvalTabs"
-          :key="tab.value"
-          class="approval-tab"
-          :class="{ active: activeApprovalTab === tab.value }"
-          type="button"
-          @click="activeApprovalTab = tab.value"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
       <div v-if="isLoading" class="state-box">불러오는 중입니다...</div>
       <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
 
@@ -83,87 +70,78 @@
           </div>
         </section>
 
-        <div v-if="activeApprovalTab === 'pending'">
-          <section
-            v-if="pendingApprovals.length"
-            class="pending-section"
+        <section
+          v-if="pendingApprovals.length"
+          class="pending-section"
+        >
+          <p class="pending-heading">
+            처리 필요
+            <span class="pending-count">{{ pendingApprovals.length }}</span>
+          </p>
+
+          <div
+            v-for="item in pendingApprovals"
+            :key="item.enrollmentId"
+            class="pending-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
           >
-            <p class="pending-heading">
-              처리 필요
-              <span class="pending-count">{{ pendingApprovals.length }}</span>
+            <div class="pending-top">
+              <p class="pending-title">{{ item.title }}</p>
+              <span class="pending-badge">승인 대기</span>
+            </div>
+            <p class="pending-meta">
+              {{ formatPendingMeta(item) }}
+            </p>
+          </div>
+        </section>
+
+        <template v-for="group in groupedActiveProducts" :key="group.label">
+          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+
+          <div
+            v-for="product in group.items"
+            :key="product.enrollmentId"
+            class="product-card"
+          >
+            <div class="product-head">
+              <p class="product-title">{{ product.title }}</p>
+              <span class="product-rate">{{ product.rateText }}</span>
+            </div>
+
+            <p class="product-amount-label">
+              누적 금액
+              <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
             </p>
 
-            <div
-              v-for="item in pendingApprovals"
-              :key="item.enrollmentId"
-              class="pending-card clickable"
-              role="button"
-              tabindex="0"
-              @click="goApprovalDetail(item)"
-              @keydown.enter="goApprovalDetail(item)"
-            >
-              <div class="pending-top">
-                <p class="pending-title">{{ item.title }}</p>
-                <span class="pending-badge">승인 대기</span>
-              </div>
-              <p class="pending-meta">
-                {{ formatPendingMeta(item) }}
-              </p>
+            <div class="progress-bar-bg">
+              <div
+                class="progress-bar-fill"
+                :style="{ width: product.progress + '%' }"
+              ></div>
             </div>
-          </section>
 
-          <template v-for="group in groupedActiveProducts" :key="group.label">
-            <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
-
-            <div
-              v-for="product in group.items"
-              :key="product.enrollmentId"
-              class="product-card"
-            >
-              <div class="product-head">
-                <p class="product-title">{{ product.title }}</p>
-                <span class="product-rate">{{ product.rateText }}</span>
-              </div>
-
-              <p class="product-amount-label">
-                누적 금액
-                <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
-              </p>
-
-              <div class="progress-bar-bg">
-                <div
-                  class="progress-bar-fill"
-                  :style="{ width: product.progress + '%' }"
-                ></div>
-              </div>
-
-              <div class="product-foot">
-                <span>
-                  {{ product.periodMonths }}개월
-                  <template v-if="product.totalPayments">
-                    ({{ product.paymentCount }}회납)
-                  </template>
-                </span>
-                <span>만기 {{ product.maturityDate }}</span>
-              </div>
+            <div class="product-foot">
+              <span>
+                {{ product.periodMonths }}개월
+                <template v-if="product.totalPayments">
+                  ({{ product.paymentCount }}회납)
+                </template>
+              </span>
+              <span>만기 {{ product.maturityDate }}</span>
             </div>
-          </template>
-
-          <div
-            v-if="!groupedActiveProducts.length && !pendingApprovals.length"
-            class="empty-box"
-          >
-            {{ emptyCategoryMessage }}
           </div>
-        </div>
+        </template>
 
-        <div v-else class="completed-list">
-          <div
-            v-if="!filteredCompletedApprovals.length"
-            class="empty-box"
-          >
-            처리 완료된 승인 요청이 없습니다.
-          </div>
+        <section
+          v-if="filteredCompletedApprovals.length"
+          class="completed-list"
+        >
+          <p class="group-title">
+            처리 완료 {{ filteredCompletedApprovals.length }}
+          </p>
 
           <div
             v-for="item in filteredCompletedApprovals"
@@ -185,6 +163,18 @@
             </div>
             <p class="pending-meta">{{ formatPendingMeta(item) }}</p>
           </div>
+        </section>
+
+        <div
+          v-if="
+            !groupedActiveProducts.length &&
+            !pendingApprovals.length &&
+            !filteredCustomProducts.length &&
+            !filteredCompletedApprovals.length
+          "
+          class="empty-box"
+        >
+          {{ emptyCategoryMessage }}
         </div>
       </template>
     </div>
@@ -237,14 +227,9 @@ const customProducts = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const deletingKey = ref('')
-const activeApprovalTab = ref('pending')
 const activeCategory = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
-const approvalTabs = [
-  { label: '대기중', value: 'pending' },
-  { label: '처리완료', value: 'completed' },
-]
 
 const pendingApprovals = computed(() =>
   [...approvalRequests.value.filter((item) => item.isPending)].sort((a, b) => {
@@ -600,30 +585,6 @@ onMounted(async () => {
   font-size: 16px;
   font-weight: 800;
   color: #191b1e;
-}
-
-.approval-tabs {
-  display: flex;
-  gap: 18px;
-  margin: 0 -16px 16px;
-  padding: 0 16px;
-  border-bottom: 1px solid #f0f1f3;
-}
-
-.approval-tab {
-  padding: 0 0 10px;
-  border: none;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: #8b9097;
-  cursor: pointer;
-}
-
-.approval-tab.active {
-  color: #191b1e;
-  font-weight: 800;
-  border-bottom: 2px solid #ffbc00;
 }
 
 .pending-card,
