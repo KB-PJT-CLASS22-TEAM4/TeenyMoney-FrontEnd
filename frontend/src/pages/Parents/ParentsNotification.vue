@@ -230,6 +230,34 @@ function goToChildDetail(childId) {
   router.push({ name: 'parents-child-list' })
 }
 
+function toFinanceProductType(value) {
+  const raw = String(value || '').toUpperCase()
+  if (raw.includes('LOAN') || raw.includes('대출')) return 'LOAN'
+  if (raw.includes('DEPOSIT') || raw.includes('예금')) return 'DEPOSIT'
+  if (raw.includes('SAVING') || raw.includes('적금')) return 'SAVING'
+  return raw || null
+}
+
+function goToFinanceApprovalDetail(item) {
+  const childId = item?.childId
+  const enrollmentId = item?.enrollmentId
+  const productType = toFinanceProductType(item?.productType)
+
+  if (!childId || enrollmentId == null || !productType) {
+    return false
+  }
+
+  router.push({
+    name: 'parents-finance-approval-detail',
+    params: {
+      childId,
+      productType,
+      enrollmentId,
+    },
+  })
+  return true
+}
+
 function goToChildFinancePage(childId) {
   if (childId) {
     router.push({
@@ -316,18 +344,26 @@ async function findFinanceApproval(n) {
 }
 
 async function goToFinancePage(n) {
-  let childId = n.childId || null
+  const matched = await findFinanceApproval(n)
+
+  if (matched && goToFinanceApprovalDetail(matched)) {
+    return
+  }
+
+  const enrollmentId = n.enrollmentId ?? n.referenceId
+  const productType = toFinanceProductType(n.productType || inferProductType(n))
+  let childId = n.childId || matched?.childId || null
 
   if (!childId) {
     try {
       const children = await loadChildren()
-      const matched =
+      const found =
         findChildById(children, n.childId)
         || findChildById(children, n.referenceId)
         || findChildByName(children, n)
 
-      if (matched) {
-        childId = getChildKey(matched)
+      if (found) {
+        childId = getChildKey(found)
       } else if (children.length === 1) {
         childId = getChildKey(children[0])
       }
@@ -336,12 +372,41 @@ async function goToFinancePage(n) {
     }
   }
 
-  if (!childId) {
-    const matched = await findFinanceApproval(n)
-    childId = matched?.childId || null
+  if (
+    childId
+    && enrollmentId != null
+    && enrollmentId !== ''
+    && productType
+    && goToFinanceApprovalDetail({
+      childId,
+      enrollmentId,
+      productType,
+    })
+  ) {
+    return
   }
 
   goToChildFinancePage(childId)
+}
+
+async function goToQuestDetail(n) {
+  const questId = n.referenceId ?? n.questId
+
+  if (questId != null && questId !== '') {
+    router.push({
+      name: 'quest-detail',
+      params: {
+        questId,
+      },
+    })
+    return
+  }
+
+  const tab = getQuestListTabFromNotification(n)
+  router.push({
+    name: 'parents-quest-list',
+    query: tab ? { tab } : {},
+  })
 }
 
 function getQuestListTabFromNotification(n) {
@@ -371,11 +436,7 @@ async function goToReference(n) {
     return
   }
   if (n.referenceType === 'QUEST') {
-    const tab = getQuestListTabFromNotification(n)
-    router.push({
-      name: 'parents-quest-list',
-      query: tab ? { tab } : {},
-    })
+    await goToQuestDetail(n)
     return
   }
   if (n.referenceType === 'ALLOWANCE') {
