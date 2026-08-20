@@ -1,19 +1,19 @@
 <template>
   <div class="allow-screen">
+    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
+    <nav class="nav">
+      <button class="back-btn" aria-label="뒤로" @click="goBack">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M15 5l-7 7 7 7" stroke="#15171B" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <h1 class="nav-title">오늘만 허용 요청</h1>
+      <ChildNavActions />
+    </nav>
+
     <!-- 본문 (스크롤) -->
     <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
-      
-      <!-- 상단 네비 -->
-      <nav class="nav">
-        <button class="back-btn" aria-label="뒤로" @click="goBack">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M15 5l-7 7 7 7" stroke="#15171B" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-        <h1 class="nav-title">오늘만 허용 요청</h1>
-        <ChildNavActions />
-      </nav>
 
       <!-- 상단 안내 영역: 남은 횟수 -->
       <div class="top-info-row">
@@ -24,6 +24,7 @@
       </div>
 
       <p class="section-title">업종 선택</p>
+      <p v-if="categoriesError" class="submit-error">{{ categoriesError }}</p>
 
       <!-- 주의 -->
       <div class="legend">
@@ -160,6 +161,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
+import { getCategoryPolicyGroups } from '@/api/categoryPolicy'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 
@@ -167,22 +169,31 @@ const router = useRouter()
 const authStore = useAuthStore()
 const allowStore = useAllowRequestStore()
 
-// 카테고리 데이터 (DB mcc_seed_data.sql 확정 기준)
-const watchCategories = ref([
-  { id: 5,  label: 'PC방·노래방' },
-  { id: 4,  label: '게임' },
-  { id: 9,  label: '영화·공연·테마파크' },
-  { id: 10, label: '온라인쇼핑' },
-  { id: 15, label: '일반숙박업' },
-  { id: 19, label: '문화·여가' },
-  { id: 20, label: '생활서비스' },
-])
+// 카테고리 데이터 — 부모가 WATCH(주의)/BLOCK(차단)으로 설정해둔 카테고리만
+// "오늘만 허용" 대상이라 정책 그룹 조회 API로 불러온다. ALLOW는 이미 상시 허용이라 대상이 아니다.
+const watchCategories = ref([])
+const blockCategories = ref([])
+const categoriesError = ref('')
 
-const blockCategories = ref([
-  { id: 12, label: '유흥·성인업소' },
-  { id: 13, label: '사행성·도박' },
-  { id: 14, label: '성인숙박업' },
-])
+function mapCategoryPolicyList(list) {
+  return (list || []).map((item) => ({ id: item.id, label: item.categoryName }))
+}
+
+async function fetchCategoryPolicies() {
+  try {
+    const result = await getCategoryPolicyGroups(authStore.accessToken, authStore.memberId)
+    const groups = result.data || []
+    watchCategories.value = mapCategoryPolicyList(
+      groups.find((g) => g.policy === 'WATCH')?.categoryPolicyList
+    )
+    blockCategories.value = mapCategoryPolicyList(
+      groups.find((g) => g.policy === 'BLOCK')?.categoryPolicyList
+    )
+  } catch (e) {
+    console.error('카테고리 정책 조회 실패:', e)
+    categoriesError.value = '업종 목록을 불러오지 못했어요.'
+  }
+}
 
 const selectedWatchIds = ref([])
 const selectedBlockIds = ref([])
@@ -245,11 +256,12 @@ function goBack() {
 }
 
 onMounted(async () => {
-  try {
-    await allowStore.fetchPermissionStatus(authStore.accessToken, authStore.memberId)
-  } catch (e) {
-    console.error('오늘만 허용 현황 조회 실패:', e)
-  }
+  await Promise.all([
+    allowStore
+      .fetchPermissionStatus(authStore.accessToken, authStore.memberId)
+      .catch((e) => console.error('오늘만 허용 현황 조회 실패:', e)),
+    fetchCategoryPolicies(),
+  ])
 })
 
 function onSubmit() {
@@ -307,16 +319,19 @@ async function processSubmit() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
 
 .nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 14px 20px;
 }
 
 .back-btn {
@@ -337,7 +352,7 @@ async function processSubmit() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px;
+  padding: 12px 20px 20px;
 }
 
 .scroll::-webkit-scrollbar { width: 3px; }

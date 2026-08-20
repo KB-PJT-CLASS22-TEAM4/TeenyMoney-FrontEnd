@@ -1,18 +1,18 @@
 <template>
   <div class="verify-screen">
-    <div class="scroll">
+    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
+    <div class="nav">
+      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">{{ isViewOnly ? '제출한 인증' : '퀘스트 인증하기' }}</h1>
+      <ChildNavActions />
+    </div>
 
-      <!-- 상단 네비 -->
-      <div class="nav">
-        <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="nav-title">{{ isViewOnly ? '제출한 인증' : '퀘스트 인증하기' }}</h1>
-        <ChildNavActions />
-      </div>
+    <div class="scroll">
 
       <!-- 퀘스트 요약 카드 -->
       <div class="card summary-card">
@@ -391,7 +391,6 @@ onBeforeUnmount(() => {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 26px;
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
@@ -410,11 +409,15 @@ onBeforeUnmount(() => {
 .scroll::-webkit-scrollbar { width: 3px; }
 .scroll::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; }
 
+/* 상단 네비 — 화면 좌우 끝까지 꽉 차게 */
 .nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 0 8px;
+  padding: 26px 16px 8px;
 }
 
 .back-btn {

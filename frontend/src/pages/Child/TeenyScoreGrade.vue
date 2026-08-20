@@ -1,18 +1,18 @@
 <template>
   <div class="grade-screen">
-    <div class="scroll">
+    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
+    <div class="nav">
+      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">티니 점수 등급</h1>
+      <ChildNavActions />
+    </div>
 
-      <!-- 상단 네비 -->
-      <div class="nav">
-        <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="nav-title">티니 점수 등급</h1>
-        <ChildNavActions />
-      </div>
+    <div class="scroll">
 
       <div v-if="loading" class="state-text">불러오는 중...</div>
       <div v-else-if="errorMsg" class="state-text error">{{ errorMsg }}</div>
@@ -285,7 +285,6 @@ function goBack() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
@@ -320,12 +319,15 @@ function goBack() {
   color: #e5484d;
 }
 
-/* 상단 네비 */
+/* 상단 네비 — 화면 좌우 끝까지 꽉 차게 */
 .nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 0 8px;
+  padding: 50px 20px 8px;
 }
 
 .back-btn {

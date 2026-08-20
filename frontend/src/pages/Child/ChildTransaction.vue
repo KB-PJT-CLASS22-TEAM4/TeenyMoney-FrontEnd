@@ -2,47 +2,36 @@
   <div class="history-screen">
     <!-- 상단 네비 -->
     <div class="nav">
-      <div class="nav-left">
-        <button class="back-btn" @click="goBack">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="nav-title">거래내역조회</h1>
-      </div>
-      <div class="nav-right">
-      <button class="search-btn">
+      <button class="back-btn" @click="goBack">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <circle cx="11" cy="11" r="7" stroke="#15171b" stroke-width="1.8"/>
-          <path d="M20 20l-3.5-3.5" stroke="#15171b" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
+      <h1 class="nav-title">거래내역</h1>
       <ChildNavActions />
-      </div>
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <!-- 1. 지갑 잔액 영역 -->
-      <section class="wallet">
-        <img src="@/assets/logo.svg" class="wallet-img" alt="지갑" />
-        <div class="wallet-text">
-          <p class="wallet-label">티니머니</p>
-          <p class="wallet-amount">{{ balance.toLocaleString() }}원</p>
-        </div>
-      </section>
-
-      <!-- 2. 가로형 소비 리포트 배너 -->
-      <button class="report-banner" @click="goReport">
-        <div class="report-banner-left">
-          <div class="report-banner-title-wrap">
-            <span class="report-banner-title">소비 리포트 확인하기</span>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" class="arrow-icon">
-              <path d="M9 18l6-6-6-6" stroke="#8b9097" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+      <!-- 1. 지갑 잔액 + 소비 리포트 카드 -->
+      <section class="wallet-card">
+        <div class="wallet">
+          <img src="@/assets/logo.svg" class="wallet-img" alt="지갑" />
+          <div class="wallet-text">
+            <p class="wallet-label">티니머니</p>
+            <p class="wallet-amount">{{ balance.toLocaleString() }}원</p>
           </div>
-          <span class="report-banner-sub">티니가 이번 달 금융 생활을 분석해 드려요</span>
         </div>
-      </button>
+
+        <button class="report-row" @click="goReport">
+          <div class="report-row-left">
+            <span class="report-row-title">소비 리포트 확인하기</span>
+            <span class="report-row-sub">티니가 이번 달 금융 생활을 분석해 드려요</span>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+            <path d="M9 6l6 6-6 6" stroke="#8b9097" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </section>
 
       <!-- 거래유형 필터 (전체,입금,출금) -->
       <div class="filters">
@@ -264,27 +253,16 @@ function onScroll() {
   overflow: hidden;
 }
 
-/* 상단 네비 */
+/* 상단 네비 — 제목을 가운데 정렬 */
 .nav {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 2px 16px 6px;
 }
 
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-}
-
-.back-btn,
-.search-btn {
+.back-btn {
+  justify-self: start;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -293,10 +271,16 @@ function onScroll() {
 }
 
 .nav-title {
+  justify-self: center;
   margin: 0;
   font-weight: 700;
   font-size: 16px;
   color: #15171b;
+  white-space: nowrap;
+}
+
+.nav :deep(.child-nav-actions) {
+  justify-self: end;
 }
 
 .scroll {
@@ -316,12 +300,22 @@ function onScroll() {
   background: #d8dbdf;
 }
 
-/* 1. 지갑 잔액 영역 */
+/* 1. 지갑 잔액 + 소비 리포트 카드 */
+.wallet-card {
+  margin-top: 6px;
+  margin-bottom: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
 .wallet {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 6px 4px 14px;
+  padding: 16px;
 }
 
 .wallet-img {
@@ -351,73 +345,48 @@ function onScroll() {
   white-space: nowrap;
 }
 
-/* 2. 가로형 소비 리포트 배너 */
-.report-banner {
+/* 소비 리포트 이동 줄 — 잔액 카드 하단에 얇은 구분선으로 붙인다 */
+.report-row {
   width: 100%;
-  height: 68px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  margin-top: 6px;
-  margin-bottom: 16px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  gap: 8px;
+  padding: 14px 16px;
+  border: none;
+  border-top: 1px solid #eef1f4;
+  background: transparent;
   cursor: pointer;
-  overflow: visible;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease;
 }
 
-.report-banner:hover {
+.report-row:hover {
   background: #fafbfc;
 }
 
-.report-banner:active {
+.report-row:active {
   background: #f1f5f9;
-  transform: scale(0.99);
 }
 
-.report-banner-left {
+.report-row-left {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
-  z-index: 1;
+  text-align: left;
 }
 
-.report-banner-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.report-banner-title {
+.report-row-title {
   font-weight: 700;
   font-size: 13.5px;
   color: #191b1e;
 }
 
-.arrow-icon {
-  margin-top: 1px;
-}
-
-.report-banner-sub {
+.report-row-sub {
   font-weight: 500;
   font-size: 11px;
   color: #8b9097;
-}
-
-.report-banner-mascot {
-  position: absolute;
-  right: 6px;
-  bottom: 0px;
-  height: 100px;
-  object-fit: contain;
-  pointer-events: none;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.06));
 }
 
 /* 거래유형 필터 칩 */

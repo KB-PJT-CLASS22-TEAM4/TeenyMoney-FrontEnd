@@ -1,17 +1,18 @@
 <template>
   <div class="allow-screen">
-    <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
+    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
+    <nav class="nav">
+      <button class="back-btn" aria-label="뒤로" @click="goBack">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M15 5l-7 7 7 7" stroke="#15171B" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+      <h1 class="nav-title">오늘만 허용 수정하기</h1>
+      <ChildNavActions />
+    </nav>
 
-      <nav class="nav">
-        <button class="back-btn" aria-label="뒤로" @click="goBack">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M15 5l-7 7 7 7" stroke="#15171B" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-        <h1 class="nav-title">오늘만 허용 수정하기</h1>
-        <ChildNavActions />
-      </nav>
+    <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
 
       <p class="section-title">신청한 업종</p>
       <div class="category-badge" :class="`category-badge--${categoryType}`">
@@ -79,6 +80,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
+import { getCategoryPolicyGroups } from '@/api/categoryPolicy'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 
 const router = useRouter()
@@ -88,12 +90,22 @@ const allowStore = useAllowRequestStore()
 
 const permissionId = route.query.id ? Number(route.query.id) : null
 
-// mcc_seed_data.sql 기준 확정된 카테고리 (주의/차단 구분용)
-const watchCategoryLabels = [
-  'PC방·노래방', '게임', '영화·공연·테마파크', '온라인쇼핑',
-  '일반숙박업', '문화·여가', '생활서비스',
-]
-const blockCategoryLabels = ['유흥·성인업소', '사행성·도박', '성인숙박업']
+// 주의/차단 구분용 카테고리 이름 목록 — 부모가 바꾼 정책이 바로 반영되도록 API로 불러온다.
+const watchCategoryLabels = ref([])
+const blockCategoryLabels = ref([])
+
+async function fetchCategoryTypeLists() {
+  try {
+    const result = await getCategoryPolicyGroups(authStore.accessToken, authStore.memberId)
+    const groups = result.data || []
+    watchCategoryLabels.value = (groups.find((g) => g.policy === 'WATCH')?.categoryPolicyList || [])
+      .map((item) => item.categoryName)
+    blockCategoryLabels.value = (groups.find((g) => g.policy === 'BLOCK')?.categoryPolicyList || [])
+      .map((item) => item.categoryName)
+  } catch (e) {
+    console.error('카테고리 정책 조회 실패:', e)
+  }
+}
 
 const reason = ref('')
 const categoryName = ref(route.query.label ?? '')
@@ -101,8 +113,7 @@ const MAX_LEN = 100
 
 // 신청한 업종이 주의/차단 중 어디에 속하는지
 const categoryType = computed(() => {
-  if (blockCategoryLabels.includes(categoryName.value)) return 'block'
-  if (watchCategoryLabels.includes(categoryName.value)) return 'watch'
+  if (blockCategoryLabels.value.includes(categoryName.value)) return 'block'
   return 'watch'
 })
 const categoryTypeLabel = computed(() => (categoryType.value === 'block' ? '차단' : '주의'))
@@ -126,6 +137,8 @@ function onScroll() {
 
 // 현재 신청 사유로 폼 초기화
 onMounted(async () => {
+  fetchCategoryTypeLists()
+
   if (!permissionId) {
     loadError.value = '요청 정보를 찾을 수 없어요.'
     return
@@ -205,16 +218,19 @@ async function processDelete() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
 
 .nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 14px 20px;
 }
 
 .back-btn {
@@ -235,7 +251,7 @@ async function processDelete() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 20px 20px;
+  padding: 12px 20px 20px;
 }
 
 .scroll::-webkit-scrollbar { width: 3px; }

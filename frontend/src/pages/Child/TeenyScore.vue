@@ -1,5 +1,16 @@
 <template>
   <div class="score-view">
+    <!-- 상단 네비바 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
+    <header class="nav">
+      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">티니점수</h1>
+      <ChildNavActions />
+    </header>
+
     <div class="scroll-area">
 
       <div v-if="loading" class="state-text">불러오는 중...</div>
@@ -8,17 +19,6 @@
       <template v-else>
       <!-- 상단 히어로 점수 카드 섹션 -->
       <section class="hero-section">
-        <!-- 상단 네비바 -->
-        <header class="top-nav">
-          <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-              <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <h1 class="nav-title">티니점수</h1>
-          <ChildNavActions />
-        </header>
-
         <!-- 히어로 점수 카드 -->
         <div class="hero-card">
           <div class="hero-top-row">
@@ -401,14 +401,18 @@ function onTabSelect(key) {
 
 /* 메인 섹션 */
 .hero-section {
-  padding: 36px 18px 12px;
+  padding: 12px 18px 12px;
 }
 
-.top-nav {
+/* 상단 네비바 — 화면 좌우 끝까지 꽉 차게 */
+.nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 14px;
+  padding: 14px 18px;
 }
 
 .back-btn {

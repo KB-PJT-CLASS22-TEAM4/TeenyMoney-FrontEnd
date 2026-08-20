@@ -42,3 +42,32 @@ export async function getChildMoneyReport(accessToken, childId, month) {
 
   return result
 }
+
+// 이번 달·지난달 금융 습관 AI 분석 및 행동 조언 (자녀 전용)
+// 호출할 때마다 매번 새로 분석하며 결과를 서버에 저장하지 않는다.
+export async function getMoneyAnalysis(accessToken) {
+  ensureAccessToken(accessToken)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/reports/money/analysis`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  const result = await response.json()
+
+  if (!response.ok || result.success === false) {
+    const error = new Error(
+      result.message || 'AI 분석을 불러오지 못했습니다.'
+    )
+    error.status = response.status
+    throw error
+  }
+
+  return result
+}

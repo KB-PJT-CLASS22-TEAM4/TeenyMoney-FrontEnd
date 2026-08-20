@@ -175,13 +175,6 @@ function goBack() {
   router.back();
 }
 
-function editContact() {
-  // 연락처 수정
-}
-function editEmail() {
-  // 이메일 수정
-}
-
 function goPasswordSetting() {
   if (isPasswordSet.value) return;
   // 결제 비밀번호 설정
@@ -308,7 +301,6 @@ function onScroll() {
       <div class="field">
         <div class="field-head">
           <span class="field-label">연락처</span>
-          <button class="edit-btn" @click="editContact">수정</button>
         </div>
         <p class="field-value">{{ formattedPhone }}</p>
       </div>
@@ -317,7 +309,6 @@ function onScroll() {
       <div class="field">
         <div class="field-head">
           <span class="field-label">이메일</span>
-          <button class="edit-btn" @click="editEmail">수정</button>
         </div>
         <p class="field-value">{{ user.email }}</p>
       </div>
@@ -596,17 +587,6 @@ function onScroll() {
   font-weight: 600;
   font-size: 13px;
   color: #8b9097;
-}
-
-.edit-btn {
-  padding: 5px 12px;
-  border: 1px solid #e7e9ec;
-  border-radius: 7px;
-  background: #fff;
-  font-weight: 600;
-  font-size: 11.5px;
-  color: #4a4e55;
-  cursor: pointer;
 }
 
 .field-value {
