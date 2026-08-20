@@ -257,7 +257,7 @@
               </div>
 
               <div class="manage-card-title">
-                유해 업종 설정
+                업종별 결제 제한
               </div>
 
               <div class="manage-card-sub large-sub">

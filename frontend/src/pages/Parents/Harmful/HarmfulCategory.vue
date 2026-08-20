@@ -16,7 +16,7 @@
       </button>
 
       <h1 class="nav-title">
-        유해 업종 설정
+        업종별 결제 제한
       </h1>
 
       <ParentNavActions />
@@ -148,7 +148,7 @@
         @click="goToPlaceList"
       >
         <span>
-          설정한 업종 목록 조회
+          업종 목록 설정 및 조회
         </span>
 
         <img
