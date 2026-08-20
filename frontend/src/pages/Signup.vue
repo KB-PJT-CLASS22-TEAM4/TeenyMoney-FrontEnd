@@ -256,40 +256,100 @@
         </div>
 
         <!-- 약관 동의 -->
-        <button
-          class="terms"
-          type="button"
-          @click="toggleTerms"
-        >
-          <span
-            class="checkbox"
-            :class="{ checked: form.agreedToTerms }"
+        <section class="terms-section">
+          <button
+            class="terms terms-all"
+            type="button"
+            @click="toggleAllTerms"
           >
-            <img
-              v-if="form.agreedToTerms"
-              src="@/assets/icons/icon-check.svg"
-              alt=""
-              class="check-icon"
-            />
-          </span>
-
-          <span class="terms-text">
-            서비스 이용약관·개인정보 동의
-            <span class="required">(필수)</span>
             <span
-              v-if="guardianVerified"
-              class="guardian-done"
+              class="checkbox"
+              :class="{ checked: allTermsAgreed }"
             >
-              · 보호자 인증 완료
+              <img
+                v-if="allTermsAgreed"
+                src="@/assets/icons/icon-check.svg"
+                alt=""
+                class="check-icon"
+              />
             </span>
-          </span>
 
-          <img
-            src="@/assets/icons/icon-chevron.svg"
-            alt=""
-            class="chevron-icon"
-          />
-        </button>
+            <span class="terms-text">
+              약관 전체 동의
+              <span
+                v-if="guardianVerified"
+                class="guardian-done"
+              >
+                · 보호자 인증 완료
+              </span>
+            </span>
+          </button>
+
+          <p
+            v-if="termsError"
+            class="error-text"
+          >
+            {{ termsError }}
+            <button
+              class="terms-retry"
+              type="button"
+              @click="fetchTermsList"
+            >
+              다시 시도
+            </button>
+          </p>
+
+          <p
+            v-else-if="termsLoading"
+            class="helper"
+          >
+            약관을 불러오는 중입니다.
+          </p>
+
+          <div
+            v-for="term in termsList"
+            :key="term.code"
+            class="terms-row"
+          >
+            <button
+              class="terms-check"
+              type="button"
+              :aria-label="`${term.title} 동의`"
+              @click="toggleTerm(term)"
+            >
+              <span
+                class="checkbox"
+                :class="{ checked: Boolean(agreedByCode[term.code]) }"
+              >
+                <img
+                  v-if="agreedByCode[term.code]"
+                  src="@/assets/icons/icon-check.svg"
+                  alt=""
+                  class="check-icon"
+                />
+              </span>
+            </button>
+
+            <button
+              class="terms-open"
+              type="button"
+              @click="openTermDetail(term)"
+            >
+              <span class="terms-text">
+                {{ term.title }}
+                <span class="required">
+                  {{ term.isRequired ? '(필수)' : '(선택)' }}
+                </span>
+              </span>
+
+              <img
+                src="@/assets/icons/icon-chevron.svg"
+                alt=""
+                class="chevron-icon"
+              />
+            </button>
+          </div>
+        </section>
 
         <!-- 보호자 인증 모달 -->
         <div
@@ -442,6 +502,51 @@
           </div>
         </div>
 
+        <!-- 약관 전문 모달 -->
+        <div
+          v-if="showTermModal"
+          class="modal-overlay"
+          @click.self="closeTermModal"
+        >
+          <div class="modal term-modal">
+            <div class="modal-title-wrap">
+              <div class="modal-bar"></div>
+              <h2 class="modal-title">
+                {{ selectedTerm?.title || '약관' }}
+              </h2>
+            </div>
+
+            <p
+              v-if="termDetailLoading"
+              class="helper"
+            >
+              약관 내용을 불러오는 중입니다.
+            </p>
+
+            <p
+              v-else-if="termDetailError"
+              class="error-text"
+            >
+              {{ termDetailError }}
+            </p>
+
+            <p
+              v-else
+              class="term-content"
+            >
+              {{ selectedTermContent }}
+            </p>
+
+            <button
+              class="submit-btn"
+              type="button"
+              @click="agreeSelectedTerm"
+            >
+              동의하고 닫기
+            </button>
+          </div>
+        </div>
+
         <!-- 가입 완료 -->
         <div class="footer">
           <p
@@ -470,6 +575,7 @@
 <script setup>
 import {
   computed,
+  onMounted,
   onUnmounted,
   reactive,
   ref,
@@ -484,6 +590,14 @@ import {
   sendPhoneVerificationCode,
   signup,
 } from '@/api/auth'
+import {
+  findPrivacyTerm,
+  findServiceTerm,
+  formatTermsVersion,
+  getTermByCode,
+  getTerms,
+  isRequiredTerm,
+} from '@/api/terms'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
@@ -498,7 +612,6 @@ const form = reactive({
   email: '',
   password: '',
   passwordConfirm: '',
-  agreedToTerms: true,
 })
 
 const errors = reactive({
@@ -543,6 +656,16 @@ const phoneVerifyStatus = ref('')
 const isPhoneVerifying = ref(false)
 const isGuardianVerifying = ref(false)
 const signupLoading = ref(false)
+
+const termsList = ref([])
+const termsLoading = ref(false)
+const termsError = ref('')
+const agreedByCode = reactive({})
+const showTermModal = ref(false)
+const selectedTerm = ref(null)
+const termDetailCache = reactive({})
+const termDetailLoading = ref(false)
+const termDetailError = ref('')
 
 /* 보호자 인증 성공 후 백엔드에서 받은 동의 토큰 */
 const legalGuardianConsentToken = ref('')
@@ -925,6 +1048,30 @@ const formattedTimer =
     )
   })
 
+const serviceTerm = computed(() => findServiceTerm(termsList.value))
+const privacyTerm = computed(() => findPrivacyTerm(termsList.value))
+
+const requiredTerms = computed(() =>
+  termsList.value.filter((term) => isRequiredTerm(term)),
+)
+
+const allRequiredAgreed = computed(() =>
+  requiredTerms.value.length > 0 &&
+  requiredTerms.value.every((term) => agreedByCode[term.code]),
+)
+
+const allTermsAgreed = computed(() =>
+  termsList.value.length > 0 &&
+  termsList.value.every((term) => agreedByCode[term.code]),
+)
+
+const selectedTermContent = computed(() => {
+  const code = selectedTerm.value?.code
+  const cached = code ? termDetailCache[code] : null
+
+  return cached?.content || '등록된 약관 내용이 없습니다.'
+})
+
 /*
  * 가입 버튼 비활성화 이유
  */
@@ -981,6 +1128,18 @@ const submitBlockReason =
       return '비밀번호가 일치하지 않아요.'
     }
 
+    if (termsError.value) {
+      return '약관을 불러오지 못했습니다.'
+    }
+
+    if (termsLoading.value) {
+      return '약관을 불러오는 중입니다.'
+    }
+
+    if (!allRequiredAgreed.value) {
+      return '필수 약관에 동의해 주세요.'
+    }
+
     return null
   })
 
@@ -999,7 +1158,10 @@ const canSubmit =
       form.email.trim() &&
       form.password.length >= 10 &&
       form.password ===
-        form.passwordConfirm
+        form.passwordConfirm &&
+      allRequiredAgreed.value &&
+      !termsLoading.value &&
+      !termsError.value
     )
   })
 
@@ -1287,10 +1449,10 @@ async function verifyGuardianCode() {
         guardianPhone,
 
       privacyTermsVersion:
-        '1.0',
+        formatTermsVersion(privacyTerm.value),
 
       serviceTermsVersion:
-        '1.0',
+        formatTermsVersion(serviceTerm.value),
 
       relationship:
         guardian.relationship,
@@ -1351,7 +1513,9 @@ async function verifyGuardianCode() {
 
     guardianVerified.value = true
     guardianVerifyStatus.value = 'match'
-    form.agreedToTerms = true
+    requiredTerms.value.forEach((term) => {
+      agreedByCode[term.code] = true
+    })
 
     window.setTimeout(() => {
       showGuardianModal.value = false
@@ -1371,23 +1535,108 @@ async function verifyGuardianCode() {
 }
 
 /*
- * 약관 동의
+ * 약관 조회 / 동의
  */
-function toggleTerms() {
-  form.agreedToTerms = true
+async function fetchTermsList() {
+  termsLoading.value = true
+  termsError.value = ''
 
-  const under14 =
-    isUnder14()
+  try {
+    const terms = await getTerms()
+    termsList.value = terms
+
+    terms.forEach((term) => {
+      if (!(term.code in agreedByCode)) {
+        agreedByCode[term.code] = false
+      }
+    })
+  } catch (error) {
+    termsList.value = []
+    termsError.value = error.message || '약관 목록을 불러오지 못했습니다.'
+  } finally {
+    termsLoading.value = false
+  }
+}
+
+function maybeOpenGuardian() {
+  if (!isUnder14()) {
+    return
+  }
 
   if (
-    under14 &&
-    (
-      !guardianVerified.value ||
-      !legalGuardianConsentToken.value
-    )
+    guardianVerified.value &&
+    legalGuardianConsentToken.value
   ) {
-    showGuardianModal.value = true
+    return
   }
+
+  if (!allRequiredAgreed.value) {
+    return
+  }
+
+  showGuardianModal.value = true
+}
+
+function toggleTerm(term) {
+  if (!term?.code) {
+    return
+  }
+
+  agreedByCode[term.code] = !agreedByCode[term.code]
+
+  if (agreedByCode[term.code] && isRequiredTerm(term)) {
+    maybeOpenGuardian()
+  }
+}
+
+function toggleAllTerms() {
+  const next = !allTermsAgreed.value
+
+  termsList.value.forEach((term) => {
+    agreedByCode[term.code] = next
+  })
+
+  if (next) {
+    maybeOpenGuardian()
+  }
+}
+
+async function openTermDetail(term) {
+  if (!term?.code) {
+    return
+  }
+
+  selectedTerm.value = term
+  showTermModal.value = true
+  termDetailError.value = ''
+
+  if (termDetailCache[term.code]?.content) {
+    return
+  }
+
+  termDetailLoading.value = true
+
+  try {
+    const data = await getTermByCode(term.code)
+    termDetailCache[term.code] = data || term
+  } catch (error) {
+    termDetailError.value = error.message || '약관 내용을 불러오지 못했습니다.'
+  } finally {
+    termDetailLoading.value = false
+  }
+}
+
+function closeTermModal() {
+  showTermModal.value = false
+}
+
+function agreeSelectedTerm() {
+  if (selectedTerm.value?.code) {
+    agreedByCode[selectedTerm.value.code] = true
+    maybeOpenGuardian()
+  }
+
+  closeTermModal()
 }
 
 function pickGuardianConsentToken(response) {
@@ -1531,16 +1780,16 @@ async function doSignup() {
         form.passwordConfirm,
 
       serviceTermsAgreed:
-        true,
+        Boolean(agreedByCode[serviceTerm.value?.code]),
 
       privacyAgreed:
-        true,
+        Boolean(agreedByCode[privacyTerm.value?.code]),
 
       serviceTermsVersion:
-        '1.0',
+        formatTermsVersion(serviceTerm.value),
 
       privacyTermsVersion:
-        '1.0',
+        formatTermsVersion(privacyTerm.value),
 
       /*
        * ★ 핵심
@@ -1612,6 +1861,8 @@ async function doSignup() {
 function goBack() {
   router.back()
 }
+
+onMounted(fetchTermsList)
 
 onUnmounted(() => {
   if (timerInterval) {
@@ -1804,6 +2055,43 @@ onUnmounted(() => {
   text-align: left;
 }
 
+.terms-section {
+  margin: 4px 0 8px;
+}
+
+.terms-all {
+  padding-bottom: 12px;
+}
+
+.terms-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.terms-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px 8px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.terms-open {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
 .checkbox {
   display: flex;
   align-items: center;
@@ -1838,6 +2126,18 @@ onUnmounted(() => {
 
 .guardian-done {
   color: #16a34a;
+}
+
+.terms-retry {
+  margin-left: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #191b1e;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .chevron-icon {
@@ -1910,6 +2210,20 @@ onUnmounted(() => {
   font-size: 16px;
   font-weight: 700;
   color: #191b1e;
+}
+
+.term-modal {
+  max-height: 80dvh;
+}
+
+.term-content {
+  margin: 0;
+  color: #4a4e55;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .sent-text {

@@ -1,5 +1,8 @@
 <template>
-  <nav class="parent-bottom-nav">
+  <nav
+    class="parent-bottom-nav"
+    :class="{ 'is-hidden': isHidden }"
+  >
     <button
       class="nav-item"
       :class="{ 'nav-item-active': active === 'home' }"
@@ -59,6 +62,7 @@
 </template>
 
 <script setup>
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import iconHome from '@/assets/icons/icon-home.svg'
@@ -79,6 +83,64 @@ defineProps({
 })
 
 const router = useRouter()
+const isHidden = ref(false)
+
+const HIDE_DISTANCE = 10
+const listenerOptions = { passive: true, capture: true }
+
+let touching = false
+let startX = 0
+let startY = 0
+
+function isNavTarget(target) {
+  return target instanceof Element && Boolean(target.closest('.parent-bottom-nav'))
+}
+
+function onTouchStart(event) {
+  if (event.touches.length !== 1 || isNavTarget(event.target)) {
+    touching = false
+    return
+  }
+
+  touching = true
+  startX = event.touches[0].clientX
+  startY = event.touches[0].clientY
+}
+
+function onTouchMove(event) {
+  if (!touching || event.touches.length !== 1) {
+    return
+  }
+
+  const touch = event.touches[0]
+  const moved = Math.max(
+    Math.abs(touch.clientX - startX),
+    Math.abs(touch.clientY - startY)
+  )
+
+  if (moved >= HIDE_DISTANCE) {
+    isHidden.value = true
+  }
+}
+
+function onTouchEnd() {
+  touching = false
+  isHidden.value = false
+}
+
+onMounted(() => {
+  window.addEventListener('touchstart', onTouchStart, listenerOptions)
+  window.addEventListener('touchmove', onTouchMove, listenerOptions)
+  window.addEventListener('touchend', onTouchEnd, listenerOptions)
+  window.addEventListener('touchcancel', onTouchEnd, listenerOptions)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('touchstart', onTouchStart, listenerOptions)
+  window.removeEventListener('touchmove', onTouchMove, listenerOptions)
+  window.removeEventListener('touchend', onTouchEnd, listenerOptions)
+  window.removeEventListener('touchcancel', onTouchEnd, listenerOptions)
+})
 </script>
 
 <style scoped>
@@ -98,6 +160,13 @@ const router = useRouter()
   border-top: 1px solid #f0f1f3;
   background-color: #ffffff;
   box-sizing: border-box;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.2s ease;
+}
+
+.parent-bottom-nav.is-hidden {
+  transform: translate3d(0, 100%, 0);
+  pointer-events: none;
 }
 
 .nav-item {
