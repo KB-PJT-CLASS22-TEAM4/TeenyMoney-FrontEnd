@@ -118,7 +118,20 @@ const ICONS = {
 }
 
 function getIcon(referenceType) {
-  return ICONS[referenceType] || ICONS.DEFAULT
+  const type = String(referenceType || '').toUpperCase()
+  if (
+    type === 'FINANCE' ||
+    type === 'FINANCIAL_PRODUCT' ||
+    type === 'FINANCIAL_PRODUCTS' ||
+    type === 'ENROLLMENT' ||
+    type === 'PRODUCT_ENROLLMENT' ||
+    type === 'SAVING' ||
+    type === 'DEPOSIT' ||
+    type === 'LOAN'
+  ) {
+    return ICONS.FINANCE
+  }
+  return ICONS[type] || ICONS.DEFAULT
 }
 
 function isTodayAllowNotification(n) {
@@ -149,8 +162,12 @@ function isFinanceApprovalNotification(n) {
   if (
     type === 'FINANCE' ||
     type === 'FINANCIAL_PRODUCT' ||
+    type === 'FINANCIAL_PRODUCTS' ||
     type === 'ENROLLMENT' ||
-    type === 'PRODUCT_ENROLLMENT'
+    type === 'PRODUCT_ENROLLMENT' ||
+    type === 'SAVING' ||
+    type === 'DEPOSIT' ||
+    type === 'LOAN'
   ) {
     return true
   }
@@ -210,22 +227,6 @@ async function goToFamilyLink(n) {
   goToChildDetail(childId)
 }
 
-function goToFinanceDetail(item) {
-  if (!item?.childId || !item?.enrollmentId) {
-    return false
-  }
-
-  router.push({
-    name: 'parents-finance-approval-detail',
-    params: {
-      childId: item.childId,
-      productType: item.productType || 'SAVING',
-      enrollmentId: item.enrollmentId,
-    },
-  })
-  return true
-}
-
 async function findFinanceApproval(n) {
   const enrollmentId = n.enrollmentId ?? n.referenceId
   if (enrollmentId == null || enrollmentId === '') {
@@ -272,25 +273,31 @@ async function findFinanceApproval(n) {
 
 async function goToFinanceApproval(n) {
   const matched = await findFinanceApproval(n)
+  let childId = matched?.childId || n.childId
 
-  if (goToFinanceDetail({
-    ...matched,
-    childId: matched?.childId || n.childId,
-    enrollmentId: matched?.enrollmentId ?? n.enrollmentId ?? n.referenceId,
-    productType: matched?.productType || inferProductType(n),
-  })) {
-    return
+  if (!childId) {
+    try {
+      const res = await getChildren(authStore.accessToken)
+      const children = Array.isArray(res?.data) ? res.data : []
+      const fromNoti = n.childId ?? n.referenceId
+      const found = children.find(
+        (child) => Number(child.childId) === Number(fromNoti)
+      )
+      childId = found?.childId ?? (children.length === 1 ? children[0].childId : null)
+    } catch {
+      childId = n.childId
+    }
   }
 
-  if (n.childId) {
+  if (childId) {
     router.push({
       name: 'parents-child-finance',
-      params: { childId: n.childId },
+      params: { childId },
     })
     return
   }
 
-  router.push({ name: 'parents-request-list' })
+  router.push({ name: 'parents-child-list' })
 }
 
 async function goToReference(n) {

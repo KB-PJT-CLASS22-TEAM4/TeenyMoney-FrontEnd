@@ -14,6 +14,8 @@ const STATUS_NORMALIZE = {
   PENDING: 'PENDING',
   WAITING: 'PENDING',
   PENDING_APPROVAL: 'PENDING',
+  WAITING_APPROVAL: 'PENDING',
+  REQUESTED: 'PENDING',
   '승인대기': 'PENDING',
   '승인 대기': 'PENDING',
   APPROVED: 'APPROVED',
@@ -26,9 +28,9 @@ const STATUS_NORMALIZE = {
 }
 
 const REPAYMENT_TYPE_LABELS = {
-  EQUAL_PRINCIPAL_AND_INTEREST: '원리금균등상환',
-  EQUAL_PRINCIPAL_INTEREST: '원리금균등상환',
-  EQUAL_PRINCIPAL: '원금균등상환',
+  EQUAL_PRINCIPAL_AND_INTEREST: '원리금 균등상환',
+  EQUAL_PRINCIPAL_INTEREST: '원리금 균등상환',
+  EQUAL_PRINCIPAL: '원금 균등상환',
   BULLET: '만기일시상환',
   LUMP_SUM: '만기일시상환',
 }
@@ -142,6 +144,11 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
     id: item?.enrollmentId ?? item?.id,
     enrollmentId: item?.enrollmentId ?? item?.id,
     category,
+    productType:
+      item?.productType
+      ?? item?.productCategory
+      ?? item?.category
+      ?? fallbackCategory,
     title:
       item?.productName
       ?? item?.name
@@ -158,7 +165,17 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
       ?? item?.monthlyPayment
       ?? item?.monthlyDepositAmount
       ?? 0,
+    requestedAmount:
+      item?.requestedAmount
+      ?? item?.monthlyPaymentAmount
+      ?? item?.monthlyAmount
+      ?? 0,
     periodMonths:
+      item?.termMonths
+      ?? item?.periodMonths
+      ?? item?.period
+      ?? 0,
+    termMonths:
       item?.termMonths
       ?? item?.periodMonths
       ?? item?.period
@@ -173,6 +190,7 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
         ?? item?.endDate
         ?? item?.expiresAt
     ),
+    requestedAt: item?.requestedAt ?? item?.createdAt ?? item?.appliedAt,
     status,
     statusLabel: item?.statusLabel ?? status,
     isPending: PENDING_STATUSES.has(status) || PENDING_STATUSES.has(item?.statusLabel),
