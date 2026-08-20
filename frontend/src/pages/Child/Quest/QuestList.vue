@@ -267,12 +267,55 @@
 
     <!-- 탭 상태에 따라 안내 문구 분기 -->
     <Chatbot :hint-text="currentHintText" />
+
+    <!-- 퀘스트 수락 완료 모달 -->
+    <div v-if="showAcceptModal" class="custom-modal-backdrop" @click.self="closeAcceptModal">
+      <div class="custom-modal-dialog">
+        <div class="modal-icon-wrap success">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4 class="modal-title">퀘스트를 수락했어요!</h4>
+        <p class="modal-desc">
+          <strong>{{ acceptedQuestTitle }}</strong> 퀘스트를 시작했어요.<br/>
+          진행 중 목록에서 인증하고 보상을 받아보세요!
+        </p>
+        <div class="modal-btn-row">
+          <button type="button" class="btn-modal-sub" @click="closeAcceptModal">
+            닫기
+          </button>
+          <button type="button" class="btn-modal-main" @click="goToOngoingTabFromModal">
+            진행 중 목록으로 이동
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 퀘스트 거절 완료 모달 -->
+    <div v-if="showDeclineModal" class="custom-modal-backdrop" @click.self="closeDeclineModal">
+      <div class="custom-modal-dialog">
+        <div class="modal-icon-wrap danger">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M6 18L18 6M6 6l12 12" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4 class="modal-title">퀘스트를 거절했어요</h4>
+        <p class="modal-desc">
+          <strong>{{ declinedQuestTitle }}</strong> 퀘스트를 거절했습니다.<br/>
+          부모님께 거절 사유가 전달되었어요.
+        </p>
+        <button type="button" class="btn-modal-danger-confirm" @click="closeDeclineModal">
+          확인
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
@@ -281,6 +324,7 @@ import { useQuestStore } from '@/stores/quest'
 import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
+const route  = useRoute()
 const authStore = useAuthStore()
 const questStore = useQuestStore()
 
@@ -289,7 +333,13 @@ const tabs = [
   { key: 'ongoing',   label: '진행 중' },
   { key: 'completed', label: '완료' },
 ]
-const activeTab = ref('available')
+const activeTab = ref(route.query.tab || 'available')
+
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && ['available', 'ongoing', 'completed'].includes(newTab)) {
+    activeTab.value = newTab
+  }
+})
 
 // 탭별 챗봇 말풍선 안내 문구
 const currentHintText = computed(() => {
@@ -450,11 +500,19 @@ const canConfirmDecline = computed(() => {
   return true
 })
 
+// 수락/거절 결과 모달 상태
+const showAcceptModal = ref(false)
+const acceptedQuestTitle = ref('')
+const showDeclineModal = ref(false)
+const declinedQuestTitle = ref('')
+
 async function acceptQuest(q) {
   try {
     await questStore.accept(authStore.accessToken, q.id)
     expandedId.value = null
     loadTab('ongoing')
+    acceptedQuestTitle.value = q.title || '퀘스트'
+    showAcceptModal.value = true
   } catch (e) {
     alert(e.message)
   }
@@ -462,17 +520,40 @@ async function acceptQuest(q) {
 
 async function confirmDecline(q) {
   try {
+    const title = q.title || '퀘스트'
     await questStore.decline(authStore.accessToken, q.id, declineReasonCode.value, declineDetail.value)
     cancelDecline()
     expandedId.value = null
     loadTab('completed')
+    declinedQuestTitle.value = title
+    showDeclineModal.value = true
   } catch (e) {
     alert(e.message)
   }
 }
 
+function closeAcceptModal() {
+  showAcceptModal.value = false
+}
+
+function goToOngoingTabFromModal() {
+  showAcceptModal.value = false
+  activeTab.value = 'ongoing'
+}
+
+function closeDeclineModal() {
+  showDeclineModal.value = false
+}
+
 function goVerify(q, viewOnly = false) {
-  router.push({ name: 'child-quest-detail', params: { questId: q.id }, query: viewOnly ? { view: '1' } : {} })
+  router.push({
+    name: 'child-quest-detail',
+    params: { questId: q.id },
+    query: {
+      ...(viewOnly ? { view: '1' } : {}),
+      fromTab: activeTab.value,
+    },
+  })
 }
 
 function goBack() {
@@ -999,6 +1080,156 @@ function onTabSelect(key) {
 
 .row-chevron { flex-shrink: 0; transition: transform 0.2s ease; }
 .row-chevron.open { transform: rotate(90deg); }
+
+/* 모달창 스타일 */
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.custom-modal-dialog {
+  width: 100%;
+  max-width: 320px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-sizing: border-box;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-icon-wrap {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #ffbc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-icon-wrap.success {
+  background: #ffbc00;
+}
+
+.modal-icon-wrap.danger {
+  background: #ef4444;
+}
+
+.modal-icon-wrap.neutral {
+  background: #64748b;
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #15171b;
+}
+
+.modal-desc {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.modal-desc strong {
+  color: #0f172a;
+}
+
+.modal-btn-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-modal-sub {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-modal-sub:hover {
+  background: #e2e8f0;
+}
+
+.btn-modal-main {
+  flex: 1.6;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #ffffff;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.25);
+  transition: transform 0.1s ease;
+}
+
+.btn-modal-main:active {
+  transform: scale(0.98);
+}
+
+.btn-modal-confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.25);
+}
+
+.btn-modal-danger-confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-danger-confirm:hover {
+  background: #fecaca;
+}
+
+.btn-modal-danger-confirm:active {
+  transform: scale(0.98);
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
 
 /* 펼침 영역 */
 .quest-expand {
