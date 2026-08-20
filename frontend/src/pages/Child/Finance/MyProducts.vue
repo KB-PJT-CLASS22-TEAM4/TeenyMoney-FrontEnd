@@ -1164,12 +1164,13 @@ function onScroll() {
 .spec-grid {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  background: #f8fafc;
-  border-radius: 10px;
-  padding: 9px 12px;
+  gap: 6px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px 14px;
   margin: 8px 0 12px;
-  border: 1px solid #f1f5f9;
+  border: 1.2px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .spec-grid.pending {

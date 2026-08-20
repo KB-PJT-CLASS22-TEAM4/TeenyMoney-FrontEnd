@@ -914,7 +914,7 @@ function toggleAllSchedules() {
   height: 730px;
   margin: 0 auto;
   padding-top: 20px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid var(--card-border);
   overflow: hidden;
   color: var(--ink);

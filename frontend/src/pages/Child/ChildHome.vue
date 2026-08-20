@@ -73,7 +73,7 @@
           </div>
           <div class="action-btns">
             <button class="btn-pill btn-yellow">송금</button>
-            <button class="btn-pill btn-gray" @click="goPayment">결제내역</button>
+            <button class="btn-pill btn-gray" @click="goPayment">거래내역</button>
           </div>
         </div>
       </section>
@@ -664,7 +664,7 @@ function onTabSelect(key) {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   overflow: hidden;
   position: relative;
 }

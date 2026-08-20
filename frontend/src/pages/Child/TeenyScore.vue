@@ -427,7 +427,7 @@ function onTabSelect(key) {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
   font-family: 'Pretendard', 'Inter', sans-serif;

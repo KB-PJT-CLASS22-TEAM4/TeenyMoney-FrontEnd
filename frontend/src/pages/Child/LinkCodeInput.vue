@@ -98,7 +98,7 @@ async function verifyCode() {
   min-height: 730px;
   margin: 0 auto;
   padding: 100px 20px 32px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
 }
 
