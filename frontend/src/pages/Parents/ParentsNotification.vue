@@ -19,18 +19,18 @@
       <ParentNavActions />
     </header>
 
-    <div class="sub-bar">
-      <button
-        class="mark-read"
-        type="button"
-        :disabled="notifications.length === 0"
-        @click="markAllRead"
-      >
-        모두 읽음
-      </button>
-    </div>
-
     <div class="scroll">
+      <div class="mark-read-wrap">
+        <button
+          class="mark-read-btn"
+          type="button"
+          :disabled="notifications.length === 0"
+          @click="markAllRead"
+        >
+          모두 읽음
+        </button>
+      </div>
+
       <div v-if="isLoading && notifications.length === 0" class="state-msg">
         불러오는 중이에요...
       </div>
@@ -157,7 +157,7 @@ function isFamilyLinkNotification(n) {
   return /연결됐|연동됐|연결되었|연동되었/.test(`${n.title || ''} ${n.detail || ''}`)
 }
 
-function isFinanceApprovalNotification(n) {
+function isFinanceNotification(n) {
   const type = String(n.referenceType || '').toUpperCase()
   if (
     type === 'FINANCE' ||
@@ -166,14 +166,15 @@ function isFinanceApprovalNotification(n) {
     type === 'ENROLLMENT' ||
     type === 'PRODUCT_ENROLLMENT' ||
     type === 'SAVING' ||
+    type === 'SAVINGS' ||
     type === 'DEPOSIT' ||
     type === 'LOAN'
   ) {
     return true
   }
 
-  return /상품\s*가입|가입\s*(승인|신청|요청)|금융상품/.test(
-    `${n.title || ''} ${n.detail || ''}`
+  return /금융\s*상품|금융상품|상품\s*가입|가입\s*(승인|신청|요청|거절)|적금|예금|대출|중도해지|조기상환/.test(
+    `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
   )
 }
 
@@ -185,6 +186,36 @@ function inferProductType(n) {
   if (/SAVING|적금/.test(text)) return 'SAVING'
 
   return n.productType || null
+}
+
+function getChildKey(child) {
+  return child?.childId ?? child?.id ?? null
+}
+
+async function loadChildren() {
+  const res = await getChildren(authStore.accessToken)
+  return Array.isArray(res?.data) ? res.data : []
+}
+
+function findChildById(children, id) {
+  if (id == null || id === '') return null
+  return children.find(
+    (child) => Number(getChildKey(child)) === Number(id)
+  ) ?? null
+}
+
+function findChildByName(children, n) {
+  const text = `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
+  const matches = children.filter(
+    (child) => child.name && text.includes(child.name)
+  )
+  if (matches.length === 1) return matches[0]
+  if (matches.length > 1) {
+    return [...matches].sort(
+      (a, b) => String(b.name).length - String(a.name).length
+    )[0]
+  }
+  return null
 }
 
 function goToChildDetail(childId) {
@@ -199,18 +230,59 @@ function goToChildDetail(childId) {
   router.push({ name: 'parents-child-list' })
 }
 
-async function resolveChildId(n) {
-  const fromNoti = n.childId ?? n.referenceId
+function toFinanceProductType(value) {
+  const raw = String(value || '').toUpperCase()
+  if (raw.includes('LOAN') || raw.includes('대출')) return 'LOAN'
+  if (raw.includes('DEPOSIT') || raw.includes('예금')) return 'DEPOSIT'
+  if (raw.includes('SAVING') || raw.includes('적금')) return 'SAVING'
+  return raw || null
+}
 
+function goToFinanceApprovalDetail(item) {
+  const childId = item?.childId
+  const enrollmentId = item?.enrollmentId
+  const productType = toFinanceProductType(item?.productType)
+
+  if (!childId || enrollmentId == null || !productType) {
+    return false
+  }
+
+  router.push({
+    name: 'parents-finance-approval-detail',
+    params: {
+      childId,
+      productType,
+      enrollmentId,
+    },
+  })
+  return true
+}
+
+function goToChildFinancePage(childId) {
+  if (childId) {
+    router.push({
+      name: 'parents-child-finance',
+      params: { childId },
+    })
+    return
+  }
+
+  router.push({ name: 'parents-child-list' })
+}
+
+async function resolveChildId(n) {
   try {
-    const res = await getChildren(authStore.accessToken)
-    const children = Array.isArray(res?.data) ? res.data : []
-    const matched = children.find(
-      (child) => Number(child.childId) === Number(fromNoti)
-    )
-    return matched?.childId ?? children[0]?.childId ?? fromNoti
+    const children = await loadChildren()
+    const matched =
+      findChildById(children, n.childId)
+      || findChildById(children, n.referenceId)
+      || findChildByName(children, n)
+
+    if (matched) return getChildKey(matched)
+    if (children.length === 1) return getChildKey(children[0])
+    return n.childId ?? null
   } catch {
-    return fromNoti
+    return n.childId ?? null
   }
 }
 
@@ -271,33 +343,79 @@ async function findFinanceApproval(n) {
   return null
 }
 
-async function goToFinanceApproval(n) {
+async function goToFinancePage(n) {
   const matched = await findFinanceApproval(n)
-  let childId = matched?.childId || n.childId
+
+  if (matched && goToFinanceApprovalDetail(matched)) {
+    return
+  }
+
+  const enrollmentId = n.enrollmentId ?? n.referenceId
+  const productType = toFinanceProductType(n.productType || inferProductType(n))
+  let childId = n.childId || matched?.childId || null
 
   if (!childId) {
     try {
-      const res = await getChildren(authStore.accessToken)
-      const children = Array.isArray(res?.data) ? res.data : []
-      const fromNoti = n.childId ?? n.referenceId
-      const found = children.find(
-        (child) => Number(child.childId) === Number(fromNoti)
-      )
-      childId = found?.childId ?? (children.length === 1 ? children[0].childId : null)
+      const children = await loadChildren()
+      const found =
+        findChildById(children, n.childId)
+        || findChildById(children, n.referenceId)
+        || findChildByName(children, n)
+
+      if (found) {
+        childId = getChildKey(found)
+      } else if (children.length === 1) {
+        childId = getChildKey(children[0])
+      }
     } catch {
       childId = n.childId
     }
   }
 
-  if (childId) {
+  if (
+    childId
+    && enrollmentId != null
+    && enrollmentId !== ''
+    && productType
+    && goToFinanceApprovalDetail({
+      childId,
+      enrollmentId,
+      productType,
+    })
+  ) {
+    return
+  }
+
+  goToChildFinancePage(childId)
+}
+
+async function goToQuestDetail(n) {
+  const questId = n.referenceId ?? n.questId
+
+  if (questId != null && questId !== '') {
     router.push({
-      name: 'parents-child-finance',
-      params: { childId },
+      name: 'quest-detail',
+      params: {
+        questId,
+      },
     })
     return
   }
 
-  router.push({ name: 'parents-child-list' })
+  const tab = getQuestListTabFromNotification(n)
+  router.push({
+    name: 'parents-quest-list',
+    query: tab ? { tab } : {},
+  })
+}
+
+function getQuestListTabFromNotification(n) {
+  const text = `${n.title || ''} ${n.detail || ''} ${n.content || ''}`
+
+  if (/거절/.test(text)) return 'COMPLETED'
+  if (/인증해\s*주세요|인증해주세요|인증해줘/.test(text)) return 'ONGOING'
+
+  return null
 }
 
 async function goToReference(n) {
@@ -309,8 +427,8 @@ async function goToReference(n) {
     await goToFamilyLink(n)
     return
   }
-  if (isFinanceApprovalNotification(n)) {
-    await goToFinanceApproval(n)
+  if (isFinanceNotification(n)) {
+    await goToFinancePage(n)
     return
   }
   if (n.referenceType === 'PAYMENT') {
@@ -318,7 +436,7 @@ async function goToReference(n) {
     return
   }
   if (n.referenceType === 'QUEST') {
-    router.push({ name: 'parents-quest-list' })
+    await goToQuestDetail(n)
     return
   }
   if (n.referenceType === 'ALLOWANCE') {
@@ -515,34 +633,35 @@ onMounted(() => {
   text-align: center;
 }
 
-.sub-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 20px;
-  flex-shrink: 0;
-  background: #ffffff;
-}
-
-.mark-read {
-  padding: 0;
-  border: none;
-  background: transparent;
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 12.7px;
-  color: #8b9097;
-  cursor: pointer;
-}
-
-.mark-read:disabled {
-  color: #d8dbdf;
-  cursor: default;
-}
-
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 16px 16px;
+  padding: 12px 16px 16px;
+}
+
+.mark-read-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.mark-read-btn {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #e7e9ec;
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #191b1e;
+  cursor: pointer;
+}
+
+.mark-read-btn:disabled {
+  color: #d8dbdf;
+  background: #f4f5f7;
+  cursor: default;
 }
 
 .state-msg {

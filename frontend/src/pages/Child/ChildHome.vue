@@ -219,7 +219,11 @@
       <section class="history">
         <div class="history-head" @click="goPayment" style="cursor: pointer;">
           <span class="history-title">최근 이용내역</span>
-          <span class="chev">›</span>
+          <img
+            src="@/assets/icons/icon-chevron.svg"
+            alt=""
+            class="chevron-icon"
+          />
         </div>
         
         <template v-if="transactions.length > 0">
@@ -1398,9 +1402,9 @@ function onTabSelect(key) {
   color: #0f172a;
 }
 
-.chev {
-  font-size: 18px;
-  color: #a1a1aa;
+.chevron-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .tx-item {

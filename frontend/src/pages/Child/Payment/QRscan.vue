@@ -173,7 +173,7 @@ function onError(err) {
   padding: 48px 20px 36px;
   background: #111418;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 /* 안내 문구 + 스캔 영역 (문구를 위로 올려 여백 확보) */

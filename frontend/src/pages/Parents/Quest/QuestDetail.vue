@@ -299,24 +299,14 @@
             검토 일시
           </p>
 
-          <div
-            v-if="showReviewHistoryList"
-            class="review-history"
-          >
-            <p
-              v-for="item in reviewHistory"
-              :key="item.key"
-              class="info-value review-history-line"
-            >
-              {{ formatReviewHistoryLine(item) }}
-            </p>
-          </div>
-
-          <p
-            v-else
-            class="info-value"
-          >
-            {{ firstReviewDateText }}
+          <p class="info-value">
+            {{
+              formatDate(
+                getVerificationReviewedAt(
+                  quest.latestVerification
+                )
+              )
+            }}
           </p>
         </div>
 
@@ -393,11 +383,15 @@
           class="info-row"
         >
           <p class="info-label">
-            거절 코드
+            거절 사유
           </p>
 
           <p class="info-value">
-            {{ quest.declineReasonCode }}
+            {{
+              formatDeclineReasonCode(
+                quest.declineReasonCode
+              )
+            }}
           </p>
         </div>
 
@@ -423,25 +417,33 @@
     >
       <div class="section">
         <p class="section-label">
-          제목
+          <span>제목</span>
+          <span class="char-count">
+            {{ editForm.title.length }}/50
+          </span>
         </p>
 
         <input
           v-model="editForm.title"
           type="text"
           class="input"
+          maxlength="50"
           placeholder="퀘스트 제목"
         />
       </div>
 
       <div class="section">
         <p class="section-label">
-          내용
+          <span>내용</span>
+          <span class="char-count">
+            {{ editForm.content.length }}/500
+          </span>
         </p>
 
         <textarea
           v-model="editForm.content"
           class="textarea"
+          maxlength="500"
           rows="4"
           placeholder="퀘스트 내용"
         ></textarea>
@@ -452,11 +454,45 @@
           기한
         </p>
 
-        <input
-          v-model="editForm.deadline"
-          type="datetime-local"
-          class="input"
-        />
+        <button
+          type="button"
+          class="custom-date-input"
+          @click="isCalendarOpen = true"
+        >
+          <span
+            :class="{
+              'date-placeholder': !editForm.deadline,
+            }"
+          >
+            {{
+              editForm.deadline
+                ? formatDeadline(editForm.deadline)
+                : '기한을 선택해주세요.'
+            }}
+          </span>
+
+          <svg
+            class="calendar-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <rect
+              x="3"
+              y="5"
+              width="18"
+              height="16"
+              rx="3"
+              stroke="currentColor"
+              stroke-width="1.8"
+            />
+            <path
+              d="M8 3V7M16 3V7M3 10H21"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
       </div>
 
       <div class="section">
@@ -544,6 +580,44 @@
           alt=""
           class="shield-icon"
         />
+      </button>
+
+      <button
+        class="teeny-score-row"
+        type="button"
+        @click="
+          editForm.verificationRequirement =
+            editForm.verificationRequirement === 'PHOTO_REQUIRED'
+              ? 'FREE'
+              : 'PHOTO_REQUIRED'
+        "
+      >
+        <div
+          class="checkbox"
+          :class="{
+            checked:
+              editForm.verificationRequirement === 'PHOTO_REQUIRED'
+          }"
+        >
+          <img
+            v-if="
+              editForm.verificationRequirement === 'PHOTO_REQUIRED'
+            "
+            src="@/assets/icons/icon-check.svg"
+            alt=""
+            class="check-icon"
+          />
+        </div>
+
+        <div class="teeny-score-text">
+          <p class="teeny-score-title">
+            사진 인증 필요
+          </p>
+
+          <p class="teeny-score-desc">
+            켜면 자녀가 퀘스트를 인증할 때 사진을 올려야 합니다.
+          </p>
+        </div>
       </button>
 
       <div class="edit-btns">
@@ -657,6 +731,12 @@
         </div>
       </div>
     </div>
+    <DeadlineCalendarModal
+      v-model:open="isCalendarOpen"
+      :model-value="editForm.deadline"
+      @confirm="editForm.deadline = $event"
+    />
+
     <AlertHost :modal="alertModal" />
   </div>
 </template>
@@ -665,6 +745,7 @@
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import DeadlineCalendarModal from '@/components/DeadlineCalendarModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
 import {
@@ -684,7 +765,6 @@ import {
 
 import {
   getQuestDetail,
-  getQuestVerifications,
   updateQuest,
   deleteQuest,
   approveQuestVerification,
@@ -698,7 +778,6 @@ import {
 
 import {
   formatKstDateTime,
-  parseServerDate,
   toKstDatetimeLocalValue,
   utcIsoFromKstDatetimeLocal,
 } from '@/utils/datetime'
@@ -722,9 +801,6 @@ const questId =
 const quest =
   ref(null)
 
-const verificationList =
-  ref([])
-
 const isLoading =
   ref(false)
 
@@ -738,6 +814,9 @@ const errorMessage =
   ref('')
 
 const isEditMode =
+  ref(false)
+
+const isCalendarOpen =
   ref(false)
 
 /* 거절 모달 */
@@ -878,26 +957,6 @@ async function loadQuestDetail() {
 
     quest.value =
       res.data
-
-    try {
-      const historyRes =
-        await getQuestVerifications(
-          questId,
-          authStore.accessToken
-        )
-
-      verificationList.value =
-        extractVerificationList(
-          historyRes.data
-        )
-    } catch (error) {
-      console.error(
-        '인증 내역 조회 실패:',
-        error
-      )
-      verificationList.value =
-        []
-    }
 
   } catch (error) {
     console.error(
@@ -1231,6 +1290,18 @@ function enterEditMode() {
 function cancelEdit() {
   isEditMode.value =
     false
+
+  isCalendarOpen.value =
+    false
+}
+
+function formatDeadline(value) {
+  if (!value) return ''
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 function addQuickAmount(
@@ -1260,6 +1331,24 @@ async function handleUpdate() {
   }
 
   if (
+    editForm.value.title.trim().length > 50
+  ) {
+    alertModal.showAlert(
+      '제목은 50자까지 입력할 수 있어요.'
+    )
+    return
+  }
+
+  if (
+    editForm.value.content.trim().length > 500
+  ) {
+    alertModal.showAlert(
+      '내용은 500자까지 입력할 수 있어요.'
+    )
+    return
+  }
+
+  if (
     !editForm.value.deadline
   ) {
     alertModal.showAlert(
@@ -1279,7 +1368,7 @@ async function handleUpdate() {
       content:
         editForm.value.content.trim(),
 
-      // QuestCreate와 같은 이유로 UTC 변환을 하지 않는다. datetime-local 입력값이
+      // QuestCreate와 같은 이유로 UTC 변환을 하지 않는다. 달력 선택값이
       // 이미 로컬 벽시계(YYYY-MM-DDTHH:mm)이고, 서버 필드는 LocalDateTime이다.
       deadline:
         editForm.value.deadline,
@@ -1371,12 +1460,6 @@ function formatReward(
   ).toLocaleString()}원`
 }
 
-function parseDateValue(
-  value
-) {
-  return parseServerDate(value)
-}
-
 function formatDate(
   value
 ) {
@@ -1431,269 +1514,6 @@ function getVerificationReviewedAt(
   )
 }
 
-function getHistoryReviewedAt(
-  verification
-) {
-  const explicit =
-    verification?.reviewedAt ??
-    verification?.processedAt ??
-    verification?.reviewedDate ??
-    null
-
-  if (explicit) {
-    return explicit
-  }
-
-  const status =
-    getVerificationStatusCode(
-      verification
-    )
-
-  if (
-    status === 'APPROVED' ||
-    status === 'REJECTED' ||
-    status === 'DECLINED'
-  ) {
-    return (
-      verification?.updatedAt ??
-      null
-    )
-  }
-
-  return null
-}
-
-function getVerificationStatusCode(
-  verification
-) {
-  return String(
-    verification?.status ||
-    ''
-  ).toUpperCase()
-}
-
-function getReviewResultLabel(
-  verification
-) {
-  const status =
-    getVerificationStatusCode(
-      verification
-    )
-
-  if (status === 'APPROVED') {
-    return '허용'
-  }
-
-  if (
-    status === 'REJECTED' ||
-    status === 'DECLINED'
-  ) {
-    return '거절'
-  }
-
-  return ''
-}
-
-function getVerificationAttemptNo(
-  verification,
-  fallback
-) {
-  const count =
-    verification?.attemptNo ??
-    verification?.attemptCount ??
-    verification?.attempt ??
-    fallback
-
-  const number =
-    Number(count)
-
-  return Number.isFinite(number)
-    ? number
-    : fallback
-}
-
-function extractVerificationList(
-  data
-) {
-  if (Array.isArray(data)) {
-    return data
-  }
-
-  if (
-    !data ||
-    typeof data !== 'object'
-  ) {
-    return []
-  }
-
-  const candidates = [
-    data.content,
-    data.verifications,
-    data.verificationHistory,
-    data.verificationList,
-    data.list,
-    data.items,
-  ]
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) {
-      return candidate
-    }
-  }
-
-  return []
-}
-
-const reviewHistory =
-  computed(() => {
-    const questData =
-      quest.value
-
-    const latest =
-      questData?.latestVerification
-        ? [questData.latestVerification]
-        : []
-
-    const mergedByKey =
-      new Map()
-
-    const sources = [
-      ...verificationList.value,
-      ...extractVerificationList(
-        questData
-      ),
-      ...latest,
-    ]
-
-    sources.forEach((item, index) => {
-      if (
-        !item ||
-        typeof item !== 'object'
-      ) {
-        return
-      }
-
-      const id =
-        item.verificationId ??
-        item.id
-
-      const attempt =
-        getVerificationAttemptNo(
-          item,
-          index + 1
-        )
-
-      const key =
-        id !== null &&
-        id !== undefined
-          ? `id:${id}`
-          : `attempt:${attempt}`
-
-      const existing =
-        mergedByKey.get(key)
-
-      if (!existing) {
-        mergedByKey.set(key, item)
-        return
-      }
-
-      if (
-        !getHistoryReviewedAt(
-          existing
-        ) &&
-        getHistoryReviewedAt(item)
-      ) {
-        mergedByKey.set(key, item)
-      }
-    })
-
-    return [...mergedByKey.values()]
-      .map((item, index) => {
-        const attempt =
-          getVerificationAttemptNo(
-            item,
-            index + 1
-          )
-
-        return {
-          key:
-            item.verificationId ??
-            item.id ??
-            `attempt-${attempt}`,
-          attempt,
-          submittedAt:
-            getVerificationSubmittedAt(
-              item
-            ),
-          reviewedAt:
-            getHistoryReviewedAt(
-              item
-            ),
-          result:
-            getReviewResultLabel(
-              item
-            ),
-        }
-      })
-      .sort((a, b) => {
-        if (a.attempt !== b.attempt) {
-          return a.attempt - b.attempt
-        }
-
-        const timeA =
-          parseDateValue(
-            a.submittedAt ||
-            a.reviewedAt
-          )?.getTime() || 0
-
-        const timeB =
-          parseDateValue(
-            b.submittedAt ||
-            b.reviewedAt
-          )?.getTime() || 0
-
-        return timeA - timeB
-      })
-      .map((item, index) => ({
-        ...item,
-        attempt:
-          item.attempt > 0
-            ? item.attempt
-            : index + 1,
-      }))
-  })
-
-const showReviewHistoryList =
-  computed(() =>
-    reviewHistory.value.length > 1
-  )
-
-const firstReviewDateText =
-  computed(() => {
-    const reviewed =
-      reviewHistory.value.find(
-        (item) => item.reviewedAt
-      )
-
-    return reviewed
-      ? formatDate(reviewed.reviewedAt)
-      : '-'
-  })
-
-function formatReviewHistoryLine(
-  item
-) {
-  const dateText = item.reviewedAt
-    ? formatDate(item.reviewedAt)
-    : '-'
-
-  if (!item.result) {
-    return `${item.attempt}회 : ${dateText}`
-  }
-
-  return `${item.attempt}회 : ${dateText}, ${item.result}`
-}
-
 function toLocalDatetime(
   value
 ) {
@@ -1711,6 +1531,26 @@ function getRequirementLabel(
 
   return (
     map[value] ||
+    value ||
+    '-'
+  )
+}
+
+function formatDeclineReasonCode(
+  value
+) {
+  const map = {
+    NOT_ENOUGH_TIME: '시간이 부족해요',
+    TOO_DIFFICULT: '너무 어려워요',
+    REWARD_NOT_ENOUGH: '보상이 부족해요',
+    HARD_TO_VERIFY: '인증하기 어려워요',
+    CANNOT_DO_NOW: '지금은 할 수 없어요',
+    OTHER: '기타',
+  }
+
+  return (
+    map[value] ||
+    map[String(value || '').toUpperCase()] ||
     value ||
     '-'
   )
@@ -1927,12 +1767,6 @@ onMounted(() => {
   word-break: break-word;
 }
 
-.review-history {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .reward {
   color: #ffbc00;
   font-size: 18px;
@@ -2023,10 +1857,19 @@ onMounted(() => {
 }
 
 .section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin: 0;
   color: #8b9097;
   font-size: 13px;
   font-weight: 600;
+}
+
+.char-count {
+  color: #b0b4ba;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .input,
@@ -2041,6 +1884,38 @@ onMounted(() => {
   font-family: inherit;
   font-size: 14px;
   outline: none;
+}
+
+.custom-date-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 50px;
+  box-sizing: border-box;
+  padding: 0 15px;
+  border: 1.5px solid #e0e2e6;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #191b1e;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.custom-date-input:hover {
+  border-color: #d4d6da;
+}
+
+.date-placeholder {
+  color: #b9bec5;
+}
+
+.calendar-icon {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+  color: #8b9097;
 }
 
 .textarea {
@@ -2097,6 +1972,10 @@ onMounted(() => {
   border-radius: 12px;
   background: #fff8e1;
   text-align: left;
+}
+
+.teeny-score-row + .teeny-score-row {
+  margin-top: 10px;
 }
 
 .checkbox {
