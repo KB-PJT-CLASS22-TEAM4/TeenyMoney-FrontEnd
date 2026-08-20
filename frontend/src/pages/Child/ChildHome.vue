@@ -684,7 +684,7 @@ function onTabSelect(key) {
 .hero-section {
   position: relative;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
-  padding: 0 18px 24px;
+  padding: 20px 18px 24px;
   overflow: hidden;
 }
 
