@@ -282,6 +282,7 @@ import {
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { logout as logoutApi } from '@/api/auth'
 import { getMyInfo, updateMyProfileImage } from '@/api/member'
 import { getChildren } from '@/api/children'
 import { unlinkFamily } from '@/api/families'
@@ -682,7 +683,6 @@ async function onProfileFileChange(event) {
 ========================= */
 
 async function logout() {
-
   const confirmed = await alertModal.showConfirm(
     '로그아웃하시겠습니까?'
   )
@@ -691,8 +691,14 @@ async function logout() {
     return
   }
 
-  authStore.clearUser()
-  router.replace('/login')
+  try {
+    await logoutApi(authStore.accessToken)
+  } catch (error) {
+    console.error('로그아웃 요청 실패:', error)
+  } finally {
+    authStore.clearUser()
+    router.replace('/login')
+  }
 }
 
 /* =========================
