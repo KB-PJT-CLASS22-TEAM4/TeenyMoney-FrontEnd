@@ -9,8 +9,26 @@
     </header>
 
     <div v-if="isLoading" class="state-box">불러오는 중입니다...</div>
-    <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
-    <div v-else-if="!request" class="state-box">신청 정보를 찾을 수 없습니다.</div>
+    <div v-else-if="errorMessage" class="state-box error-text">
+      {{ errorMessage }}
+      <button
+        class="list-back-btn"
+        type="button"
+        @click="goToProductList"
+      >
+        목록으로 돌아가기
+      </button>
+    </div>
+    <div v-else-if="!request" class="state-box">
+      신청 정보를 찾을 수 없습니다.
+      <button
+        class="list-back-btn"
+        type="button"
+        @click="goToProductList"
+      >
+        목록으로 돌아가기
+      </button>
+    </div>
 
     <div v-else class="content">
       <section class="info-card">
@@ -93,6 +111,14 @@
           </button>
         </div>
       </section>
+
+      <button
+        class="list-back-btn"
+        type="button"
+        @click="goToProductList"
+      >
+        목록으로 돌아가기
+      </button>
     </div>
 
     <ConfirmModal
@@ -253,6 +279,13 @@ async function handleConfirm() {
   } finally {
     isProcessing.value = false
   }
+}
+
+function goToProductList() {
+  router.push({
+    name: 'parents-child-finance',
+    params: { childId: String(childId) },
+  })
 }
 
 onMounted(async () => {
@@ -451,5 +484,22 @@ onMounted(async () => {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.list-back-btn {
+  width: 100%;
+  height: 49px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #ffbc00;
+  font-size: 15px;
+  font-weight: 700;
+  color: #191b1e;
+  cursor: pointer;
+}
+
+.state-box .list-back-btn {
+  margin-top: 16px;
 }
 </style>
