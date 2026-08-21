@@ -1,5 +1,8 @@
 <template>
-  <div class="page">
+  <div
+    class="page"
+    :class="{ 'has-save': isDirty }"
+  >
 
     <header class="nav">
       <button
@@ -25,9 +28,14 @@
 
     <div class="content">
 
-      <p class="section-title">
-        업종별 결제 정책
-      </p>
+      <div class="section-head">
+        <p class="section-title">
+          업종별 결제 정책
+        </p>
+        <p class="section-sub">
+          등급을 고르면 바로 확인하고 바꿀 수 있어요
+        </p>
+      </div>
 
 
       <!-- 로딩 -->
@@ -47,128 +55,168 @@
       </div>
 
 
-      <!-- 정책 목록: 허용/주의/차단 → 상위 토글 → 하위 조회 -->
-      <div v-else>
-        <div
-          v-for="section in policySections"
-          :key="section.key"
-          class="policy-card"
-        >
-          <p
-            class="policy-label"
-            :class="policyClass(section.key)"
+      <!-- 정책 목록: 허용/주의/차단 등급별로 조회 -->
+      <div
+        v-else
+        class="policy-board"
+      >
+        <div class="grade-tabs">
+          <button
+            v-for="section in policySections"
+            :key="section.key"
+            class="grade-tab"
+            :class="[
+              policyClass(section.key),
+              { on: activePolicyTab === section.key },
+            ]"
+            type="button"
+            @click="activePolicyTab = section.key"
           >
-            {{ section.label }}
-          </p>
+            <span class="grade-tab-label">
+              {{ section.label }}
+            </span>
+            <span class="grade-tab-count">
+              {{ section.count }}
+            </span>
+          </button>
+        </div>
+
+        <div
+          class="policy-panel"
+          :class="policyClass(activePolicyTab)"
+        >
+          <div class="search-wrap">
+            <img
+              src="@/assets/icons/icon-search.svg"
+              alt=""
+              class="search-icon"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="search-input"
+              placeholder="업종을 검색해보세요"
+            />
+          </div>
 
           <p
-            v-if="section.groups.length === 0"
+            v-if="filteredGroups.length === 0"
             class="empty-policy"
           >
-            설정된 업종이 없습니다.
+            {{ emptyFilterText }}
           </p>
 
-          <template
-            v-for="group in section.groups"
+          <section
+            v-for="group in filteredGroups"
             :key="group.name"
+            class="place-group"
           >
             <div
-              v-if="isFlatGroup(group)"
-              class="flat-group"
+              v-if="!isFlatGroup(group)"
+              class="group-head"
             >
-              <p
-                v-for="item in group.items"
-                :key="item.id"
-                class="flat-item"
-              >
-                {{ item.categoryName }}
-                <span
-                  v-if="item.temporaryUntil"
-                  class="temp-deadline"
+              <div class="group-title-row">
+                <p class="group-title">
+                  {{ group.name }}
+                </p>
+                <button
+                  class="group-count"
+                  :class="{ open: isGroupExpanded(group.name) }"
+                  type="button"
+                  :aria-expanded="isGroupExpanded(group.name)"
+                  @click="toggleGroup(group.name)"
                 >
-                  {{ formatAllowDeadline(item.temporaryUntil) }}
-                </span>
-              </p>
+                  {{ group.items.length }}
+                  <img
+                    src="@/assets/icons/icon-chevron.svg"
+                    alt=""
+                    class="group-count-chevron"
+                  />
+                </button>
+              </div>
+
+              <div class="place-btns group-btns">
+                <button
+                  class="status-btn"
+                  type="button"
+                  :class="{ 'active-allow': isGroupAllowActive(group) }"
+                  @click="setGroupStatus(group, 'ALLOW')"
+                >
+                  허용
+                </button>
+                <button
+                  class="status-btn"
+                  type="button"
+                  :class="{ 'active-caution': isGroupCautionActive(group) }"
+                  @click="setGroupStatus(group, 'WATCH')"
+                >
+                  주의
+                </button>
+                <button
+                  class="status-btn"
+                  type="button"
+                  :class="{ 'active-block': isGroupBlockActive(group) }"
+                  @click="setGroupStatus(group, 'BLOCK')"
+                >
+                  차단
+                </button>
+              </div>
             </div>
 
             <div
-              v-else
-              class="toggle-group"
+              class="place-panel"
               :class="{
-                open: isPolicyGroupExpanded(section.key, group.name),
+                open: isFlatGroup(group) || isGroupExpanded(group.name),
               }"
             >
-              <button
-                class="toggle-header"
-                type="button"
-                :aria-expanded="isPolicyGroupExpanded(section.key, group.name)"
-                @click="togglePolicyGroup(section.key, group.name)"
+              <div class="place-list">
+              <div
+                v-for="place in group.items"
+                :key="place.id"
+                class="place-row"
               >
-                <span class="toggle-title">
-                  {{ group.name }}
-                </span>
-                <span class="toggle-count">
-                  {{ group.items.length }}
-                </span>
-                <img
-                  src="@/assets/icons/icon-chevron.svg"
-                  alt=""
-                  class="toggle-chevron"
-                  :class="{
-                    open: isPolicyGroupExpanded(section.key, group.name),
-                  }"
-                />
-              </button>
-
-              <div class="toggle-panel">
-                <div class="toggle-body">
-                  <p
-                    v-for="item in group.items"
-                    :key="item.id"
-                    class="policy-item"
+                <p class="place-name">
+                  {{ place.categoryName }}
+                  <span
+                    v-if="place.temporaryUntil"
+                    class="temp-deadline"
                   >
-                    {{ item.categoryName }}
-                    <span
-                      v-if="item.temporaryUntil"
-                      class="temp-deadline"
-                    >
-                      {{ formatAllowDeadline(item.temporaryUntil) }}
-                    </span>
-                  </p>
+                    오늘만
+                  </span>
+                </p>
+
+                <div class="place-btns">
+                  <button
+                    class="status-btn"
+                    type="button"
+                    :class="{ 'active-allow': isAllowActive(place) }"
+                    @click="setStatus(place.id, 'ALLOW')"
+                  >
+                    허용
+                  </button>
+                  <button
+                    class="status-btn"
+                    type="button"
+                    :class="{ 'active-caution': isCautionActive(place) }"
+                    @click="setStatus(place.id, 'WATCH')"
+                  >
+                    주의
+                  </button>
+                  <button
+                    class="status-btn"
+                    type="button"
+                    :class="{ 'active-block': isBlockActive(place) }"
+                    @click="setStatus(place.id, 'BLOCK')"
+                  >
+                    차단
+                  </button>
                 </div>
               </div>
+              </div>
             </div>
-          </template>
+          </section>
         </div>
-
       </div>
-
-
-      <button
-        class="list-card"
-        type="button"
-        @click="goToPlaceList"
-      >
-        <div class="list-card-icon" aria-hidden="true">
-          <img
-            src="@/assets/icons/icon-shield.svg"
-            alt=""
-            class="list-card-icon-img"
-          />
-        </div>
-
-        <div class="list-card-text">
-          <span class="list-card-badge">업종 설정</span>
-          <span class="list-card-title">업종 목록 설정 및 조회</span>
-          <span class="list-card-sub">허용·주의·차단 업종을 확인하고 바꿔요</span>
-        </div>
-
-        <img
-          src="@/assets/icons/icon-chevron.svg"
-          alt=""
-          class="chevron-icon"
-        />
-      </button>
 
 
       <!-- 승인 요청 내역 -->
@@ -365,6 +413,20 @@
 
     </div>
 
+    <div
+      v-if="isDirty"
+      class="footer"
+    >
+      <button
+        class="submit-btn"
+        :disabled="isSaving"
+        type="button"
+        @click="handleSave"
+      >
+        {{ isSaving ? '저장 중...' : '수정 완료' }}
+      </button>
+    </div>
+
     <ParentBottomNav active="child" />
     <AlertHost :modal="alertModal" />
 
@@ -389,7 +451,8 @@ import {
 } from '@/utils/datetime'
 
 import {
-  getCategoryPolicyParentGroups
+  getCategoryPolicyParentGroups,
+  updateCategoryPolicies,
 } from '@/api/categoryPolicy'
 
 import {
@@ -490,6 +553,14 @@ const temporaryAllowMap = computed(() => {
 })
 
 function withEffectivePolicy(item) {
+  if (item.userOverride) {
+    return {
+      ...item,
+      temporaryUntil: null,
+      effectivePolicy: normalizePolicy(item.policy),
+    }
+  }
+
   const untilFromPermission =
     temporaryAllowMap.value.get(item.categoryName)
     ?? temporaryAllowMap.value.get(String(item.id))
@@ -508,52 +579,130 @@ function withEffectivePolicy(item) {
 }
 
 const policySections = computed(() =>
-  POLICY_SECTIONS.map((section) => ({
-    ...section,
-    groups: parentGroups.value
+  POLICY_SECTIONS.map((section) => {
+    const groups = parentGroups.value
       .map((group) => ({
         name: group.name,
         items: group.items
           .map(withEffectivePolicy)
           .filter((item) => item.effectivePolicy === section.key),
       }))
-      .filter((group) => group.items.length > 0),
-  }))
+      .filter((group) => group.items.length > 0)
+
+    return {
+      ...section,
+      groups,
+      count: groups.reduce((sum, group) => sum + group.items.length, 0),
+    }
+  })
 )
 
-const expandedPolicyGroups = ref({})
+const activePolicyTab = ref('BLOCK')
+const searchQuery = ref('')
+const isSaving = ref(false)
 
-function policyGroupKey(policy, name) {
-  return `${policy}:${name}`
-}
+const allPlaces = computed(() =>
+  parentGroups.value.flatMap((group) => group.items)
+)
 
-function isPolicyGroupExpanded(policy, name) {
-  const key = policyGroupKey(policy, name)
-  if (Object.prototype.hasOwnProperty.call(expandedPolicyGroups.value, key)) {
-    return !!expandedPolicyGroups.value[key]
-  }
+const isDirty = computed(() =>
+  allPlaces.value.some((place) => place.userOverride)
+)
 
-  const group = policySections.value
-    .find((section) => section.key === policy)
-    ?.groups.find((item) => item.name === name)
+const filteredGroups = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase()
+  const grade = activePolicyTab.value
 
-  return !!group?.items.some((item) => item.temporaryUntil)
-}
+  return parentGroups.value
+    .map((group) => {
+      let items = group.items
+        .map(withEffectivePolicy)
+        .filter((item) => item.effectivePolicy === grade)
 
-function togglePolicyGroup(policy, name) {
-  const key = policyGroupKey(policy, name)
-  const willOpen = !isPolicyGroupExpanded(policy, name)
-  const next = { ...expandedPolicyGroups.value }
+      if (keyword) {
+        const groupMatch = group.name?.toLowerCase().includes(keyword)
+        if (!groupMatch) {
+          items = items.filter((item) =>
+            item.categoryName?.toLowerCase().includes(keyword)
+          )
+        }
+      }
 
-  policySections.value
-    .find((section) => section.key === policy)
-    ?.groups.forEach((group) => {
-      if (isFlatGroup(group)) return
-      next[policyGroupKey(policy, group.name)] = willOpen && group.name === name
+      return {
+        ...group,
+        items,
+      }
     })
+    .filter((group) => group.items.length > 0)
+})
 
-  next[key] = willOpen
-  expandedPolicyGroups.value = next
+const expandedGroups = ref({})
+
+function groupExpandKey(name) {
+  return `${activePolicyTab.value}:${name}`
+}
+
+function isGroupExpanded(name) {
+  if (searchQuery.value.trim()) return true
+  return !!expandedGroups.value[groupExpandKey(name)]
+}
+
+function toggleGroup(name) {
+  if (searchQuery.value.trim()) return
+  const key = groupExpandKey(name)
+  expandedGroups.value = {
+    ...expandedGroups.value,
+    [key]: !expandedGroups.value[key],
+  }
+}
+
+const emptyFilterText = computed(() => {
+  if (searchQuery.value.trim()) return '검색 결과가 없습니다.'
+  const label = POLICY_SECTIONS.find((section) => section.key === activePolicyTab.value)?.label
+  return `${label}로 설정된 업종이 없습니다.`
+})
+
+function isAllowActive(place) {
+  return place.effectivePolicy === 'ALLOW'
+}
+
+function isCautionActive(place) {
+  return place.effectivePolicy === 'CAUTION' || place.effectivePolicy === 'WATCH'
+}
+
+function isBlockActive(place) {
+  return place.effectivePolicy === 'BLOCK'
+}
+
+function isGroupAllowActive(group) {
+  return group.items.length > 0 && group.items.every(isAllowActive)
+}
+
+function isGroupCautionActive(group) {
+  return group.items.length > 0 && group.items.every(isCautionActive)
+}
+
+function isGroupBlockActive(group) {
+  return group.items.length > 0 && group.items.every(isBlockActive)
+}
+
+function setStatus(id, policy) {
+  const place = allPlaces.value.find((item) => item.id === id)
+  if (!place) return
+  place.policy = policy
+  place.userOverride = true
+}
+
+function setGroupStatus(group, policy) {
+  const visibleIds = new Set(group.items.map((item) => item.id))
+  const source = parentGroups.value.find((item) => item.name === group.name)
+  if (!source) return
+
+  source.items.forEach((place) => {
+    if (!visibleIds.has(place.id)) return
+    place.policy = policy
+    place.userOverride = true
+  })
 }
 
 
@@ -898,6 +1047,7 @@ async function fetchCategoryPolicies() {
             id: item.id,
             categoryName: item.categoryName,
             policy: item.policy,
+            userOverride: false,
             expiresAt: item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null,
           })),
         }))
@@ -923,25 +1073,55 @@ async function fetchCategoryPolicies() {
 
 
 // ========================================
-// 설정한 업종 목록으로 이동
-//
-// childId를 그대로 넘겨야 함
+// 카테고리 정책 저장
 // ========================================
 
-function goToPlaceList() {
+async function handleSave() {
+  if (isSaving.value) return
+
+  if (!authStore.accessToken) {
+    authStore.handleUnauthorized('서비스를 이용하려면 로그인해 주세요.')
+    return
+  }
 
   if (!childId.value) {
     alertModal.showAlert('선택된 자녀 정보가 없습니다.')
     return
   }
 
-  router.push({
-    path: '/parents/place-list',
+  isSaving.value = true
 
-    query: {
-      childId: childId.value
+  try {
+    await updateCategoryPolicies(
+      authStore.accessToken,
+      childId.value,
+      allPlaces.value.map((place) => ({
+        id: place.id,
+        policy: place.policy,
+      }))
+    )
+
+    alertModal.showAlert('설정이 저장되었습니다!')
+    await Promise.all([
+      fetchCategoryPolicies(),
+      fetchPermissions(),
+    ])
+  } catch (error) {
+    console.error('카테고리 정책 수정 실패:', error)
+
+    if (error?.status === 401) {
+      authStore.handleUnauthorized(
+        '로그인이 만료되었습니다.\n다시 로그인해 주세요.'
+      )
+      return
     }
-  })
+
+    alertModal.showAlert(
+      error.message || '설정을 저장하지 못했습니다.'
+    )
+  } finally {
+    isSaving.value = false
+  }
 }
 
 
@@ -1129,6 +1309,10 @@ watch(
   padding-bottom: 70px;
 }
 
+.page.has-save {
+  padding-bottom: 150px;
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -1163,6 +1347,12 @@ watch(
   padding: 16px;
 }
 
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .section-title {
   margin: 0;
   font-size: 15px;
@@ -1170,168 +1360,280 @@ watch(
   color: #191b1e;
 }
 
-.policy-card {
-  background-color: #ffffff;
-  border: 1px solid #eaedf1;
-  border-radius: 16px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.policy-label {
+.section-sub {
   margin: 0;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b9097;
 }
 
-.toggle-group {
+.policy-board {
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  gap: 12px;
 }
 
-.toggle-header {
-  display: flex;
-  align-items: center;
+.grade-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  width: 100%;
-  padding: 10px 10px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
+}
+
+.grade-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 12px 10px;
+  border: 1.3px solid #e7e9ec;
+  border-radius: 16px;
+  background: #ffffff;
   cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.toggle-header:hover {
-  background: #f4f5f7;
-}
-
-.toggle-header:active {
-  background: #eceff3;
-}
-
-.toggle-group.open .toggle-header {
-  background: #f4f5f7;
-}
-
-.toggle-title {
-  flex: 1;
-  min-width: 0;
   text-align: left;
-  font-size: 14px;
+}
+
+.grade-tab-label {
+  font-size: 12px;
   font-weight: 700;
+  color: #8b9097;
+}
+
+.grade-tab-count {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
   color: #191b1e;
 }
 
-.toggle-count {
-  flex-shrink: 0;
-  min-width: 20px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: #eceff3;
-  font-size: 11px;
-  font-weight: 700;
-  color: #6b7077;
-  line-height: 16px;
-  text-align: center;
+.grade-tab.allow.on {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
 }
 
-.toggle-group.open .toggle-count {
+.grade-tab.allow.on .grade-tab-label,
+.grade-tab.allow.on .grade-tab-count {
+  color: #16a34a;
+}
+
+.grade-tab.caution.on {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.grade-tab.caution.on .grade-tab-label,
+.grade-tab.caution.on .grade-tab-count {
+  color: #ea580c;
+}
+
+.grade-tab.block.on {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.grade-tab.block.on .grade-tab-label,
+.grade-tab.block.on .grade-tab-count {
+  color: #dc2626;
+}
+
+.policy-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.policy-panel.allow {
+  border-color: #bbf7d0;
+}
+
+.policy-panel.caution {
+  border-color: #fed7aa;
+}
+
+.policy-panel.block {
+  border-color: #fecaca;
+}
+
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f4f5f7;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: #191b1e;
+}
+
+.search-input::placeholder {
+  color: #b9bec5;
+}
+
+.place-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-group + .place-group {
+  padding-top: 12px;
+  border-top: 1px solid #f0f1f3;
+}
+
+.group-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.group-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.group-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #191b1e;
+}
+
+.group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px 0 8px;
+  border: none;
+  border-radius: 999px;
+  background: #f4f5f7;
+  font-size: 11px;
+  font-weight: 800;
+  color: #6b7077;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.group-count.open {
   background: #ffbc00;
   color: #191b1e;
 }
 
-.toggle-chevron {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  transform: rotate(0deg);
-  transition: transform 0.22s ease;
-}
-
-.toggle-chevron.open {
+.group-count-chevron {
+  width: 12px;
+  height: 12px;
   transform: rotate(90deg);
+  transition: transform 0.2s ease;
 }
 
-.toggle-panel {
+.group-count.open .group-count-chevron {
+  transform: rotate(-90deg);
+}
+
+.place-panel {
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.28s ease;
 }
 
-.toggle-group.open .toggle-panel {
+.place-panel.open {
   grid-template-rows: 1fr;
 }
 
-.toggle-body {
+.place-list {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 4px 8px 14px;
-  margin: 0 6px 4px;
-  border-left: 2px solid #eceff3;
 }
 
-.policy-item {
-  margin: 0;
-  padding: 8px 6px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #4a4e55;
-  display: flex;
-  flex-wrap: wrap;
+.place-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.9fr) minmax(150px, 1.3fr);
   align-items: center;
-  gap: 6px;
-  opacity: 0;
-  transform: translateY(-4px);
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    background-color 0.2s ease;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f4f5f7;
 }
 
-.toggle-group.open .policy-item {
-  opacity: 1;
-  transform: none;
+.place-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
-.toggle-group.open .policy-item:nth-child(1) { transition-delay: 0.02s; }
-.toggle-group.open .policy-item:nth-child(2) { transition-delay: 0.04s; }
-.toggle-group.open .policy-item:nth-child(3) { transition-delay: 0.06s; }
-.toggle-group.open .policy-item:nth-child(4) { transition-delay: 0.08s; }
-.toggle-group.open .policy-item:nth-child(5) { transition-delay: 0.1s; }
-.toggle-group.open .policy-item:nth-child(n + 6) { transition-delay: 0.12s; }
-
-.policy-item:hover {
-  background: #f8fafc;
-  color: #191b1e;
-}
-
-.flat-group {
+.place-name {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.flat-item {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
   margin: 0;
-  padding: 6px 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #191b1e;
+}
+
+.place-btns {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 6px;
+}
+
+.status-btn {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 999px;
+  background-color: #f4f5f7;
+  color: #8b9097;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.group-btns .status-btn {
+  height: 32px;
+  font-size: 12px;
+}
+
+.active-allow {
+  background-color: #34c759;
+  color: #ffffff;
+}
+
+.active-caution {
+  background-color: #ff9500;
+  color: #ffffff;
+}
+
+.active-block {
+  background-color: #ff3b30;
+  color: #ffffff;
 }
 
 .temp-deadline {
@@ -1341,24 +1643,10 @@ watch(
   color: #ff9500;
 }
 
-.policy-badge.allow,
-.policy-label.allow {
-  color: #34c759;
-}
-
-.policy-badge.caution,
-.policy-label.caution {
-  color: #ff9500;
-}
-
-.policy-badge.block,
-.policy-label.block {
-  color: #ff3b30;
-}
-
 .empty-policy {
   margin: 0;
-  padding-left: 8px;
+  padding: 18px 4px;
+  text-align: center;
   font-size: 13px;
   color: #b9bec5;
 }
@@ -1373,97 +1661,6 @@ watch(
   text-align: center;
   color: #8b9097;
   font-size: 14px;
-}
-
-.list-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 92px;
-  padding: 14px 14px 14px 12px;
-  border: 1px solid #eaedf1;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.list-card:hover {
-  border-color: #dce3ee;
-  background: #fbfcfe;
-  box-shadow: 0 8px 18px rgba(21, 23, 27, 0.06);
-  transform: translateY(-1px);
-}
-
-.list-card:active {
-  transform: scale(0.99);
-}
-
-.list-card-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  border-radius: 14px;
-  background: #eff6ff;
-}
-
-.list-card-icon-img {
-  width: 22px;
-  height: 22px;
-}
-
-.list-card-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-
-.list-card-badge {
-  padding: 3px 7px;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.list-card-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
-  line-height: 1.3;
-}
-
-.list-card-sub {
-  font-size: 11px;
-  font-weight: 600;
-  color: #8b9097;
-  line-height: 1.35;
-}
-
-.chevron-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.list-card:hover .chevron-icon {
-  transform: translateX(2px);
 }
 
 .request-section {
@@ -1501,15 +1698,6 @@ watch(
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.15s ease;
-}
-
-.chip:active {
-  transform: scale(0.97);
 }
 
 .chip.off {
@@ -1713,6 +1901,41 @@ watch(
 
 .btn:disabled {
   opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.footer {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0) 0%,
+    #f8fafc 28%
+  );
+}
+
+.submit-btn {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 16px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 </style>

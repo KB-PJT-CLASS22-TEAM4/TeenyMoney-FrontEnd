@@ -53,6 +53,26 @@
     </div>
 
 
+    <div class="grade-filter">
+      <button
+        v-for="tab in gradeTabs"
+        :key="tab.value"
+        class="grade-chip"
+        :class="[
+          tab.tone,
+          { on: policyFilter === tab.value },
+        ]"
+        type="button"
+        @click="policyFilter = tab.value"
+      >
+        {{ tab.label }}
+        <span class="grade-chip-count">
+          {{ tab.count }}
+        </span>
+      </button>
+    </div>
+
+
     <!-- 로딩 -->
     <div
       v-if="isLoading"
@@ -82,43 +102,27 @@
         v-for="group in filteredGroups"
         :key="group.name"
         class="place-group"
-        :class="{
-          nested: !isFlatGroup(group),
-          open: isFlatGroup(group) || isGroupExpanded(group.name),
-        }"
       >
         <div
           v-if="!isFlatGroup(group)"
           class="group-head"
         >
-          <button
-            class="toggle-header"
-            type="button"
-            :aria-expanded="isGroupExpanded(group.name)"
-            @click="toggleGroup(group.name)"
-          >
+          <div class="group-title-row">
             <p class="group-title">
               {{ group.name }}
             </p>
-            <span class="toggle-count">
+            <span class="group-count">
               {{ group.items.length }}
             </span>
-            <img
-              src="@/assets/icons/icon-chevron.svg"
-              alt=""
-              class="toggle-chevron"
-              :class="{ open: isGroupExpanded(group.name) }"
-            />
-          </button>
+          </div>
 
           <div class="place-btns group-btns">
             <button
               class="status-btn"
               type="button"
               :class="{ 'active-allow': isGroupAllowActive(group) }"
-              @click.stop="setGroupStatus(group.name, 'ALLOW')"
+              @click="setGroupStatus(group, 'ALLOW')"
             >
-              <span v-if="isGroupAllowActive(group)">✓</span>
               허용
             </button>
 
@@ -126,9 +130,8 @@
               class="status-btn"
               type="button"
               :class="{ 'active-caution': isGroupCautionActive(group) }"
-              @click.stop="setGroupStatus(group.name, 'WATCH')"
+              @click="setGroupStatus(group, 'WATCH')"
             >
-              <span v-if="isGroupCautionActive(group)">✓</span>
               주의
             </button>
 
@@ -136,67 +139,56 @@
               class="status-btn"
               type="button"
               :class="{ 'active-block': isGroupBlockActive(group) }"
-              @click.stop="setGroupStatus(group.name, 'BLOCK')"
+              @click="setGroupStatus(group, 'BLOCK')"
             >
-              <span v-if="isGroupBlockActive(group)">✓</span>
               차단
             </button>
           </div>
         </div>
 
-        <div
-          class="toggle-panel"
-          :class="{
-            open: isFlatGroup(group) || isGroupExpanded(group.name),
-          }"
-        >
-          <div class="toggle-body">
-            <div
-              v-for="place in group.items"
-              :key="place.id"
-              class="place-card"
-            >
-              <p class="place-name">
-                {{ place.categoryName }}
-                <span
-                  v-if="isTemporaryAllow(place)"
-                  class="temp-deadline"
-                >
-                  {{ formatAllowDeadline() }}
-                </span>
-              </p>
+        <div class="place-list">
+          <div
+            v-for="place in group.items"
+            :key="place.id"
+            class="place-row"
+          >
+            <p class="place-name">
+              {{ place.categoryName }}
+              <span
+                v-if="isTemporaryAllow(place)"
+                class="temp-deadline"
+              >
+                오늘만
+              </span>
+            </p>
 
-              <div class="place-btns">
-                <button
-                  class="status-btn"
-                  type="button"
-                  :class="{ 'active-allow': isAllowActive(place) }"
-                  @click="setStatus(place.id, 'ALLOW')"
-                >
-                  <span v-if="isAllowActive(place)">✓</span>
-                  허용
-                </button>
+            <div class="place-btns">
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-allow': isAllowActive(place) }"
+                @click="setStatus(place.id, 'ALLOW')"
+              >
+                허용
+              </button>
 
-                <button
-                  class="status-btn"
-                  type="button"
-                  :class="{ 'active-caution': isCautionActive(place) }"
-                  @click="setStatus(place.id, 'WATCH')"
-                >
-                  <span v-if="isCautionActive(place)">✓</span>
-                  주의
-                </button>
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-caution': isCautionActive(place) }"
+                @click="setStatus(place.id, 'WATCH')"
+              >
+                주의
+              </button>
 
-                <button
-                  class="status-btn"
-                  type="button"
-                  :class="{ 'active-block': isBlockActive(place) }"
-                  @click="setStatus(place.id, 'BLOCK')"
-                >
-                  <span v-if="isBlockActive(place)">✓</span>
-                  차단
-                </button>
-              </div>
+              <button
+                class="status-btn"
+                type="button"
+                :class="{ 'active-block': isBlockActive(place) }"
+                @click="setStatus(place.id, 'BLOCK')"
+              >
+                차단
+              </button>
             </div>
           </div>
         </div>
@@ -208,7 +200,7 @@
         v-if="filteredGroups.length === 0"
         class="empty-box"
       >
-        검색 결과가 없습니다.
+        {{ emptyFilterText }}
       </div>
     </div>
 
@@ -305,30 +297,72 @@ const allPlaces = computed(() =>
   parentGroups.value.flatMap((group) => group.items)
 )
 
+const policyFilter = ref('ALL')
+
+function placeGrade(place) {
+  if (isAllowActive(place)) return 'ALLOW'
+  if (isCautionActive(place)) return 'WATCH'
+  return 'BLOCK'
+}
+
+const gradeCounts = computed(() => {
+  const counts = {
+    ALL: allPlaces.value.length,
+    ALLOW: 0,
+    WATCH: 0,
+    BLOCK: 0,
+  }
+
+  allPlaces.value.forEach((place) => {
+    counts[placeGrade(place)] += 1
+  })
+
+  return counts
+})
+
+const gradeTabs = computed(() => [
+  { value: 'ALL', label: '전체', tone: '', count: gradeCounts.value.ALL },
+  { value: 'ALLOW', label: '허용', tone: 'allow', count: gradeCounts.value.ALLOW },
+  { value: 'WATCH', label: '주의', tone: 'caution', count: gradeCounts.value.WATCH },
+  { value: 'BLOCK', label: '차단', tone: 'block', count: gradeCounts.value.BLOCK },
+])
+
 const filteredGroups = computed(() => {
   const keyword = searchQuery.value.trim().toLowerCase()
-
-  if (!keyword) {
-    return parentGroups.value
-  }
+  const grade = policyFilter.value
 
   return parentGroups.value
     .map((group) => {
-      if (group.name?.toLowerCase().includes(keyword)) {
-        return group
+      let items = group.items
+
+      if (keyword) {
+        const groupMatch = group.name?.toLowerCase().includes(keyword)
+        if (!groupMatch) {
+          items = items.filter((item) =>
+            item.categoryName?.toLowerCase().includes(keyword)
+          )
+        }
+      }
+
+      if (grade !== 'ALL') {
+        items = items.filter((item) => placeGrade(item) === grade)
       }
 
       return {
         ...group,
-        items: group.items.filter((item) =>
-          item.categoryName?.toLowerCase().includes(keyword)
-        ),
+        items,
       }
     })
     .filter((group) => group.items.length > 0)
 })
 
-const expandedGroups = ref({})
+const emptyFilterText = computed(() => {
+  if (searchQuery.value.trim()) return '검색 결과가 없습니다.'
+  if (policyFilter.value === 'ALLOW') return '허용된 업종이 없습니다.'
+  if (policyFilter.value === 'WATCH') return '주의 업종이 없습니다.'
+  if (policyFilter.value === 'BLOCK') return '차단된 업종이 없습니다.'
+  return '표시할 업종이 없습니다.'
+})
 
 function isCaution(policy) {
   return policy === 'WATCH' || policy === 'CAUTION'
@@ -340,12 +374,6 @@ function isFlatGroup(group) {
 
 function getTodayEnd() {
   return new Date(startOfKstDay(new Date()).getTime() + 86400000)
-}
-
-function formatAllowDeadline(until = getTodayEnd()) {
-  const end = until instanceof Date ? until : new Date(until)
-  if (Number.isNaN(end.getTime()) || end.getTime() <= Date.now()) return ''
-  return '오늘 24:00까지 허용'
 }
 
 function parsePermissionDate(value) {
@@ -465,33 +493,6 @@ async function fetchApprovedPermissions() {
     console.error('오늘만 허용 승인 내역 조회 실패:', error)
     approvedPermissions.value = []
   }
-}
-
-
-function isGroupExpanded(name) {
-  if (searchQuery.value.trim()) return true
-  if (Object.prototype.hasOwnProperty.call(expandedGroups.value, name)) {
-    return !!expandedGroups.value[name]
-  }
-  const group = filteredGroups.value.find((item) => item.name === name)
-  return !!group?.items.some((item) => isTemporaryAllow(item))
-}
-
-function toggleGroup(name) {
-  if (searchQuery.value.trim()) return
-
-  const willOpen = !isGroupExpanded(name)
-  const next = { ...expandedGroups.value }
-
-  if (willOpen) {
-    filteredGroups.value.forEach((group) => {
-      if (isFlatGroup(group)) return
-      next[group.name] = group.name === name
-    })
-  }
-
-  next[name] = willOpen
-  expandedGroups.value = next
 }
 
 
@@ -628,11 +629,13 @@ function setStatus(id, policy) {
   )
 }
 
-function setGroupStatus(groupName, policy) {
-  const group = parentGroups.value.find((item) => item.name === groupName)
-  if (!group) return
+function setGroupStatus(group, policy) {
+  const visibleIds = new Set(group.items.map((item) => item.id))
+  const source = parentGroups.value.find((item) => item.name === group.name)
+  if (!source) return
 
-  group.items.forEach((place) => {
+  source.items.forEach((place) => {
+    if (!visibleIds.has(place.id)) return
     place.policy = policy
     place.userOverride = true
   })
@@ -890,7 +893,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 16px 16px;
+  margin: 0 16px 10px;
   padding: 0 14px;
   height: 44px;
   border-radius: 12px;
@@ -915,6 +918,74 @@ onMounted(() => {
 
 .search-input::placeholder {
   color: #b9bec5;
+}
+
+.grade-filter {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 0 16px 14px;
+}
+
+.grade-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: 52px;
+  padding: 0 4px;
+  border: 1.3px solid #e7e9ec;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #6b7077;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.grade-chip-count {
+  font-size: 15px;
+  font-weight: 800;
+  color: #191b1e;
+  line-height: 1;
+}
+
+.grade-chip.on {
+  border-color: #ffbc00;
+  background: #fff8e1;
+  color: #191b1e;
+}
+
+.grade-chip.allow.on {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.grade-chip.allow.on .grade-chip-count {
+  color: #16a34a;
+}
+
+.grade-chip.caution.on {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.grade-chip.caution.on .grade-chip-count {
+  color: #ea580c;
+}
+
+.grade-chip.block.on {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.grade-chip.block.on .grade-chip-count {
+  color: #dc2626;
 }
 
 
@@ -948,7 +1019,7 @@ onMounted(() => {
 .content {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
   padding: 0 16px;
 }
 
@@ -956,179 +1027,112 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 2px 0;
-  border-radius: 18px;
-  transition:
-    background-color 0.22s ease,
-    padding 0.22s ease;
-}
-
-.place-group.nested.open {
-  padding: 10px 8px 8px;
-  background: #f6f7f9;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #eaedf1;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .group-head {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.group-btns {
-  padding: 0 2px 2px;
-}
-
-.toggle-header {
+.group-title-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 10px 8px;
-  border: none;
-  border-radius: 12px;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.toggle-header:active {
-  background: #eceff3;
-}
-
-.place-group.open .toggle-header {
-  background: #ffffff;
 }
 
 .group-title {
   flex: 1;
   min-width: 0;
   margin: 0;
-  text-align: left;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 800;
   color: #191b1e;
 }
 
-.toggle-count {
+.group-count {
   flex-shrink: 0;
   min-width: 20px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: #eceff3;
+  background: #f4f5f7;
   font-size: 11px;
   font-weight: 700;
   color: #6b7077;
   line-height: 16px;
   text-align: center;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
 }
 
-.place-group.open .toggle-count {
-  background: #ffbc00;
-  color: #191b1e;
+.group-btns {
+  padding: 0;
 }
 
-.toggle-chevron {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  transform: rotate(0deg);
-  transition: transform 0.22s ease;
-}
-
-.toggle-chevron.open {
-  transform: rotate(90deg);
-}
-
-.toggle-panel {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s ease;
-}
-
-.toggle-panel.open {
-  grid-template-rows: 1fr;
-}
-
-.toggle-body {
-  overflow: hidden;
+.place-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  border-top: 1px solid #f0f1f3;
 }
 
-.place-card {
-  padding: 14px;
-  border-radius: 16px;
-  border: 1px solid #eaedf1;
-  background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-  opacity: 0;
-  transform: translateY(-6px);
-  transition:
-    opacity 0.22s ease,
-    transform 0.22s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+.place-row {
+  display: grid;
+  grid-template-columns: minmax(76px, 0.9fr) minmax(168px, 1.3fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f4f5f7;
 }
 
-.toggle-panel.open .place-card {
-  opacity: 1;
-  transform: none;
+.place-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
-
-.toggle-panel.open .place-card:nth-child(1) { transition-delay: 0.02s; }
-.toggle-panel.open .place-card:nth-child(2) { transition-delay: 0.05s; }
-.toggle-panel.open .place-card:nth-child(3) { transition-delay: 0.08s; }
-.toggle-panel.open .place-card:nth-child(4) { transition-delay: 0.11s; }
-.toggle-panel.open .place-card:nth-child(5) { transition-delay: 0.14s; }
-.toggle-panel.open .place-card:nth-child(n + 6) { transition-delay: 0.16s; }
 
 .place-name {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 8px;
-  font-size: 15px;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
   font-weight: 700;
+  color: #191b1e;
 }
 
 .temp-deadline {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #ff9500;
 }
 
 .place-btns {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .status-btn {
   flex: 1;
   min-width: 0;
-  height: 40px;
+  height: 32px;
   padding: 0 4px;
   border: none;
-  border-radius: 24px;
+  border-radius: 999px;
   background-color: #f4f5f7;
   color: #8b9097;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.15s ease;
 }
 
-.status-btn:active {
-  transform: scale(0.97);
+.group-btns .status-btn {
+  height: 34px;
 }
 
 .active-allow {
