@@ -24,17 +24,18 @@
         <span class="corner bl"></span>
         <span class="corner br"></span>
       </div>
+
+      <button class="show-qr-link" type="button" @click="goShowQr">
+        QR코드 보여주기
+      </button>
     </main>
 
-    <!-- 하단 액션 영역 (원형 닫기 버튼 + QR코드 보여주기 버튼) -->
+    <!-- 하단 액션 영역 (원형 닫기 버튼만 중앙 배치) -->
     <footer class="bottom-action-group">
       <button class="close-action-btn" type="button" @click="closeScan" aria-label="닫기">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
           <path d="M18 6L6 18M6 6l12 12" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-      </button>
-      <button class="cta-show-qr" type="button" @click="goShowQr">
-        QR코드 보여주기
       </button>
     </footer>
 
@@ -279,11 +280,11 @@ function onError(err) {
   100% { top: 268px; opacity: 0; }
 }
 
-/* 하단 액션 그룹 (한 손 조작 최적화) */
+/* 하단 액션 그룹 (닫기 버튼 중앙 배치) */
 .bottom-action-group {
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 12px;
   width: 100%;
   max-width: 340px;
 }
@@ -296,7 +297,7 @@ function onError(err) {
   width: 52px;
   height: 52px;
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 16px;
+  border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
   cursor: pointer;
   flex-shrink: 0;
@@ -314,27 +315,23 @@ function onError(err) {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* QR코드 보여주기 메인 버튼 */
-.cta-show-qr {
-  flex: 1;
-  height: 52px;
+/* QR코드 보여주기 — 카메라 스캔 화면 아래 작은 밑줄 텍스트 링크 */
+.show-qr-link {
+  margin-top: -28px;
   border: none;
-  border-radius: 16px;
-  background: #ffbc00;
-  color: #191b1e;
-  font-weight: 700;
-  font-size: 15px;
+  background: none;
+  padding: 4px;
+  color: #ffbc00;
+  font-weight: 600;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-decoration-color: #ffbc00;
+  text-underline-offset: 3px;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(255, 188, 0, 0.3);
-  transition: background 0.15s ease, transform 0.1s ease;
 }
 
-.cta-show-qr:hover {
-  background: #f5b300;
-}
-
-.cta-show-qr:active {
-  transform: scale(0.98);
+.show-qr-link:active {
+  color: #f5b300;
 }
 
 /* 안내 모달 스타일 */

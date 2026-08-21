@@ -20,6 +20,9 @@ export const useAllowRequestStore = defineStore('allowRequest', () => {
   const monthlyUsedCount      = ref(0)
   const monthlyRemainingCount = ref(0)
 
+  // 카테고리별 오늘 기준 현재 상태 (AVAILABLE/PENDING/APPROVED/REJECTED/EXPIRED)
+  const categoryStatuses = ref([])
+
   function set(ids, labels, text) {
     categoryIds.value    = ids
     categoryLabels.value = labels
@@ -43,6 +46,7 @@ async function fetchTodayPermission(accessToken , childId) {
     const result = await getPermissionStatus(accessToken, childId)
     monthlyUsedCount.value      = result.data?.monthlyUsedCount ?? 0
     monthlyRemainingCount.value = result.data?.monthlyRemainingCount ?? 0
+    categoryStatuses.value      = result.data?.categories ?? []
     return result.data
   }
 
@@ -71,6 +75,7 @@ async function fetchTodayPermission(accessToken , childId) {
     categoryIds, categoryLabels, reason,
     todayPermission,
     monthlyUsedCount, monthlyRemainingCount,
+    categoryStatuses,
     set, reset,
     fetchTodayPermission, fetchPermissionStatus,
     submitPermissionRequest, editPermissionRequest, cancelPermissionRequest,
