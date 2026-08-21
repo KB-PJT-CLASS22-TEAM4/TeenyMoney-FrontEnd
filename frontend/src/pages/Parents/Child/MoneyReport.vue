@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport } from '@/api/report'
@@ -335,6 +335,15 @@ onMounted(async () => {
     fetchReport(route.query.month),
     fetchChildName(),
   ])
+})
+
+watch(childId, (id, prev) => {
+  if (!id || String(id) === String(prev)) return
+  childName.value = ''
+  report.value = null
+  selectedMonth.value = ''
+  fetchReport()
+  fetchChildName()
 })
 </script>
 

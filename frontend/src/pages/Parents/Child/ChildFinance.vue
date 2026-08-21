@@ -296,7 +296,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const alertModal = useAlertModal()
 
-const childId = Number(route.params.childId)
+const childId = computed(() => Number(route.params.childId))
 
 const childName = ref('자녀')
 const approvalRequests = ref([])
@@ -463,7 +463,7 @@ function formatPendingMeta(item) {
 async function fetchChildInfo() {
   const res = await getChildren(authStore.accessToken)
   const matched = res.data?.find(
-    (item) => Number(item.childId) === childId
+    (item) => Number(item.childId) === childId.value
   )
 
   if (matched) {
@@ -479,17 +479,17 @@ async function fetchProducts() {
     const [approvals, products, created] = await Promise.all([
       fetchChildApprovalRequests(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ),
       fetchAllChildFinancialProducts(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ),
       fetchChildCustomProducts(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ).catch(() => []),
     ])
@@ -514,7 +514,7 @@ function goApprovalDetail(item) {
   router.push({
     name: 'parents-finance-approval-detail',
     params: {
-      childId,
+      childId: childId.value,
       productType: toProductType(item),
       enrollmentId: item.enrollmentId,
     },
@@ -573,7 +573,7 @@ async function handleRejectApproval(item) {
 
 function goCreate() {
   router.push({
-    path: `/parents/children/${childId}/finance/create`,
+    path: `/parents/children/${childId.value}/finance/create`,
   })
 }
 
@@ -590,7 +590,7 @@ async function handleDeleteCustomProduct(product) {
   try {
     await financialProductsApi.deleteFinancialProduct(
       authStore.accessToken,
-      childId,
+      childId.value,
       product.productType,
       product.productId,
     )
@@ -605,7 +605,7 @@ async function handleDeleteCustomProduct(product) {
   }
 }
 
-onMounted(async () => {
+async function loadFinance() {
   if (!authStore.accessToken) {
     authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
     return
@@ -615,7 +615,18 @@ onMounted(async () => {
     fetchChildInfo(),
     fetchProducts(),
   ])
+}
+
+watch(childId, (id, prev) => {
+  if (!Number.isFinite(id) || id === prev) return
+  searchKeyword.value = ''
+  customOpen.value = false
+  activeCategory.value = '전체'
+  childName.value = '자녀'
+  loadFinance()
 })
+
+onMounted(loadFinance)
 </script>
 
 <style scoped>
