@@ -54,20 +54,29 @@
                 v-for="item in group.items"
                 :key="item.key"
               >
-                <button
+                <component
+                  :is="item.displayOnly ? 'div' : 'button'"
                   class="menu-item"
                   :class="{
                     active: isActive(item),
                     picking: selectingFor === item.key,
+                    static: item.displayOnly,
                   }"
-                  type="button"
-                  @click="handleItem(item)"
+                  :type="item.displayOnly ? undefined : 'button'"
+                  @click="item.displayOnly ? undefined : handleItem(item)"
                 >
                   <MenuIcon :name="item.icon" />
                   <span class="item-label">
                     {{ item.label }}
                   </span>
-                </button>
+                  <span
+                    v-if="item.key === 'password'"
+                    class="status-pill"
+                    :class="hasPaymentPassword ? 'on' : 'off'"
+                  >
+                    {{ hasPaymentPassword ? '등록됨' : '미등록' }}
+                  </span>
+                </component>
 
                 <div
                   v-if="selectingFor === item.key"
@@ -124,6 +133,7 @@
         </aside>
       </div>
     </div>
+    <AlertHost :modal="alertModal" />
   </Teleport>
 </template>
 
@@ -133,8 +143,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
 import { getMyInfo } from '@/api/member'
+import { logout as logoutApi } from '@/api/auth'
 import { useParentMenu } from '@/composables/useParentMenu'
+import { useAlertModal } from '@/composables/useAlertModal'
 import MenuIcon from '@/components/MenuIcon.vue'
+import AlertHost from '@/components/AlertHost.vue'
 import {
   PARENT_PROFILE_IMAGE,
   resolveProfileImageUrl,
@@ -144,12 +157,14 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const { isOpen, closeMenu: closeDrawer } = useParentMenu()
+const alertModal = useAlertModal()
 
 const isChildrenLoading = ref(false)
 const childrenError = ref('')
 const children = ref([])
 const selectingFor = ref(null)
 const profileImageUrl = ref('')
+const hasPaymentPassword = ref(false)
 
 const displayName = computed(() => authStore.name || '보호자')
 const displayProfileImage = computed(() =>
@@ -192,6 +207,8 @@ const menuGroups = [
     title: '마이페이지',
     items: [
       { key: 'mypage', label: '마이페이지', path: '/parents/mypage', icon: 'person' },
+      { key: 'password', label: '결제 비밀번호', icon: 'lock', displayOnly: true },
+      { key: 'logout', label: '로그아웃', action: 'logout', icon: 'logout' },
     ],
   },
 ]
@@ -231,14 +248,17 @@ function closeMenu() {
 async function fetchProfile() {
   if (!authStore.accessToken) {
     profileImageUrl.value = ''
+    hasPaymentPassword.value = false
     return
   }
 
   try {
     const data = await getMyInfo(authStore.accessToken)
     profileImageUrl.value = data?.profileImageUrl || ''
+    hasPaymentPassword.value = Boolean(data?.hasPaymentPassword)
   } catch {
     profileImageUrl.value = ''
+    hasPaymentPassword.value = false
   }
 }
 
@@ -275,6 +295,10 @@ function isActive(item) {
 
     if (item.path === '/parents/quest') {
       return route.path === '/parents/quest'
+    }
+
+    if (item.path === '/parents/mypage') {
+      return route.path === item.path
     }
 
     return route.path === item.path || route.path.startsWith(`${item.path}/`)
@@ -331,6 +355,15 @@ function isCurrentChild(childId) {
 }
 
 function handleItem(item) {
+  if (item.displayOnly) {
+    return
+  }
+
+  if (item.action === 'logout') {
+    handleLogout()
+    return
+  }
+
   if (!item.needsChild) {
     go(item.path)
     return
@@ -364,6 +397,27 @@ function goWithChild(childId) {
 
   const target = childTargetPath(item, childId)
   go(target.path, target.query)
+}
+
+async function handleLogout() {
+  closeMenu()
+
+  const confirmed = await alertModal.showConfirm(
+    '로그아웃하시겠습니까?'
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  try {
+    await logoutApi(authStore.accessToken)
+  } catch (error) {
+    console.error('로그아웃 요청 실패:', error)
+  } finally {
+    authStore.clearUser()
+    router.replace('/login')
+  }
 }
 </script>
 
@@ -513,7 +567,12 @@ function goWithChild(childId) {
   cursor: pointer;
 }
 
-.menu-item:active,
+.menu-item.static {
+  cursor: default;
+  pointer-events: none;
+}
+
+.menu-item:not(.static):active,
 .menu-item.active,
 .menu-item.picking {
   background: #ffffff;
@@ -522,6 +581,26 @@ function goWithChild(childId) {
 
 .item-label {
   min-width: 0;
+  flex: 1;
+}
+
+.status-pill {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-pill.on {
+  background: #ffbc00;
+  color: #191b1e;
+}
+
+.status-pill.off {
+  border: 1px solid #e8eaee;
+  background: #ffffff;
+  color: #8b9097;
 }
 
 .child-picker {

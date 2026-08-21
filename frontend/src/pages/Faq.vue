@@ -65,7 +65,6 @@
           rel="noopener noreferrer"
         >
           <div class="contact-text">
-            <p class="contact-title">1 : 1 문의하기</p>
             <p class="contact-url">{{ contactUrl }}</p>
           </div>
           <span class="faq-chevron">›</span>
