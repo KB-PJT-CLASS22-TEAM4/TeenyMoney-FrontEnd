@@ -17,7 +17,6 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => Boolean(accessToken.value));
 
   function setUser(data) {
-    sessionExpired = false;
     inflight = null;
     lastRefreshOkAt = Date.now();
 
@@ -91,17 +90,10 @@ export const useAuthStore = defineStore('auth', () => {
   // 홈에서 4개 요청이 동시에 401을 받으면 재발급도 4번 날아간다.
   // 서버가 refresh를 회전시키므로 두 번째부터는 실패한다. 한 번만 보낸다.
   let inflight = null;
-  let sessionExpired = false;
   let lastRefreshOkAt = 0;
   const REFRESH_COALESCE_MS = 5000;
 
   async function refreshAccessToken() {
-    if (sessionExpired) {
-      const error = new Error('reissue failed');
-      error.status = 401;
-      throw error;
-    }
-
     if (inflight) {
       return inflight;
     }
@@ -123,12 +115,6 @@ export const useAuthStore = defineStore('auth', () => {
         lastRefreshOkAt = Date.now();
         return token;
       })
-      .catch((error) => {
-        if (error?.status === 401) {
-          sessionExpired = true;
-        }
-        throw error;
-      })
       .finally(() => {
         inflight = null;
       });
@@ -142,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await refreshAccessToken();
     } catch (error) {
-      if (error?.status === 401 || sessionExpired) {
+      if (error?.status === 401) {
         clearUser();
         openLoginModal(message);
       }

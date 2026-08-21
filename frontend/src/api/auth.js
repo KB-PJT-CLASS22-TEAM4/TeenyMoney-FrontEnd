@@ -126,17 +126,25 @@ export async function logout(accessToken) {
   return result ?? { success: true }
 }
 
-// 재발급: refresh는 쿠키로 가고, 새 access를 받아온다. CSRF 대상 경로다.
+// 재발급: 명세는 파라미터 없음. refresh는 쿠키로 보내고 새 access만 받는다.
 export async function reissue() {
-  const csrfToken = await getCsrfToken();
+  const headers = {
+    Accept: 'application/json',
+  }
+
+  try {
+    const csrfToken = await getCsrfToken()
+    if (csrfToken) {
+      headers['X-XSRF-TOKEN'] = csrfToken
+    }
+  } catch {
+    // CSRF를 못 받아도 쿠키만으로 재발급을 시도한다.
+  }
 
   const res = await fetch(`${BASE_URL}/reissue`, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      'X-XSRF-TOKEN': csrfToken,
-    },
+    headers,
   });
 
   const result = await parseJsonSafe(res);

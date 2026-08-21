@@ -1145,9 +1145,9 @@ async function handleChange() {
 
   padding: 16px;
 
-  background-color: #ffffff;
+  background-color: transparent;
 
-  border: 1px solid #f0f1f3;
+  border: 1.5px dashed #c5c9ce;
 
   border-radius: 16px;
 

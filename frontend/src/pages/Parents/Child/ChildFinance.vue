@@ -71,9 +71,10 @@
             :aria-expanded="customOpen"
             @click="customOpen = !customOpen"
           >
-            <p class="group-title">
-              등록한 상품 {{ filteredCustomProducts.length }}
-            </p>
+            <span class="group-block">
+              <span class="group-block-label">등록한 상품</span>
+              <span class="count-badge">{{ filteredCustomProducts.length }}</span>
+            </span>
             <img
               src="@/assets/icons/icon-chevron.svg"
               alt=""
@@ -134,14 +135,20 @@
           class="pending-section"
         >
           <p class="pending-heading">
-            처리 필요
-            <span class="pending-count">{{ pendingApprovals.length }}</span>
+            <span class="group-block">
+              <span class="group-block-label">처리 필요</span>
+              <span class="count-badge">{{ pendingApprovals.length }}</span>
+            </span>
           </p>
 
           <div
             v-for="item in pendingApprovals"
             :key="item.enrollmentId"
-            class="pending-card"
+            class="pending-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
           >
             <div class="pending-top">
               <p class="pending-title">{{ item.title }}</p>
@@ -154,7 +161,7 @@
               <button
                 class="detail-btn"
                 type="button"
-                @click="goApprovalDetail(item)"
+                @click.stop="goApprovalDetail(item)"
               >
                 상세보기
               </button>
@@ -162,7 +169,7 @@
                 class="reject-btn"
                 type="button"
                 :disabled="processingKey === item.enrollmentId"
-                @click="handleRejectApproval(item)"
+                @click.stop="handleRejectApproval(item)"
               >
                 거절
               </button>
@@ -170,7 +177,7 @@
                 class="approve-btn"
                 type="button"
                 :disabled="processingKey === item.enrollmentId"
-                @click="handleApproveApproval(item)"
+                @click.stop="handleApproveApproval(item)"
               >
                 {{ processingKey === item.enrollmentId ? '처리 중...' : '승인' }}
               </button>
@@ -179,7 +186,12 @@
         </section>
 
         <template v-for="group in groupedActiveProducts" :key="group.label">
-          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+          <p class="group-title">
+            <span class="group-block">
+              <span class="group-block-label">{{ group.label }}</span>
+              <span class="count-badge">{{ group.items.length }}</span>
+            </span>
+          </p>
 
           <div
             v-for="product in group.items"
@@ -223,7 +235,10 @@
           class="completed-list"
         >
           <p class="group-title">
-            처리 완료 {{ filteredCompletedApprovals.length }}
+            <span class="group-block">
+              <span class="group-block-label">처리 완료</span>
+              <span class="count-badge">{{ filteredCompletedApprovals.length }}</span>
+            </span>
           </p>
 
           <div
@@ -703,14 +718,10 @@ onMounted(loadFinance)
 .pending-heading {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
 }
 
-.pending-count {
+.count-badge {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
@@ -723,6 +734,23 @@ onMounted(loadFinance)
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
+}
+
+.group-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.group-block-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+  line-height: 1.2;
 }
 
 .child-info-left {
@@ -975,16 +1003,12 @@ onMounted(loadFinance)
 .custom-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin: 0 0 10px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-}
-
-.custom-toggle .group-title {
-  margin: 0;
 }
 
 .custom-chevron {
@@ -1000,10 +1024,9 @@ onMounted(loadFinance)
 }
 
 .group-title {
+  display: flex;
+  align-items: center;
   margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
 }
 
 .custom-section {

@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/auth'
 import {
+  isAuthApiUrl,
   shouldAttemptTokenReissue,
   shouldOmitLoginSession,
 } from '@/utils/authSession'
@@ -34,14 +35,14 @@ function withoutLoginSession(input, init = {}) {
   }
 }
 
-function withAccessToken(init = {}, token) {
+function withAccessToken(init = {}, token, extra = {}) {
   const headers = new Headers(init.headers || {})
   headers.set('Authorization', `Bearer ${token}`)
 
   return {
     ...init,
+    ...extra,
     headers,
-    __authRetried: true,
   }
 }
 
@@ -53,16 +54,26 @@ export function setupFetchAuthInterceptor() {
     const alreadyRetried = init.__authRetried === true
     const safeInit = { ...init }
     delete safeInit.__authRetried
-    const nextInit = shouldOmitLoginSession(url)
+
+    let nextInit = shouldOmitLoginSession(url)
       ? withoutLoginSession(input, safeInit)
       : safeInit
+
+    const authStore = useAuthStore()
+
+    if (
+      !shouldOmitLoginSession(url)
+      && isAuthApiUrl(url)
+      && authStore.accessToken
+    ) {
+      nextInit = withAccessToken(nextInit, authStore.accessToken)
+    }
+
     const response = await originalFetch(input, nextInit)
 
     if (alreadyRetried || !shouldAttemptTokenReissue(response, url)) {
       return response
     }
-
-    const authStore = useAuthStore()
 
     if (!authStore.isAuthenticated) {
       authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
@@ -72,10 +83,13 @@ export function setupFetchAuthInterceptor() {
     try {
       const token = await authStore.refreshAccessToken()
       const retryInput = input instanceof Request ? input.url : input
-      return originalFetch(retryInput, withAccessToken(nextInit, token))
+      return originalFetch(
+        retryInput,
+        withAccessToken(nextInit, token, { __authRetried: true }),
+      )
     } catch (error) {
       if (error?.status === 401) {
-        authStore.handleUnauthorized(
+        await authStore.handleUnauthorized(
           '로그인이 만료되었습니다.\n다시 로그인해 주세요.',
         )
       }

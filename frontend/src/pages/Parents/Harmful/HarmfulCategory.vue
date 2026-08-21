@@ -392,7 +392,6 @@ import {
 
 import {
   getPermissions,
-  getPermissionHistory,
   approvePermission,
   rejectPermission
 } from '@/api/permissions'
@@ -944,35 +943,13 @@ async function fetchPermissions() {
   isPermissionLoading.value = true
 
   try {
-    const [permRes, historyRes] = await Promise.allSettled([
-      getPermissions(
-        authStore.accessToken,
-        childId.value
-      ),
-      getPermissionHistory(
-        authStore.accessToken,
-        childId.value
-      ),
-    ])
-
-    const fromPermissions =
-      permRes.status === 'fulfilled'
-        ? extractPermissionsList(permRes.value.data)
-        : []
-    const fromHistory =
-      historyRes.status === 'fulfilled'
-        ? extractPermissionsList(historyRes.value.data)
-        : []
-
-    const merged = new Map()
-    ;[...fromHistory, ...fromPermissions].forEach((permission) => {
-      const key = permission?.id ?? permission?.permissionId
-      if (key == null) return
-      merged.set(key, permission)
-    })
+    const res = await getPermissions(
+      authStore.accessToken,
+      childId.value
+    )
 
     permissionRequests.value = mergePermissionRequests(
-      Array.from(merged.values())
+      extractPermissionsList(res.data)
     )
 
   } catch (error) {
