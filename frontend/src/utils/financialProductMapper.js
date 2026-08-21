@@ -210,6 +210,30 @@ export function extractFinancialProductList(payload) {
   return []
 }
 
+const CUSTOM_PRODUCT_GROUPS = [
+  { keys: ['savings', 'savingProducts', 'customSavings', 'customSavingProducts'], type: 'SAVING' },
+  { keys: ['deposits', 'depositProducts', 'customDeposits', 'customDepositProducts'], type: 'DEPOSIT' },
+  { keys: ['loans', 'loanProducts', 'customLoans', 'customLoanProducts'], type: 'LOAN' },
+]
+
+export function extractCustomProductList(payload) {
+  const direct = extractFinancialProductList(payload)
+  if (direct.length) return direct
+
+  if (!payload || typeof payload !== 'object') return []
+
+  return CUSTOM_PRODUCT_GROUPS.flatMap(({ keys, type }) => {
+    for (const key of keys) {
+      if (!Array.isArray(payload[key])) continue
+      return payload[key].map((item) => ({
+        ...item,
+        productType: item?.productType ?? item?.productCategory ?? item?.category ?? type,
+      }))
+    }
+    return []
+  })
+}
+
 export async function fetchAllChildFinancialProducts(accessToken, childId, api) {
   const merged = []
 
@@ -312,39 +336,27 @@ export function normalizeCustomProduct(item, fallbackType = 'SAVING') {
   }
 }
 
-function looksLikeEnrollment(item) {
-  const enrollmentId = item?.enrollmentId
-  const productId = item?.productId ?? item?.id
-  if (enrollmentId == null || productId == null) return false
-  if (Number(enrollmentId) === Number(productId)) return false
-  return true
-}
-
 export async function fetchChildCustomProducts(accessToken, childId, api) {
-  const types = [
-    { type: 'SAVING', fallbackGetter: api.getChildSavingProducts },
-    { type: 'DEPOSIT', fallbackGetter: api.getChildDepositProducts },
-    { type: 'LOAN', fallbackGetter: api.getChildLoanProducts },
-  ]
+  async function mapItems(items, fallbackType) {
+    return items
+      .map((item) => normalizeCustomProduct(item, fallbackType))
+      .filter((item) => item.productId != null)
+  }
 
+  if (typeof api.getAllChildCustomProducts === 'function') {
+    try {
+      const res = await api.getAllChildCustomProducts(accessToken, childId)
+      return mapItems(extractCustomProductList(res.data))
+    } catch {
+      // 전체 조회가 없으면 유형별 조회로 이어간다
+    }
+  }
+
+  const types = ['SAVING', 'DEPOSIT', 'LOAN']
   const results = await Promise.allSettled(
-    types.map(async ({ type, fallbackGetter }) => {
-      let items = []
-
-      try {
-        const res = await api.getChildCustomProducts(accessToken, childId, type)
-        items = extractFinancialProductList(res.data)
-      } catch {
-        if (typeof fallbackGetter !== 'function') return []
-        const res = await fallbackGetter(accessToken, childId)
-        items = extractFinancialProductList(res.data).filter(
-          (item) => !looksLikeEnrollment(item)
-        )
-      }
-
-      return items
-        .map((item) => normalizeCustomProduct(item, type))
-        .filter((item) => item.productId != null)
+    types.map(async (type) => {
+      const res = await api.getChildCustomProducts(accessToken, childId, type)
+      return mapItems(extractCustomProductList(res.data), type)
     })
   )
 

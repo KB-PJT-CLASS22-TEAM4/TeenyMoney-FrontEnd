@@ -101,7 +101,29 @@
             </div>
 
             <div>
-              <p class="allowance-main">요청 목록 확인하기</p>
+              <p class="allowance-main">요청 목록 확인</p>
+            </div>
+          </div>
+
+          <span class="chev">›</span>
+        </button>
+
+        <button
+          class="allowance-card"
+          type="button"
+          @click="router.push({ name: 'parents-finance-create' })"
+        >
+          <div class="allowance-left">
+            <div class="allowance-icon-wrap">
+              <img
+                src="@/assets/icons/icon-wallet.svg"
+                alt=""
+                class="clock-icon wallet-icon"
+              />
+            </div>
+
+            <div>
+              <p class="allowance-main">금융 상품 추가</p>
             </div>
           </div>
 
@@ -338,7 +360,7 @@ button {
 .hero-section {
   position: relative;
   overflow: hidden;
-  padding: 36px 18px 28px;
+  padding: 0 18px 28px;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;

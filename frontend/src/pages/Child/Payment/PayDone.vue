@@ -106,7 +106,7 @@ function goHistory() {
   min-height: 730px;
   margin: 0 auto;
   background: #f8fafc;
-  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
 .body {

@@ -121,12 +121,20 @@
           <div class="pending-actions">
             <button
               type="button"
+              class="detail-btn"
+              @click.stop="goToDetail(quest.questId)"
+            >
+              상세보기
+            </button>
+
+            <button
+              type="button"
               class="reject-btn"
               :disabled="
                 processingQuestId ===
                 quest.questId
               "
-              @click="
+              @click.stop="
                 openRejectModal(
                   quest
                 )
@@ -142,7 +150,7 @@
                 processingQuestId ===
                 quest.questId
               "
-              @click="
+              @click.stop="
                 handleApprove(
                   quest
                 )
@@ -309,7 +317,7 @@
               />
             </div>
 
-            <!-- PENDING이면 목록에서도 승인 / 거절 -->
+            <!-- PENDING이면 목록에서도 상세보기 / 승인 / 거절 -->
             <div
               v-if="
                 quest.status === 'PENDING'
@@ -318,12 +326,20 @@
             >
               <button
                 type="button"
+                class="list-detail-btn"
+                @click.stop="goToDetail(quest.questId)"
+              >
+                상세보기
+              </button>
+
+              <button
+                type="button"
                 class="list-reject-btn"
                 :disabled="
                   processingQuestId ===
                   quest.questId
                 "
-                @click="
+                @click.stop="
                   openRejectModal(
                     quest
                   )
@@ -339,7 +355,7 @@
                   processingQuestId ===
                   quest.questId
                 "
-                @click="
+                @click.stop="
                   handleApprove(
                     quest
                   )
@@ -1759,14 +1775,16 @@ watch(
 .reject-btn,
 .approve-btn,
 .list-reject-btn,
-.list-approve-btn {
+.list-approve-btn,
+.detail-btn,
+.list-detail-btn {
   flex: 1;
 
   height: 42px;
 
   border-radius: 10px;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -1795,25 +1813,13 @@ watch(
   color: #191b1e;
 }
 
-.detail-btn {
-  width: 100%;
-  height: 38px;
+.detail-btn,
+.list-detail-btn {
+  border: 1px solid #e0e2e6;
 
-  margin-top: 8px;
+  background: #ffffff;
 
-  border: none;
-  border-radius: 9px;
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.85
-    );
-
-  font-size: 13px;
-  font-weight: 700;
+  color: #191b1e;
 }
 
 

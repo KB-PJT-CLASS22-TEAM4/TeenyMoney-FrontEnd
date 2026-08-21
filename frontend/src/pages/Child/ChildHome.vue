@@ -103,7 +103,7 @@
               </div>
 
               <div class="allow-card-name">{{ item.label }}</div>
-              
+
               <!-- 안내 메시지 및 남은 시간 표시 -->
               <div class="allow-card-sub">
                 <template v-if="item.status === 'APPROVED'">
@@ -128,11 +128,11 @@
             </div>
 
             <!-- 상태별 캐릭터 이미지 -->
-            <img 
+            <img
               v-if="getMascotImage(item.status)"
-              :src="getMascotImage(item.status)" 
-              class="allow-mascot" 
-              alt="티니" 
+              :src="getMascotImage(item.status)"
+              class="allow-mascot"
+              alt="티니"
             />
           </div>
 
@@ -196,7 +196,7 @@
           <span class="finance-title">내 금융</span>
           <span class="finance-all">전체보기 ›</span>
         </div>
-        
+
         <template v-if="finances.length > 0">
           <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
             <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
@@ -211,7 +211,7 @@
             ></span>
           </div>
         </template>
-        
+
         <div v-else class="finance-empty" @click="goFinance" style="cursor: pointer;">
           <p class="empty-title">가입된 금융 상품이 없어요</p>
           <span class="empty-link">새로운 금융 상품 둘러보기 ›</span>
@@ -221,14 +221,14 @@
       <!-- 최근 이용내역 -->
       <section class="history">
         <div class="history-head" @click="goPayment" style="cursor: pointer;">
-          <span class="history-title">최근 거래내역</span>
+          <span class="history-title">최근 이용내역</span>
           <img
             src="@/assets/icons/icon-chevron.svg"
             alt=""
             class="chevron-icon"
           />
         </div>
-        
+
         <template v-if="transactions.length > 0">
           <div v-for="t in transactions" :key="t.id" class="tx-item">
             <div class="tx-info">

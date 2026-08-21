@@ -189,7 +189,7 @@ function handleGoogleLogin() {
   height: 730px;
   margin: 0 auto;
   background: #ffffff;
-  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   overflow: hidden;
 }
  
