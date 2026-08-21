@@ -178,54 +178,45 @@
           </div>
         </section>
 
-<<<<<<< HEAD
         <template v-for="group in groupedActiveProducts" :key="group.label">
-=======
-        <template v-if="showEnrolledProducts">
-          <template v-for="group in groupedActiveProducts" :key="group.label">
->>>>>>> 64e4e45e864064ef714bc6efd57c84d2907c12fb
-            <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
 
-            <div
-              v-for="product in group.items"
-              :key="product.enrollmentId"
-              class="product-card"
-            >
-              <div class="product-head">
-                <div class="product-title-wrap">
-                  <span class="origin-badge enrolled">가입</span>
-                  <p class="product-title">{{ product.title }}</p>
-                </div>
-                <span class="product-rate">{{ product.rateText }}</span>
+          <div
+            v-for="product in group.items"
+            :key="product.enrollmentId"
+            class="product-card"
+          >
+            <div class="product-head">
+              <div class="product-title-wrap">
+                <span class="origin-badge enrolled">가입</span>
+                <p class="product-title">{{ product.title }}</p>
               </div>
-
-              <p class="product-amount-label">
-                누적 금액
-                <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
-              </p>
-
-              <div class="progress-bar-bg">
-                <div
-                  class="progress-bar-fill"
-                  :style="{ width: product.progress + '%' }"
-                ></div>
-              </div>
-
-              <div class="product-foot">
-                <span>
-                  {{ product.periodMonths }}개월
-                  <template v-if="product.totalPayments">
-                    ({{ product.paymentCount }}회납)
-                  </template>
-                </span>
-                <span>만기 {{ product.maturityDate }}</span>
-              </div>
+              <span class="product-rate">{{ product.rateText }}</span>
             </div>
-          </template>
-<<<<<<< HEAD
-=======
+
+            <p class="product-amount-label">
+              누적 금액
+              <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
+            </p>
+
+            <div class="progress-bar-bg">
+              <div
+                class="progress-bar-fill"
+                :style="{ width: product.progress + '%' }"
+              ></div>
+            </div>
+
+            <div class="product-foot">
+              <span>
+                {{ product.periodMonths }}개월
+                <template v-if="product.totalPayments">
+                  ({{ product.paymentCount }}회납)
+                </template>
+              </span>
+              <span>만기 {{ product.maturityDate }}</span>
+            </div>
+          </div>
         </template>
->>>>>>> 64e4e45e864064ef714bc6efd57c84d2907c12fb
 
         <section
           v-if="showEnrolledProducts && filteredCompletedApprovals.length"
@@ -258,9 +249,7 @@
         </section>
 
         <div
-          v-if="
-            !hasVisibleProducts
-          "
+          v-if="!hasVisibleProducts"
           class="empty-box"
         >
           {{ emptyCategoryMessage }}
@@ -466,8 +455,8 @@ function mergeApprovalRequests(approvals, products) {
 
   return Array.from(merged.values())
 }
-function formatPendingMeta(item) {
 
+function formatPendingMeta(item) {
   const parts = []
 
   if (item.requestedAmount) {
@@ -634,9 +623,9 @@ async function handleDeleteCustomProduct(product) {
 
 onMounted(async () => {
   if (!authStore.accessToken) {
-      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
-      return
-    }
+    authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+    return
+  }
 
   await Promise.all([
     fetchChildInfo(),
@@ -665,7 +654,6 @@ onMounted(async () => {
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
   background: #ffffff;
-
 }
 
 .back-btn {
