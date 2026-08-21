@@ -118,7 +118,7 @@
         </section>
 
         <section class="section">
-          <label class="input-label">총 목표금액 (최소 1만원)</label>
+          <label class="input-label">첫 저축액 (최소 1만원)</label>
           <div class="amount-input-wrap" :class="{ hasValue: savingsForm.amount > 0, error: Boolean(savingsAmountError) }">
             <input
               type="text"
@@ -332,66 +332,49 @@
         </section>
       </template>
 
-    </div>
-
-    <!-- 하단 고정 -->
-    <footer class="footer">
-      <div class="maturity-box">
-        <div class="maturity-top">
-          <span class="maturity-label">{{ maturityLabel }}</span>
-          <span class="maturity-amount" v-if="isFormValid">
-            {{ calculatedReturn.total.toLocaleString() }}원
-          </span>
-          <span class="maturity-placeholder" v-else>금액·기간 선택 후 표시</span>
-        </div>
-        <div class="maturity-sub" v-if="isFormValid">
-          <template v-if="productCategory === 'LOAN'">
-            빌리는 금액 {{ calculatedReturn.principal.toLocaleString() }}원
-            + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
-            <template v-if="calculatedReturn.score > 0">
-              (완납하면 티니점수 +{{ calculatedReturn.score }}점)
+      <!-- 만기 수령액 + 가입 버튼 (스크롤에 포함) -->
+      <div class="footer">
+        <div class="maturity-box">
+          <div class="maturity-top">
+            <span class="maturity-label">{{ maturityLabel }}</span>
+            <span class="maturity-amount" v-if="isFormValid">
+              {{ calculatedReturn.total.toLocaleString() }}원
+            </span>
+            <span class="maturity-placeholder" v-else>금액·기간 선택 후 표시</span>
+          </div>
+          <div class="maturity-sub" v-if="isFormValid">
+            <template v-if="productCategory === 'LOAN'">
+              빌리는 금액 {{ calculatedReturn.principal.toLocaleString() }}원
+              + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
+              <template v-if="calculatedReturn.score > 0">
+                (완납하면 티니점수 +{{ calculatedReturn.score }}점)
+              </template>
             </template>
-          </template>
-          <template v-else-if="productCategory === 'SAVINGS' && isFreeSaving">
-            목표달성 기준 {{ calculatedReturn.principal.toLocaleString() }}원
-            + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
-            <template v-if="calculatedReturn.score > 0">
-              + 티니점수 {{ calculatedReturn.score }}점(매달 목표 100% 달성 시)
+            <template v-else-if="productCategory === 'SAVINGS' && isFreeSaving">
+              목표달성 기준 {{ calculatedReturn.principal.toLocaleString() }}원
+              + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
+              <template v-if="calculatedReturn.score > 0">
+                + 티니점수 {{ calculatedReturn.score }}점(매달 목표 100% 달성 시)
+              </template>
             </template>
-          </template>
-          <template v-else>
-            원금 {{ calculatedReturn.principal.toLocaleString() }}원
-            + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
-            <template v-if="calculatedReturn.score > 0">
-              + 티니점수 {{ calculatedReturn.score }}점<template v-if="productCategory === 'SAVINGS'">(정상 납입 시)</template>
+            <template v-else>
+              원금 {{ calculatedReturn.principal.toLocaleString() }}원
+              + 이자 {{ calculatedReturn.interest.toLocaleString() }}원
+              <template v-if="calculatedReturn.score > 0">
+                + 티니점수 {{ calculatedReturn.score }}점<template v-if="productCategory === 'SAVINGS'">(정상 납입 시)</template>
+              </template>
             </template>
-          </template>
+          </div>
         </div>
-      </div>
 
-      <div class="submit-wrapper">
-        <button
-          type="button" class="submit-btn"
-          :class="{ active: isFormValid && !isSubmitting }"
-          :disabled="!isFormValid || isSubmitting"
-          @click="handleSubmit"
-        >{{ isSubmitting ? '처리 중...' : submitLabel }}</button>
-      </div>
-    </footer>
-
-    <!-- 에러 / 알림 커스텀 모달 -->
-    <div v-if="errorModalVisible" class="error-backdrop" @click.self="closeErrorModal">
-      <div class="error-dialog">
-        <div class="error-icon-wrap">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 8v5M12 16.5h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
+        <div class="submit-wrapper">
+          <button
+            type="button" class="submit-btn"
+            :class="{ active: isFormValid }"
+            :disabled="!isFormValid"
+            @click="handleSubmit"
+          >{{ submitLabel }}</button>
         </div>
-        <h4 class="error-title">가입 신청 안내</h4>
-        <p class="error-desc">{{ errorMessage }}</p>
-        <button type="button" class="btn-error-confirm" @click="closeErrorModal">
-          확인
-        </button>
       </div>
     </div>
 
@@ -466,15 +449,13 @@
       @close="closeTermModal"
     />
 
-    <Chatbot :hide-for-modal="errorModalVisible || showDayPickerSheet || showTermModal" hint-text="금융 상품 가입이 어려우신가요?" />
+    <Chatbot :hide-for-modal="showDayPickerSheet || showTermModal" hint-text="금융 상품 가입이 어려우신가요?" />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { createSavingEnrollment, createLoanEnrollment, createDepositEnrollment } from '@/api/finance'
 import { getFinanceTerm } from '@/constants/financeTerms'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
@@ -482,7 +463,6 @@ import FinanceTermModal from '@/components/Child/FinanceTermModal.vue'
 
 const router = useRouter()
 const route  = useRoute()
-const authStore = useAuthStore()
 
 // 어려운 금융 용어 설명 모달 상태
 const showTermModal = ref(false)
@@ -603,21 +583,6 @@ function onAmountInput(event, form) {
   const num = raw ? parseInt(raw, 10) : 0
   form.amount = num
   event.target.value = num > 0 ? num.toLocaleString() : ''
-}
-
-const isSubmitting = ref(false)
-
-// 에러 모달 상태 관리
-const errorModalVisible = ref(false)
-const errorMessage = ref('')
-
-function showErrorModal(msg) {
-  errorMessage.value = msg || '신청에 실패했어요. 다시 시도해 주세요.'
-  errorModalVisible.value = true
-}
-
-function closeErrorModal() {
-  errorModalVisible.value = false
 }
 
 // 예금 만기 가점표
@@ -754,98 +719,61 @@ const calculatedReturn = computed(() => {
 
 const goBack = () => router.back()
 
-const handleSubmit = async () => {
-  if (!isFormValid.value || isSubmitting.value) return
+// 실제 가입 처리는 가입 확인 페이지에서 "가입 완료"를 눌렀을 때 이루어진다.
+// 이 화면에서는 입력한 내용을 확인 페이지로 넘기기만 한다.
+const handleSubmit = () => {
+  if (!isFormValid.value) return
 
-  isSubmitting.value = true
-  try {
-    if (productCategory.value === 'SAVINGS') {
-      const result = await createSavingEnrollment(authStore.accessToken, {
+  if (productCategory.value === 'SAVINGS') {
+    router.push({
+      name: 'product-confirm',
+      query: {
+        category: rawCategory,
+        title: productTitle.value,
         productId: productId.value,
-        monthlyAmount: savingsForm.amount,
-        termMonths: savingsForm.period,
+        amount: savingsForm.amount,
+        period: savingsForm.period,
+        total: calculatedReturn.value.total,
+        interest: calculatedReturn.value.interest,
+        rate: productRate.value,
         autoTransfer: isFreeSaving.value ? false : savingsForm.autoTransfer,
         paymentDay: isFreeSaving.value ? 1 : savingsForm.transferDay,
-      })
-
-      router.push({
-        name: 'product-confirm',
-        query: {
-          category: rawCategory,
-          title: productTitle.value,
-          amount: savingsForm.amount,
-          period: savingsForm.period,
-          total: calculatedReturn.value.total,
-          interest: calculatedReturn.value.interest,
-          enrollmentId: result.enrollmentId,
-          appliedRate: result.expectedAppliedRate,
-          status: result.status,
-          autoTransfer: isFreeSaving.value ? false : savingsForm.autoTransfer,
-          paymentDay: isFreeSaving.value ? 1 : savingsForm.transferDay,
-          savingsType: savingsType.value,
-        },
-      })
-    } else if (productCategory.value === 'DEPOSIT') {
-      const result = await createDepositEnrollment(authStore.accessToken, {
+        savingsType: savingsType.value,
+        interestType: interestType.value || '단리',
+      },
+    })
+  } else if (productCategory.value === 'DEPOSIT') {
+    router.push({
+      name: 'product-confirm',
+      query: {
+        category: rawCategory,
+        title: productTitle.value,
         productId: productId.value,
         amount: depositForm.amount,
-        termMonths: depositForm.period,
-      })
-
-      router.push({
-        name: 'product-confirm',
-        query: {
-          category: rawCategory,
-          title: productTitle.value,
-          amount: depositForm.amount,
-          period: depositForm.period,
-          total: calculatedReturn.value.total,
-          interest: calculatedReturn.value.interest,
-          enrollmentId: result.enrollmentId,
-          appliedRate: result.expectedAppliedRate,
-          status: result.status,
-        },
-      })
-    } else if (productCategory.value === 'LOAN') {
-      const result = await createLoanEnrollment(authStore.accessToken, {
+        period: depositForm.period,
+        total: calculatedReturn.value.total,
+        interest: calculatedReturn.value.interest,
+        rate: productRate.value,
+        interestType: interestType.value || '단리',
+      },
+    })
+  } else if (productCategory.value === 'LOAN') {
+    router.push({
+      name: 'product-confirm',
+      query: {
+        category: rawCategory,
+        title: productTitle.value,
         productId: productId.value,
-        principalAmount: loanForm.amount,
-        termMonths: loanForm.period,
+        amount: loanForm.amount,
+        period: loanForm.period,
+        total: calculatedReturn.value.total,
+        interest: calculatedReturn.value.interest,
+        rate: productRate.value,
         autoTransfer: loanForm.autoTransfer,
         paymentDay: loanForm.transferDay,
-      })
-
-      if (result?.enrollmentId) {
-        try {
-          localStorage.setItem(`teeny_loan_principal_${result.enrollmentId}`, String(loanForm.amount))
-        } catch (e) {
-          console.warn('대출 원금 로컬 저장 실패:', e)
-        }
-      }
-
-      router.push({
-        name: 'product-confirm',
-        query: {
-          category: rawCategory,
-          title: productTitle.value,
-          amount: loanForm.amount,
-          period: loanForm.period,
-          total: calculatedReturn.value.total,
-          interest: calculatedReturn.value.interest,
-          enrollmentId: result.enrollmentId,
-          appliedRate: result.expectedAppliedRate,
-          status: result.status,
-          autoTransfer: loanForm.autoTransfer,
-          paymentDay: loanForm.transferDay,
-          repaymentType: route.query.repaymentType || '',
-        },
-      })
-    }
-  } catch (e) {
-    console.error('금융상품 신청 실패:', e.message)
-    showErrorModal(e.message || '신청에 실패했어요. 다시 시도해 주세요.')
-  } finally {
-    isSubmitting.value = false
+        repaymentType: route.query.repaymentType || '',
+      },
+    })
   }
 }
 </script>
@@ -1126,6 +1054,7 @@ const handleSubmit = async () => {
 }
 
 .score-guide {
+  background: #ffffff;
   border: 1.3px solid #f0f1f3;
   border-radius: 12px;
   padding: 12px 14px;
@@ -1203,9 +1132,7 @@ input:checked + .slider:before { transform: translateX(17px); }
 .footer {
   box-sizing: border-box;
   width: 100%;
-  flex: none;
-  padding: 8px 20px 16px;
-  background: #ffffff;
+  padding: 20px 0 8px;
 }
 .maturity-box {
   box-sizing: border-box;
@@ -1327,11 +1254,6 @@ input:checked + .slider:before { transform: translateX(17px); }
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
-}
-
-@keyframes scaleUp {
-  from { transform: scale(0.92); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
 }
 
 /* 날짜 선택 바텀시트 */

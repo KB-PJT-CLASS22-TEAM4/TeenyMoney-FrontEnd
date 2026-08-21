@@ -46,7 +46,7 @@
         <div class="row border-top multiline">
           <span class="row-label">
             적용금리
-            <button type="button" class="btn-help-inline" @click.stop="openTermModal('단리')" aria-label="도움말 보기">?</button>
+            <button type="button" class="btn-help-inline" @click.stop="openTermModal(interestType)" aria-label="도움말 보기">?</button>
           </span>
           <div class="row-value-group">
             <span class="row-value highlight-blue">{{ confirmData.appliedRate }}</span>
@@ -126,14 +126,14 @@
     <!-- 하단 고정 가입/신청 완료 버튼 -->
     <footer class="footer">
       <div class="submit-wrapper">
-        <button 
-          type="button" 
-          class="submit-btn" 
-          :class="{ active: isAllAgreed }"
-          :disabled="!isAllAgreed"
-          @click="openModal"
+        <button
+          type="button"
+          class="submit-btn"
+          :class="{ active: isAllAgreed && !isSubmitting }"
+          :disabled="!isAllAgreed || isSubmitting"
+          @click="handleSubmit"
         >
-          {{ isLoan ? '대출 신청 완료' : '가입 완료' }}
+          {{ isSubmitting ? '처리 중...' : (isLoan ? '대출 신청 완료' : '가입 완료') }}
         </button>
       </div>
     </footer>
@@ -158,6 +158,22 @@
       </div>
     </Transition>
 
+    <!-- 에러 / 알림 커스텀 모달 -->
+    <div v-if="errorModalVisible" class="error-backdrop" @click.self="closeErrorModal">
+      <div class="error-dialog">
+        <div class="error-icon-wrap">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 8v5M12 16.5h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4 class="error-title">가입 신청 안내</h4>
+        <p class="error-desc">{{ errorMessage }}</p>
+        <button type="button" class="btn-error-confirm" @click="closeErrorModal">
+          확인
+        </button>
+      </div>
+    </div>
+
     <!-- 금융 용어 사전 도움말 모달 -->
     <FinanceTermModal
       :show="showTermModal"
@@ -166,7 +182,7 @@
     />
 
     <!-- 확인/제출 단계라 말풍선 없이 캐릭터만 노출 -->
-    <Chatbot :hide-for-modal="showTermModal || showSuccessModal" hint-text="금융 계약 내용이 궁금하세요?" />
+    <Chatbot :hide-for-modal="showTermModal || showSuccessModal || errorModalVisible" hint-text="금융 계약 내용이 궁금하세요?" />
   </div>
 </template>
 
@@ -174,6 +190,8 @@
 import { ref, computed, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { getFinanceTerm } from '@/constants/financeTerms';
+import { useAuthStore } from '@/stores/auth'
+import { createSavingEnrollment, createLoanEnrollment, createDepositEnrollment } from '@/api/finance'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import FinanceTermModal from '@/components/Child/FinanceTermModal.vue';
@@ -181,6 +199,7 @@ import { formatRepaymentType } from '@/utils/financialProductMapper'
 
 const router = useRouter();
 const route = useRoute();
+const authStore = useAuthStore()
 
 // 어려운 금융 용어 설명 모달 상태
 const showTermModal = ref(false);
@@ -214,6 +233,7 @@ const isLoan      = rawCategory === '대출'
 
 const savingsType = route.query.savingsType || ''
 const isFreeSaving = savingsType === '자유적금'
+const interestType = route.query.interestType || '단리'
 
 // 만기일 계산 (사용자가 선택한 상환일/이체일 반영)
 function calcMaturityDate(periodMonths, customDay) {
@@ -231,11 +251,15 @@ function calcMaturityDate(periodMonths, customDay) {
   return `${targetYear}.${pad(targetMonth + 1)}.${pad(finalDay)}`
 }
 
+const productId = Number(route.query.productId)
 const amount    = Number(route.query.amount)    || 0
 const period    = Number(route.query.period)    || 0
 const total     = Number(route.query.total)     || 0
 const interest  = Number(route.query.interest)  || 0
 const principal = isSavings ? amount * period : amount
+
+// 실제 자동이체/상환일 선택값 (신청 화면에서 넘어온 값 그대로, 표시용 confirmData.autoTransfer와는 별개)
+const rawAutoTransfer = route.query.autoTransfer === 'true' || route.query.autoTransfer === true
 
 const repaymentTypeDesc = formatRepaymentType(route.query.repaymentType, '원리금균등상환')
 
@@ -316,12 +340,68 @@ const isAllAgreed = computed(() =>
 )
 
 const showSuccessModal = ref(false);
+const isSubmitting = ref(false);
+
+// 에러 모달 상태 관리
+const errorModalVisible = ref(false);
+const errorMessage = ref('');
+
+function showErrorModal(msg) {
+  errorMessage.value = msg || '신청에 실패했어요. 다시 시도해 주세요.';
+  errorModalVisible.value = true;
+}
+
+function closeErrorModal() {
+  errorModalVisible.value = false;
+}
 
 const goBack = () => { router.back(); };
 
-const openModal = () => {
-  if (!isAllAgreed.value) return;
-  showSuccessModal.value = true;
+// "가입 완료"를 눌렀을 때 실제로 가입 신청 API를 호출한다.
+const handleSubmit = async () => {
+  if (!isAllAgreed.value || isSubmitting.value) return;
+
+  isSubmitting.value = true;
+  try {
+    if (isSavings) {
+      await createSavingEnrollment(authStore.accessToken, {
+        productId,
+        monthlyAmount: amount,
+        termMonths: period,
+        autoTransfer: isFreeSaving ? false : rawAutoTransfer,
+        paymentDay: isFreeSaving ? 1 : selectedPaymentDay,
+      })
+    } else if (isDeposit) {
+      await createDepositEnrollment(authStore.accessToken, {
+        productId,
+        amount,
+        termMonths: period,
+      })
+    } else if (isLoan) {
+      const result = await createLoanEnrollment(authStore.accessToken, {
+        productId,
+        principalAmount: amount,
+        termMonths: period,
+        autoTransfer: rawAutoTransfer,
+        paymentDay: selectedPaymentDay,
+      })
+
+      if (result?.enrollmentId) {
+        try {
+          localStorage.setItem(`teeny_loan_principal_${result.enrollmentId}`, String(amount))
+        } catch (e) {
+          console.warn('대출 원금 로컬 저장 실패:', e)
+        }
+      }
+    }
+
+    showSuccessModal.value = true;
+  } catch (e) {
+    console.error('금융상품 신청 실패:', e.message);
+    showErrorModal(e.message || '신청에 실패했어요. 다시 시도해 주세요.');
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 const closeModalAndNavigate = () => {
@@ -720,5 +800,75 @@ const closeModalAndNavigate = () => {
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
+}
+
+/* 에러/알림 모달 */
+.error-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.error-dialog {
+  width: 100%;
+  max-width: 290px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.error-icon-wrap {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #ffbc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-title {
+  margin: 0 0 6px;
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #15171b;
+}
+
+.error-desc {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #525863;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.btn-error-confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.btn-error-confirm:active {
+  opacity: 0.85;
 }
 </style>

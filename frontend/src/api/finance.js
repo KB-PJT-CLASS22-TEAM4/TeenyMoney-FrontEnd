@@ -255,6 +255,41 @@ export async function terminateEnrollment(accessToken, productType, enrollmentId
 }
 
 /**
+ * 승인 대기(PENDING) 중인 본인의 금융상품 가입 신청 취소
+ * @param {string} accessToken
+ * @param {string} productType - 'SAVING' | 'DEPOSIT' | 'LOAN' (대소문자 무관)
+ * @param {number|string} enrollmentId
+ */
+export async function cancelPendingEnrollment(accessToken, productType, enrollmentId) {
+  const t = String(productType || '').toUpperCase()
+  let typeSegment = 'saving'
+  if (t.includes('DEPOSIT')) typeSegment = 'deposit'
+  else if (t.includes('LOAN')) typeSegment = 'loan'
+
+  const res = await fetch(
+    `${BASE_URL}/financial-products/${typeSegment}-enrollments/${enrollmentId}/cancel`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    // 403: 자녀 회원이 아님, 404: 본인 가입 신청 아님, 409: 이미 승인·거절되어 대기 중이 아님
+    const error = new Error(body.message || '신청 취소에 실패했습니다.');
+    error.status = res.status;
+    throw error;
+  }
+
+  return body.data;
+}
+
+/**
  * 자유적금 직접납입 (자녀 지갑 → 자유적금으로 이체)
  * idempotencyKey는 호출부에서 매 요청마다 새로 생성해서 넘겨야 함(재시도 시 같은 키를 쓰면
  * 서버가 중복 출금을 막아줌 — 같은 이체를 두 번 보내려는 게 아니라면 항상 새 UUID를 써야 함).
@@ -363,53 +398,4 @@ export async function executeEarlyRepayment(accessToken, enrollmentId, payload) 
   return body.data;
 }
 
-/**
- * 승인 대기 중인 금융상품 신청 취소 (DELETE -> POST cancel -> POST terminate fallback)
- * @param {string} accessToken
- * @param {string} productType - 'SAVING' | 'DEPOSIT' | 'LOAN'
- * @param {number|string} enrollmentId
- */
-export async function cancelPendingEnrollment(accessToken, productType, enrollmentId) {
-  const t = String(productType || '').toUpperCase()
-  let typeSegment = 'saving'
-  if (t.includes('DEPOSIT')) typeSegment = 'deposit'
-  else if (t.includes('LOAN')) typeSegment = 'loan'
-
-  // 1. DELETE /financial-products/{typeSegment}-enrollments/{enrollmentId}
-  try {
-    const res = await fetch(`${BASE_URL}/financial-products/${typeSegment}-enrollments/${enrollmentId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
-    if (res.ok) {
-      if (res.status === 204) return { success: true }
-      const body = await res.json().catch(() => ({ success: true }))
-      if (body.success !== false) return body.data ?? body
-    }
-  } catch (err) {
-    console.warn('DELETE cancelPendingEnrollment 실패, POST cancel 시도:', err)
-  }
-
-  // 2. POST /financial-products/{typeSegment}-enrollments/{enrollmentId}/cancel
-  try {
-    const res = await fetch(`${BASE_URL}/financial-products/${typeSegment}-enrollments/${enrollmentId}/cancel`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
-    if (res.ok) {
-      const body = await res.json().catch(() => ({ success: true }))
-      if (body.success !== false) return body.data ?? body
-    }
-  } catch (err) {
-    console.warn('POST cancelPendingEnrollment 실패, terminate 시도:', err)
-  }
-
-  // 3. POST /financial-products/{typeSegment}-enrollments/{enrollmentId}/terminate
-  return await terminateEnrollment(accessToken, typeSegment, enrollmentId)
-}
+
