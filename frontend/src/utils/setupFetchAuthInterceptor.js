@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/stores/auth'
 import {
-  handleUnauthorizedResponse,
+  shouldAttemptTokenReissue,
   shouldOmitLoginSession,
 } from '@/utils/authSession'
 
@@ -17,6 +17,7 @@ export function isPublicRoute(route) {
 
 function getRequestUrl(input) {
   if (typeof input === 'string') return input
+  if (input instanceof URL) return input.href
   return input?.url
 }
 
@@ -33,21 +34,53 @@ function withoutLoginSession(input, init = {}) {
   }
 }
 
+function withAccessToken(init = {}, token) {
+  const headers = new Headers(init.headers || {})
+  headers.set('Authorization', `Bearer ${token}`)
+
+  return {
+    ...init,
+    headers,
+    __authRetried: true,
+  }
+}
+
 export function setupFetchAuthInterceptor() {
   const originalFetch = window.fetch.bind(window)
 
-  window.fetch = async (input, init) => {
+  window.fetch = async (input, init = {}) => {
     const url = getRequestUrl(input)
+    const alreadyRetried = init.__authRetried === true
+    const safeInit = { ...init }
+    delete safeInit.__authRetried
     const nextInit = shouldOmitLoginSession(url)
-      ? withoutLoginSession(input, init)
-      : init
+      ? withoutLoginSession(input, safeInit)
+      : safeInit
     const response = await originalFetch(input, nextInit)
 
-    if (!shouldOmitLoginSession(url)) {
-      handleUnauthorizedResponse(response, url)
+    if (alreadyRetried || !shouldAttemptTokenReissue(response, url)) {
+      return response
     }
 
-    return response
+    const authStore = useAuthStore()
+
+    if (!authStore.isAuthenticated) {
+      authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+      return response
+    }
+
+    try {
+      const token = await authStore.refreshAccessToken()
+      const retryInput = input instanceof Request ? input.url : input
+      return originalFetch(retryInput, withAccessToken(nextInit, token))
+    } catch (error) {
+      if (error?.status === 401) {
+        authStore.handleUnauthorized(
+          '로그인이 만료되었습니다.\n다시 로그인해 주세요.',
+        )
+      }
+      return response
+    }
   }
 }
 

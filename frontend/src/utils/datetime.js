@@ -2,6 +2,8 @@ export const KST_TIME_ZONE = 'Asia/Seoul'
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000
 const HAS_TIMEZONE = /[zZ]|[+-]\d{2}:?\d{2}$/
+const NAIVE_DATETIME =
+  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?$/
 
 function pad2(value) {
   return String(value).padStart(2, '0')
@@ -11,7 +13,22 @@ function kstPartNumber(parts, type) {
   return Number(parts.find((part) => part.type === type)?.value)
 }
 
-/** 서버 UTC(ISO / Jackson 배열) → Date. 달력 날짜만 있으면 한국 날짜로 본다. */
+/** 타임존 없는 연월일·시분초를 KST 벽시계로 Date에 넣는다. */
+function dateFromKstWallClock(
+  year,
+  month,
+  day,
+  hour = 0,
+  minute = 0,
+  second = 0,
+  millisecond = 0,
+) {
+  return new Date(
+    Date.UTC(year, month - 1, day, hour, minute, second, millisecond) - KST_OFFSET_MS,
+  )
+}
+
+/** 서버 LocalDateTime / Jackson 배열은 KST. Z가 붙은 값만 UTC로 본다. */
 export function parseServerDate(value) {
   if (value == null || value === '') return null
   if (value instanceof Date) {
@@ -23,11 +40,15 @@ export function parseServerDate(value) {
     if (year == null || month == null || day == null) return null
 
     const millisecond = Number(nano) > 1000 ? Math.floor(Number(nano) / 1e6) : Number(nano) || 0
-    const hasTime = value.length > 3
-    const utcMs = hasTime
-      ? Date.UTC(year, month - 1, day, hour, minute, second, millisecond)
-      : Date.UTC(year, month - 1, day) - KST_OFFSET_MS
-    const date = new Date(utcMs)
+    const date = dateFromKstWallClock(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      millisecond,
+    )
     return Number.isNaN(date.getTime()) ? null : date
   }
 
@@ -46,9 +67,26 @@ export function parseServerDate(value) {
     return parseServerDate([year, month, day])
   }
 
-  let raw = trimmed.replace(' ', 'T')
+  const raw = trimmed.replace(' ', 'T')
+
   if (!HAS_TIMEZONE.test(raw)) {
-    raw += 'Z'
+    const match = raw.match(NAIVE_DATETIME)
+    if (match) {
+      const [, year, month, day, hour = '0', minute = '0', second = '0', fraction = '0'] = match
+      const millisecond = fraction
+        ? Number(String(fraction).slice(0, 3).padEnd(3, '0'))
+        : 0
+      const date = dateFromKstWallClock(
+        Number(year),
+        Number(month),
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second),
+        millisecond,
+      )
+      return Number.isNaN(date.getTime()) ? null : date
+    }
   }
 
   const date = new Date(raw)
@@ -87,7 +125,7 @@ export function isSameKstDay(a, b) {
 
 export function startOfKstDay(date = new Date()) {
   const { year, month, day } = getKstParts(date)
-  return new Date(Date.UTC(year, month - 1, day) - KST_OFFSET_MS)
+  return dateFromKstWallClock(year, month, day)
 }
 
 export function todayKstDate(now = new Date()) {
@@ -190,10 +228,16 @@ export function formatKstMonthDayLabel(value, empty = '') {
   return md
 }
 
+export function toKstLocalDateTimeString(value) {
+  const date = value instanceof Date ? value : parseServerDate(value)
+  if (!date) return ''
+
+  const { year, month, day, hour, minute, second } = getKstParts(date)
+  return `${year}-${pad2(month)}-${pad2(day)}T${pad2(hour)}:${pad2(minute)}:${pad2(second)}`
+}
+
 export function toUtcIsoFromKstLocal(year, month, day, hour = 0, minute = 0, second = 0) {
-  return new Date(
-    Date.UTC(year, month - 1, day, hour, minute, second) - KST_OFFSET_MS,
-  ).toISOString()
+  return dateFromKstWallClock(year, month, day, hour, minute, second).toISOString()
 }
 
 export function utcIsoFromKstDatetimeLocal(value) {

@@ -133,9 +133,22 @@ export async function reissue() {
   const res = await fetch(`${BASE_URL}/reissue`, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'X-XSRF-TOKEN': csrfToken },
+    headers: {
+      Accept: 'application/json',
+      'X-XSRF-TOKEN': csrfToken,
+    },
   });
-  return res.json();
+
+  const result = await parseJsonSafe(res);
+  const accessToken = result?.data?.accessToken;
+
+  if (!isApiSuccess(res, result) || !accessToken) {
+    const error = new Error(result?.message || '토큰 재발급에 실패했습니다.');
+    error.status = res.status;
+    throw error;
+  }
+
+  return result;
 }
 
 // 법정대리인 인증번호 발송 (로그인 토큰 없음)

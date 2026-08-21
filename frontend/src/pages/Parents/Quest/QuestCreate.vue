@@ -786,7 +786,6 @@ import {
 import {
   CHILD_PROFILE_IMAGE,
 } from '@/utils/profileImages'
-import { utcIsoFromKstDatetimeLocal } from '@/utils/datetime'
 
 
 const router =
@@ -1577,9 +1576,6 @@ async function handleCreate() {
   }
 
   isCreating.value = true
-
-  const [datePart, timePart] = form.value.deadline.split('T')
-  const deadline = utcIsoFromKstDatetimeLocal(`${datePart}T${timePart}`)
 
   try {
 

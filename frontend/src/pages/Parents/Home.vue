@@ -25,7 +25,6 @@
 
           <div class="hero-mascot-wrap" aria-hidden="true">
             <img :src="parentMascot" class="hero-mascot" alt="" />
-            <div class="mascot-shadow"></div>
           </div>
         </div>
       </section>
@@ -102,28 +101,6 @@
 
             <div>
               <p class="allowance-main">요청 목록 확인</p>
-            </div>
-          </div>
-
-          <span class="chev">›</span>
-        </button>
-
-        <button
-          class="allowance-card"
-          type="button"
-          @click="router.push({ name: 'parents-finance-create' })"
-        >
-          <div class="allowance-left">
-            <div class="allowance-icon-wrap">
-              <img
-                src="@/assets/icons/icon-wallet.svg"
-                alt=""
-                class="clock-icon wallet-icon"
-              />
-            </div>
-
-            <div>
-              <p class="allowance-main">금융 상품 추가</p>
             </div>
           </div>
 
@@ -400,15 +377,6 @@ button {
   max-height: 118px;
   object-fit: contain;
   object-position: bottom center;
-}
-
-.mascot-shadow {
-  width: 72px;
-  height: 8px;
-  margin-top: -10px;
-  border-radius: 50%;
-  background: rgba(220, 190, 80, 0.28);
-  filter: blur(4px);
 }
 
 .top-nav {
