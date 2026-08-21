@@ -466,7 +466,7 @@
       @close="closeTermModal"
     />
 
-    <Chatbot v-if="!errorModalVisible && !showDayPickerSheet" hint-text="금융 상품 가입이 어려우신가요?" />
+    <Chatbot :hide-for-modal="errorModalVisible || showDayPickerSheet || showTermModal" hint-text="금융 상품 가입이 어려우신가요?" />
   </div>
 </template>
 

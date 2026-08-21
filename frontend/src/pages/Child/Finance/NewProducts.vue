@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getFinancialProducts, getMyEnrolledFinancialProducts } from '@/api/finance'
@@ -457,6 +457,66 @@ const filteredProducts = computed(() => {
   return list
 })
 
+// 상품 카드 10개씩 페이지네이션
+const PRODUCT_PAGE_SIZE = 10
+const productPage = ref(1)
+const totalProductPages = computed(() =>
+  Math.max(1, Math.ceil(filteredProducts.value.length / PRODUCT_PAGE_SIZE))
+)
+const visibleProducts = computed(() => {
+  const start = (productPage.value - 1) * PRODUCT_PAGE_SIZE
+  return filteredProducts.value.slice(start, start + PRODUCT_PAGE_SIZE)
+})
+// 페이지 번호는 6개씩 묶어서 보여준다 — 6페이지에서 다음(>)을 누르면 7페이지로 넘어가면서
+// 번호 목록도 7~12로 넘어간다.
+const PAGE_NUMBER_WINDOW = 6
+const productPageNumbers = computed(() => {
+  const windowStart = Math.floor((productPage.value - 1) / PAGE_NUMBER_WINDOW) * PAGE_NUMBER_WINDOW + 1
+  const windowEnd = Math.min(windowStart + PAGE_NUMBER_WINDOW - 1, totalProductPages.value)
+  return Array.from({ length: windowEnd - windowStart + 1 }, (_, i) => windowStart + i)
+})
+const scrollEl = ref(null)
+
+// 카드 목록이 통째로 바뀌면서 스크롤 위치가 위로 튀는 걸 막는다.
+// - 클릭한 버튼에 포커스가 남아있으면 모바일 브라우저가 그 버튼을 다시 화면에 보이도록
+//   스크롤을 옮기는 경우가 있어서 먼저 포커스를 뗀다.
+// - 리스트가 다시 그려진 직후 한 번, 그다음 프레임에 한 번 더 스크롤 위치를 되돌려서
+//   레이아웃이 뒤늦게 자리잡으며 생기는 스크롤 밀림까지 잡는다.
+async function keepScrollPosition(change) {
+  const el = scrollEl.value
+  const top = el?.scrollTop ?? 0
+
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur()
+  }
+
+  change()
+  await nextTick()
+  if (el) el.scrollTop = top
+
+  requestAnimationFrame(() => {
+    if (el) el.scrollTop = top
+  })
+}
+
+function goProductPage(delta) {
+  keepScrollPosition(() => {
+    productPage.value = Math.min(
+      totalProductPages.value,
+      Math.max(1, productPage.value + delta)
+    )
+  })
+}
+function goToProductPage(page) {
+  keepScrollPosition(() => {
+    productPage.value = page
+  })
+}
+// 필터·정렬이 바뀌면 1페이지로 돌아간다 (찜 토글 같은 재정렬은 제외)
+watch([appliedCategory, appliedInterestType, appliedOrigin, appliedSort], () => {
+  productPage.value = 1
+})
+
 // 찜 토글
 function toggleLike(product) {
   product.liked = !product.liked
@@ -609,20 +669,20 @@ function goToApply(product) {
       <ChildNavActions />
     </div>
 
-    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <!-- 탭 스위처 -->
-      <div class="tab-switcher">
-        <button
-          v-for="tab in tabs"
-          :key="tab"
-          class="tab-btn"
-          :class="{ active: tab === activeTab }"
-          @click="activeTab = tab"
-        >
-          <span class="tab-label">{{ tab }}</span>
-        </button>
-      </div>
+    <!-- 탭 스위처 — 상단 네비와 이어지도록 흰 배경으로 화면 좌우 끝까지 꽉 차게 -->
+    <div class="tab-switcher">
+      <button
+        v-for="tab in tabs"
+        :key="tab"
+        class="tab-btn"
+        :class="{ active: tab === activeTab }"
+        @click="activeTab = tab"
+      >
+        <span class="tab-label">{{ tab }}</span>
+      </button>
+    </div>
 
+    <div ref="scrollEl" class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
       <!-- 은행 상품 모티브 안내 배너 -->
       <div class="bank-disclaimer-banner">
         <div class="banner-icon-wrap">
@@ -652,9 +712,9 @@ function goToApply(product) {
       </div>
 
       <!-- 상품 카드 리스트 -->
-      <TransitionGroup name="card-move" tag="div">
+      <div>
         <div
-          v-for="product in filteredProducts"
+          v-for="product in visibleProducts"
           :key="product.id"
           class="card"
           :class="{ liked: product.liked, disabled: !product.eligible && !product.locked, locked: product.locked }"
@@ -733,13 +793,49 @@ function goToApply(product) {
             <span class="lock-hint-text" :class="product.gradeColor">{{ product.requiredGradeName }} 등급이면 열려요</span>
           </div>
         </div>
-      </TransitionGroup>
+      </div>
+
+      <div class="pagination-row" v-if="totalProductPages > 1">
+        <button
+          type="button"
+          class="page-nav-btn"
+          :disabled="productPage === 1"
+          @click="goProductPage(-1)"
+          aria-label="이전 페이지"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+        <div class="page-number-row">
+          <button
+            v-for="n in productPageNumbers"
+            :key="n"
+            type="button"
+            class="page-number-btn"
+            :class="{ active: n === productPage }"
+            @click="goToProductPage(n)"
+          >
+            {{ n }}
+          </button>
+        </div>
+        <button
+          type="button"
+          class="page-nav-btn"
+          :disabled="productPage === totalProductPages"
+          @click="goProductPage(1)"
+          aria-label="다음 페이지"
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="finance" @select="onTabSelect" />
 
-    <Chatbot hint-text="금리가 어떻게 계산되는지 궁금하세요?" />
+    <Chatbot
+      :hide-for-modal="showFilterSheet || showIneligibleModal || showTermModal || showAlreadyEnrolledModal"
+      hint-text="금리가 어떻게 계산되는지 궁금하세요?"
+    />
 
     <!-- 신규 상품 필터 바텀시트 -->
     <transition name="sheet">
@@ -869,19 +965,20 @@ function goToApply(product) {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
 
-/* 상단 네비 */
+/* 상단 네비 — 화면 좌우 끝까지 꽉 차게 */
 .nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 2px 20px 10px;
-  background: #f8fafc;
+  padding: 44px 20px 10px;
 }
 
 .icon-btn {
@@ -903,7 +1000,8 @@ function goToApply(product) {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 20px 20px;
+  overflow-anchor: none;
+  padding: 16px 20px 20px;
   background: #f8fafc;
 }
 .scroll::-webkit-scrollbar {
@@ -918,13 +1016,16 @@ function goToApply(product) {
   background: #d8dbdf;
 }
 
-/* 탭 스위처 */
+/* 탭 스위처 — 상단 네비에 이어붙는 흰 영역 */
 .tab-switcher {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: flex-start;
+  background: #ffffff;
   border-bottom: 1.2px solid #e2e8f0;
-  background: #f8fafc;
-  margin-bottom: 16px;
+  padding: 0 16px;
 }
 
 .tab-btn {
@@ -994,6 +1095,53 @@ function goToApply(product) {
 .banner-text strong {
   color: #1d4ed8;
   font-weight: 700;
+}
+
+/* 상품 목록 페이지네이션 */
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+}
+.page-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #15171b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.page-nav-btn:hover:not(:disabled) { background: #f8f9fa; }
+.page-nav-btn:disabled { color: #c6cbd2; cursor: not-allowed; opacity: 0.5; }
+.page-number-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.page-number-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #8b9097;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.page-number-btn:hover { background: #f8f9fa; }
+.page-number-btn.active {
+  background: #ffbc00;
+  color: #392b00;
+  font-weight: 800;
 }
 
 /* 목록 상단 헤더 (카운트 + 인라인 필터 버튼) */
@@ -1399,10 +1547,6 @@ function goToApply(product) {
   0% { transform: scale(1); }
   40% { transform: scale(1.35); }
   100% { transform: scale(1); }
-}
-
-.card-move-move {
-  transition: transform 0.45s ease;
 }
 
 .divider {

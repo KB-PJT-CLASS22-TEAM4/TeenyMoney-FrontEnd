@@ -1,15 +1,16 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
-import { getChildMoneyReport } from '@/api/report'
+import { getChildMoneyReport, getMoneyAnalysis } from '@/api/report'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
 import { getKstParts, parseServerDate, startOfKstDay, todayKstDate } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
+
+const coachMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
 function goBack() {
   router.push({ name: 'child-transaction' })
@@ -21,6 +22,7 @@ function goToScore() {
 
 const isLoading = ref(true)
 const loadError = ref(null)
+const loadErrorType = ref('error') // 'empty'(이 달 데이터 없음) | 'error'(조회 실패)
 
 const report = ref({ period: { label: '', status: '' }, compare: '', yearMonth: '' })
 const summary = ref([])
@@ -59,12 +61,6 @@ const ICON_STYLE = {
 function iconStyle(icon) {
   const s = ICON_STYLE[icon] || ICON_STYLE.wallet
   return { background: s.bg, color: s.fg }
-}
-
-function formatMonthLabel(yearMonth) {
-  if (!yearMonth) return '이번 달'
-  const [, m] = yearMonth.split('-')
-  return `${Number(m)}월`
 }
 
 function formatMonthLabelFull(yearMonth) {
@@ -107,6 +103,8 @@ const INSIGHT_META = {
   PERMISSION_STATUS_SUMMARY: { dot: '#4a90d9', title: '오늘만 허용' },
   QUEST_COMPLETED: { dot: '#8b7dd8', title: '퀘스트' },
   SAVING_PAYMENT: { dot: '#4caf82', title: '저축' },
+  LOAN_REPAYMENT: { dot: '#e5484d', title: '대출 상환' },
+  SAVING_MATURED: { dot: '#3aa7a0', title: '적금·예금 만기' },
 }
 
 const INSIGHT_ROUTE = {
@@ -114,11 +112,14 @@ const INSIGHT_ROUTE = {
   PERMISSION_STATUS_SUMMARY: { name: 'child-todayallow-request' },
   QUEST_COMPLETED: { name: 'child-quest-list' },
   SAVING_PAYMENT: { name: 'child-finance-myproducts' },
+  LOAN_REPAYMENT: { name: 'child-finance-myproducts' },
+  SAVING_MATURED: { name: 'child-finance-myproducts' },
 }
 
 function mapInsight(insight, data) {
   const teenyScoreData = data.teenyScore
-  const meta = INSIGHT_META[insight.insightCode] || { dot: '#9aa1ab', title: insight.insightCode }
+  // 매핑에 없는 새 코드가 오더라도 원본 코드를 절대 화면에 노출하지 않는다.
+  const meta = INSIGHT_META[insight.insightCode] || { dot: '#9aa1ab', title: '이번 달 인사이트' }
   const base = {
     dot: meta.dot,
     title: meta.title,
@@ -216,6 +217,25 @@ function mapInsight(insight, data) {
     // type: 'savingRepayment' → 템플릿에서 회차 체크 배지가 있는 특수 카드로 렌더링.
     // desc는 가입 상품 데이터(activeProducts)를 못 불러왔을 때의 폴백 텍스트로 사용.
     return { ...base, desc, type: 'savingRepayment' }
+  }
+
+  // ⚠️ 백엔드 metrics 필드명이 확정되지 않아, 값이 없으면 일반 안내 문구로 대체한다.
+  if (insight.insightCode === 'LOAN_REPAYMENT') {
+    const amount = m.repaidAmount ?? m.amount
+    const productName = m.productName ? `${m.productName} ` : ''
+    const desc = amount != null
+      ? [noWrap(`이번 달에 ${productName}대출을 갚아서 ${won(amount)}을 냈어요.`)]
+      : ['이번 달에 대출 상환이 있었어요.']
+    return { ...base, desc }
+  }
+
+  if (insight.insightCode === 'SAVING_MATURED') {
+    const amount = m.maturedAmount ?? m.currentAmount ?? m.amount
+    const productName = m.productName ? `${m.productName} ` : ''
+    const desc = amount != null
+      ? [noWrap(`가입했던 ${productName}적금·예금이 만기돼서 ${won(amount)}을 받았어요.`)]
+      : ['가입했던 적금·예금이 만기됐어요.']
+    return { ...base, desc }
   }
 
   return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
@@ -500,6 +520,7 @@ async function loadReport(month) {
   } catch (e) {
     console.error('소비 리포트 조회 실패:', e)
     if (month) selectedMonth.value = month
+    loadErrorType.value = e.status === 400 ? 'empty' : 'error'
     loadError.value =
       e.status === 400
         ? ['이 달은 아직 데이터가 없어요', '다른 달을 선택해보세요']
@@ -507,6 +528,51 @@ async function loadReport(month) {
   } finally {
     isLoading.value = false
   }
+}
+
+// AI 금융 습관 분석 — LLM 호출이라 느릴 수 있어서 페이지 진입 시 자동으로 부르지 않고
+// 사용자가 버튼을 눌렀을 때만 시작한다.
+const aiAnalysisStarted = ref(false)
+const aiAnalysisText = ref('')
+const aiAnalysisLoading = ref(false)
+const aiAnalysisError = ref('')
+
+function aiAnalysisErrorMessage(e) {
+  if (e.status === 403) return '이 분석은 자녀 계정에서만 볼 수 있어요.'
+  if (e.status === 502) return '티니코치가 지금은 분석하지 못했어요.'
+  if (e.status === 503) return '지금은 분석 기능을 잠시 쉬고 있어요.'
+  return '분석을 불러오지 못했어요.'
+}
+
+async function loadAiAnalysis() {
+  aiAnalysisStarted.value = true
+  aiAnalysisLoading.value = true
+  aiAnalysisError.value = ''
+  showFullAnalysis.value = false
+  try {
+    const result = await getMoneyAnalysis(authStore.accessToken)
+    aiAnalysisText.value = result.data?.analysis || ''
+  } catch (e) {
+    console.error('AI 금융 습관 분석 조회 실패:', e)
+    aiAnalysisError.value = aiAnalysisErrorMessage(e)
+  } finally {
+    aiAnalysisLoading.value = false
+  }
+}
+
+const aiAnalysisParagraphs = computed(() =>
+  aiAnalysisText.value.split('\n').map((s) => s.trim()).filter(Boolean)
+)
+
+const ANALYSIS_PREVIEW_COUNT = 1
+const showFullAnalysis = ref(false)
+const visibleAnalysisParagraphs = computed(() =>
+  showFullAnalysis.value
+    ? aiAnalysisParagraphs.value
+    : aiAnalysisParagraphs.value.slice(0, ANALYSIS_PREVIEW_COUNT)
+)
+function toggleFullAnalysis() {
+  showFullAnalysis.value = !showFullAnalysis.value
 }
 
 function toggleMonthPicker() {
@@ -517,6 +583,23 @@ function selectMonth(yearMonth) {
   showMonthPicker.value = false
   if (yearMonth === selectedMonth.value) return
   loadReport(yearMonth)
+}
+
+// monthOptions[0]이 최신 달이라 인덱스가 커질수록 과거로 간다.
+const selectedMonthIndex = computed(() => monthOptions.value.indexOf(selectedMonth.value))
+const canGoPrevMonth = computed(() => {
+  const idx = selectedMonthIndex.value
+  return idx >= 0 && idx < monthOptions.value.length - 1
+})
+const canGoNextMonth = computed(() => selectedMonthIndex.value > 0)
+
+// delta: -1 = 이전(과거) 달, +1 = 다음(최신 쪽) 달
+function goAdjacentMonth(delta) {
+  const idx = selectedMonthIndex.value
+  if (idx < 0) return
+  const targetIdx = idx - delta
+  if (targetIdx < 0 || targetIdx >= monthOptions.value.length) return
+  selectMonth(monthOptions.value[targetIdx])
 }
 
 onMounted(async () => {
@@ -537,8 +620,6 @@ onMounted(async () => {
     console.error('금융상품 목록 조회 실패:', e)
   }
 })
-
-const monthLabel = computed(() => formatMonthLabel(report.value.yearMonth))
 
 const maxWeek = computed(() => Math.max(...spend.value.weeks.map((w) => w.amount), 1))
 function barHeight(week) {
@@ -592,42 +673,63 @@ const hiddenScheduleCount = computed(() =>
 function toggleAllSchedules() {
   showAllSchedules.value = !showAllSchedules.value
 }
+
+// 금융상품 진행 상태 — 3개씩 페이지네이션
+const PRODUCT_PAGE_SIZE = 3
+const productPage = ref(1)
+const totalProductPages = computed(() =>
+  Math.max(1, Math.ceil(products.value.length / PRODUCT_PAGE_SIZE))
+)
+const visibleProducts = computed(() => {
+  const start = (productPage.value - 1) * PRODUCT_PAGE_SIZE
+  return products.value.slice(start, start + PRODUCT_PAGE_SIZE)
+})
+const productPageNumbers = computed(() =>
+  Array.from({ length: totalProductPages.value }, (_, i) => i + 1)
+)
+function goProductPage(delta) {
+  productPage.value = Math.min(
+    totalProductPages.value,
+    Math.max(1, productPage.value + delta)
+  )
+}
+function goToProductPage(page) {
+  productPage.value = page
+}
 </script>
 
 <template>
   <div class="report-screen">
+    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다, 제목은 가운데 정렬 -->
+    <div class="nav">
+      <button class="icon-btn" @click="goBack" aria-label="뒤로">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#16181c" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="nav-title">소비 리포트</span>
+      <ChildNavActions class="nav-right" />
+    </div>
+
     <div class="scroll">
 
-      <!-- 상단 네비 -->
-      <div class="nav">
-        <div class="nav-left">
-          <button class="icon-btn" @click="goBack" aria-label="뒤로">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-              <path d="M15 6l-6 6 6 6" stroke="#16181c" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <span class="nav-title">소비 리포트</span>
-        </div>
-        <ChildNavActions />
-      </div>
+      <!-- 월 이동 네비게이션 — 데이터가 없는 달을 선택해 에러가 떠도 여기서 다른 달로 빠져나갈 수 있어야 한다 -->
+      <div class="month-nav">
+        <button
+          type="button"
+          class="month-nav-arrow"
+          :disabled="!canGoPrevMonth"
+          @click="goAdjacentMonth(-1)"
+          aria-label="이전 달"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
 
-      <!-- 로딩/에러 상태 -->
-      <div v-if="isLoading" class="state-msg">리포트를 불러오는 중이에요...</div>
-      <div v-else-if="loadError" class="state-msg state-msg--error">
-        <span v-for="(line, i) in loadError" :key="i">{{ line }}<br v-if="i < loadError.length - 1" /></span>
-      </div>
-
-      <template v-else>
-      <div class="date-row">
-        <div class="date-row-left">
-          <span class="date-text">{{ report.period.label }}</span>
-          <span class="status-badge">{{ report.period.status }}</span>
-        </div>
         <div class="month-picker">
-          <button class="month-pill" @click="toggleMonthPicker">
-            {{ monthLabel }}
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#392b00" stroke-width="2.5"
+          <button type="button" class="month-nav-label" @click="toggleMonthPicker">
+            {{ formatMonthLabelFull(selectedMonth) }}
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
                  stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <div class="month-dropdown" v-if="showMonthPicker">
@@ -643,8 +745,84 @@ function toggleAllSchedules() {
             </button>
           </div>
         </div>
+
+        <button
+          type="button"
+          class="month-nav-arrow"
+          :disabled="!canGoNextMonth"
+          @click="goAdjacentMonth(1)"
+          aria-label="다음 달"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+
+      <!-- 로딩/에러 상태 -->
+      <div v-if="isLoading" class="state-msg">리포트를 불러오는 중이에요...</div>
+      <div v-else-if="loadError" class="notice-banner" :class="loadErrorType">
+        <div class="notice-banner-icon">
+          <svg v-if="loadErrorType === 'empty'" viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <rect x="3.5" y="5.5" width="17" height="15" rx="3" stroke="#5b7ca0" stroke-width="1.7"/>
+            <path d="M3.5 10h17" stroke="#5b7ca0" stroke-width="1.7"/>
+            <path d="M8 3.5v3.5M16 3.5v3.5" stroke="#5b7ca0" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none">
+            <path d="M12 9v4.5M12 16.2v.1" stroke="#dc2626" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="8.5" stroke="#dc2626" stroke-width="1.8"/>
+          </svg>
+        </div>
+        <div class="notice-banner-text">
+          <span v-for="(line, i) in loadError" :key="i">{{ line }}<br v-if="i < loadError.length - 1" /></span>
+        </div>
+      </div>
+
+      <template v-else>
+      <div class="date-row">
+        <span class="date-text">{{ report.period.label }}</span>
+        <span class="status-badge">{{ report.period.status }}</span>
       </div>
       <p class="compare-line">{{ report.compare }}</p>
+
+      <!-- 티니코치 AI 금융 습관 분석 -->
+      <section>
+        <div class="coach-bubble-card">
+          <img :src="coachMascot" alt="티니코치" class="coach-bubble-mascot" />
+          <div class="coach-bubble-box">
+            <span class="coach-bubble-name">티니코치</span>
+
+            <div v-if="!aiAnalysisStarted" class="coach-bubble-prompt">
+              <p class="coach-bubble-text">AI 분석을 시작할까요?</p>
+              <button type="button" class="coach-start-btn" @click="loadAiAnalysis">분석 시작하기</button>
+            </div>
+
+            <div v-else-if="aiAnalysisLoading" class="coach-bubble-loading">
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
+              <span class="loading-dot"></span>
+              <span class="loading-text">분석하고 있어요...</span>
+            </div>
+
+            <div v-else-if="aiAnalysisError" class="coach-bubble-error">
+              <p class="coach-bubble-text">{{ aiAnalysisError }}</p>
+              <button type="button" class="coach-retry-btn" @click="loadAiAnalysis">다시 시도</button>
+            </div>
+
+            <template v-else>
+              <p v-for="(para, i) in visibleAnalysisParagraphs" :key="i" class="coach-bubble-para">
+                {{ para }}
+              </p>
+              <button
+                v-if="aiAnalysisParagraphs.length > ANALYSIS_PREVIEW_COUNT"
+                type="button"
+                class="coach-retry-btn"
+                @click="toggleFullAnalysis"
+              >
+                {{ showFullAnalysis ? '접기' : '전체 보기' }}
+              </button>
+            </template>
+          </div>
+        </div>
+      </section>
 
       <!-- 이번 달 한눈에 보기 -->
       <section>
@@ -784,7 +962,7 @@ function toggleAllSchedules() {
       <!-- 금융상품 진행 상태 -->
       <section>
         <h2 class="sec-heading">금융상품 진행 상태</h2>
-        <div class="product-card" v-for="p in products" :key="p.name">
+        <div class="product-card" v-for="p in visibleProducts" :key="p.name">
           <div class="product-head">
             <span class="product-name">{{ p.name }}</span>
             <span class="tag" :class="p.tagClass">{{ p.tag }}</span>
@@ -804,6 +982,39 @@ function toggleAllSchedules() {
             상품 자세히 보기
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
           </div>
+        </div>
+
+        <div class="pagination-row" v-if="totalProductPages > 1">
+          <button
+            type="button"
+            class="page-nav-btn"
+            :disabled="productPage === 1"
+            @click="goProductPage(-1)"
+            aria-label="이전 페이지"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <div class="page-number-row">
+            <button
+              v-for="n in productPageNumbers"
+              :key="n"
+              type="button"
+              class="page-number-btn"
+              :class="{ active: n === productPage }"
+              @click="goToProductPage(n)"
+            >
+              {{ n }}
+            </button>
+          </div>
+          <button
+            type="button"
+            class="page-nav-btn"
+            :disabled="productPage === totalProductPages"
+            @click="goProductPage(1)"
+            aria-label="다음 페이지"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
         </div>
       </section>
 
@@ -877,9 +1088,6 @@ function toggleAllSchedules() {
       </template>
 
     </div>
-
-    <!-- 소비 리포트용 안내 말풍선 포함 챗봇 플로팅 버튼 -->
-    <Chatbot hint-text="이번 달 소비 분석이나 금융 습관에 대해 물어보세요!" />
   </div>
 </template>
 
@@ -913,7 +1121,6 @@ function toggleAllSchedules() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 20px;
   background: #f8fafc;
   border: 1px solid var(--card-border);
   overflow: hidden;
@@ -923,20 +1130,23 @@ function toggleAllSchedules() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 18px 40px;
+  padding: 0 18px 40px;
 }
 .scroll::-webkit-scrollbar { width: 4px; }
 .scroll::-webkit-scrollbar-thumb { background: #e2e4e8; border-radius: 999px; }
 
-/* 상단 네비 */
+/* 상단 네비 — 스크롤 영역 밖 최상단에서 화면 좌우 끝까지 꽉 차게, 제목은 가운데 정렬 */
 .nav {
-  display: flex;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 0 18px;
+  padding: 14px 18px 18px;
 }
-.nav-left { display: flex; align-items: center; gap: 6px; }
 .icon-btn {
+  justify-self: start;
   border: none;
   background: transparent;
   width: 32px;
@@ -950,7 +1160,15 @@ function toggleAllSchedules() {
   transition: background 0.15s ease;
 }
 .icon-btn:hover { background: #f2f3f5; }
-.nav-title { font-weight: 900; font-size: 18px; letter-spacing: -0.01em; color: var(--ink); margin-left: 2px; }
+.nav-title {
+  justify-self: center;
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.nav :deep(.nav-right) { justify-self: end; }
 
 .state-msg {
   text-align: center;
@@ -959,29 +1177,88 @@ function toggleAllSchedules() {
   font-weight: 600;
   color: var(--ink-sub);
 }
-.state-msg--error { color: #e5484d; }
-.month-pill {
-  background: var(--yellow);
-  border: none;
-  border-radius: 999px;
-  padding: 8px 12px 8px 14px;
+
+/* 리포트 로드 실패 / 데이터 없음 안내 배너 */
+.notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+.notice-banner.empty {
+  background: #eef6ff;
+  border: 1px solid #bfdbfe;
+}
+.notice-banner.error {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+}
+.notice-banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notice-banner-text {
+  font-size: 13px;
   font-weight: 700;
-  font-size: 13.5px;
-  color: #392b00;
+  line-height: 1.5;
+}
+.notice-banner.empty .notice-banner-text { color: #3d5a7a; }
+.notice-banner.error .notice-banner-text { color: #991b1b; }
+
+/* 월 이동 네비게이션 (은행 앱 스타일: ‹ 2026년 8월 › ) */
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.month-nav-arrow {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.month-nav-arrow:hover:not(:disabled) { background: #f2f3f5; }
+.month-nav-arrow:disabled { color: var(--ink-faint); cursor: not-allowed; opacity: 0.4; }
+
+.month-picker { position: relative; }
+.month-nav-label {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(255,188,0,0.35);
-  transition: transform 0.12s ease;
+  transition: background 0.15s ease;
 }
-.month-pill:active { transform: scale(0.97); }
+.month-nav-label:hover { background: #f2f3f5; }
+.month-nav-label svg { color: var(--ink-faint); flex-shrink: 0; }
 
-.month-picker { position: relative; }
 .month-dropdown {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 10;
   min-width: 160px;
   max-height: 260px;
@@ -1017,9 +1294,8 @@ function toggleAllSchedules() {
 .month-option:hover { background: #f8f9fa; }
 .month-option.active { background: var(--yellow); color: #392b00; font-weight: 800; }
 
-.date-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-.date-row-left { display: flex; align-items: center; gap: 8px; }
-.date-text { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+.date-row { display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin-bottom: 6px; }
+.date-text { font-size: 13.5px; font-weight: 700; color: var(--ink-sub); }
 .status-badge {
   font-size: 11px;
   font-weight: 700;
@@ -1029,6 +1305,126 @@ function toggleAllSchedules() {
   color: #ffffff;
 }
 .compare-line { margin: 4px 0 0; font-size: 12px; color: var(--ink-faint); margin-bottom: 28px; }
+
+/* 티니코치 AI 금융 습관 분석 */
+.coach-bubble-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.coach-bubble-mascot {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-top: 4px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+}
+
+.coach-bubble-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: #fff6dc;
+  border-radius: 18px;
+  border-top-left-radius: 4px;
+  padding: 14px 16px 16px;
+}
+
+.coach-bubble-box::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -7px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 9px 8px 0;
+  border-color: transparent #fff6dc transparent transparent;
+}
+
+.coach-bubble-name {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #b98a00;
+}
+
+.coach-bubble-text {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #3d2b00;
+  line-height: 1.7;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.coach-bubble-para {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #3d2b00;
+  line-height: 1.75;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.coach-bubble-para:last-of-type {
+  margin-bottom: 12px;
+}
+
+.coach-start-btn {
+  border: none;
+  background: var(--yellow);
+  color: #392b00;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255,188,0,0.35);
+}
+
+.coach-bubble-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c99a2e;
+  animation: coach-bounce 1.2s infinite;
+}
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes coach-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+.loading-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a6a1e;
+}
+
+.coach-retry-btn {
+  border: 1px solid #c99a2e;
+  color: #8a6a1e;
+  background: none;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
 
 h2.sec-heading {
   font-size: 16px;
@@ -1282,6 +1678,53 @@ section { margin-bottom: 30px; }
 .progress-label { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
 .product-desc { font-size: 13px; color: var(--ink-sub); margin-bottom: 10px; }
 .product-link { display: flex; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 700; color: var(--ink-sub); }
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 6px;
+}
+.page-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.page-nav-btn:hover:not(:disabled) { background: #f8f9fa; }
+.page-nav-btn:disabled { color: var(--ink-faint); cursor: not-allowed; opacity: 0.5; }
+.page-number-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.page-number-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--ink-sub);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.page-number-btn:hover { background: #f8f9fa; }
+.page-number-btn.active {
+  background: var(--yellow);
+  color: #392b00;
+  font-weight: 800;
+}
 
 /* 티니점수 카드 */
 .score-card {

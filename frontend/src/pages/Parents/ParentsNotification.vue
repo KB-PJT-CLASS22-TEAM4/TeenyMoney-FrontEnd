@@ -270,6 +270,7 @@ function goToChildFinancePage(childId) {
   router.push({ name: 'parents-child-list' })
 }
 
+<<<<<<< HEAD
 function isPaymentNotification(n) {
   const type = String(n.referenceType || '').toUpperCase()
   if (type === 'PAYMENT' || type === 'TRANSACTION') {
@@ -294,6 +295,8 @@ async function goToChildPayment(n) {
   router.push({ name: 'parents-child-list' })
 }
 
+=======
+>>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
 async function resolveChildId(n) {
   try {
     const children = await loadChildren()

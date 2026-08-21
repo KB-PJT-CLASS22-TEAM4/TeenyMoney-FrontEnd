@@ -1,18 +1,18 @@
 <template>
   <div class="grade-screen">
-    <div class="scroll">
+    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
+    <div class="nav">
+      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">티니 점수 등급</h1>
+      <ChildNavActions />
+    </div>
 
-      <!-- 상단 네비 -->
-      <div class="nav">
-        <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-            <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                  stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="nav-title">티니 점수 등급</h1>
-        <ChildNavActions />
-      </div>
+    <div class="scroll">
 
       <div v-if="loading" class="state-text">불러오는 중...</div>
       <div v-else-if="errorMsg" class="state-text error">{{ errorMsg }}</div>
@@ -36,18 +36,32 @@
 
           <div class="sub-row">
             <span class="sub-text">지난 달 보다</span>
-            <span class="sub-diff" :class="{ negative: scoreDiff < 0 }">
+            <span class="sub-diff" :style="{ color: scoreDiff < 0 ? '#e5484d' : currentGradeInfo.color }">
               {{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}점
             </span>
-            <span class="sub-dot">·</span>
-            <span v-if="nextGradeGap !== null" class="sub-text">
-              다음 등급까지 <b class="hl">{{ nextGradeGap }}점</b>
-            </span>
-            <span v-else class="sub-text">최고 등급이에요</span>
+          </div>
+
+          <!-- 등급 갱신 주기 안내 배너 -->
+          <div
+            class="notice-banner"
+            :style="{
+              backgroundColor: currentGradeInfo.color + '14',
+              borderColor: currentGradeInfo.color + '55',
+              color: currentGradeInfo.color,
+            }"
+          >
+            <div class="notice-banner-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                <circle cx="12" cy="12" r="8.5" :stroke="currentGradeInfo.color" stroke-width="1.8"/>
+                <path d="M12 11v5" :stroke="currentGradeInfo.color" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="8" r="1" :fill="currentGradeInfo.color"/>
+              </svg>
+            </div>
+            <p class="notice-banner-text">점수는 실시간으로 반영되지만, 등급은 매월 1일에 갱신돼요.</p>
           </div>
 
           <!-- 등급 세그먼트 트랙 -->
-          <div class="segment-wrap">
+          <div class="segment-wrap" :class="{ 'has-mismatch': isGradeMismatch }">
             <div class="segment-track">
               <div class="segment-track-bg">
                 <div
@@ -58,6 +72,15 @@
                 ></div>
               </div>
               <div class="segment-pointer" :style="{ left: thumbPercent + '%' }">
+                <span v-if="isGradeMismatch" class="segment-pointer-bubble">다음 달 등급</span>
+                <span class="segment-pointer-dot" :style="{ borderColor: (projectedGrade ?? currentGradeInfo).color }"></span>
+              </div>
+              <div
+                v-if="isGradeMismatch"
+                class="segment-pointer"
+                :style="{ left: officialGradeCenterPercent + '%' }"
+              >
+                <span class="segment-pointer-bubble">현재 등급</span>
                 <span class="segment-pointer-dot" :style="{ borderColor: currentGradeInfo.color }"></span>
               </div>
             </div>
@@ -81,8 +104,6 @@
           </div>
         </div>
 
-        <div class="divider"></div>
-
         <!-- 등급 안내 -->
         <div class="guide-block">
           <span class="eyebrow">등급 안내</span>
@@ -96,6 +117,11 @@
                   <b class="guide-label">{{ g.label }}</b>
                   <span class="guide-range faint">{{ g.min }}~{{ g.max === SCORE_MAX ? g.max.toLocaleString() : g.max }}점</span>
                   <span v-if="g.label === grade" class="current-badge" :style="{ backgroundColor: g.color }">현재</span>
+                  <span
+                    v-else-if="isGradeMismatch && g.label === projectedGrade?.label"
+                    class="current-badge"
+                    :style="{ backgroundColor: g.color }"
+                  >다음 달</span>
                 </div>
                 <span class="guide-headline">{{ g.headline }}</span>
                 <ul class="guide-perks">
@@ -208,14 +234,6 @@ const SCORE_MAX = computed(() => gradesAsc.value[gradesAsc.value.length - 1]?.ma
 const currentGradeInfo = computed(
   () => gradesAsc.value.find((g) => g.label === grade.value) ?? FALLBACK_META
 )
-const currentGradeIdxAsc = computed(() => gradesAsc.value.findIndex((g) => g.label === grade.value))
-
-const nextGradeGap = computed(() => {
-  const idx = currentGradeIdxAsc.value
-  if (idx < 0 || idx >= gradesAsc.value.length - 1) return null
-  const nextGrade = gradesAsc.value[idx + 1]
-  return nextGrade.min - score.value
-})
 
 const thumbPercent = computed(() => {
   const total = SCORE_MAX.value - SCORE_MIN.value
@@ -227,6 +245,30 @@ const segmentWidths = computed(() => {
   const total = SCORE_MAX.value - SCORE_MIN.value
   if (total <= 0) return []
   return gradesAsc.value.map((g) => ((g.max - g.min + 1) / total) * 100)
+})
+
+// 실시간 점수가 지금 속한 등급 구간(= 다음 갱신일에 반영될 등급 예상치)
+const projectedGrade = computed(
+  () => gradesAsc.value.find((g) => score.value >= g.min && score.value <= g.max) ?? null
+)
+
+// 서버가 갱신한 공식 등급과 실시간 점수 기준 등급이 다른지 (월 1회 갱신 주기 때문에 발생)
+const isGradeMismatch = computed(
+  () => projectedGrade.value !== null && projectedGrade.value.label !== grade.value
+)
+
+// 공식 등급 구간의 중앙 위치(%) — 실시간 점수 포인터와 구분되는 별도 마커용
+const officialGradeCenterPercent = computed(() => {
+  const total = SCORE_MAX.value - SCORE_MIN.value
+  if (total <= 0) return 0
+
+  let offset = 0
+  for (const g of gradesAsc.value) {
+    const width = ((g.max - g.min + 1) / total) * 100
+    if (g.label === grade.value) return offset + width / 2
+    offset += width
+  }
+  return 0
 })
 
 function goBack() {
@@ -243,7 +285,6 @@ function goBack() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
@@ -278,12 +319,15 @@ function goBack() {
   color: #e5484d;
 }
 
-/* 상단 네비 */
+/* 상단 네비 — 화면 좌우 끝까지 꽉 차게 */
 .nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 0 8px;
+  padding: 50px 20px 8px;
 }
 
 .back-btn {
@@ -328,6 +372,12 @@ function goBack() {
 .current-section {
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
 }
 
 .score-row {
@@ -389,26 +439,42 @@ function goBack() {
 .sub-diff {
   font-size: 12.5px;
   font-weight: 800;
-  color: #4a8f3c;
 }
 
-.sub-diff.negative {
-  color: #e5484d;
+.notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 14px;
+  box-sizing: border-box;
 }
 
-.sub-dot {
-  color: #d0d3d8;
+.notice-banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notice-banner-text {
+  margin: 0;
   font-size: 12px;
-}
-
-.hl {
-  color: #f5a623;
-  font-weight: 800;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: keep-all;
 }
 
 /* 세그먼트 트랙 */
 .segment-wrap {
   margin-top: 20px;
+}
+
+/* 점 위에 말풍선 라벨이 뜰 때 윗 요소와 겹치지 않도록 여유를 더 준다 */
+.segment-wrap.has-mismatch {
+  margin-top: 44px;
 }
 
 .segment-track {
@@ -432,17 +498,46 @@ function goBack() {
   position: absolute;
   top: 19px;
   left: 0;
+  width: 13px;
+  height: 13px;
   transform: translate(-50%, -50%);
 }
 
 .segment-pointer-dot {
   display: block;
-  width: 13px;
-  height: 13px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: #ffffff;
   border: 3px solid #999;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+}
+
+/* 현재 등급 / 다음 달 등급 위치를 가리키는 말풍선 라벨 */
+.segment-pointer-bubble {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 9px;
+  white-space: nowrap;
+  background: #ffffff;
+  color: #334155;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
+}
+
+.segment-pointer-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #ffffff;
 }
 
 .segment-labels {
@@ -475,16 +570,16 @@ function goBack() {
   color: #c6cbd2;
 }
 
-.divider {
-  height: 8px;
-  margin: 0 -20px;
-  background: #f7f7f8;
-}
-
 /* 등급 안내 */
 .guide-block {
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
 }
 
 .guide-list {

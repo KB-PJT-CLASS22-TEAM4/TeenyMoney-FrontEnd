@@ -1,5 +1,16 @@
 <template>
   <div class="score-view">
+    <!-- 상단 네비바 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
+    <header class="nav">
+      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <h1 class="nav-title">티니점수</h1>
+      <ChildNavActions />
+    </header>
+
     <div class="scroll-area">
 
       <div v-if="loading" class="state-text">불러오는 중...</div>
@@ -8,17 +19,6 @@
       <template v-else>
       <!-- 상단 히어로 점수 카드 섹션 -->
       <section class="hero-section">
-        <!-- 상단 네비바 -->
-        <header class="top-nav">
-          <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-              <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <h1 class="nav-title">티니점수</h1>
-          <ChildNavActions />
-        </header>
-
         <!-- 히어로 점수 카드 -->
         <div class="hero-card">
           <div class="hero-top-row">
@@ -134,7 +134,7 @@
       </section>
 
       <!-- 최근 점수 변동 내역 (3개 요약) -->
-      <section class="section-container">
+      <section class="section-container last-section">
         <div class="card">
           <div class="history-head">
             <span class="title">최근 점수 변동 내역</span>
@@ -160,63 +160,9 @@
         </div>
       </section>
 
-      <!-- 하단 티니코치-->
-      <section class="section-container last-section">
-        <div class="coach-tip-banner">
-          <div class="coach-tip-top">
-            <div class="coach-character-wrap">
-              <img :src="teenyScoreMascot" alt="티니코치" class="coach-full-mascot" />
-            </div>
-
-            <div class="coach-speech-box">
-              <span class="coach-name">티니 코치</span>
-              <p class="speech-text">
-                오늘도 티니점수 올려볼까?<br />
-                아래 미션을 꾸준히 하면 금방 오를 거야!
-              </p>
-            </div>
-          </div>
-
-          <div class="mission-card-row">
-            <div class="mission-card">
-              <div class="mission-icon-wrap">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                  <path d="M4 20l1-4.5L15.5 5 19 8.5 8.5 19 4 20z" stroke="#C98A00" stroke-width="1.6" stroke-linejoin="round"/>
-                  <path d="M13 7l4 4" stroke="#C98A00" stroke-width="1.6"/>
-                </svg>
-              </div>
-              <span class="mission-title">소비 기록하기</span>
-            </div>
-
-            <div class="mission-card">
-              <div class="mission-icon-wrap">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                  <circle cx="12" cy="12" r="8" stroke="#C98A00" stroke-width="1.6"/>
-                  <circle cx="12" cy="12" r="4" stroke="#C98A00" stroke-width="1.6"/>
-                  <circle cx="12" cy="12" r="1" fill="#C98A00"/>
-                </svg>
-              </div>
-              <span class="mission-title">저축 목표 달성하기</span>
-            </div>
-
-            <div class="mission-card">
-              <div class="mission-icon-wrap">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-                  <rect x="4" y="4" width="16" height="16" rx="5" stroke="#C98A00" stroke-width="1.6"/>
-                  <path d="M8.5 12.5l2.3 2.3L16 9.5" stroke="#C98A00" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <span class="mission-title">퀘스트 완료하기</span>
-            </div>
-          </div>
-        </div>
-      </section>
       </template>
 
     </div>
-
-    <!-- 티니점수 안내 말풍선 포함 챗봇 플로팅 버튼 -->
-    <Chatbot hint-text="티니점수를 올리는 방법이 궁금해?" />
 
     <!-- 하단 탭바 -->
     <BottomTabBar active="home" @select="onTabSelect" />
@@ -227,7 +173,6 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
-import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import {
   getTeenyScore,
@@ -247,9 +192,6 @@ const router = useRouter()
 const authStore = useAuthStore()
 const { accessToken, memberId } = storeToRefs(authStore)
 const childId = memberId
-
-// 티니 캐릭터
-const teenyScoreMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
 
 // ==================================================================
 // 상태
@@ -459,14 +401,18 @@ function onTabSelect(key) {
 
 /* 메인 섹션 */
 .hero-section {
-  padding: 36px 18px 12px;
+  padding: 12px 18px 12px;
 }
 
-.top-nav {
+/* 상단 네비바 — 화면 좌우 끝까지 꽉 차게 */
+.nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 14px;
+  padding: 14px 18px;
 }
 
 .back-btn {
@@ -877,116 +823,4 @@ function onTabSelect(key) {
   color: #2563eb;
 }
 
-.coach-tip-banner {
-  padding: 16px 14px 14px;
-}
-
-.coach-tip-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.coach-character-wrap {
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: -4px;
-}
-
-.coach-full-mascot {
-  width: 68px;
-  height: 68px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
-}
-
-.coach-name {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #b98a00;
-  margin-bottom: 4px;
-}
-
-.coach-speech-box {
-  position: relative;
-  flex: 1;
-  background: #fff6dc;
-  border-radius: 20px;
-  padding: 12px 16px;
-}
-
-.coach-speech-box::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  bottom: 16px;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 8px 10px 8px 0;
-  border-color: transparent #fff6dc transparent transparent;
-}
-
-.speech-text {
-  margin: 0;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #3d2b00;
-  line-height: 1.5;
-  letter-spacing: -0.2px;
-  white-space: nowrap;
-}
-
-.mission-card-row {
-  display: flex;
-  gap: 10px;
-}
-
-.mission-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  background: #ffffff;
-  border: 1px solid #f1f1f2;
-  border-radius: 18px;
-  padding: 18px 8px 18px;
-  cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-  transition: transform 0.1s ease;
-}
-
-.mission-card:active {
-  transform: scale(0.97);
-}
-
-.mission-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #fff3d2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.mission-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #1e1e1e;
-  text-align: center;
-  line-height: 1.35;
-  word-break: keep-all;
-  min-height: 32px;
-  display: flex;
-  align-items: center;
-}
 </style>

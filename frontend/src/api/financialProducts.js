@@ -148,6 +148,7 @@ export async function getChildCustomProducts(accessToken, childId, productType) 
   return parseResponse(response)
 }
 
+<<<<<<< HEAD
 export async function getAllChildCustomProducts(accessToken, childId) {
   ensureAccessToken(accessToken)
   if (!childId) throw new Error('자녀 정보가 필요합니다.')
@@ -163,6 +164,8 @@ export async function getAllChildCustomProducts(accessToken, childId) {
   return parseResponse(response)
 }
 
+=======
+>>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
 export async function deleteFinancialProduct(
   accessToken,
   childId,

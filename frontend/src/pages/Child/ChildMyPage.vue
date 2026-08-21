@@ -175,13 +175,6 @@ function goBack() {
   router.back();
 }
 
-function editContact() {
-  // 연락처 수정
-}
-function editEmail() {
-  // 이메일 수정
-}
-
 function goPasswordSetting() {
   if (isPasswordSet.value) return;
   // 결제 비밀번호 설정

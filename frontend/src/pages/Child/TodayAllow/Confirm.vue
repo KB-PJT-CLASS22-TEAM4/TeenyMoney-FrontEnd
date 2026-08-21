@@ -86,7 +86,7 @@ function goHome() {
   height: 730px;
   margin: 0 auto;
   padding-top: 50px;
-  background: #ffffff;
+  background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;

@@ -626,20 +626,20 @@ function onScroll() {
       <ChildNavActions />
     </div>
 
-    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <!-- 탭 스위처 -->
-      <div class="tab-switcher">
-        <button
-          v-for="tab in tabs"
-          :key="tab"
-          class="tab-btn"
-          :class="{ active: tab === activeTab }"
-          @click="activeTab = tab"
-        >
-          <span class="tab-label">{{ tab }}</span>
-        </button>
-      </div>
+    <!-- 탭 스위처 — 상단 네비와 이어지도록 흰 배경으로 화면 좌우 끝까지 꽉 차게 -->
+    <div class="tab-switcher">
+      <button
+        v-for="tab in tabs"
+        :key="tab"
+        class="tab-btn"
+        :class="{ active: tab === activeTab }"
+        @click="activeTab = tab"
+      >
+        <span class="tab-label">{{ tab }}</span>
+      </button>
+    </div>
 
+    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
       <div class="filters">
         <button
           v-for="c in categories"
@@ -925,7 +925,7 @@ function onScroll() {
 
     <BottomTabBar active="finance" @select="onTabSelect" />
 
-    <Chatbot v-if="!showDepositSheet && !showSuccessModal && !showTransferErrorModal && !showCancelPendingModal && !showCancelPendingSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
+    <Chatbot :hide-for-modal="showDepositSheet || showSuccessModal || showTransferErrorModal || showCancelPendingModal || showCancelPendingSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
   </div>
 </template>
 
@@ -938,18 +938,20 @@ function onScroll() {
   width: 360px;
   height: 730px;
   margin: 0 auto;
-  padding-top: 50px;
   background: #f8fafc;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
 
+/* 상단 네비 — 화면 좌우 끝까지 꽉 차게 */
 .nav {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 2px 20px 10px;
-  background: #f8fafc;
+  padding: 44px 20px 10px;
 }
 
 .icon-btn {
@@ -970,7 +972,7 @@ function onScroll() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 20px 20px;
+  padding: 16px 20px 20px;
   background: #f8fafc;
 }
 .scroll::-webkit-scrollbar { width: 3px; }
@@ -981,13 +983,16 @@ function onScroll() {
 }
 .scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
-/* 탭 스위처 */
+/* 탭 스위처 — 상단 네비에 이어붙는 흰 영역 */
 .tab-switcher {
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: flex-start;
+  background: #ffffff;
   border-bottom: 1.2px solid #e2e8f0;
-  background: #f8fafc;
-  margin-bottom: 16px;
+  padding: 0 16px;
 }
 
 .tab-btn {
