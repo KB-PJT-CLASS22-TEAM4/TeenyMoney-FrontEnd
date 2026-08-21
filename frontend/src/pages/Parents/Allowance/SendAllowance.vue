@@ -90,12 +90,11 @@
 
         <div class="amount-wrap">
           <input
-            v-model="amount"
-            type="number"
+            v-model="amountText"
+            type="text"
             class="amount-input"
             placeholder="0"
             inputmode="numeric"
-            min="1"
           />
 
           <span class="won">
@@ -292,6 +291,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getChildren } from '@/api/children'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
+import { formatMoney, parseMoney } from '@/utils/formatMoney'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -303,6 +303,15 @@ const children = ref([])
 const selectedChildIds = ref([])
 
 const amount = ref('')
+
+const amountText = computed({
+  get() {
+    return formatMoney(amount.value)
+  },
+  set(value) {
+    amount.value = parseMoney(value) || ''
+  },
+})
 
 const isLoading = ref(false)
 

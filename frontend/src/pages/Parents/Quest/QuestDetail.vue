@@ -524,10 +524,11 @@
 
         <div class="amount-wrap">
           <input
-            v-model="editForm.rewardAmount"
-            type="number"
+            v-model="rewardAmountText"
+            type="text"
             class="amount-input"
-            min="0"
+            inputmode="numeric"
+            placeholder="0"
           />
 
           <span class="won">
@@ -806,6 +807,7 @@ import {
 } from '@/utils/datetime'
 
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
+import { formatMoney, parseMoney } from '@/utils/formatMoney'
 
 const router =
   useRouter()
@@ -872,6 +874,15 @@ const editForm =
     verificationRequirement:
       'PHOTO_REQUIRED',
   })
+
+const rewardAmountText = computed({
+  get() {
+    return formatMoney(editForm.value.rewardAmount)
+  },
+  set(value) {
+    editForm.value.rewardAmount = parseMoney(value)
+  },
+})
 
 const quickAmounts = [
   {

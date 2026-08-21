@@ -245,8 +245,8 @@
 
         <div class="amount-wrap">
           <input
-            v-model="amount"
-            type="number"
+            v-model="amountText"
+            type="text"
             class="amount-input"
             placeholder="0"
             inputmode="numeric"
@@ -467,6 +467,7 @@ import {
 } from '@/api/allowance'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 import { formatKstDate } from '@/utils/datetime'
+import { formatMoney, parseMoney } from '@/utils/formatMoney'
 
 const WEEKDAY_LABELS = [
   '',
@@ -500,6 +501,15 @@ const editingScheduleId = ref(null)
 const cycle = ref('MONTHLY')
 const dayOfCycle = ref(1)
 const amount = ref('')
+
+const amountText = computed({
+  get() {
+    return formatMoney(amount.value)
+  },
+  set(value) {
+    amount.value = parseMoney(value) || ''
+  },
+})
 const isLoading = ref(false)
 const isScheduleLoading = ref(false)
 const isSaving = ref(false)

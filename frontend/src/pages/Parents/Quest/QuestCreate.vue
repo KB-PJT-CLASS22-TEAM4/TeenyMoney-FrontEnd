@@ -174,8 +174,8 @@
 
         <div class="amount-wrap">
           <input
-            v-model="form.rewardAmount"
-            type="number"
+            v-model="rewardAmountText"
+            type="text"
             class="amount-input"
             placeholder="0"
             inputmode="numeric"
@@ -805,6 +805,7 @@ import {
 import {
   CHILD_PROFILE_IMAGE,
 } from '@/utils/profileImages'
+import { formatMoney, parseMoney } from '@/utils/formatMoney'
 
 
 const router =
@@ -855,6 +856,15 @@ const form =
     verificationRequirement:
       'PHOTO_REQUIRED',
   })
+
+const rewardAmountText = computed({
+  get() {
+    return formatMoney(form.value.rewardAmount)
+  },
+  set(value) {
+    form.value.rewardAmount = parseMoney(value)
+  },
+})
 
 const isPhotoRequired =
   computed(() =>
