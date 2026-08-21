@@ -121,30 +121,14 @@
           <div class="pending-actions">
             <button
               type="button"
-<<<<<<< HEAD
               class="detail-btn"
               @click.stop="goToDetail(quest.questId)"
             >
               상세보기
-=======
-              class="reject-btn"
-              :disabled="
-                processingQuestId ===
-                quest.questId
-              "
-              @click="
-                openRejectModal(
-                  quest
-                )
-              "
-            >
-              거절
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
             </button>
 
             <button
               type="button"
-<<<<<<< HEAD
               class="reject-btn"
               :disabled="
                 processingQuestId ===
@@ -161,18 +145,12 @@
 
             <button
               type="button"
-=======
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
               class="approve-btn"
               :disabled="
                 processingQuestId ===
                 quest.questId
               "
-<<<<<<< HEAD
               @click.stop="
-=======
-              @click="
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
                 handleApprove(
                   quest
                 )
