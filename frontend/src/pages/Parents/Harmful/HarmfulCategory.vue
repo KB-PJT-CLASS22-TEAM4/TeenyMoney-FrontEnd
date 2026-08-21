@@ -1397,11 +1397,11 @@ watch(
 }
 
 .request-section {
-  margin-top: 0;
+  margin-top: 8px;
 }
 
 .request-title {
-  margin: 0 0 10px;
+  margin: 0 0 18px;
   font-size: 15px;
   font-weight: 800;
   color: #191b1e;
@@ -1410,18 +1410,20 @@ watch(
 .request-tabs {
   display: flex;
   gap: 8px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  width: 100%;
   margin-bottom: 12px;
 }
 
 .chip {
   display: inline-flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 16px;
-  border: none;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.3px solid transparent;
   border-radius: 999px;
   background: #ffbc00;
   color: #15171b;
