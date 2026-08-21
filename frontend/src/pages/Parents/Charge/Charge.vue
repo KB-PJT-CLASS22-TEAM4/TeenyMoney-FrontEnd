@@ -46,8 +46,8 @@
 
         <div class="amount-wrap">
           <input
-            v-model="chargeAmount"
-            type="number"
+            v-model="chargeAmountText"
+            type="text"
             class="amount-input"
             placeholder="0"
             inputmode="numeric"
@@ -308,6 +308,7 @@ import {
 
 import { getMyWallet } from '@/api/wallet'
 import { getMyInfo } from '@/api/member'
+import { formatMoney, parseMoney } from '@/utils/formatMoney'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -316,6 +317,15 @@ const alertModal = useAlertModal()
 const walletBalance = ref(0)
 
 const chargeAmount = ref('')
+
+const chargeAmountText = computed({
+  get() {
+    return formatMoney(chargeAmount.value)
+  },
+  set(value) {
+    chargeAmount.value = parseMoney(value) || ''
+  },
+})
 
 const paymentMethods = ref([])
 
