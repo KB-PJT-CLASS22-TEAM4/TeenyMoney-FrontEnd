@@ -25,7 +25,6 @@
 
           <div class="hero-mascot-wrap" aria-hidden="true">
             <img :src="parentMascot" class="hero-mascot" alt="" />
-            <div class="mascot-shadow"></div>
           </div>
         </div>
       </section>
@@ -378,15 +377,6 @@ button {
   max-height: 118px;
   object-fit: contain;
   object-position: bottom center;
-}
-
-.mascot-shadow {
-  width: 72px;
-  height: 8px;
-  margin-top: -10px;
-  border-radius: 50%;
-  background: rgba(220, 190, 80, 0.28);
-  filter: blur(4px);
 }
 
 .top-nav {
