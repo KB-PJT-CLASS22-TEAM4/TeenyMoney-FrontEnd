@@ -538,7 +538,23 @@ const temporaryAllowMap = computed(() => {
   return map
 })
 
-function withEffectivePolicy(item) {
+function withEffectivePolicy(item, group) {
+  const locked = group
+    ? isLockedGroup(group)
+    : parentGroups.value.some(
+        (entry) =>
+          isLockedGroup(entry)
+          && entry.items.some((place) => place.id === item.id)
+      )
+
+  if (locked) {
+    return {
+      ...item,
+      temporaryUntil: null,
+      effectivePolicy: 'BLOCK',
+    }
+  }
+
   if (item.userOverride) {
     return {
       ...item,
@@ -574,7 +590,7 @@ const gradeCounts = computed(() => {
 
   parentGroups.value.forEach((group) => {
     group.items.forEach((item) => {
-      const policy = withEffectivePolicy(item).effectivePolicy
+      const policy = withEffectivePolicy(item, group).effectivePolicy
       counts.ALL += 1
       if (counts[policy] != null) counts[policy] += 1
     })
@@ -606,7 +622,7 @@ const filteredGroups = computed(() => {
 
   return parentGroups.value
     .map((group) => {
-      let items = group.items.map(withEffectivePolicy)
+      let items = group.items.map((item) => withEffectivePolicy(item, group))
       if (grade !== 'ALL') {
         items = items.filter((item) => item.effectivePolicy === grade)
       }
@@ -1068,10 +1084,15 @@ async function handleSave() {
     await updateCategoryPolicies(
       authStore.accessToken,
       childId.value,
-      allPlaces.value.map((place) => ({
-        id: place.id,
-        policy: place.policy,
-      }))
+      allPlaces.value.map((place) => {
+        const group = parentGroups.value.find((entry) =>
+          entry.items.some((item) => item.id === place.id)
+        )
+        return {
+          id: place.id,
+          policy: group && isLockedGroup(group) ? 'BLOCK' : place.policy,
+        }
+      })
     )
 
     alertModal.showAlert('설정이 저장되었습니다!')
