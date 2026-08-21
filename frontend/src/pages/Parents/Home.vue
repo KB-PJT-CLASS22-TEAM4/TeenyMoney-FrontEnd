@@ -129,28 +129,6 @@
 
           <span class="chev">›</span>
         </button>
-
-        <button
-          class="allowance-card"
-          type="button"
-          @click="router.push({ name: 'parents-finance-create' })"
-        >
-          <div class="allowance-left">
-            <div class="allowance-icon-wrap">
-              <img
-                src="@/assets/icons/icon-wallet.svg"
-                alt=""
-                class="clock-icon wallet-icon"
-              />
-            </div>
-
-            <div>
-              <p class="allowance-main">금융 상품 추가</p>
-            </div>
-          </div>
-
-          <span class="chev">›</span>
-        </button>
       </section>
 
       <section class="history">
