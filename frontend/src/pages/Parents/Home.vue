@@ -534,8 +534,8 @@ button {
 }
 
 .allowance-section {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding: 16px 18px 0;
 }
@@ -544,8 +544,9 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  padding: 16px 18px;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 12px;
   border: none;
   border-radius: 20px;
   background: #ffffff;
@@ -556,8 +557,22 @@ button {
 .allowance-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
   text-align: left;
+}
+
+.allowance-main {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #191b1e;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.allowance-card .chev {
+  flex-shrink: 0;
 }
 
 .allowance-icon-wrap {
@@ -576,13 +591,6 @@ button {
 
 .wallet-icon {
   filter: brightness(0);
-}
-
-.allowance-main {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
 }
 
 .chev {

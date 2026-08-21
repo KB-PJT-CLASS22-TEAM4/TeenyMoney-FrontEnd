@@ -6,7 +6,9 @@ import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
 // 자녀 연동 코드 보호자 확인 페이지
 import LinkConfirm from '@/pages/Child/LinkConfirm.vue';
 // 자녀 코드 연동 완료 페이지
-import LinkComplete from '@/pages/Child/LinkComplete.vue' ;
+import ChildLinkComplete from '@/pages/Child/LinkComplete.vue';
+// 부모 자녀 연동 완료 페이지
+import ParentLinkComplete from '@/pages/Parents/Link/LinkComplete.vue';
 // 자녀 홈 화면
 import ChildHome from '@/pages/Child/ChildHome.vue';
 // 자녀 거래내역 조회
@@ -137,7 +139,7 @@ const router = createRouter({
     {
       path: '/child/linkcomplete',
       name: 'child-link-complete',
-      component: LinkComplete,
+      component: ChildLinkComplete,
     },
      // 부모 홈 페이지
     {
@@ -163,11 +165,11 @@ const router = createRouter({
       name: 'parents-link-code',
       component: LinkCode,
     },
-    // 부모 연동 코드 발급 완료 페이지
+    // 부모 자녀 연동 완료 페이지
     {
       path: '/parents/linkcomplete',
       name: 'parents-link-complete',
-      component: LinkComplete,
+      component: ParentLinkComplete,
     },
     // 자녀 홈 화면
     {
