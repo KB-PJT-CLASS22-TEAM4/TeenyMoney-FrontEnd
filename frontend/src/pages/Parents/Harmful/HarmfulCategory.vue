@@ -1,5 +1,8 @@
 <template>
-  <div class="page">
+  <div
+    class="page"
+    :class="{ 'has-save': isDirty }"
+  >
 
     <header class="nav">
       <button
@@ -23,12 +26,13 @@
     </header>
 
 
+    <div class="notice-banner">
+      오늘만 허용은 승인 당일 자정까지 일시 허용되며,<br />
+      0시에 기존 설정으로 돌아갑니다
+    </div>
+
+
     <div class="content">
-
-      <p class="section-title">
-        업종별 결제 정책
-      </p>
-
 
       <!-- 로딩 -->
       <div
@@ -47,126 +51,144 @@
       </div>
 
 
-      <!-- 정책 목록: 허용/주의/차단 → 상위 토글 → 하위 조회 -->
-      <div v-else>
-        <div
-          v-for="section in policySections"
-          :key="section.key"
-          class="policy-card"
+      <div
+        v-else
+        class="policy-board"
+      >
+        <div class="grade-chips">
+          <button
+            v-for="tab in gradeTabs"
+            :key="tab.value"
+            class="grade-chip"
+            :class="[tab.tone, { on: activePolicyTab === tab.value }]"
+            type="button"
+            @click="activePolicyTab = tab.value"
+          >
+            {{ tab.label }}
+            <strong>{{ tab.count }}</strong>
+          </button>
+        </div>
+
+        <p
+          v-if="filteredGroups.length === 0"
+          class="empty-policy"
         >
-          <p
-            class="policy-label"
-            :class="policyClass(section.key)"
-          >
-            {{ section.label }}
-          </p>
+          {{ emptyFilterText }}
+        </p>
 
-          <p
-            v-if="section.groups.length === 0"
-            class="empty-policy"
-          >
-            설정된 업종이 없습니다.
-          </p>
-
-          <template
-            v-for="group in section.groups"
-            :key="group.name"
-          >
-            <div
-              v-if="isFlatGroup(group)"
-              class="flat-group"
+        <section
+          v-for="group in filteredGroups"
+          :key="group.name"
+          class="place-group"
+        >
+          <div class="group-head">
+            <button
+              class="group-title-btn"
+              type="button"
+              :aria-expanded="isGroupExpanded(group.name)"
+              @click="toggleGroup(group.name)"
             >
-              <p
-                v-for="item in group.items"
-                :key="item.id"
-                class="flat-item"
+              <span class="group-title">
+                {{ group.name }}
+              </span>
+              <span class="group-count">
+                {{ group.items.length }}개
+              </span>
+            </button>
+
+            <div class="group-actions">
+              <button
+                class="group-action"
+                type="button"
+                @click="setGroupStatus(group, 'ALLOW')"
               >
-                {{ item.categoryName }}
-                <span
-                  v-if="item.temporaryUntil"
-                  class="temp-deadline"
-                >
-                  {{ formatAllowDeadline(item.temporaryUntil) }}
-                </span>
-              </p>
+                전체 허용
+              </button>
+              <button
+                class="group-action"
+                type="button"
+                @click="setGroupStatus(group, 'WATCH')"
+              >
+                전체 주의
+              </button>
+              <button
+                class="group-action"
+                type="button"
+                @click="setGroupStatus(group, 'BLOCK')"
+              >
+                전체 차단
+              </button>
             </div>
 
-            <div
-              v-else
-              class="toggle-group"
+            <button
+              class="group-chevron-btn"
+              type="button"
+              :aria-expanded="isGroupExpanded(group.name)"
+              @click="toggleGroup(group.name)"
             >
-              <button
-                class="toggle-header"
-                type="button"
-                :aria-expanded="isPolicyGroupExpanded(section.key, group.name)"
-                @click="togglePolicyGroup(section.key, group.name)"
-              >
-                <span class="toggle-title">
-                  {{ group.name }}
-                </span>
-                <span class="toggle-count">
-                  {{ group.items.length }}
-                </span>
-                <img
-                  src="@/assets/icons/icon-chevron.svg"
-                  alt=""
-                  class="toggle-chevron"
-                  :class="{
-                    open: isPolicyGroupExpanded(section.key, group.name),
-                  }"
-                />
-              </button>
+              <img
+                src="@/assets/icons/icon-chevron.svg"
+                alt=""
+                class="group-chevron"
+                :class="{ open: isGroupExpanded(group.name) }"
+              />
+            </button>
+          </div>
 
+          <div
+            class="group-panel"
+            :class="{ open: isGroupExpanded(group.name) }"
+          >
+            <div class="group-card">
               <div
-                v-if="isPolicyGroupExpanded(section.key, group.name)"
-                class="toggle-body"
+                v-for="place in group.items"
+                :key="place.id"
+                class="place-row"
+                :class="{
+                  leaving: isMoving(place.id),
+                }"
               >
-                <p
-                  v-for="item in group.items"
-                  :key="item.id"
-                  class="policy-item"
-                >
-                  {{ item.categoryName }}
+                <p class="place-name">
+                  {{ place.categoryName }}
                   <span
-                    v-if="item.temporaryUntil"
-                    class="temp-deadline"
+                    v-if="place.temporaryUntil"
+                    class="temp-badge"
                   >
-                    {{ formatAllowDeadline(item.temporaryUntil) }}
+                    {{ formatRemainUntilMidnight(place.temporaryUntil) }}
                   </span>
                 </p>
+
+                <div class="place-btns">
+                  <button
+                    class="status-btn"
+                    type="button"
+                    :class="{ 'active-allow': isAllowActive(place) }"
+                    @click="setStatus(place.id, 'ALLOW')"
+                  >
+                    허용
+                  </button>
+                  <button
+                    class="status-btn"
+                    type="button"
+                    :class="{ 'active-caution': isCautionActive(place) }"
+                    @click="setStatus(place.id, 'WATCH')"
+                  >
+                    주의
+                  </button>
+                  <button
+                    class="status-btn"
+                    type="button"
+                    :class="{ 'active-block': isBlockActive(place) }"
+                    @click="setStatus(place.id, 'BLOCK')"
+                  >
+                    차단
+                  </button>
+                </div>
               </div>
             </div>
-          </template>
-        </div>
-
+          </div>
+        </section>
       </div>
-
-
-      <button
-        class="list-card"
-        type="button"
-        @click="goToPlaceList"
-      >
-        <div class="list-card-icon" aria-hidden="true">
-          <img
-            src="@/assets/icons/icon-shield.svg"
-            alt=""
-            class="list-card-icon-img"
-          />
-        </div>
-
-        <div class="list-card-text">
-          <span class="list-card-badge">업종 설정</span>
-          <span class="list-card-title">업종 목록 설정 및 조회</span>
-          <span class="list-card-sub">허용·주의·차단 업종을 확인하고 바꿔요</span>
-        </div>
-
-        <img
-          src="@/assets/icons/icon-chevron.svg"
-          alt=""
-          class="chevron-icon"
-        />
-      </button>
 
 
       <!-- 승인 요청 내역 -->
@@ -237,8 +259,18 @@
             </div>
 
             <p class="request-category-hint">
-              허용할 업종을 선택한 뒤 승인을 누르면,<br />선택하지 않은 업종은 자동으로 거절됩니다.
+              허용할 업종을 선택한 뒤 승인을 누르면, 선택하지 않은 업종은 자동으로 거절됩니다.
             </p>
+
+            <div
+              v-if="req.reason"
+              class="child-message"
+            >
+              <span class="child-message-label">자녀메시지</span>
+              <p class="request-desc">
+                {{ req.reason }}
+              </p>
+            </div>
 
             <div
               v-if="req.categoryItems.length"
@@ -269,13 +301,6 @@
               </button>
             </div>
 
-            <p
-              v-if="req.reason"
-              class="request-desc"
-            >
-              {{ req.reason }}
-            </p>
-
             <div class="request-btns">
               <button
                 class="btn btn-secondary"
@@ -300,15 +325,123 @@
 
         <!-- 처리 완료 탭 -->
         <div v-else>
-          <div
-            v-if="!completedRequests.length"
-            class="empty-request"
-          >
-            <p>처리 완료된 승인 요청이 없습니다.</p>
+          <div class="completed-filters">
+            <div class="filter-tabs">
+              <button
+                type="button"
+                class="tab"
+                :class="{ 'tab-active': completedStatus === 'ALL' }"
+                @click="changeCompletedStatus('ALL')"
+              >
+                전체
+              </button>
+              <button
+                type="button"
+                class="tab"
+                :class="{ 'tab-active': completedStatus === 'APPROVED' }"
+                @click="changeCompletedStatus('APPROVED')"
+              >
+                승인
+              </button>
+              <button
+                type="button"
+                class="tab"
+                :class="{ 'tab-active': completedStatus === 'REJECTED' }"
+                @click="changeCompletedStatus('REJECTED')"
+              >
+                거절
+              </button>
+              <button
+                type="button"
+                class="tab tab-period"
+                :class="{ 'tab-active': isCompletedPeriodOpen }"
+                @click="toggleCompletedPeriodMenu"
+              >
+                <img
+                  src="@/assets/icons/icon-calendar.svg"
+                  alt=""
+                  class="calendar-icon"
+                />
+                {{ completedPeriodLabel }}
+              </button>
+            </div>
+
+            <div
+              v-if="isCompletedPeriodOpen"
+              class="period-menu"
+            >
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'WEEK' }"
+                @click="changeCompletedPeriod('WEEK')"
+              >
+                1주
+              </button>
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'MONTH' }"
+                @click="changeCompletedPeriod('MONTH')"
+              >
+                1개월
+              </button>
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'THREE_MONTHS' }"
+                @click="changeCompletedPeriod('THREE_MONTHS')"
+              >
+                3개월
+              </button>
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'SIX_MONTHS' }"
+                @click="changeCompletedPeriod('SIX_MONTHS')"
+              >
+                6개월
+              </button>
+            </div>
+
+            <div class="sort-area">
+              <button
+                type="button"
+                class="sort-button"
+                @click="toggleCompletedSort"
+              >
+                <span class="sort-label">
+                  {{ completedSort === 'DESC' ? '최신순' : '과거순' }}
+                </span>
+                <svg
+                  class="sort-switch-icon"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M7 10l5-5 5 5M7 14l5 5 5-5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div
-            v-for="req in completedRequests"
+            v-if="!filteredCompletedRequests.length"
+            class="empty-request"
+          >
+            <p>{{ completedEmptyText }}</p>
+          </div>
+
+          <div
+            v-for="req in filteredCompletedRequests"
             :key="requestKey(req)"
             class="request-card"
           >
@@ -350,17 +483,34 @@
               {{ formatAllowDeadline() }}
             </p>
 
-            <p
+            <div
               v-if="req.reason"
-              class="request-desc"
+              class="child-message"
             >
-              {{ req.reason }}
-            </p>
+              <span class="child-message-label">자녀메시지</span>
+              <p class="request-desc">
+                {{ req.reason }}
+              </p>
+            </div>
           </div>
         </div>
 
       </div>
 
+    </div>
+
+    <div
+      v-if="isDirty"
+      class="footer"
+    >
+      <button
+        class="submit-btn"
+        :disabled="isSaving"
+        type="button"
+        @click="handleSave"
+      >
+        {{ isSaving ? '저장 중...' : '수정 완료' }}
+      </button>
     </div>
 
     <ParentBottomNav active="child" />
@@ -376,7 +526,7 @@ import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -387,7 +537,8 @@ import {
 } from '@/utils/datetime'
 
 import {
-  getCategoryPolicyParentGroups
+  getCategoryPolicyParentGroups,
+  updateCategoryPolicies,
 } from '@/api/categoryPolicy'
 
 import {
@@ -425,26 +576,11 @@ const parentGroups = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-const POLICY_SECTIONS = [
-  { key: 'ALLOW', label: '허용' },
-  { key: 'CAUTION', label: '주의' },
-  { key: 'BLOCK', label: '차단' },
-]
-
 function normalizePolicy(policy) {
   return policy === 'WATCH' ? 'CAUTION' : policy
 }
 
-function policyClass(policy) {
-  if (policy === 'ALLOW') return 'allow'
-  if (policy === 'CAUTION' || policy === 'WATCH') return 'caution'
-  if (policy === 'BLOCK') return 'block'
-  return ''
-}
-
-function isFlatGroup(group) {
-  return group.name === '기타'
-}
+const localTempAllowUntil = ref(new Map())
 
 function getTodayEnd() {
   return new Date(startOfKstDay(new Date()).getTime() + 86400000)
@@ -462,88 +598,290 @@ function formatAllowDeadline(until = getTodayEnd()) {
   return '오늘 24:00까지 허용'
 }
 
+const nowTick = ref(Date.now())
+let remainTimer = null
+
+function formatRemainUntilMidnight(until) {
+  const end = until instanceof Date ? until : parseCreatedAt(until) || getTodayEnd()
+  const diff = end.getTime() - nowTick.value
+  if (diff <= 0) return '곧 종료'
+
+  const totalMinutes = Math.floor(diff / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  if (hours > 0 && minutes > 0) return `${hours}시간 ${minutes}분 남음`
+  if (hours > 0) return `${hours}시간 남음`
+  if (minutes > 0) return `${minutes}분 남음`
+  return `${Math.max(1, Math.floor(diff / 1000))}초 남음`
+}
+
+function startRemainTimer() {
+  if (remainTimer) return
+  nowTick.value = Date.now()
+  remainTimer = window.setInterval(() => {
+    nowTick.value = Date.now()
+  }, 1000)
+}
+
+function stopRemainTimer() {
+  if (!remainTimer) return
+  window.clearInterval(remainTimer)
+  remainTimer = null
+}
+
 function requestKey(req) {
   return (req.permissionIds || [req.id]).join('-')
 }
 
-const temporaryAllowMap = computed(() => {
-  const map = new Map()
-  const until = getTodayEnd()
-  if (until.getTime() <= Date.now()) return map
+function normalizeName(value) {
+  return String(value ?? '').replace(/\s/g, '')
+}
 
-  normalizedRequests.value.forEach((req) => {
-    if (req.status !== 'APPROVED') return
-    if (req.updatedAt && !isSameLocalDay(req.updatedAt) && !isSameLocalDay(req.createdAt)) {
-      return
-    }
-    if (req.category) map.set(String(req.category), until)
-    req.categories.forEach((name) => map.set(String(name), until))
-    ;(req.categoryItems || []).forEach((item) => {
-      if (item.label) map.set(String(item.label), until)
-      if (item.id != null) map.set(String(item.id), until)
+function addTempAllowKey(map, key, until) {
+  if (key == null || key === '') return
+  map.set(String(key), until)
+  const compact = normalizeName(key)
+  if (compact) map.set(compact, until)
+}
+
+function findPolicyPlaces(item) {
+  const id = item?.id
+  const label = item?.label ?? item?.categoryName ?? item
+  const compact = normalizeName(label)
+
+  return parentGroups.value.flatMap((group) => group.items).filter((place) =>
+    (id != null && (
+      String(place.id) === String(id)
+      || String(place.categoryId) === String(id)
+    ))
+    || (label && place.categoryName === String(label))
+    || (compact && normalizeName(place.categoryName) === compact)
+  )
+}
+
+function rememberTempAllow(items) {
+  const until = getTodayEnd()
+  if (until.getTime() <= Date.now()) return
+
+  const next = new Map(localTempAllowUntil.value)
+  items.forEach((item) => {
+    addTempAllowKey(next, item?.id, until)
+    addTempAllowKey(next, item?.label, until)
+    addTempAllowKey(next, resolveCategoryId(item), until)
+    findPolicyPlaces(item).forEach((place) => {
+      addTempAllowKey(next, place.id, until)
+      addTempAllowKey(next, place.categoryId, until)
+      addTempAllowKey(next, place.categoryName, until)
     })
   })
+  localTempAllowUntil.value = next
+}
+
+function isApprovedToday(req) {
+  if (req.status !== 'APPROVED') return false
+  if (getTodayEnd().getTime() <= Date.now()) return false
+
+  const day = req.approvedAt || req.updatedAt || req.createdAt
+  if (!day) return true
+  return isSameLocalDay(day)
+}
+
+const temporaryAllowMap = computed(() => {
+  const until = getTodayEnd()
+  const map = new Map()
+
+  if (until.getTime() > Date.now()) {
+    localTempAllowUntil.value.forEach((value, key) => {
+      if (value && value.getTime() > Date.now()) map.set(key, value)
+    })
+
+    normalizedRequests.value.forEach((req) => {
+      if (!isApprovedToday(req)) return
+
+      addTempAllowKey(map, req.category, until)
+      ;(req.categories || []).forEach((name) => addTempAllowKey(map, name, until))
+      ;(req.categoryItems || []).forEach((item) => {
+        addTempAllowKey(map, item.label, until)
+        addTempAllowKey(map, item.id, until)
+        addTempAllowKey(map, resolveCategoryId(item), until)
+        findPolicyPlaces(item).forEach((place) => {
+          addTempAllowKey(map, place.id, until)
+          addTempAllowKey(map, place.categoryId, until)
+          addTempAllowKey(map, place.categoryName, until)
+        })
+      })
+    })
+  }
 
   return map
 })
 
-function withEffectivePolicy(item) {
-  const untilFromPermission =
-    temporaryAllowMap.value.get(item.categoryName)
-    ?? temporaryAllowMap.value.get(String(item.id))
+function lookupTempUntil(item) {
+  const map = temporaryAllowMap.value
+  return map.get(String(item.id))
+    ?? map.get(item.categoryName)
+    ?? map.get(normalizeName(item.categoryName))
+    ?? (item.categoryId != null ? map.get(String(item.categoryId)) : null)
     ?? null
+}
+
+function withEffectivePolicy(item) {
+  if (item.userOverride) {
+    return {
+      ...item,
+      temporaryUntil: null,
+      effectivePolicy: normalizePolicy(item.policy),
+    }
+  }
+
   const untilFromPolicy = parseCreatedAt(
     item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null
   )
-  const temporaryUntil = untilFromPermission || untilFromPolicy
-  const isTemp = temporaryUntil && temporaryUntil.getTime() > Date.now()
+  const temporaryUntil = lookupTempUntil(item) || untilFromPolicy
+  const basePolicy = normalizePolicy(item.policy)
+  const isTemp =
+    !!temporaryUntil
+    && temporaryUntil.getTime() > Date.now()
+    && basePolicy !== 'ALLOW'
 
   return {
     ...item,
     temporaryUntil: isTemp ? temporaryUntil : null,
-    effectivePolicy: isTemp ? 'ALLOW' : normalizePolicy(item.policy),
+    effectivePolicy: isTemp ? 'ALLOW' : basePolicy,
   }
 }
 
-const policySections = computed(() =>
-  POLICY_SECTIONS.map((section) => ({
-    ...section,
-    groups: parentGroups.value
-      .map((group) => ({
-        name: group.name,
-        items: group.items
-          .map(withEffectivePolicy)
-          .filter((item) => item.effectivePolicy === section.key),
-      }))
-      .filter((group) => group.items.length > 0),
-  }))
+const gradeCounts = computed(() => {
+  const counts = {
+    ALL: 0,
+    ALLOW: 0,
+    CAUTION: 0,
+    BLOCK: 0,
+  }
+
+  parentGroups.value.forEach((group) => {
+    group.items.forEach((item) => {
+      const policy = withEffectivePolicy(item).effectivePolicy
+      counts.ALL += 1
+      if (counts[policy] != null) counts[policy] += 1
+    })
+  })
+
+  return counts
+})
+
+const gradeTabs = computed(() => [
+  { value: 'ALL', label: '전체', tone: 'all', count: gradeCounts.value.ALL },
+  { value: 'ALLOW', label: '허용', tone: 'allow', count: gradeCounts.value.ALLOW },
+  { value: 'CAUTION', label: '주의', tone: 'caution', count: gradeCounts.value.CAUTION },
+  { value: 'BLOCK', label: '차단', tone: 'block', count: gradeCounts.value.BLOCK },
+])
+
+const activePolicyTab = ref('ALL')
+const isSaving = ref(false)
+const movingIds = ref([])
+
+function isMoving(id) {
+  return movingIds.value.includes(id)
+}
+
+function destinationTab(policy) {
+  return normalizePolicy(policy)
+}
+
+const allPlaces = computed(() =>
+  parentGroups.value.flatMap((group) => group.items)
 )
 
-const expandedPolicyGroups = ref({})
+const isDirty = computed(() =>
+  allPlaces.value.some((place) => place.userOverride)
+)
 
-function policyGroupKey(policy, name) {
-  return `${policy}:${name}`
+const filteredGroups = computed(() => {
+  const grade = activePolicyTab.value
+
+  return parentGroups.value
+    .map((group) => {
+      let items = group.items.map((item) => withEffectivePolicy(item))
+      if (grade !== 'ALL') {
+        items = items.filter((item) =>
+          item.effectivePolicy === grade || movingIds.value.includes(item.id)
+        )
+      }
+      return {
+        ...group,
+        items,
+      }
+    })
+    .filter((group) => group.items.length > 0)
+})
+
+const expandedGroups = ref({})
+
+function isGroupExpanded(name) {
+  if (Object.prototype.hasOwnProperty.call(expandedGroups.value, name)) {
+    return !!expandedGroups.value[name]
+  }
+  return true
 }
 
-function isPolicyGroupExpanded(policy, name) {
-  const key = policyGroupKey(policy, name)
-  if (Object.prototype.hasOwnProperty.call(expandedPolicyGroups.value, key)) {
-    return !!expandedPolicyGroups.value[key]
+function toggleGroup(name) {
+  expandedGroups.value = {
+    ...expandedGroups.value,
+    [name]: !isGroupExpanded(name),
   }
-
-  const group = policySections.value
-    .find((section) => section.key === policy)
-    ?.groups.find((item) => item.name === name)
-
-  return !!group?.items.some((item) => item.temporaryUntil)
 }
 
-function togglePolicyGroup(policy, name) {
-  const key = policyGroupKey(policy, name)
-  expandedPolicyGroups.value = {
-    ...expandedPolicyGroups.value,
-    [key]: !isPolicyGroupExpanded(policy, name),
-  }
+function playLeaveAnimation(ids, policy) {
+  const nextTab = destinationTab(policy)
+  const currentTab = activePolicyTab.value
+  if (currentTab === 'ALL' || currentTab === nextTab) return
+
+  movingIds.value = [...new Set([...movingIds.value, ...ids])]
+  window.setTimeout(() => {
+    movingIds.value = movingIds.value.filter((id) => !ids.includes(id))
+  }, 300)
+}
+
+function setGroupStatus(group, policy) {
+  const source = parentGroups.value.find((item) => item.name === group.name)
+  if (!source) return
+
+  const ids = source.items.map((place) => place.id)
+  source.items.forEach((place) => {
+    place.policy = policy
+    place.userOverride = true
+  })
+  playLeaveAnimation(ids, policy)
+}
+
+const emptyFilterText = computed(() => {
+  if (activePolicyTab.value === 'ALL') return '표시할 업종이 없습니다.'
+  const label = gradeTabs.value.find((tab) => tab.value === activePolicyTab.value)?.label
+  return `${label}로 설정된 업종이 없습니다.`
+})
+
+function isAllowActive(place) {
+  return place.effectivePolicy === 'ALLOW'
+}
+
+function isCautionActive(place) {
+  return place.effectivePolicy === 'CAUTION' || place.effectivePolicy === 'WATCH'
+}
+
+function isBlockActive(place) {
+  return place.effectivePolicy === 'BLOCK'
+}
+
+function setStatus(id, policy) {
+  const place = allPlaces.value.find((item) => item.id === id)
+  if (!place) return
+  if (movingIds.value.includes(id)) return
+
+  place.policy = policy
+  place.userOverride = true
+  playLeaveAnimation([id], policy)
 }
 
 
@@ -572,6 +910,77 @@ const completedRequests = computed(() =>
     (req) => req.status === 'APPROVED' || req.status === 'REJECTED'
   )
 )
+
+const completedStatus = ref('ALL')
+const completedPeriod = ref('MONTH')
+const completedSort = ref('DESC')
+const isCompletedPeriodOpen = ref(false)
+
+const completedPeriodLabel = computed(() => {
+  switch (completedPeriod.value) {
+    case 'WEEK':
+      return '1주'
+    case 'MONTH':
+      return '1개월'
+    case 'THREE_MONTHS':
+      return '3개월'
+    case 'SIX_MONTHS':
+      return '6개월'
+    default:
+      return '기간'
+  }
+})
+
+function completedPeriodCutoff() {
+  const days = {
+    WEEK: 7,
+    MONTH: 30,
+    THREE_MONTHS: 90,
+    SIX_MONTHS: 180,
+  }[completedPeriod.value] || 30
+
+  return startOfKstDay(new Date()).getTime() - (days - 1) * 86400000
+}
+
+const filteredCompletedRequests = computed(() => {
+  const cutoff = completedPeriodCutoff()
+  const status = completedStatus.value
+  const list = completedRequests.value.filter((req) => {
+    if (status !== 'ALL' && req.status !== status) return false
+    const time = getTimestamp(req.updatedAt || req.approvedAt || req.createdAt)
+    return time >= cutoff
+  })
+
+  return [...list].sort((a, b) => {
+    const diff =
+      getTimestamp(a.updatedAt || a.approvedAt || a.createdAt)
+      - getTimestamp(b.updatedAt || b.approvedAt || b.createdAt)
+    return completedSort.value === 'DESC' ? -diff : diff
+  })
+})
+
+const completedEmptyText = computed(() => {
+  if (!completedRequests.value.length) return '처리 완료된 승인 요청이 없습니다.'
+  return '해당 조건의 처리 내역이 없습니다.'
+})
+
+function changeCompletedStatus(status) {
+  completedStatus.value = status
+  isCompletedPeriodOpen.value = false
+}
+
+function toggleCompletedPeriodMenu() {
+  isCompletedPeriodOpen.value = !isCompletedPeriodOpen.value
+}
+
+function changeCompletedPeriod(period) {
+  completedPeriod.value = period
+  isCompletedPeriodOpen.value = false
+}
+
+function toggleCompletedSort() {
+  completedSort.value = completedSort.value === 'DESC' ? 'ASC' : 'DESC'
+}
 
 const requestTabs = computed(() => [
   {
@@ -627,7 +1036,8 @@ function getCategoryLabel(category) {
   if (typeof category === 'string') return category
   if (typeof category === 'number') return String(category)
 
-  return category?.category
+  return category?.label
+    ?? category?.category
     ?? category?.categoryName
     ?? category?.merchantCategoryName
     ?? category?.name
@@ -646,9 +1056,10 @@ function extractCategoryItems(permission) {
       if (item == null || item === '') return null
 
       if (typeof item === 'string' || typeof item === 'number') {
+        const found = findPolicyPlaces({ id: item, label: item })[0]
         return {
-          id: item,
-          label: String(item),
+          id: found?.id ?? item,
+          label: found?.categoryName ?? String(item),
         }
       }
 
@@ -662,9 +1073,10 @@ function extractCategoryItems(permission) {
       const label = getCategoryLabel(item)
       if (id == null && !label) return null
 
+      const found = findPolicyPlaces({ id, label })[0]
       return {
-        id: id ?? label,
-        label: label || String(id),
+        id: found?.id ?? id ?? label,
+        label: found?.categoryName || label || String(id),
       }
     })
     .filter(Boolean)
@@ -739,7 +1151,8 @@ function normalizePermissionRequest(permission) {
     categories,
     categoryItems,
     createdAt: permission.createdAt,
-    updatedAt: permission.updatedAt ?? null,
+    updatedAt: permission.updatedAt ?? permission.approvedAt ?? null,
+    approvedAt: permission.approvedAt ?? permission.updatedAt ?? null,
   }
 }
 
@@ -886,8 +1299,10 @@ async function fetchCategoryPolicies() {
           name: group.name,
           items: (group.categoryPolicyList || []).map((item) => ({
             id: item.id,
+            categoryId: item.categoryId ?? item.merchantCategoryId ?? null,
             categoryName: item.categoryName,
             policy: item.policy,
+            userOverride: false,
             expiresAt: item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null,
           })),
         }))
@@ -913,25 +1328,55 @@ async function fetchCategoryPolicies() {
 
 
 // ========================================
-// 설정한 업종 목록으로 이동
-//
-// childId를 그대로 넘겨야 함
+// 카테고리 정책 저장
 // ========================================
 
-function goToPlaceList() {
+async function handleSave() {
+  if (isSaving.value) return
+
+  if (!authStore.accessToken) {
+    authStore.handleUnauthorized('서비스를 이용하려면 로그인해 주세요.')
+    return
+  }
 
   if (!childId.value) {
     alertModal.showAlert('선택된 자녀 정보가 없습니다.')
     return
   }
 
-  router.push({
-    path: '/parents/place-list',
+  isSaving.value = true
 
-    query: {
-      childId: childId.value
+  try {
+    await updateCategoryPolicies(
+      authStore.accessToken,
+      childId.value,
+      allPlaces.value.map((place) => ({
+        id: place.id,
+        policy: place.policy,
+      }))
+    )
+
+    alertModal.showAlert('설정이 저장되었습니다!')
+    await Promise.all([
+      fetchCategoryPolicies(),
+      fetchPermissions(),
+    ])
+  } catch (error) {
+    console.error('카테고리 정책 수정 실패:', error)
+
+    if (error?.status === 401) {
+      authStore.handleUnauthorized(
+        '로그인이 만료되었습니다.\n다시 로그인해 주세요.'
+      )
+      return
     }
-  })
+
+    alertModal.showAlert(
+      error.message || '설정을 저장하지 못했습니다.'
+    )
+  } finally {
+    isSaving.value = false
+  }
 }
 
 
@@ -1030,6 +1475,12 @@ async function handleAccept(req) {
       )
     }
 
+    rememberTempAllow(approvedItems)
+    playLeaveAnimation(
+      approvedItems.flatMap((item) => findPolicyPlaces(item).map((place) => place.id)),
+      'ALLOW'
+    )
+
     await fetchPermissions()
     await fetchCategoryPolicies()
   } catch (error) {
@@ -1069,6 +1520,8 @@ onMounted(async () => {
     childId.value
   )
 
+  startRemainTimer()
+
   if (!authStore.accessToken) {
 
     authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
@@ -1105,6 +1558,14 @@ watch(
     fetchPermissions()
   }
 )
+
+watch(activeRequestTab, () => {
+  isCompletedPeriodOpen.value = false
+})
+
+onUnmounted(() => {
+  stopRemainTimer()
+})
 </script>
 
 
@@ -1113,10 +1574,14 @@ watch(
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #f8fafc;
+  background: #f4f5f7;
   display: flex;
   flex-direction: column;
   padding-bottom: 70px;
+}
+
+.page.has-save {
+  padding-bottom: 150px;
 }
 
 .nav {
@@ -1153,136 +1618,290 @@ watch(
   padding: 16px;
 }
 
-.section-title {
+.notice-banner {
   margin: 0;
-  font-size: 15px;
+  padding: 10px 16px;
+  background: #fff6d9;
+  color: #8a6d1f;
+  font-size: 12px;
   font-weight: 700;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.policy-board {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grade-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.grade-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #6b7077;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.grade-chip strong {
+  font-weight: 800;
+}
+
+.grade-chip.all.on {
+  background: #191b1e;
+  color: #ffffff;
+}
+
+.grade-chip.allow {
+  color: #28a745;
+  background: #e9f7ee;
+}
+
+.grade-chip.allow.on {
+  background: #28a745;
+  color: #ffffff;
+}
+
+.grade-chip.caution {
+  color: #ff9f0a;
+  background: #fff4e0;
+}
+
+.grade-chip.caution.on {
+  background: #ff9f0a;
+  color: #ffffff;
+}
+
+.grade-chip.block {
+  color: #ff3b30;
+  background: #ffe9e7;
+}
+
+.grade-chip.block.on {
+  background: #ff3b30;
+  color: #ffffff;
+}
+
+.place-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 10px;
+}
+
+.group-title-btn {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.group-title {
+  font-size: 15px;
+  font-weight: 800;
   color: #191b1e;
 }
 
-.policy-card {
-  background-color: #ffffff;
-  border: 1px solid #eaedf1;
-  border-radius: 16px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.policy-label {
-  margin: 0;
-  font-size: 14px;
+.group-count {
+  font-size: 12px;
   font-weight: 700;
+  color: #8b9097;
 }
 
-.toggle-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.toggle-header {
+.group-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 0;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.group-action {
+  height: 20px;
+  padding: 0 6px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #6b7077;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.group-action:active {
+  background: #f4f5f7;
+}
+
+.group-chevron-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
 }
 
-.toggle-title {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 700;
-  color: #191b1e;
-}
-
-.toggle-count {
+.group-chevron {
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #8b9097;
-}
-
-.toggle-chevron {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
+  opacity: 0.4;
   transform: rotate(0deg);
-  transition: transform 0.2s ease;
+  transition: transform 0.22s ease;
 }
 
-.toggle-chevron.open {
+.group-chevron.open {
   transform: rotate(90deg);
 }
 
-.toggle-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 0 6px 8px;
+.group-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
 }
 
-.flat-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.group-panel.open {
+  grid-template-rows: 1fr;
 }
 
-.flat-item {
+.group-card {
+  overflow: hidden;
+  min-height: 0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.place-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-height: 72px;
+  padding: 12px 14px;
+  overflow: hidden;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease,
+    max-height 0.28s ease,
+    padding 0.28s ease;
+}
+
+.place-row.leaving {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: translateX(18px);
+}
+
+.place-row + .place-row {
+  border-top: 1px solid #f4f5f7;
+}
+
+.place-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
   margin: 0;
-  padding: 6px 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #191b1e;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+}
+
+.place-btns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  flex: 0 0 148px;
+  gap: 4px;
+}
+
+.status-btn {
+  width: 100%;
+  height: 28px;
+  padding: 0 4px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 6px;
+  background-color: #f4f5f7;
+  color: #6b7077;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.active-allow {
+  background-color: #28a745;
+  color: #ffffff;
+}
+
+.active-caution {
+  background-color: #ff9f0a;
+  color: #ffffff;
+}
+
+.active-block {
+  background-color: #ff3b30;
+  color: #ffffff;
 }
 
 .temp-deadline {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
-  color: #ff9500;
+  color: #ff9f0a;
 }
 
-.policy-item {
-  margin: 0;
-  font-size: 14px;
-  color: #191b1e;
-  display: flex;
-  flex-wrap: wrap;
+.temp-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-}
-
-.policy-badge.allow,
-.policy-label.allow {
-  color: #34c759;
-}
-
-.policy-badge.caution,
-.policy-label.caution {
-  color: #ff9500;
-}
-
-.policy-badge.block,
-.policy-label.block {
-  color: #ff3b30;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #fff3d6;
+  color: #c47a00;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .empty-policy {
   margin: 0;
-  padding-left: 8px;
+  padding: 18px 4px;
+  text-align: center;
   font-size: 13px;
   color: #b9bec5;
 }
@@ -1297,80 +1916,6 @@ watch(
   text-align: center;
   color: #8b9097;
   font-size: 14px;
-}
-
-.list-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 92px;
-  padding: 14px 14px 14px 12px;
-  border: 1px solid #eaedf1;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  text-align: left;
-  cursor: pointer;
-}
-
-.list-card:active {
-  transform: scale(0.99);
-}
-
-.list-card-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  border-radius: 14px;
-  background: #eff6ff;
-}
-
-.list-card-icon-img {
-  width: 22px;
-  height: 22px;
-}
-
-.list-card-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-
-.list-card-badge {
-  padding: 3px 7px;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.list-card-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
-  line-height: 1.3;
-}
-
-.list-card-sub {
-  font-size: 11px;
-  font-weight: 600;
-  color: #8b9097;
-  line-height: 1.35;
-}
-
-.chevron-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
 }
 
 .request-section {
@@ -1389,6 +1934,103 @@ watch(
   gap: 8px;
   width: 100%;
   margin-bottom: 12px;
+}
+
+.completed-filters {
+  margin-bottom: 4px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+}
+
+.filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid #e0e3e7;
+  border-radius: 18px;
+  color: #8b9097;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.tab-active {
+  border-color: #ffbc00;
+  color: #191b1e;
+  background-color: #ffbc00;
+}
+
+.tab-period {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.calendar-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.period-menu {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.period-option {
+  flex: 1;
+  height: 32px;
+  border: none;
+  border-radius: 7px;
+  color: #8b9097;
+  font-size: 11px;
+  background-color: #f4f5f7;
+  cursor: pointer;
+}
+
+.period-option.active {
+  color: #191b1e;
+  font-weight: 700;
+  background-color: #ffbc00;
+}
+
+.sort-area {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 2px 10px;
+}
+
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: none;
+  color: #8b9097;
+  font-size: 11px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sort-label {
+  line-height: 1;
+}
+
+.sort-switch-icon {
+  flex-shrink: 0;
+  color: #8b9097;
 }
 
 .chip {
@@ -1515,18 +2157,19 @@ watch(
 
 .request-category-list {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .category-check {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
+  gap: 6px;
+  width: auto;
+  max-width: 100%;
+  padding: 6px 8px;
   border: 1px solid #eaedf1;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
   text-align: left;
   cursor: pointer;
@@ -1541,10 +2184,10 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #f0f1f3;
 }
 
@@ -1553,14 +2196,15 @@ watch(
 }
 
 .check-icon {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
 }
 
 .category-check-label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #191b1e;
+  white-space: nowrap;
 }
 
 .request-categories {
@@ -1578,10 +2222,23 @@ watch(
   font-weight: 600;
 }
 
+.child-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.child-message-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7077;
+}
+
 .request-desc {
   margin: 0;
   font-size: 13px;
-  color: #8b9097;
+  color: #191b1e;
+  line-height: 1.45;
 }
 
 .request-btns {
@@ -1611,6 +2268,40 @@ watch(
 
 .btn:disabled {
   opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.footer {
+  position: fixed;
+  bottom: 70px;
+  left: 50%;
+  z-index: 99;
+  width: 360px;
+  max-width: 100%;
+  padding: 0 8px 12px;
+  box-sizing: border-box;
+  background: transparent;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 52px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 </style>

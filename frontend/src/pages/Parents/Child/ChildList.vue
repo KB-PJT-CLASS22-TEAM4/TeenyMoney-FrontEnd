@@ -23,12 +23,19 @@
             </div>
           </div>
           <div class="child-stats">
+            <div
+              v-if="child.birthDate"
+              class="stat"
+            >
+              <img src="@/assets/icons/icon-birthday.svg" alt="" class="stat-icon" />
+              <span>{{ child.birthDate }}</span>
+            </div>
             <div class="stat">
               <img src="@/assets/icons/icon-wallet.svg" alt="" class="stat-icon" />
               <span>{{ child.balance.toLocaleString() }}원</span>
             </div>
             <div class="stat">
-              <img src="@/assets/icons/icon-point.svg" alt="" class="stat-icon" />
+              <img src="@/assets/icons/icon-score.svg" alt="" class="stat-icon" />
               <span>{{ child.points.toLocaleString() }}점</span>
             </div>
           </div>
@@ -91,6 +98,11 @@ const alertModal = useAlertModal()
 const children = ref([])
 const unlinkingId = ref(null)
 
+function formatBirthDate(value) {
+  if (!value) return ''
+  return String(value).slice(0, 10).replaceAll('-', '.')
+}
+
 onMounted(async () => {
   try {
     const res = await getChildren(authStore.accessToken)
@@ -99,6 +111,7 @@ onMounted(async () => {
         id: child.childId,
         name: child.name,
         email: child.email,
+        birthDate: formatBirthDate(child.birthDate),
         balance: child.balance,
         points: child.teenyScore,
         profileImageUrl: CHILD_PROFILE_IMAGE,
@@ -248,19 +261,21 @@ async function unlinkChild(child) {
 
 .child-stats {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .stat {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background-color: #f4f5f7;
   border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 6px 8px;
+  font-size: 12px;
   font-weight: 600;
   color: #191b1e;
+  white-space: nowrap;
 }
 
 .stat-icon {
