@@ -800,8 +800,9 @@ import {
 
 import {
   formatKstDateTime,
+  getKstParts,
+  parseServerDate,
   toKstDatetimeLocalValue,
-  utcIsoFromKstDatetimeLocal,
 } from '@/utils/datetime'
 
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
@@ -1324,10 +1325,11 @@ function cancelEdit() {
 function formatDeadline(value) {
   if (!value) return ''
 
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
+  const date = parseServerDate(value) || (value instanceof Date ? value : null)
+  if (!date || Number.isNaN(date.getTime())) return ''
 
-  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 · ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  const { year, month, day, hour, minute } = getKstParts(date)
+  return `${year}년 ${month}월 ${day}일 · ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
 function addQuickAmount(

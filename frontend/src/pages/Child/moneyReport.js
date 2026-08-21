@@ -289,7 +289,7 @@ const REPORTS = { '2026-08': AUG, '2026-07': JUL }
 
 export function emptyReport(yearMonth) {
   const [y, m] = yearMonth.split('-').map(Number)
-  const last = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  const last = new Date(y, m, 0).getDate()
   const pad = (n) => String(n).padStart(2, '0')
   return {
     period: {
