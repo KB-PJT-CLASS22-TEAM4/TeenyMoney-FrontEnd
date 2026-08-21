@@ -432,6 +432,37 @@ function getLocalBonusDeposit(enrollmentId) {
   return saved ? Number(saved) : 0
 }
 
+// 대출 최초 신청 원금 안전 조회 (백엔드 실제 신청금액 최우선, MyProducts.vue와 동일한 캐시 키 사용)
+// 주의: currentAmount는 "현재 남은 잔액"이라 조기상환할수록 줄어든다.
+// 캐시보다 먼저 검사하면 상환할 때마다 원금이 줄어드는 값으로 덮어써지므로,
+// 반드시 캐시(한 번 저장된 원금)를 currentAmount보다 먼저 확인해야 한다.
+function getOrStoreOriginalLoanPrincipal(enrollmentId, currentAmount, explicitPrincipal) {
+  const storageKey = enrollmentId ? `teeny_loan_principal_${enrollmentId}` : null
+
+  if (explicitPrincipal && explicitPrincipal > 0) {
+    if (storageKey) {
+      try { localStorage.setItem(storageKey, String(explicitPrincipal)) } catch (e) {}
+    }
+    return explicitPrincipal
+  }
+
+  if (storageKey) {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw && Number(raw) > 0) return Number(raw)
+    } catch (e) {}
+  }
+
+  if (currentAmount && currentAmount > 0) {
+    if (storageKey) {
+      try { localStorage.setItem(storageKey, String(currentAmount)) } catch (e) {}
+    }
+    return currentAmount
+  }
+
+  return 0
+}
+
 function calcNextDueDate(startRaw, paidCount) {
   const parts = parseDateParts(startRaw)
   if (!parts) return null
@@ -549,6 +580,17 @@ function mapToFinanceCard(p) {
   const bonus = isFreeSaving ? getLocalBonusDeposit(p.enrollmentId) : 0
   const currentTotal = (p.currentAmount ?? 0) + bonus
 
+  // 대출은 회차가 아니라 갚아야 할 금액 대비 상환한 금액 비율로 진행률을 계산
+  const explicitLoanPrincipal =
+    p.principalAmount ?? p.originalPrincipalAmount ?? p.loanAmount ?? p.amount ?? p.requestedAmount ?? p.appliedAmount ?? null
+  const totalLoanPrincipal = isLoan
+    ? getOrStoreOriginalLoanPrincipal(p.enrollmentId, currentTotal, explicitLoanPrincipal)
+    : 0
+  const repaidLoanAmount = isLoan ? Math.max(0, totalLoanPrincipal - currentTotal) : 0
+  const loanProgressPercent = isLoan && totalLoanPrincipal > 0
+    ? Math.min(100, Math.round((repaidLoanAmount / totalLoanPrincipal) * 100))
+    : 0
+
   let typeLabel = '적금'
   if (isDeposit) typeLabel = '예금'
   else if (isLoan) typeLabel = '대출'
@@ -559,7 +601,7 @@ function mapToFinanceCard(p) {
   let progress = 0
 
   if (isDeposit) {
-    subText = p.maturityDate ? `${formatDateCompact(p.maturityDate)} 만기` : '만기 유지 중'
+    subText = '만기 유지 중'
     progress = 100
   } else if (isFreeSaving) {
     subText = '자유 납입'
@@ -568,8 +610,8 @@ function mapToFinanceCard(p) {
     subText = `${paidCount} / ${totalCount}회차`
     progress = progressPercent
   } else if (isLoan) {
-    subText = `상환 ${paidCount} / ${totalCount}회`
-    progress = progressPercent
+    subText = `${loanProgressPercent}% 상환`
+    progress = loanProgressPercent
   }
 
   return {
@@ -579,7 +621,10 @@ function mapToFinanceCard(p) {
     name: p.productName,
     amount: `${currentTotal.toLocaleString()}원`,
     sub: subText,
+    maturity: p.maturityDate ? `${formatDateCompact(p.maturityDate)} 만기` : '',
     progress: progress,
+    // 진행바는 정액적금과 대출만 표시 (예금/자유적금은 회차 개념이 없음)
+    hasProgress: isLoan || (isSaving && !isFreeSaving),
     amountColor: '#15171b',
   }
 }
@@ -620,10 +665,11 @@ async function load() {
       : null
     nextGradeMinScore.value = next ? next.minScore : null
 
-    // 금융상품 일정 매핑
+    // 금융상품 일정 매핑 (승인 대기 중이거나 중도해지·신청취소·만기/상환 완료된 상품은 제외)
     let financeSchedules = []
     if (Array.isArray(enrolledRes)) {
-      const activeProducts = enrolledRes.filter(p => p.status !== 'PENDING')
+      const INACTIVE_STATUSES = ['PENDING', 'TERMINATED', 'CANCELLED', 'CANCELED', 'CLOSED', 'REPAID']
+      const activeProducts = enrolledRes.filter(p => !INACTIVE_STATUSES.includes(p.status))
       finances.value = activeProducts.map(mapToFinanceCard)
       financeSchedules = activeProducts.map(mapToScheduleItem).filter(Boolean)
     }
@@ -643,7 +689,7 @@ async function load() {
       .slice(0, 3)
 
     // 오늘만 허용 상태 데이터 패치
-    await allowStore.fetchTodayPermission(authStore.accessToken)
+    await allowStore.fetchTodayPermission(authStore.accessToken, authStore.memberId)
   } catch (e) {
     console.error('홈 데이터 조회 실패:', e.message)
   }
@@ -1350,10 +1396,12 @@ function onTabSelect(key) {
 
 .finance-scroll {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   padding: 12px 16px;
   overflow-x: auto;
   scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  scroll-padding-left: 16px;
 }
 .finance-scroll::-webkit-scrollbar { display: none; }
 
