@@ -5,6 +5,7 @@ import LoginRequiredModal from '@/components/LoginRequiredModal.vue';
 import ParentMenu from '@/components/Parents/ParentMenu.vue';
 import ChildMenu from '@/components/Child/ChildMenu.vue';
 import { useAuthStore } from '@/stores/auth';
+import { useQuestStore } from '@/stores/quest';
 import { useSseStore } from '@/stores/sse';
 
 const route = useRoute();
@@ -17,6 +18,7 @@ const isChildRoute = computed(() => route.path.startsWith('/child'));
 // 서로를 import하게 되기 때문이고(순환 참조), immediate로 두면 이미 로그인된 채
 // 앱이 뜨는 경우(새로고침)까지 이 한 줄이 같이 처리한다.
 const authStore = useAuthStore();
+const questStore = useQuestStore();
 const sseStore = useSseStore();
 
 watch(
@@ -28,6 +30,7 @@ watch(
     }
 
     sseStore.disconnect();
+    questStore.reset();
   },
   { immediate: true },
 );
