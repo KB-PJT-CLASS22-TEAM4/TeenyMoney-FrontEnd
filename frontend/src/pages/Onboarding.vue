@@ -80,12 +80,12 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import childScene from '@/assets/onboarding/child-scene.png';
-import parentScene from '@/assets/onboarding/parent-scene.png';
-import allowanceCardScene from '@/assets/video-concepts/03-allowance-card.png';
-import goalStarScene from '@/assets/video-concepts/02-goal-star-sticker.png';
-import phoneAllowanceScene from '@/assets/video-concepts/04-phone-allowance.png';
-import piggyBankScene from '@/assets/video-concepts/01-piggy-bank-coin.png';
+import childScene from '@/assets/onboarding/child-scene.webp';
+import parentScene from '@/assets/onboarding/parent-scene.webp';
+import allowanceCardScene from '@/assets/video-concepts/03-allowance-card.webp';
+import goalStarScene from '@/assets/video-concepts/02-goal-star-sticker.webp';
+import phoneAllowanceScene from '@/assets/video-concepts/04-phone-allowance.webp';
+import piggyBankScene from '@/assets/video-concepts/01-piggy-bank-coin.webp';
 import { useAuthStore } from '@/stores/auth';
 import {
   getFeatureOnboardingSeenKey,
