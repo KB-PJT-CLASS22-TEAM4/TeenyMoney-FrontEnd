@@ -405,11 +405,7 @@ async function retryMessage(idx) {
   flex-direction: column;
   overflow: hidden;
   z-index: 1000;
-<<<<<<< HEAD
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-=======
-  font-family: 'KBFGText', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
 }
 
 .chatbot-header {
