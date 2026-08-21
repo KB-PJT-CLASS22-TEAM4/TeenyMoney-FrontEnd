@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>티니머니 기능 온보딩 — 기존 팔레트 확장안</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --ink:#17191d; --muted:#747b84; --yellow:#ffbd16;
+      --mint:#e7f8ed; --mint-deep:#54b983; --blue:#e6f5ff; --blue-deep:#559eea;
+      --cream:#fffaf0; --line:rgba(27,34,40,.09);
+    }
+    body { margin:0; color:var(--ink); font-family:Pretendard,"Noto Sans KR",Arial,sans-serif;
+      background:radial-gradient(circle at 50% -20%,#fff 0,#faf8f4 44%,#f2efea 100%); }
+    .page { width:min(1510px,100%); margin:auto; padding:48px 36px 70px; }
+    header { display:flex; align-items:end; justify-content:space-between; gap:28px; margin-bottom:34px; }
+    h1 { margin:0 0 10px; font-size:34px; letter-spacing:-1.4px; }
+    header p { margin:0; color:var(--muted); font-size:16px; line-height:1.65; }
+    .decision { flex:0 0 auto; border-radius:999px; background:#202226; color:#fff; padding:12px 18px;
+      font-size:13px; font-weight:800; letter-spacing:-.2px; }
+    .lane { margin-top:32px; }
+    .lane-title { display:flex; align-items:center; gap:12px; margin:0 0 16px 2px; font-size:19px; }
+    .role { border-radius:999px; padding:7px 12px; font-size:12px; font-weight:900; }
+    .role.parent { color:#18794e; background:#dff6e8; }
+    .role.child { color:#2b72bd; background:#def0ff; }
+    .screens { display:grid; grid-template-columns:repeat(3,minmax(270px,1fr)); gap:24px; }
+    .concept { min-width:0; }
+    .phone { position:relative; height:610px; overflow:hidden; border:1px solid var(--line); border-radius:30px;
+      box-shadow:0 18px 46px rgba(37,42,48,.10),0 2px 5px rgba(37,42,48,.05); }
+    .phone.parent { background:linear-gradient(180deg,#ebfaf0 0%,#f5fff8 67%,#fff 67%); }
+    .phone.child { background:linear-gradient(180deg,#e9f7ff 0%,#f2fbff 67%,#fff 67%); }
+    .top { position:absolute; z-index:3; top:22px; left:24px; right:24px; display:flex; align-items:center;
+      justify-content:space-between; color:#8b929b; font-size:12px; font-weight:700; }
+    .dots { display:flex; gap:6px; align-items:center; }
+    .dots i { display:block; width:7px; height:7px; border-radius:50%; background:rgba(75,118,102,.18); }
+    .parent .dots i.active { width:23px; border-radius:8px; background:var(--mint-deep); }
+    .child .dots i.active { width:23px; border-radius:8px; background:var(--blue-deep); }
+    .copy { position:absolute; z-index:3; top:64px; left:26px; right:26px; text-align:center; }
+    .copy small { display:block; margin-bottom:9px; color:#8c939a; font-size:12px; font-weight:800; }
+    .copy h2 { margin:0; font-size:27px; line-height:1.22; letter-spacing:-1.1px; }
+    .copy p { margin:10px 0 0; color:#737b83; font-size:13px; line-height:1.5; letter-spacing:-.3px; }
+    .scene { position:absolute; inset:0 0 168px; overflow:hidden; }
+    .scene img { position:absolute; width:100%; height:100%; object-fit:cover; object-position:center 43%; }
+    .parent .scene img { filter:saturate(.92) brightness(1.025); }
+    .child .scene img { filter:saturate(.92) brightness(1.02); }
+    .scene:after { content:""; position:absolute; inset:40% 0 0; background:linear-gradient(180deg,transparent,rgba(255,255,255,.05)); }
+    .prop { position:absolute; z-index:2; top:212px; right:21px; display:grid; place-items:center; width:62px; height:62px;
+      border-radius:22px; font-size:31px; background:rgba(255,255,255,.88); box-shadow:0 12px 27px rgba(39,65,52,.13);
+      transform:rotate(5deg); backdrop-filter:blur(8px); }
+    .concept:nth-child(2) .prop { top:236px; right:auto; left:21px; transform:rotate(-6deg); }
+    .concept:nth-child(3) .prop { top:216px; }
+    .sheet { position:absolute; z-index:4; left:12px; right:12px; bottom:12px; min-height:174px; padding:22px 20px 18px;
+      border-radius:25px; background:rgba(255,255,255,.97); box-shadow:0 -8px 28px rgba(41,46,53,.07); }
+    .sheet strong { display:block; font-size:18px; letter-spacing:-.6px; }
+    .sheet span { display:block; min-height:37px; margin-top:6px; color:#7d848c; font-size:13px; line-height:1.45; }
+    button { width:100%; margin-top:12px; border:0; border-radius:14px; padding:15px; background:var(--yellow); color:#17191d;
+      font:900 15px inherit; box-shadow:0 8px 18px rgba(255,189,22,.22); }
+    .note { margin:12px 5px 0; color:#686f77; font-size:12px; line-height:1.55; }
+    .note b { color:#25282c; }
+    footer { margin-top:34px; padding:20px 22px; border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.7);
+      color:#606870; font-size:14px; line-height:1.65; }
+    footer b { color:#191b1f; }
+    @media (max-width:980px) { .screens{grid-template-columns:repeat(3,320px);overflow:auto;padding-bottom:16px}.page{padding:28px 20px}header{align-items:start;flex-direction:column}.phone{height:610px} }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <h1>기존 온보딩 팔레트를 그대로 확장한 6화면</h1>
+        <p>UI를 설명하지 않고, 캐릭터의 행동과 소품 하나로 기능을 이해시키는 방향입니다.<br />기능 소개가 끝난 뒤 현재의 가족 연결 온보딩으로 자연스럽게 이어집니다.</p>
+      </div>
+      <div class="decision">C 카드형 폐기 · 장면형 채택</div>
+    </header>
+
+    <section class="lane">
+      <h2 class="lane-title"><span class="role parent">부모 계정</span> 민트 팔레트 · 함께 관리하는 느낌</h2>
+      <div class="screens">
+        <article class="concept">
+          <div class="phone parent">
+            <div class="top"><span>건너뛰기</span><div class="dots"><i class="active"></i><i></i><i></i></div></div>
+            <div class="copy"><small>01 · 용돈 생활</small><h2>용돈 흐름을<br />한눈에 살펴봐요</h2><p>주고받은 용돈과 소비 내역을 함께 확인해요</p></div>
+            <div class="scene"><img src="palette-parent-scene.png" alt="부모 캐릭터 장면" /><div class="prop">💳</div></div>
+            <div class="sheet"><strong>필요할 때 바로 관리해요</strong><span>카드를 건네고, 자녀의 용돈 내역을 함께 보는 장면</span><button>다음</button></div>
+          </div>
+          <p class="note"><b>연출:</b> 부모가 자녀에게 용돈 카드를 건네고 자녀가 환하게 받는 단일 장면.</p>
+        </article>
+        <article class="concept">
+          <div class="phone parent">
+            <div class="top"><span>건너뛰기</span><div class="dots"><i></i><i class="active"></i><i></i></div></div>
+            <div class="copy"><small>02 · 금융상품</small><h2>우리 가족만의<br />저축 목표를 만들어요</h2><p>예·적금 상품을 만들고 자녀의 도전을 응원해요</p></div>
+            <div class="scene"><img src="palette-parent-scene.png" alt="부모 캐릭터 장면" /><div class="prop">🐷</div></div>
+            <div class="sheet"><strong>목표를 함께 정해요</strong><span>가족이 저금통에 동전을 넣고 목표 깃발을 세우는 장면</span><button>다음</button></div>
+          </div>
+          <p class="note"><b>연출:</b> 큰 저금통을 가운데 두고 부모와 자녀가 함께 동전을 넣는 장면.</p>
+        </article>
+        <article class="concept">
+          <div class="phone parent">
+            <div class="top"><span>건너뛰기</span><div class="dots"><i></i><i></i><i class="active"></i></div></div>
+            <div class="copy"><small>03 · 퀘스트와 티니점수</small><h2>좋은 금융 습관을<br />재미있게 응원해요</h2><p>퀘스트를 만들고 성장 과정을 함께 칭찬해요</p></div>
+            <div class="scene"><img src="palette-parent-scene.png" alt="부모 캐릭터 장면" /><div class="prop">⭐</div></div>
+            <div class="sheet"><strong>작은 성취도 놓치지 않아요</strong><span>완료판에 별 스티커를 붙이고 가족이 하이파이브하는 장면</span><button>자녀와 연결하기</button></div>
+          </div>
+          <p class="note"><b>연출:</b> 마지막 화면만 가족 연결 CTA를 노출해 기존 온보딩으로 이어짐.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="lane">
+      <h2 class="lane-title"><span class="role child">자녀 계정</span> 스카이 블루 팔레트 · 직접 해보는 느낌</h2>
+      <div class="screens">
+        <article class="concept">
+          <div class="phone child">
+            <div class="top"><span>건너뛰기</span><div class="dots"><i class="active"></i><i></i><i></i></div></div>
+            <div class="copy"><small>01 · 나의 용돈</small><h2>내 용돈을<br />스스로 확인해요</h2><p>받은 용돈과 사용 내역을 쉽고 빠르게 살펴봐요</p></div>
+            <div class="scene"><img src="palette-child-scene.png" alt="자녀 캐릭터 장면" /><div class="prop">📱</div></div>
+            <div class="sheet"><strong>오늘 쓸 수 있는 돈이 보여요</strong><span>자녀가 휴대폰으로 잔액과 최근 용돈 내역을 확인하는 장면</span><button>다음</button></div>
+          </div>
+          <p class="note"><b>연출:</b> 휴대폰을 든 자녀와 큼직한 금액 표시만 소품처럼 표현.</p>
+        </article>
+        <article class="concept">
+          <div class="phone child">
+            <div class="top"><span>건너뛰기</span><div class="dots"><i></i><i class="active"></i><i></i></div></div>
+            <div class="copy"><small>02 · 금융상품</small><h2>내 목표를 정하고<br />차곡차곡 모아요</h2><p>가족 금융상품에 가입해 저축을 직접 경험해요</p></div>
+            <div class="scene"><img src="palette-child-scene.png" alt="자녀 캐릭터 장면" /><div class="prop">🪙</div></div>
+            <div class="sheet"><strong>모을수록 목표에 가까워져요</strong><span>자녀가 목표 저금통에 동전을 넣고 채워진 눈금을 보는 장면</span><button>다음</button></div>
+          </div>
+          <p class="note"><b>연출:</b> 상품 UI 대신 동전·저금통·목표 깃발로 저축 경험을 전달.</p>
+        </article>
+        <article class="concept">
+          <div class="phone child">
+            <div class="top"><span>건너뛰기</span><div class="dots"><i></i><i></i><i class="active"></i></div></div>
+            <div class="copy"><small>03 · 퀘스트와 티니점수</small><h2>도전할수록<br />금융 실력이 자라요</h2><p>퀘스트를 완료하고 티니점수와 경험을 쌓아요</p></div>
+            <div class="scene"><img src="palette-child-scene.png" alt="자녀 캐릭터 장면" /><div class="prop">🏅</div></div>
+            <div class="sheet"><strong>오늘도 한 단계 성장했어요</strong><span>메달을 받은 자녀와 뒤에서 함께 축하하는 가족의 장면</span><button>부모님과 연결하기</button></div>
+          </div>
+          <p class="note"><b>연출:</b> 마지막 화면에서 초대 코드 입력 온보딩으로 바로 연결.</p>
+        </article>
+      </div>
+    </section>
+
+    <footer><b>최종 이미지 제작 원칙:</b> 지금 화면의 캐릭터 이미지는 배치 확인용입니다. 실제 6장은 각 기능에 맞춰 포즈와 소품을 새로 만들되, 배경 질감·색감·캐릭터 크기·여백은 기존 가족 연결 온보딩과 동일하게 유지합니다. 화면 안에 실제 앱 UI나 떠다니는 기능 카드는 넣지 않습니다.</footer>
+  </main>
+</body>
+</html>
