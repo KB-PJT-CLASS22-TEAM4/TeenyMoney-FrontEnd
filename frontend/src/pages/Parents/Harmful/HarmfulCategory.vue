@@ -27,7 +27,8 @@
 
 
     <div class="notice-banner">
-      오늘 0시에 기본 설정으로 자동 복구됩니다
+      오늘만 허용은 승인 당일 자정까지 일시 허용되며,<br />
+      0시에 기존 설정으로 돌아갑니다
     </div>
 
 
@@ -79,7 +80,6 @@
           v-for="group in filteredGroups"
           :key="group.name"
           class="place-group"
-          :class="{ locked: isLockedGroup(group) }"
         >
           <div class="group-head">
             <button
@@ -96,10 +96,7 @@
               </span>
             </button>
 
-            <div
-              v-if="!isLockedGroup(group)"
-              class="group-actions"
-            >
+            <div class="group-actions">
               <button
                 class="group-action"
                 type="button"
@@ -143,26 +140,21 @@
             :class="{ open: isGroupExpanded(group.name) }"
           >
             <div class="group-card">
-              <p
-                v-if="isLockedGroup(group)"
-                class="locked-note"
+              <div
+                v-for="place in group.items"
+                :key="place.id"
+                class="place-row"
+                :class="{
+                  leaving: isMoving(place.id),
+                }"
               >
-                {{ lockedGroupNote(group) }}
-              </p>
-
-              <template v-else>
-                <div
-                  v-for="place in group.items"
-                  :key="place.id"
-                  class="place-row"
-                >
                 <p class="place-name">
                   {{ place.categoryName }}
                   <span
                     v-if="place.temporaryUntil"
-                    class="temp-deadline"
+                    class="temp-badge"
                   >
-                    오늘만
+                    {{ formatRemainUntilMidnight(place.temporaryUntil) }}
                   </span>
                 </p>
 
@@ -192,8 +184,7 @@
                     차단
                   </button>
                 </div>
-                </div>
-              </template>
+              </div>
             </div>
           </div>
         </section>
@@ -268,8 +259,18 @@
             </div>
 
             <p class="request-category-hint">
-              허용할 업종을 선택한 뒤 승인을 누르면,<br />선택하지 않은 업종은 자동으로 거절됩니다.
+              허용할 업종을 선택한 뒤 승인을 누르면, 선택하지 않은 업종은 자동으로 거절됩니다.
             </p>
+
+            <div
+              v-if="req.reason"
+              class="child-message"
+            >
+              <span class="child-message-label">자녀메시지</span>
+              <p class="request-desc">
+                {{ req.reason }}
+              </p>
+            </div>
 
             <div
               v-if="req.categoryItems.length"
@@ -299,13 +300,6 @@
                 </span>
               </button>
             </div>
-
-            <p
-              v-if="req.reason"
-              class="request-desc"
-            >
-              {{ req.reason }}
-            </p>
 
             <div class="request-btns">
               <button
@@ -381,12 +375,15 @@
               {{ formatAllowDeadline() }}
             </p>
 
-            <p
+            <div
               v-if="req.reason"
-              class="request-desc"
+              class="child-message"
             >
-              {{ req.reason }}
-            </p>
+              <span class="child-message-label">자녀메시지</span>
+              <p class="request-desc">
+                {{ req.reason }}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -421,7 +418,7 @@ import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -475,27 +472,7 @@ function normalizePolicy(policy) {
   return policy === 'WATCH' ? 'CAUTION' : policy
 }
 
-function isLockedGroup(group) {
-  const name = (group.name || '').replace(/\s/g, '')
-  if (name === '유해업종') return true
-
-  const hints = ['주류', '담배', '성인', '도박', '유흥']
-  const items = group.items || []
-  return (
-    items.length > 0
-    && items.every((item) =>
-      hints.some((hint) => item.categoryName?.includes(hint))
-    )
-  )
-}
-
-function lockedGroupNote(group) {
-  const names = (group.items || [])
-    .map((item) => item.categoryName)
-    .filter(Boolean)
-  const label = names.length ? names.join(' · ') : '유해 업종'
-  return `${label} — 정책상 항상 차단되며 개별 변경할 수 없습니다.`
-}
+const localTempAllowUntil = ref(new Map())
 
 function getTodayEnd() {
   return new Date(startOfKstDay(new Date()).getTime() + 86400000)
@@ -513,48 +490,135 @@ function formatAllowDeadline(until = getTodayEnd()) {
   return '오늘 24:00까지 허용'
 }
 
+const nowTick = ref(Date.now())
+let remainTimer = null
+
+function formatRemainUntilMidnight(until) {
+  const end = until instanceof Date ? until : parseCreatedAt(until) || getTodayEnd()
+  const diff = end.getTime() - nowTick.value
+  if (diff <= 0) return '곧 종료'
+
+  const totalMinutes = Math.floor(diff / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+
+  if (hours > 0 && minutes > 0) return `${hours}시간 ${minutes}분 남음`
+  if (hours > 0) return `${hours}시간 남음`
+  if (minutes > 0) return `${minutes}분 남음`
+  return `${Math.max(1, Math.floor(diff / 1000))}초 남음`
+}
+
+function startRemainTimer() {
+  if (remainTimer) return
+  nowTick.value = Date.now()
+  remainTimer = window.setInterval(() => {
+    nowTick.value = Date.now()
+  }, 1000)
+}
+
+function stopRemainTimer() {
+  if (!remainTimer) return
+  window.clearInterval(remainTimer)
+  remainTimer = null
+}
+
 function requestKey(req) {
   return (req.permissionIds || [req.id]).join('-')
 }
 
-const temporaryAllowMap = computed(() => {
-  const map = new Map()
-  const until = getTodayEnd()
-  if (until.getTime() <= Date.now()) return map
+function normalizeName(value) {
+  return String(value ?? '').replace(/\s/g, '')
+}
 
-  normalizedRequests.value.forEach((req) => {
-    if (req.status !== 'APPROVED') return
-    if (req.updatedAt && !isSameLocalDay(req.updatedAt) && !isSameLocalDay(req.createdAt)) {
-      return
-    }
-    if (req.category) map.set(String(req.category), until)
-    req.categories.forEach((name) => map.set(String(name), until))
-    ;(req.categoryItems || []).forEach((item) => {
-      if (item.label) map.set(String(item.label), until)
-      if (item.id != null) map.set(String(item.id), until)
+function addTempAllowKey(map, key, until) {
+  if (key == null || key === '') return
+  map.set(String(key), until)
+  const compact = normalizeName(key)
+  if (compact) map.set(compact, until)
+}
+
+function findPolicyPlaces(item) {
+  const id = item?.id
+  const label = item?.label ?? item?.categoryName ?? item
+  const compact = normalizeName(label)
+
+  return parentGroups.value.flatMap((group) => group.items).filter((place) =>
+    (id != null && (
+      String(place.id) === String(id)
+      || String(place.categoryId) === String(id)
+    ))
+    || (label && place.categoryName === String(label))
+    || (compact && normalizeName(place.categoryName) === compact)
+  )
+}
+
+function rememberTempAllow(items) {
+  const until = getTodayEnd()
+  if (until.getTime() <= Date.now()) return
+
+  const next = new Map(localTempAllowUntil.value)
+  items.forEach((item) => {
+    addTempAllowKey(next, item?.id, until)
+    addTempAllowKey(next, item?.label, until)
+    addTempAllowKey(next, resolveCategoryId(item), until)
+    findPolicyPlaces(item).forEach((place) => {
+      addTempAllowKey(next, place.id, until)
+      addTempAllowKey(next, place.categoryId, until)
+      addTempAllowKey(next, place.categoryName, until)
     })
   })
+  localTempAllowUntil.value = next
+}
+
+function isApprovedToday(req) {
+  if (req.status !== 'APPROVED') return false
+  if (getTodayEnd().getTime() <= Date.now()) return false
+
+  const day = req.approvedAt || req.updatedAt || req.createdAt
+  if (!day) return true
+  return isSameLocalDay(day)
+}
+
+const temporaryAllowMap = computed(() => {
+  const until = getTodayEnd()
+  const map = new Map()
+
+  if (until.getTime() > Date.now()) {
+    localTempAllowUntil.value.forEach((value, key) => {
+      if (value && value.getTime() > Date.now()) map.set(key, value)
+    })
+
+    normalizedRequests.value.forEach((req) => {
+      if (!isApprovedToday(req)) return
+
+      addTempAllowKey(map, req.category, until)
+      ;(req.categories || []).forEach((name) => addTempAllowKey(map, name, until))
+      ;(req.categoryItems || []).forEach((item) => {
+        addTempAllowKey(map, item.label, until)
+        addTempAllowKey(map, item.id, until)
+        addTempAllowKey(map, resolveCategoryId(item), until)
+        findPolicyPlaces(item).forEach((place) => {
+          addTempAllowKey(map, place.id, until)
+          addTempAllowKey(map, place.categoryId, until)
+          addTempAllowKey(map, place.categoryName, until)
+        })
+      })
+    })
+  }
 
   return map
 })
 
-function withEffectivePolicy(item, group) {
-  const locked = group
-    ? isLockedGroup(group)
-    : parentGroups.value.some(
-        (entry) =>
-          isLockedGroup(entry)
-          && entry.items.some((place) => place.id === item.id)
-      )
+function lookupTempUntil(item) {
+  const map = temporaryAllowMap.value
+  return map.get(String(item.id))
+    ?? map.get(item.categoryName)
+    ?? map.get(normalizeName(item.categoryName))
+    ?? (item.categoryId != null ? map.get(String(item.categoryId)) : null)
+    ?? null
+}
 
-  if (locked) {
-    return {
-      ...item,
-      temporaryUntil: null,
-      effectivePolicy: 'BLOCK',
-    }
-  }
-
+function withEffectivePolicy(item) {
   if (item.userOverride) {
     return {
       ...item,
@@ -563,20 +627,20 @@ function withEffectivePolicy(item, group) {
     }
   }
 
-  const untilFromPermission =
-    temporaryAllowMap.value.get(item.categoryName)
-    ?? temporaryAllowMap.value.get(String(item.id))
-    ?? null
   const untilFromPolicy = parseCreatedAt(
     item.expiresAt ?? item.temporaryUntil ?? item.validUntil ?? null
   )
-  const temporaryUntil = untilFromPermission || untilFromPolicy
-  const isTemp = temporaryUntil && temporaryUntil.getTime() > Date.now()
+  const temporaryUntil = lookupTempUntil(item) || untilFromPolicy
+  const basePolicy = normalizePolicy(item.policy)
+  const isTemp =
+    !!temporaryUntil
+    && temporaryUntil.getTime() > Date.now()
+    && basePolicy !== 'ALLOW'
 
   return {
     ...item,
     temporaryUntil: isTemp ? temporaryUntil : null,
-    effectivePolicy: isTemp ? 'ALLOW' : normalizePolicy(item.policy),
+    effectivePolicy: isTemp ? 'ALLOW' : basePolicy,
   }
 }
 
@@ -590,7 +654,7 @@ const gradeCounts = computed(() => {
 
   parentGroups.value.forEach((group) => {
     group.items.forEach((item) => {
-      const policy = withEffectivePolicy(item, group).effectivePolicy
+      const policy = withEffectivePolicy(item).effectivePolicy
       counts.ALL += 1
       if (counts[policy] != null) counts[policy] += 1
     })
@@ -608,6 +672,15 @@ const gradeTabs = computed(() => [
 
 const activePolicyTab = ref('ALL')
 const isSaving = ref(false)
+const movingIds = ref([])
+
+function isMoving(id) {
+  return movingIds.value.includes(id)
+}
+
+function destinationTab(policy) {
+  return normalizePolicy(policy)
+}
 
 const allPlaces = computed(() =>
   parentGroups.value.flatMap((group) => group.items)
@@ -622,9 +695,11 @@ const filteredGroups = computed(() => {
 
   return parentGroups.value
     .map((group) => {
-      let items = group.items.map((item) => withEffectivePolicy(item, group))
+      let items = group.items.map((item) => withEffectivePolicy(item))
       if (grade !== 'ALL') {
-        items = items.filter((item) => item.effectivePolicy === grade)
+        items = items.filter((item) =>
+          item.effectivePolicy === grade || movingIds.value.includes(item.id)
+        )
       }
       return {
         ...group,
@@ -632,7 +707,6 @@ const filteredGroups = computed(() => {
       }
     })
     .filter((group) => group.items.length > 0)
-    .sort((a, b) => Number(isLockedGroup(a)) - Number(isLockedGroup(b)))
 })
 
 const expandedGroups = ref({})
@@ -651,16 +725,27 @@ function toggleGroup(name) {
   }
 }
 
-function setGroupStatus(group, policy) {
-  if (isLockedGroup(group)) return
+function playLeaveAnimation(ids, policy) {
+  const nextTab = destinationTab(policy)
+  const currentTab = activePolicyTab.value
+  if (currentTab === 'ALL' || currentTab === nextTab) return
 
+  movingIds.value = [...new Set([...movingIds.value, ...ids])]
+  window.setTimeout(() => {
+    movingIds.value = movingIds.value.filter((id) => !ids.includes(id))
+  }, 300)
+}
+
+function setGroupStatus(group, policy) {
   const source = parentGroups.value.find((item) => item.name === group.name)
   if (!source) return
 
+  const ids = source.items.map((place) => place.id)
   source.items.forEach((place) => {
     place.policy = policy
     place.userOverride = true
   })
+  playLeaveAnimation(ids, policy)
 }
 
 const emptyFilterText = computed(() => {
@@ -684,14 +769,11 @@ function isBlockActive(place) {
 function setStatus(id, policy) {
   const place = allPlaces.value.find((item) => item.id === id)
   if (!place) return
-
-  const group = parentGroups.value.find((item) =>
-    item.items.some((entry) => entry.id === id)
-  )
-  if (group && isLockedGroup(group)) return
+  if (movingIds.value.includes(id)) return
 
   place.policy = policy
   place.userOverride = true
+  playLeaveAnimation([id], policy)
 }
 
 
@@ -775,7 +857,8 @@ function getCategoryLabel(category) {
   if (typeof category === 'string') return category
   if (typeof category === 'number') return String(category)
 
-  return category?.category
+  return category?.label
+    ?? category?.category
     ?? category?.categoryName
     ?? category?.merchantCategoryName
     ?? category?.name
@@ -794,9 +877,10 @@ function extractCategoryItems(permission) {
       if (item == null || item === '') return null
 
       if (typeof item === 'string' || typeof item === 'number') {
+        const found = findPolicyPlaces({ id: item, label: item })[0]
         return {
-          id: item,
-          label: String(item),
+          id: found?.id ?? item,
+          label: found?.categoryName ?? String(item),
         }
       }
 
@@ -810,9 +894,10 @@ function extractCategoryItems(permission) {
       const label = getCategoryLabel(item)
       if (id == null && !label) return null
 
+      const found = findPolicyPlaces({ id, label })[0]
       return {
-        id: id ?? label,
-        label: label || String(id),
+        id: found?.id ?? id ?? label,
+        label: found?.categoryName || label || String(id),
       }
     })
     .filter(Boolean)
@@ -887,7 +972,8 @@ function normalizePermissionRequest(permission) {
     categories,
     categoryItems,
     createdAt: permission.createdAt,
-    updatedAt: permission.updatedAt ?? null,
+    updatedAt: permission.updatedAt ?? permission.approvedAt ?? null,
+    approvedAt: permission.approvedAt ?? permission.updatedAt ?? null,
   }
 }
 
@@ -1034,6 +1120,7 @@ async function fetchCategoryPolicies() {
           name: group.name,
           items: (group.categoryPolicyList || []).map((item) => ({
             id: item.id,
+            categoryId: item.categoryId ?? item.merchantCategoryId ?? null,
             categoryName: item.categoryName,
             policy: item.policy,
             userOverride: false,
@@ -1084,15 +1171,10 @@ async function handleSave() {
     await updateCategoryPolicies(
       authStore.accessToken,
       childId.value,
-      allPlaces.value.map((place) => {
-        const group = parentGroups.value.find((entry) =>
-          entry.items.some((item) => item.id === place.id)
-        )
-        return {
-          id: place.id,
-          policy: group && isLockedGroup(group) ? 'BLOCK' : place.policy,
-        }
-      })
+      allPlaces.value.map((place) => ({
+        id: place.id,
+        policy: place.policy,
+      }))
     )
 
     alertModal.showAlert('설정이 저장되었습니다!')
@@ -1214,6 +1296,12 @@ async function handleAccept(req) {
       )
     }
 
+    rememberTempAllow(approvedItems)
+    playLeaveAnimation(
+      approvedItems.flatMap((item) => findPolicyPlaces(item).map((place) => place.id)),
+      'ALLOW'
+    )
+
     await fetchPermissions()
     await fetchCategoryPolicies()
   } catch (error) {
@@ -1253,6 +1341,8 @@ onMounted(async () => {
     childId.value
   )
 
+  startRemainTimer()
+
   if (!authStore.accessToken) {
 
     authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
@@ -1289,6 +1379,10 @@ watch(
     fetchPermissions()
   }
 )
+
+onUnmounted(() => {
+  stopRemainTimer()
+})
 </script>
 
 
@@ -1527,7 +1621,22 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
+  max-height: 72px;
   padding: 12px 14px;
+  overflow: hidden;
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease,
+    max-height 0.28s ease,
+    padding 0.28s ease;
+}
+
+.place-row.leaving {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: translateX(18px);
 }
 
 .place-row + .place-row {
@@ -1585,20 +1694,25 @@ watch(
   color: #ffffff;
 }
 
-.locked-note {
-  margin: 0;
-  padding: 16px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.55;
-  color: #4a4e55;
-}
-
 .temp-deadline {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
   color: #ff9f0a;
+}
+
+.temp-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #fff3d6;
+  color: #c47a00;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .empty-policy {
@@ -1763,18 +1877,19 @@ watch(
 
 .request-category-list {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .category-check {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
+  gap: 6px;
+  width: auto;
+  max-width: 100%;
+  padding: 6px 8px;
   border: 1px solid #eaedf1;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
   text-align: left;
   cursor: pointer;
@@ -1789,10 +1904,10 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #f0f1f3;
 }
 
@@ -1801,14 +1916,15 @@ watch(
 }
 
 .check-icon {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
 }
 
 .category-check-label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #191b1e;
+  white-space: nowrap;
 }
 
 .request-categories {
@@ -1826,10 +1942,23 @@ watch(
   font-weight: 600;
 }
 
+.child-message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.child-message-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7077;
+}
+
 .request-desc {
   margin: 0;
   font-size: 13px;
-  color: #8b9097;
+  color: #191b1e;
+  line-height: 1.45;
 }
 
 .request-btns {
@@ -1869,7 +1998,7 @@ watch(
   z-index: 99;
   width: 360px;
   max-width: 100%;
-  padding: 0 16px 12px;
+  padding: 0 8px 12px;
   box-sizing: border-box;
   background: transparent;
   transform: translateX(-50%);
