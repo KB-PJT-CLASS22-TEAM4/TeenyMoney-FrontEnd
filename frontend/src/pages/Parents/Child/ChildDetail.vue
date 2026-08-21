@@ -879,7 +879,7 @@ function onScroll() {
   overflow: hidden;
 
   padding:
-    28px 18px 24px;
+    0 18px 24px;
 
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;

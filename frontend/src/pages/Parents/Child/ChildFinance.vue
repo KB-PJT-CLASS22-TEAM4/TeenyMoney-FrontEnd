@@ -50,19 +50,19 @@
 
         <div class="filters">
           <button
-            class="origin-filter-btn"
-            :class="{ active: activeOrigin !== '전체' }"
+            v-for="category in categories"
+            :key="category"
+            class="chip"
+            :class="{ off: activeCategory !== category }"
             type="button"
-            :aria-label="`상품 구분 ${originButtonLabel}`"
-            @click="cycleOrigin"
+            @click="activeCategory = category"
           >
-            <img src="@/assets/icons/icon-filter.svg" alt="" class="origin-filter-icon" />
-            <span>{{ originButtonLabel }}</span>
+            {{ category }}
           </button>
         </div>
 
         <section
-          v-if="showCreatedProducts && filteredCustomProducts.length"
+          v-if="filteredCustomProducts.length"
           class="custom-section"
         >
           <button
@@ -130,7 +130,7 @@
         </section>
 
         <section
-          v-if="showEnrolledProducts && pendingApprovals.length"
+          v-if="pendingApprovals.length"
           class="pending-section"
         >
           <p class="pending-heading">
@@ -219,7 +219,7 @@
         </template>
 
         <section
-          v-if="showEnrolledProducts && filteredCompletedApprovals.length"
+          v-if="filteredCompletedApprovals.length"
           class="completed-list"
         >
           <p class="group-title">
@@ -309,24 +309,8 @@ const processingKey = ref('')
 const searchKeyword = ref('')
 const customOpen = ref(false)
 const activeCategory = ref('전체')
-const activeOrigin = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
-const origins = ['전체', '가입한 상품', '등록한 상품']
-
-const showEnrolledProducts = computed(() => activeOrigin.value !== '등록한 상품')
-const showCreatedProducts = computed(() => activeOrigin.value !== '가입한 상품')
-const originButtonLabel = computed(() => {
-  if (activeOrigin.value === '가입한 상품') return '가입'
-  if (activeOrigin.value === '등록한 상품') return '등록'
-  return '전체'
-})
-
-function cycleOrigin() {
-  const currentIndex = origins.indexOf(activeOrigin.value)
-  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % origins.length
-  activeOrigin.value = origins[nextIndex]
-}
 
 function matchesSearch(value) {
   const keyword = searchKeyword.value.trim().toLowerCase()
