@@ -90,7 +90,7 @@ onUnmounted(() => clearTimeout(timer))
   margin: 8px 0 0;
   font-weight: 500;
   font-size: 14px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 /* 로딩 점 3개 */

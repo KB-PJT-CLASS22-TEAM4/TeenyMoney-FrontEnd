@@ -918,25 +918,25 @@ const handleSubmit = async () => {
   margin: 0 0 8px;
   font-weight: 500;
   font-size: 12.5px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 .rate-info {
   margin: 0 0 2px;
   font-weight: 500;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 .score-requirement {
   margin: 0 0 2px;
   font-weight: 600;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 .limit-info {
   margin: 0;
   font-weight: 500;
   font-size: 12.5px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .limit-info.limit-info-strong {
@@ -955,7 +955,7 @@ const handleSubmit = async () => {
   display: block;
   font-weight: 700;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
   margin-bottom: 10px;
 }
 
@@ -993,14 +993,14 @@ const handleSubmit = async () => {
   letter-spacing: -0.5px;
 }
 .amount-input::placeholder {
-  color: #c6cbd2;
+  color: #989ca2;
   font-weight: 700;
 }
 
 .currency-unit {
   font-weight: 700;
   font-size: 16px;
-  color: #c6cbd2;
+  color: #989ca2;
   margin-left: 4px;
   margin-right: 14px;
 }
@@ -1015,7 +1015,7 @@ const handleSubmit = async () => {
   padding: 5px 10px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
-  color: #64748b;
+  color: #4d596b;
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -1041,7 +1041,7 @@ const handleSubmit = async () => {
   border-radius: 50%;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  color: #64748b;
+  color: #4d596b;
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
@@ -1101,7 +1101,7 @@ const handleSubmit = async () => {
   margin-bottom: 6px;
 }
 .toggle-title { font-weight: 700; font-size: 14px; color: #15171b; }
-.toggle-desc  { display: block; font-weight: 500; font-size: 11.5px; color: #b9bec5; margin-top: 2px; }
+.toggle-desc  { display: block; font-weight: 500; font-size: 11.5px; color: #8b9097; margin-top: 2px; }
 
 .free-info-section { border-bottom: none; }
 
@@ -1142,7 +1142,7 @@ const handleSubmit = async () => {
   padding: 4px 0;
   font-weight: 600;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 .score-guide-row.highlight {
   color: #b8901f;
@@ -1184,9 +1184,9 @@ input:checked + .slider:before { transform: translateX(17px); }
   padding: 10px 0;
 }
 .setting-row.border-top { border-top: 1.3px solid #f0f1f3; }
-.setting-label { font-weight: 600; font-size: 13px; color: #8b9097; }
+.setting-label { font-weight: 600; font-size: 13px; color: #6b7077; }
 .setting-value { font-weight: 700; font-size: 13px; color: #15171b; }
-.account-note  { margin: 0; font-weight: 500; font-size: 11.5px; color: #b9bec5; }
+.account-note  { margin: 0; font-weight: 500; font-size: 11.5px; color: #8b9097; }
 
 .select-btn {
   background: none;
@@ -1223,7 +1223,7 @@ input:checked + .slider:before { transform: translateX(17px); }
   align-items: center;
 }
 .maturity-label       { font-weight: 700; font-size: 13px; color: #4a4e55; }
-.maturity-placeholder { font-weight: 600; font-size: 12px; color: #c6cbd2; }
+.maturity-placeholder { font-weight: 600; font-size: 12px; color: #989ca2; }
 .maturity-amount      { font-weight: 800; font-size: 20px; color: #15171b; }
 .maturity-sub         { font-weight: 500; font-size: 11px; color: #a0a5ad; }
 
@@ -1237,7 +1237,7 @@ input:checked + .slider:before { transform: translateX(17px); }
   font-family: inherit;
   font-weight: 700;
   font-size: 15px;
-  color: #9ca1a8;
+  color: #787c81;
   cursor: not-allowed;
   transition: all 0.2s ease;
 }
@@ -1296,7 +1296,7 @@ input:checked + .slider:before { transform: translateX(17px); }
 .error-desc {
   margin: 0 0 18px;
   font-size: 13px;
-  color: #6b7280;
+  color: #525863;
   line-height: 1.5;
   word-break: keep-all;
   overflow-wrap: break-word;
@@ -1381,7 +1381,7 @@ input:checked + .slider:before { transform: translateX(17px); }
   border: none;
   background: transparent;
   font-size: 18px;
-  color: #94a3b8;
+  color: #727e8e;
   cursor: pointer;
   padding: 4px;
 }
@@ -1424,7 +1424,7 @@ input:checked + .slider:before { transform: translateX(17px); }
 .cal-weekday {
   font-size: 12px;
   font-weight: 700;
-  color: #64748b;
+  color: #4d596b;
   padding: 4px 0;
 }
 
@@ -1492,7 +1492,7 @@ input:checked + .slider:before { transform: translateX(17px); }
 .cal-notice-text {
   margin: 0;
   font-size: 12px;
-  color: #64748b;
+  color: #4d596b;
 }
 
 .cal-notice-text strong {

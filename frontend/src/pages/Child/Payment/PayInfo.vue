@@ -334,7 +334,7 @@ function requestApproval() {
 .store-badge {
   font-size: 11.5px;
   font-weight: 700;
-  color: #64748b;
+  color: #4d596b;
   background: #f1f5f9;
   padding: 3px 8px;
   border-radius: 6px;
@@ -393,7 +393,7 @@ function requestApproval() {
 .info-label {
   font-weight: 600;
   font-size: 14px;
-  color: #64748b;
+  color: #4d596b;
 }
 
 .info-value {
@@ -485,7 +485,7 @@ function requestApproval() {
 
 .cta.disabled-cta {
   background: #e2e8f0;
-  color: #94a3b8;
+  color: #727e8e;
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -573,7 +573,7 @@ function requestApproval() {
   font-weight: 500;
   font-size: 13px;
   line-height: 1.45;
-  color: #64748b;
+  color: #4d596b;
   text-align: center;
 }
 
@@ -595,7 +595,7 @@ function requestApproval() {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #ffffff;
-  color: #64748b;
+  color: #4d596b;
   font-weight: 700;
   font-size: 14.5px;
   cursor: pointer;

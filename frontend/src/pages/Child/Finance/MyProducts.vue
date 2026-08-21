@@ -1012,7 +1012,7 @@ function onScroll() {
   font-weight: 700;
   font-size: 14px;
   line-height: 20px;
-  color: #b9bec5;
+  color: #8b9097;
   transition: color 0.15s ease;
 }
 
@@ -1057,7 +1057,7 @@ function onScroll() {
 .group-title {
   font-weight: 800;
   font-size: 14px;
-  color: #6b7280;
+  color: #525863;
   text-align: left;
   margin: 0 0 10px;
 }
@@ -1120,7 +1120,7 @@ function onScroll() {
   margin: 0 0 4px;
   font-weight: 600;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .status-text {
@@ -1152,7 +1152,7 @@ function onScroll() {
   padding: 3px 9px;
   border-radius: 999px;
   background: #eef1f4;
-  color: #6b7280;
+  color: #525863;
   font-weight: 700;
   font-size: 11px;
   white-space: nowrap;
@@ -1162,7 +1162,7 @@ function onScroll() {
   margin: 6px 0 0;
   font-weight: 500;
   font-size: 12.5px;
-  color: #9aa0a8;
+  color: #777b81;
 }
 
 /* 납입금액 및 한도 정보 박스 */
@@ -1191,7 +1191,7 @@ function onScroll() {
 
 .spec-label {
   font-weight: 600;
-  color: #64748b;
+  color: #4d596b;
 }
 
 .spec-val {
@@ -1208,7 +1208,7 @@ function onScroll() {
   margin: 0 0 10px;
   font-weight: 500;
   font-size: 12px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .progress-block {
@@ -1259,7 +1259,7 @@ function onScroll() {
   padding: 2px 6px;
   border-radius: 4px;
   background: #f1f3f5;
-  color: #61666d;
+  color: #4b4f54;
 }
 
 .meta-tag.alert {
@@ -1310,7 +1310,7 @@ function onScroll() {
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
-  color: #9aa0a8;
+  color: #777b81;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1318,8 +1318,8 @@ function onScroll() {
   transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 .btn-cancel-link:hover {
-  color: #6b7280;
-  text-decoration-color: #6b7280;
+  color: #525863;
+  text-decoration-color: #525863;
 }
 
 .bottomsheet-backdrop {
@@ -1385,7 +1385,7 @@ function onScroll() {
 .balance-label {
   font-size: 12.5px;
   font-weight: 600;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .balance-val {
@@ -1499,7 +1499,7 @@ function onScroll() {
 }
 .btn-sheet-submit:disabled {
   background: #e5e8eb;
-  color: #9aa0a8;
+  color: #777b81;
   cursor: not-allowed;
 }
 
@@ -1551,7 +1551,7 @@ function onScroll() {
 .success-amount {
   margin: 0 0 20px;
   font-size: 13.5px;
-  color: #6b7280;
+  color: #525863;
   line-height: 1.4;
 }
 .success-amount strong {
@@ -1641,7 +1641,7 @@ function onScroll() {
   padding: 12px 0;
   border-radius: 12px;
   background: #f1f5f9;
-  color: #64748b;
+  color: #4d596b;
   border: none;
   font-family: inherit;
   font-size: 14px;
@@ -1680,7 +1680,7 @@ function onScroll() {
 .pending-info-text {
   margin: 0;
   font-size: 12px;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1.4;
   flex: 1;
 }
@@ -1690,7 +1690,7 @@ function onScroll() {
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   background: #ffffff;
-  color: #64748b;
+  color: #4d596b;
   font-family: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -1702,7 +1702,7 @@ function onScroll() {
 .btn-cancel-pending:hover {
   background: #e2e8f0;
   color: #334155;
-  border-color: #94a3b8;
+  border-color: #727e8e;
 }
 
 .modal-title {
@@ -1715,7 +1715,7 @@ function onScroll() {
 .modal-desc {
   margin: 0 0 18px;
   font-size: 13px;
-  color: #6b7280;
+  color: #525863;
   line-height: 1.5;
   white-space: pre-line;
   word-break: keep-all;

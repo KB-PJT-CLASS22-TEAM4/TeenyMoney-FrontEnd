@@ -572,7 +572,7 @@ async function retryMessage(idx) {
   content: '·';
   position: absolute;
   left: 0;
-  color: #94a3b8;
+  color: #727e8e;
   font-weight: 800;
 }
 
@@ -656,7 +656,7 @@ async function retryMessage(idx) {
   font-size: 15px;
   line-height: 1;
   font-weight: 700;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .chatbot-input {

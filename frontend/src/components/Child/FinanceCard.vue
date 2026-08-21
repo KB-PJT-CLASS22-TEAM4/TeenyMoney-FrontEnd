@@ -50,7 +50,7 @@ defineProps({
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.33px;
-  color: #8a9099;
+  color: #6a6f76;
 }
 
 .rate {
@@ -87,7 +87,7 @@ defineProps({
   margin: 0;
   font-weight: 600;
   font-size: 11px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .progress {

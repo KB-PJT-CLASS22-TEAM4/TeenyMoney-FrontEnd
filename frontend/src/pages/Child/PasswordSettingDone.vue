@@ -76,7 +76,7 @@ function goHome() {
   font-size: 14px;
   line-height: 21px;
   text-align: center;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 

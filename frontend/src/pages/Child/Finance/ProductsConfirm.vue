@@ -407,7 +407,7 @@ const closeModalAndNavigate = () => {
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.3px;
-  color: #8a9099;
+  color: #6a6f76;
   margin-bottom: 6px;
 }
 
@@ -422,7 +422,7 @@ const closeModalAndNavigate = () => {
 .product-sub {
   font-weight: 500;
   font-size: 12px;
-  color: #b9bec5;
+  color: #8b9097;
   word-break: keep-all;
 }
 
@@ -437,7 +437,7 @@ const closeModalAndNavigate = () => {
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.3px;
-  color: #8a9099;
+  color: #6a6f76;
   margin-bottom: 8px;
 }
 
@@ -458,7 +458,7 @@ const closeModalAndNavigate = () => {
 
 .row-label {
   font-size: 14px;
-  color: #64748b;
+  color: #4d596b;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
@@ -474,7 +474,7 @@ const closeModalAndNavigate = () => {
   border-radius: 50%;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  color: #64748b;
+  color: #4d596b;
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
@@ -512,7 +512,7 @@ const closeModalAndNavigate = () => {
 .row-subtext {
   font-weight: 500;
   font-size: 11px;
-  color: #8a9099;
+  color: #6a6f76;
   text-align: right;
   line-height: 1.35;
   word-break: keep-all;
@@ -551,7 +551,7 @@ const closeModalAndNavigate = () => {
 .maturity-detail {
   font-weight: 500;
   font-size: 11px;
-  color: #8b9097;
+  color: #6b7077;
   line-height: 1.4;
   word-break: keep-all;
 }
@@ -598,7 +598,7 @@ const closeModalAndNavigate = () => {
 }
 
 .required {
-  color: #8a9099;
+  color: #6a6f76;
   font-weight: 400;
 }
 
@@ -623,7 +623,7 @@ const closeModalAndNavigate = () => {
   border: none;
   font-weight: 700;
   font-size: 15px;
-  color: #9ca1a8;
+  color: #787c81;
   cursor: not-allowed;
   transition: all 0.2s ease;
 }
@@ -684,7 +684,7 @@ const closeModalAndNavigate = () => {
   font-weight: 500;
   font-size: 13px;
   line-height: 19px;
-  color: #6b7280;
+  color: #525863;
   margin-bottom: 20px;
   word-break: keep-all;
 }
