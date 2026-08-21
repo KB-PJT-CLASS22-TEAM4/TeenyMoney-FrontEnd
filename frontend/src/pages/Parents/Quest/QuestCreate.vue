@@ -174,8 +174,8 @@
 
         <div class="amount-wrap">
           <input
-            v-model="form.rewardAmount"
-            type="number"
+            v-model="rewardAmountText"
+            type="text"
             class="amount-input"
             placeholder="0"
             inputmode="numeric"
@@ -362,6 +362,25 @@
       <!-- =========================
            생성
       ========================== -->
+      <label class="continue-check">
+        <input
+          v-model="continueCreating"
+          class="continue-check-input"
+          type="checkbox"
+        />
+        <span class="continue-check-box">
+          <img
+            v-if="continueCreating"
+            src="@/assets/icons/icon-check.svg"
+            alt=""
+            class="continue-check-icon"
+          />
+        </span>
+        <span class="continue-check-label">
+          계속 생성하기
+        </span>
+      </label>
+
       <button
         class="submit-btn"
         :disabled="
@@ -786,6 +805,7 @@ import {
 import {
   CHILD_PROFILE_IMAGE,
 } from '@/utils/profileImages'
+import { formatMoney, parseMoney } from '@/utils/formatMoney'
 
 
 const router =
@@ -815,6 +835,9 @@ const isChildrenLoading =
 const isCreating =
   ref(false)
 
+const continueCreating =
+  ref(false)
+
 const childrenError =
   ref('')
 
@@ -833,6 +856,15 @@ const form =
     verificationRequirement:
       'PHOTO_REQUIRED',
   })
+
+const rewardAmountText = computed({
+  get() {
+    return formatMoney(form.value.rewardAmount)
+  },
+  set(value) {
+    form.value.rewardAmount = parseMoney(value)
+  },
+})
 
 const isPhotoRequired =
   computed(() =>
@@ -1565,6 +1597,34 @@ function addAmount(
 }
 
 
+function resetCreateForm() {
+  form.value = {
+    title: '',
+    content: '',
+    deadline: '',
+    rewardAmount: 0,
+    teenyScoreEnabled:
+      form.value.teenyScoreEnabled,
+    verificationRequirement:
+      form.value.verificationRequirement,
+  }
+
+  selectedDate.value = null
+  selectedHour.value = '18'
+  selectedMinute.value = '00'
+  openTimeMenu.value = null
+  isCalendarOpen.value = false
+
+  const now = new Date()
+  calendarYear.value = now.getFullYear()
+  calendarMonth.value = now.getMonth()
+
+  window.scrollTo(0, 0)
+  document.querySelector('.page')
+    ?.scrollTo?.(0, 0)
+}
+
+
 // 퀘스트 생성
 async function handleCreate() {
 
@@ -1632,6 +1692,11 @@ async function handleCreate() {
       alertModal.showAlert(
         '퀘스트가 생성됐어요!'
       )
+
+      if (continueCreating.value) {
+        resetCreateForm()
+        return
+      }
 
       router.back()
     }
@@ -2222,6 +2287,54 @@ async function handleCreate() {
 /* =========================
    생성 버튼
 ========================= */
+
+.continue-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.continue-check-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.continue-check-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #c5c9d0;
+  border-radius: 3px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.continue-check:has(.continue-check-input:checked) .continue-check-box {
+  border-color: #ffbc00;
+  background: #ffbc00;
+}
+
+.continue-check-icon {
+  width: 10px;
+  height: 10px;
+}
+
+.continue-check-label {
+  color: #8b9097;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
 
 .submit-btn {
   width: 100%;

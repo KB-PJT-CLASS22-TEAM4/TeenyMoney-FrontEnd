@@ -66,7 +66,8 @@ export async function getCategoryPolicies(accessToken, childId) {
   )
 }
 
-// PATCH /api/v1/category-policies
+// PATCH /api/v1/category-policies?childId=
+// body: { categoryPolicyList: [{ id, policy }] }
 export async function updateCategoryPolicies(
   accessToken,
   childId,

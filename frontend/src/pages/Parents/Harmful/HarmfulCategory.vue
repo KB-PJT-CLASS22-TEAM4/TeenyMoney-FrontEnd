@@ -142,14 +142,24 @@
       </div>
 
 
-      <!-- 설정한 업종 목록 조회 -->
       <button
-        class="list-btn"
+        class="list-card"
+        type="button"
         @click="goToPlaceList"
       >
-        <span>
-          업종 목록 설정 및 조회
-        </span>
+        <div class="list-card-icon" aria-hidden="true">
+          <img
+            src="@/assets/icons/icon-shield.svg"
+            alt=""
+            class="list-card-icon-img"
+          />
+        </div>
+
+        <div class="list-card-text">
+          <span class="list-card-badge">업종 설정</span>
+          <span class="list-card-title">업종 목록 설정 및 조회</span>
+          <span class="list-card-sub">허용·주의·차단 업종을 확인하고 바꿔요</span>
+        </div>
 
         <img
           src="@/assets/icons/icon-chevron.svg"
@@ -170,8 +180,8 @@
           <button
             v-for="tab in requestTabs"
             :key="tab.value"
-            class="request-tab"
-            :class="{ active: activeRequestTab === tab.value }"
+            class="chip"
+            :class="{ off: activeRequestTab !== tab.value }"
             type="button"
             @click="activeRequestTab = tab.value"
           >
@@ -366,7 +376,7 @@ import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -382,7 +392,6 @@ import {
 
 import {
   getPermissions,
-  getPermissionHistory,
   approvePermission,
   rejectPermission
 } from '@/api/permissions'
@@ -934,35 +943,13 @@ async function fetchPermissions() {
   isPermissionLoading.value = true
 
   try {
-    const [permRes, historyRes] = await Promise.allSettled([
-      getPermissions(
-        authStore.accessToken,
-        childId.value
-      ),
-      getPermissionHistory(
-        authStore.accessToken,
-        childId.value
-      ),
-    ])
-
-    const fromPermissions =
-      permRes.status === 'fulfilled'
-        ? extractPermissionsList(permRes.value.data)
-        : []
-    const fromHistory =
-      historyRes.status === 'fulfilled'
-        ? extractPermissionsList(historyRes.value.data)
-        : []
-
-    const merged = new Map()
-    ;[...fromHistory, ...fromPermissions].forEach((permission) => {
-      const key = permission?.id ?? permission?.permissionId
-      if (key == null) return
-      merged.set(key, permission)
-    })
+    const res = await getPermissions(
+      authStore.accessToken,
+      childId.value
+    )
 
     permissionRequests.value = mergePermissionRequests(
-      Array.from(merged.values())
+      extractPermissionsList(res.data)
     )
 
   } catch (error) {
@@ -1103,6 +1090,21 @@ onMounted(async () => {
   ])
 
 })
+
+watch(
+  () => route.query.childId,
+  (id, prev) => {
+    if (String(id || '') === String(prev || '')) return
+
+    childId.value = id ? Number(id) : null
+
+    if (!authStore.accessToken || !childId.value) return
+
+    errorMessage.value = ''
+    fetchCategoryPolicies()
+    fetchPermissions()
+  }
+)
 </script>
 
 
@@ -1297,59 +1299,122 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.list-btn {
+.list-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  padding: 14px 0;
-  border: none;
-  border-top: 1px solid #f0f1f3;
-  border-bottom: 1px solid #f0f1f3;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  color: #191b1e;
+  min-height: 92px;
+  padding: 14px 14px 14px 12px;
+  border: 1px solid #eaedf1;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  text-align: left;
   cursor: pointer;
+}
+
+.list-card:active {
+  transform: scale(0.99);
+}
+
+.list-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: #eff6ff;
+}
+
+.list-card-icon-img {
+  width: 22px;
+  height: 22px;
+}
+
+.list-card-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.list-card-badge {
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.list-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+  line-height: 1.3;
+}
+
+.list-card-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b9097;
+  line-height: 1.35;
 }
 
 .chevron-icon {
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
+}
+
+.request-section {
+  margin-top: 8px;
 }
 
 .request-title {
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #8b9097;
+  margin: 0 0 18px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #191b1e;
 }
 
 .request-tabs {
   display: flex;
+  gap: 8px;
+  width: 100%;
   margin-bottom: 12px;
-  border-bottom: 1px solid #f0f1f3;
 }
 
-.request-tab {
+.chip {
+  display: inline-flex;
   flex: 1;
-  height: 40px;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: #8b9097;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.3px solid transparent;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #15171b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-.request-tab.active {
-  color: #191b1e;
-  border-bottom-color: #ffbc00;
+.chip.off {
+  background: #ffffff;
+  border: 1.3px solid #e7e9ec;
+  color: #4a4e55;
+  font-weight: 600;
 }
 
 .tab-count {
@@ -1357,16 +1422,16 @@ onMounted(async () => {
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #f4f5f7;
-  color: #8b9097;
+  background: rgba(0, 0, 0, 0.08);
+  color: #191b1e;
   font-size: 11px;
   font-weight: 700;
   line-height: 18px;
 }
 
-.request-tab.active .tab-count {
-  background: #fff6dd;
-  color: #191b1e;
+.chip.off .tab-count {
+  background: #f4f5f7;
+  color: #8b9097;
 }
 
 .empty-request {

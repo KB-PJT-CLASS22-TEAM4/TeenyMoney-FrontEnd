@@ -1,15 +1,20 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { isAccessTokenExpired } from '@/utils/authSession'
 
-// 앱이 다시 앞으로 나올 때 토큰을 먼저 갱신하고 화면 데이터를 다시 부른다.
-// 순서가 중요하다. 반대면 만료된 토큰으로 요청이 나가 401이 난다.
+// 앱이 다시 앞으로 나올 때, access가 만료된 경우에만 재발급하고 화면을 다시 부른다.
+// 아직 유효하면 reissue를 치지 않는다. 탭 전환마다 쿠키 재발급이 401 나는 것을 막는다.
 export function useRefreshOnVisible(load) {
   const authStore = useAuthStore()
 
   const onVisible = async () => {
     if (document.visibilityState !== 'visible') return
     if (!authStore.isAuthenticated) return
-    await authStore.refreshAccessToken().catch(() => {})
+
+    if (isAccessTokenExpired(authStore.accessToken)) {
+      await authStore.refreshAccessToken().catch(() => {})
+    }
+
     load()
   }
 

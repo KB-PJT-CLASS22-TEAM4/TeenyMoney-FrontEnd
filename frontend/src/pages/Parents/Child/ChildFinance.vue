@@ -50,19 +50,19 @@
 
         <div class="filters">
           <button
-            class="origin-filter-btn"
-            :class="{ active: activeOrigin !== '전체' }"
+            v-for="category in categories"
+            :key="category"
+            class="chip"
+            :class="{ off: activeCategory !== category }"
             type="button"
-            :aria-label="`상품 구분 ${originButtonLabel}`"
-            @click="cycleOrigin"
+            @click="activeCategory = category"
           >
-            <img src="@/assets/icons/icon-filter.svg" alt="" class="origin-filter-icon" />
-            <span>{{ originButtonLabel }}</span>
+            {{ category }}
           </button>
         </div>
 
         <section
-          v-if="showCreatedProducts && filteredCustomProducts.length"
+          v-if="filteredCustomProducts.length"
           class="custom-section"
         >
           <button
@@ -71,9 +71,10 @@
             :aria-expanded="customOpen"
             @click="customOpen = !customOpen"
           >
-            <p class="group-title">
-              등록한 상품 {{ filteredCustomProducts.length }}
-            </p>
+            <span class="group-block">
+              <span class="group-block-label">등록한 상품</span>
+              <span class="count-badge">{{ filteredCustomProducts.length }}</span>
+            </span>
             <img
               src="@/assets/icons/icon-chevron.svg"
               alt=""
@@ -130,18 +131,24 @@
         </section>
 
         <section
-          v-if="showEnrolledProducts && pendingApprovals.length"
+          v-if="pendingApprovals.length"
           class="pending-section"
         >
           <p class="pending-heading">
-            처리 필요
-            <span class="pending-count">{{ pendingApprovals.length }}</span>
+            <span class="group-block">
+              <span class="group-block-label">처리 필요</span>
+              <span class="count-badge">{{ pendingApprovals.length }}</span>
+            </span>
           </p>
 
           <div
             v-for="item in pendingApprovals"
             :key="item.enrollmentId"
-            class="pending-card"
+            class="pending-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
           >
             <div class="pending-top">
               <p class="pending-title">{{ item.title }}</p>
@@ -154,7 +161,7 @@
               <button
                 class="detail-btn"
                 type="button"
-                @click="goApprovalDetail(item)"
+                @click.stop="goApprovalDetail(item)"
               >
                 상세보기
               </button>
@@ -162,7 +169,7 @@
                 class="reject-btn"
                 type="button"
                 :disabled="processingKey === item.enrollmentId"
-                @click="handleRejectApproval(item)"
+                @click.stop="handleRejectApproval(item)"
               >
                 거절
               </button>
@@ -170,7 +177,7 @@
                 class="approve-btn"
                 type="button"
                 :disabled="processingKey === item.enrollmentId"
-                @click="handleApproveApproval(item)"
+                @click.stop="handleApproveApproval(item)"
               >
                 {{ processingKey === item.enrollmentId ? '처리 중...' : '승인' }}
               </button>
@@ -179,7 +186,12 @@
         </section>
 
         <template v-for="group in groupedActiveProducts" :key="group.label">
-          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+          <p class="group-title">
+            <span class="group-block">
+              <span class="group-block-label">{{ group.label }}</span>
+              <span class="count-badge">{{ group.items.length }}</span>
+            </span>
+          </p>
 
           <div
             v-for="product in group.items"
@@ -219,11 +231,14 @@
         </template>
 
         <section
-          v-if="showEnrolledProducts && filteredCompletedApprovals.length"
+          v-if="filteredCompletedApprovals.length"
           class="completed-list"
         >
           <p class="group-title">
-            처리 완료 {{ filteredCompletedApprovals.length }}
+            <span class="group-block">
+              <span class="group-block-label">처리 완료</span>
+              <span class="count-badge">{{ filteredCompletedApprovals.length }}</span>
+            </span>
           </p>
 
           <div
@@ -296,7 +311,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const alertModal = useAlertModal()
 
-const childId = Number(route.params.childId)
+const childId = computed(() => Number(route.params.childId))
 
 const childName = ref('자녀')
 const approvalRequests = ref([])
@@ -309,24 +324,8 @@ const processingKey = ref('')
 const searchKeyword = ref('')
 const customOpen = ref(false)
 const activeCategory = ref('전체')
-const activeOrigin = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
-const origins = ['전체', '가입한 상품', '등록한 상품']
-
-const showEnrolledProducts = computed(() => activeOrigin.value !== '등록한 상품')
-const showCreatedProducts = computed(() => activeOrigin.value !== '가입한 상품')
-const originButtonLabel = computed(() => {
-  if (activeOrigin.value === '가입한 상품') return '가입'
-  if (activeOrigin.value === '등록한 상품') return '등록'
-  return '전체'
-})
-
-function cycleOrigin() {
-  const currentIndex = origins.indexOf(activeOrigin.value)
-  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % origins.length
-  activeOrigin.value = origins[nextIndex]
-}
 
 function matchesSearch(value) {
   const keyword = searchKeyword.value.trim().toLowerCase()
@@ -479,7 +478,7 @@ function formatPendingMeta(item) {
 async function fetchChildInfo() {
   const res = await getChildren(authStore.accessToken)
   const matched = res.data?.find(
-    (item) => Number(item.childId) === childId
+    (item) => Number(item.childId) === childId.value
   )
 
   if (matched) {
@@ -495,17 +494,17 @@ async function fetchProducts() {
     const [approvals, products, created] = await Promise.all([
       fetchChildApprovalRequests(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ),
       fetchAllChildFinancialProducts(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ),
       fetchChildCustomProducts(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ).catch(() => []),
     ])
@@ -530,7 +529,7 @@ function goApprovalDetail(item) {
   router.push({
     name: 'parents-finance-approval-detail',
     params: {
-      childId,
+      childId: childId.value,
       productType: toProductType(item),
       enrollmentId: item.enrollmentId,
     },
@@ -589,7 +588,7 @@ async function handleRejectApproval(item) {
 
 function goCreate() {
   router.push({
-    path: `/parents/children/${childId}/finance/create`,
+    path: `/parents/children/${childId.value}/finance/create`,
   })
 }
 
@@ -606,7 +605,7 @@ async function handleDeleteCustomProduct(product) {
   try {
     await financialProductsApi.deleteFinancialProduct(
       authStore.accessToken,
-      childId,
+      childId.value,
       product.productType,
       product.productId,
     )
@@ -621,7 +620,7 @@ async function handleDeleteCustomProduct(product) {
   }
 }
 
-onMounted(async () => {
+async function loadFinance() {
   if (!authStore.accessToken) {
     authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
     return
@@ -631,7 +630,18 @@ onMounted(async () => {
     fetchChildInfo(),
     fetchProducts(),
   ])
+}
+
+watch(childId, (id, prev) => {
+  if (!Number.isFinite(id) || id === prev) return
+  searchKeyword.value = ''
+  customOpen.value = false
+  activeCategory.value = '전체'
+  childName.value = '자녀'
+  loadFinance()
 })
+
+onMounted(loadFinance)
 </script>
 
 <style scoped>
@@ -708,14 +718,10 @@ onMounted(async () => {
 .pending-heading {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
 }
 
-.pending-count {
+.count-badge {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
@@ -728,6 +734,23 @@ onMounted(async () => {
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
+}
+
+.group-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.group-block-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #191b1e;
+  line-height: 1.2;
 }
 
 .child-info-left {
@@ -980,16 +1003,12 @@ onMounted(async () => {
 .custom-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin: 0 0 10px;
   padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
-}
-
-.custom-toggle .group-title {
-  margin: 0;
 }
 
 .custom-chevron {
@@ -1005,10 +1024,9 @@ onMounted(async () => {
 }
 
 .group-title {
+  display: flex;
+  align-items: center;
   margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
 }
 
 .custom-section {

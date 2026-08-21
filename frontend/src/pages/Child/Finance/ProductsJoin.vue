@@ -1174,6 +1174,83 @@ input:checked + .slider:before { transform: translateX(17px); }
   cursor: pointer;
 }
 
+/* ────────── 에러/알림 모달 ────────── */
+.error-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.error-dialog {
+  width: 100%;
+  max-width: 290px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  text-align: center;
+  box-sizing: border-box;
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.error-icon-wrap {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: #ffbc00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-title {
+  margin: 0 0 6px;
+  font-size: 16.5px;
+  font-weight: 800;
+  color: #15171b;
+}
+
+.error-desc {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: #525863;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.btn-error-confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #15171b;
+  border: none;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.btn-error-confirm:active {
+  opacity: 0.85;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
