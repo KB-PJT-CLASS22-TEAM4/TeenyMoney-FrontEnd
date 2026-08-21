@@ -255,6 +255,22 @@
       />
     </template>
 
+    <template v-else-if="name === 'logout'">
+      <path
+        d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+      />
+      <path
+        d="M10 12h10M16 8l4 4-4 4"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </template>
+
     <template v-else>
       <path
         d="M5 12h14"

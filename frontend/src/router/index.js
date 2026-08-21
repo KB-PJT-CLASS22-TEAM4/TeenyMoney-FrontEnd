@@ -77,7 +77,6 @@ import Faq from '@/pages/Faq.vue'
 import Terms from '@/pages/Terms.vue'
 import TermsDetail from '@/pages/TermsDetail.vue'
 import HarmfulCategory from '@/pages/Parents/Harmful/HarmfulCategory.vue'
-import PlaceList from '@/pages/Parents/Harmful/PlaceList.vue'
 import SendAllowance from '@/pages/Parents/Allowance/SendAllowance.vue'
 import RequestList from '@/pages/Parents/RequestList.vue'
 import SendingAllowance from '@/pages/Parents/Allowance/SendingAllowance.vue'
@@ -336,7 +335,7 @@ const router = createRouter({
   {
     path: '/parents/place-list',
     name: 'parents-place-list',
-    component: PlaceList,
+    component: HarmfulCategory,
   },
   // 자녀 신규 금융상품 목록
   {
