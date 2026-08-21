@@ -24,7 +24,6 @@
       </div>
 
       <p class="section-title">업종 선택</p>
-      <p v-if="categoriesError" class="submit-error">{{ categoriesError }}</p>
 
       <!-- 주의 -->
       <div class="legend">
@@ -37,9 +36,10 @@
           v-for="c in watchCategories"
           :key="c.id"
           class="chip"
-          :class="{ 'chip--watch-on': isWatchSelected(c.id) }"
+          :class="{ 'chip--watch-on': isWatchSelected(c.id), 'chip--disabled': !isCategoryAvailable(c.id) }"
+          :disabled="!isCategoryAvailable(c.id)"
           @click="toggleWatch(c.id)"
-        >{{ c.label }}</button>
+        >{{ c.label }}<span v-if="categoryStatusLabel(c.id)" class="chip-status">{{ categoryStatusLabel(c.id) }}</span></button>
       </div>
 
       <!-- 차단 -->
@@ -53,9 +53,10 @@
           v-for="b in blockCategories"
           :key="b.id"
           class="chip"
-          :class="{ 'chip--block-on': isBlockSelected(b.id) }"
+          :class="{ 'chip--block-on': isBlockSelected(b.id), 'chip--disabled': !isCategoryAvailable(b.id) }"
+          :disabled="!isCategoryAvailable(b.id)"
           @click="toggleBlock(b.id)"
-        >{{ b.label }}</button>
+        >{{ b.label }}<span v-if="categoryStatusLabel(b.id)" class="chip-status">{{ categoryStatusLabel(b.id) }}</span></button>
       </div>
 
       <!-- 요청 사유 -->
@@ -161,7 +162,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
-import { getCategoryPolicyGroups } from '@/api/categoryPolicy'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 
@@ -169,31 +169,22 @@ const router = useRouter()
 const authStore = useAuthStore()
 const allowStore = useAllowRequestStore()
 
-// 카테고리 데이터 — 부모가 WATCH(주의)/BLOCK(차단)으로 설정해둔 카테고리만
-// "오늘만 허용" 대상이라 정책 그룹 조회 API로 불러온다. ALLOW는 이미 상시 허용이라 대상이 아니다.
-const watchCategories = ref([])
-const blockCategories = ref([])
-const categoriesError = ref('')
+// 🔧 수정: 카테고리 목록은 별도 API(getCategoryPolicyGroups)를 다시 부르지 않고
+// /permissions/status 조회 결과(allowStore.categoryStatuses)에서 policy 기준으로 바로 걸러 씀.
+// 이전엔 별도 API의 item.id(정책 row PK, 예: 263)를 카테고리 ID로 잘못 사용해서
+// 존재하지 않는 categoryId를 서버로 보내는 바람에 500(COMMON_INTERNAL_ERROR)이 났었음.
+// /permissions/status의 categoryId는 실제 카테고리 마스터 테이블 PK(1~21)라 안전함.
+const watchCategories = computed(() =>
+  allowStore.categoryStatuses
+    .filter((c) => c.policy === 'WATCH')
+    .map((c) => ({ id: c.categoryId, label: c.categoryName }))
+)
 
-function mapCategoryPolicyList(list) {
-  return (list || []).map((item) => ({ id: item.id, label: item.categoryName }))
-}
-
-async function fetchCategoryPolicies() {
-  try {
-    const result = await getCategoryPolicyGroups(authStore.accessToken, authStore.memberId)
-    const groups = result.data || []
-    watchCategories.value = mapCategoryPolicyList(
-      groups.find((g) => g.policy === 'WATCH')?.categoryPolicyList
-    )
-    blockCategories.value = mapCategoryPolicyList(
-      groups.find((g) => g.policy === 'BLOCK')?.categoryPolicyList
-    )
-  } catch (e) {
-    console.error('카테고리 정책 조회 실패:', e)
-    categoriesError.value = '업종 목록을 불러오지 못했어요.'
-  }
-}
+const blockCategories = computed(() =>
+  allowStore.categoryStatuses
+    .filter((c) => c.policy === 'BLOCK')
+    .map((c) => ({ id: c.categoryId, label: c.categoryName }))
+)
 
 const selectedWatchIds = ref([])
 const selectedBlockIds = ref([])
@@ -210,16 +201,43 @@ const submitError = ref('')
 const monthlyRemainingCount = computed(() => allowStore.monthlyRemainingCount)
 const isMonthlyLimitReached = computed(() => monthlyRemainingCount.value <= 0)
 
+// 카테고리별 오늘 기준 상태 (AVAILABLE이 아니면 오늘은 다시 요청할 수 없음)
+const CATEGORY_STATUS_LABEL = {
+  PENDING: '승인 대기 중',
+  APPROVED: '오늘 허용됨',
+  REJECTED: '거절됨',
+  EXPIRED: '기간 만료',
+}
+
+const categoryStatusMap = computed(() => {
+  const map = {}
+  for (const c of allowStore.categoryStatuses) {
+    map[c.categoryId] = c.status
+  }
+  return map
+})
+
+function isCategoryAvailable(id) {
+  const status = categoryStatusMap.value[id]
+  return !status || status === 'AVAILABLE'
+}
+
+function categoryStatusLabel(id) {
+  return CATEGORY_STATUS_LABEL[categoryStatusMap.value[id]] || ''
+}
+
 const isWatchSelected = (id) => selectedWatchIds.value.includes(id)
 const isBlockSelected = (id) => selectedBlockIds.value.includes(id)
 
 function toggleWatch(id) {
+  if (!isCategoryAvailable(id)) return
   const i = selectedWatchIds.value.indexOf(id)
   if (i === -1) selectedWatchIds.value.push(id)
   else selectedWatchIds.value.splice(i, 1)
 }
 
 function toggleBlock(id) {
+  if (!isCategoryAvailable(id)) return
   const i = selectedBlockIds.value.indexOf(id)
   if (i === -1) selectedBlockIds.value.push(id)
   else selectedBlockIds.value.splice(i, 1)
@@ -258,12 +276,9 @@ function goBack() {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    allowStore
-      .fetchPermissionStatus(authStore.accessToken, authStore.memberId)
-      .catch((e) => console.error('오늘만 허용 현황 조회 실패:', e)),
-    fetchCategoryPolicies(),
-  ])
+  await allowStore
+    .fetchPermissionStatus(authStore.accessToken, authStore.memberId)
+    .catch((e) => console.error('오늘만 허용 현황 조회 실패:', e))
 })
 
 function onSubmit() {
@@ -442,6 +457,10 @@ async function processSubmit() {
 }
 
 .chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   padding: 8px 16px;
   border: 1px solid #e7e9ec;
   border-radius: 999px;
@@ -452,6 +471,19 @@ async function processSubmit() {
   font-size: 13px;
   cursor: pointer;
   transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+
+.chip--disabled {
+  background: #f4f5f6;
+  border-color: #eceef1;
+  color: #b9bec5;
+  cursor: not-allowed;
+}
+
+.chip-status {
+  font-weight: 600;
+  font-size: 9.5px;
+  color: #a0a5ad;
 }
 
 .chip--watch-on {
