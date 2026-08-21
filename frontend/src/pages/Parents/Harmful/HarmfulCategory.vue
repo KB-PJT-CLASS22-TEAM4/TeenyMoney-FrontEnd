@@ -1865,31 +1865,30 @@ watch(
 .footer {
   position: fixed;
   bottom: 70px;
-  left: 0;
-  right: 0;
+  left: 50%;
   z-index: 99;
-  width: 100%;
-  max-width: 360px;
-  margin: 0 auto;
-  padding: 12px 16px;
+  width: 360px;
+  max-width: 100%;
+  padding: 0 16px 12px;
   box-sizing: border-box;
-  background: linear-gradient(
-    180deg,
-    rgba(248, 250, 252, 0) 0%,
-    #f8fafc 28%
-  );
+  background: transparent;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .submit-btn {
   width: 100%;
   height: 52px;
   border: none;
-  border-radius: 16px;
+  outline: none;
+  box-shadow: none;
+  border-radius: 12px;
   background: #ffbc00;
   color: #191b1e;
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .submit-btn:disabled {
