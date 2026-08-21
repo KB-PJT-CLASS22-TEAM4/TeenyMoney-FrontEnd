@@ -330,6 +330,16 @@ async function retryMessage(idx) {
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+  animation: fab-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes fab-bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 .fab-hint {
