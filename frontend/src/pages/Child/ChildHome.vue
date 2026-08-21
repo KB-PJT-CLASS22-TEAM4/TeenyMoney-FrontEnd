@@ -69,7 +69,10 @@
         <div class="balance-row">
           <div class="balance-info">
             <span class="balance-label">티니머니</span>
-            <p class="balance-amount">{{ balance.toLocaleString() }}원</p>
+            <div class="balance-value-row">
+              <img src="@/assets/logo.svg" alt="티니머니 로고" class="balance-logo" />
+              <p class="balance-amount">{{ balance.toLocaleString() }}원</p>
+            </div>
           </div>
           <div class="action-btns">
             <button class="btn-pill btn-yellow">송금</button>
@@ -716,6 +719,7 @@ function onTabSelect(key) {
   position: relative;
   z-index: 2;
   margin-bottom: 16px;
+  margin-left: 16px;
 }
 
 .hero-title {
@@ -733,12 +737,12 @@ function onTabSelect(key) {
   margin: 0;
   font-size: 11.5px;
   font-weight: 600;
-  color: #71717a;
+  color: #57575e;
 }
 
 .hero-mascot-wrap {
   position: absolute;
-  right: -8px;
+  right: 20px;
   top: 125px;
   z-index: 1;
   pointer-events: none;
@@ -769,6 +773,7 @@ function onTabSelect(key) {
   display: flex;
   flex-direction: column;
   width: 170px;
+  margin-left: 14px;
   background: #ffffff;
   border-radius: 18px;
   padding: 12px;
@@ -848,7 +853,7 @@ function onTabSelect(key) {
   justify-content: space-between;
   font-size: 9.5px;
   font-weight: 700;
-  color: #64748b;
+  color: #4d596b;
   margin-bottom: 4px;
 }
 
@@ -887,11 +892,25 @@ function onTabSelect(key) {
 .balance-label {
   font-size: 11.5px;
   font-weight: 700;
-  color: #71717a;
+  color: #57575e;
+}
+
+.balance-value-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.balance-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .balance-amount {
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 21px;
   font-weight: 900;
   color: #0f172a;
@@ -1117,7 +1136,7 @@ function onTabSelect(key) {
 .allow-card-label {
   font-weight: 700;
   font-size: 11px;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1;
 }
 
@@ -1280,7 +1299,7 @@ function onTabSelect(key) {
   margin: 0;
   font-size: 11.5px;
   font-weight: 600;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1.2;
 }
 
@@ -1296,7 +1315,7 @@ function onTabSelect(key) {
   margin: 0;
   font-size: 12.5px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 /* 내 금융 */
@@ -1325,7 +1344,7 @@ function onTabSelect(key) {
 .finance-all {
   font-weight: 700;
   font-size: 12px;
-  color: #a1a1aa;
+  color: #7c7c83;
 }
 
 .finance-scroll {
@@ -1350,7 +1369,7 @@ function onTabSelect(key) {
   margin: 0;
   font-size: 13.5px;
   font-weight: 700;
-  color: #71717a;
+  color: #57575e;
 }
 
 .empty-link {
@@ -1425,7 +1444,7 @@ function onTabSelect(key) {
 .tx-date {
   font-weight: 600;
   font-size: 10.5px;
-  color: #a1a1aa;
+  color: #7c7c83;
 }
 
 .tx-name {
@@ -1454,7 +1473,7 @@ function onTabSelect(key) {
   padding: 20px 0;
   text-align: center;
   font-size: 12.5px;
-  color: #a1a1aa;
+  color: #7c7c83;
   font-weight: 600;
 }
 

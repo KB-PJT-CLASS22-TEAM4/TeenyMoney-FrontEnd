@@ -387,7 +387,7 @@ function onError(err) {
   margin: 0 0 24px;
   font-size: 14px;
   line-height: 1.45;
-  color: #64748b;
+  color: #4d596b;
   letter-spacing: -0.2px;
 }
 
@@ -409,7 +409,7 @@ function onError(err) {
 
 .modal-btn.cancel {
   background: #f1f5f9;
-  color: #64748b;
+  color: #4d596b;
 }
 
 .modal-btn.cancel:active {

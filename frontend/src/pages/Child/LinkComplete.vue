@@ -136,7 +136,7 @@ function goHome() {
   margin: 0;
   font-weight: 500;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
   text-align: center;
 }
 

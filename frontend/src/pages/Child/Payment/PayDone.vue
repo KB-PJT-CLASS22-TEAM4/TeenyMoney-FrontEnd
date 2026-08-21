@@ -182,7 +182,7 @@ function goHistory() {
   margin: 0 0 6px;
   font-weight: 600;
   font-size: 15px;
-  color: #64748b;
+  color: #4d596b;
   letter-spacing: -0.3px;
 }
 
@@ -233,7 +233,7 @@ function goHistory() {
 .info-label {
   font-weight: 500;
   font-size: 14px;
-  color: #64748b;
+  color: #4d596b;
   letter-spacing: -0.2px;
 }
 

@@ -128,7 +128,7 @@ async function verifyCode() {
   margin: 0;
   font-weight: 500;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 /* 코드 박스 6칸 */

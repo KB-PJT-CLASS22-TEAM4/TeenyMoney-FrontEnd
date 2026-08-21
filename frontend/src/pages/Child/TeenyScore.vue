@@ -386,7 +386,7 @@ function onTabSelect(key) {
   padding: 60px 0;
   text-align: center;
   font-size: 13px;
-  color: #8a9099;
+  color: #6a6f76;
 }
 .state-text.error {
   color: #e5484d;
@@ -469,7 +469,7 @@ function onTabSelect(key) {
 .donut-label {
   font-size: 10.5px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .donut-score {
@@ -483,7 +483,7 @@ function onTabSelect(key) {
 .donut-max {
   font-size: 10px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #727e8e;
   margin-top: 2px;
 }
 
@@ -502,7 +502,7 @@ function onTabSelect(key) {
 .sub-label {
   font-size: 12px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .badge-gold-text {
@@ -542,7 +542,7 @@ function onTabSelect(key) {
 
 .next-target {
   font-size: 10px;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .progress-bar-bg {
@@ -580,7 +580,7 @@ function onTabSelect(key) {
 
 .chev {
   font-size: 16px;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .card {
@@ -622,7 +622,7 @@ function onTabSelect(key) {
   margin: 2px 0 12px;
   font-size: 11.5px;
   font-weight: 600;
-  color: #64748b;
+  color: #4d596b;
 }
 
 .hl-text {
@@ -649,7 +649,7 @@ function onTabSelect(key) {
 .comp-label {
   font-size: 10.5px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .comp-val {
@@ -657,7 +657,7 @@ function onTabSelect(key) {
   font-weight: 900;
 }
 
-.comp-val.gray { color: #64748b; }
+.comp-val.gray { color: #4d596b; }
 .comp-val.main { color: #0f172a; }
 
 .diff-arrow {
@@ -683,7 +683,7 @@ function onTabSelect(key) {
 .slide-count {
   font-size: 11px;
   font-weight: 700;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .benefit-carousel {
@@ -730,7 +730,7 @@ function onTabSelect(key) {
   margin: 0;
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1.35;
 }
 
@@ -771,7 +771,7 @@ function onTabSelect(key) {
 .all-link {
   font-size: 11.5px;
   font-weight: 700;
-  color: #64748b;
+  color: #4d596b;
 }
 
 .history-list {
@@ -814,7 +814,7 @@ function onTabSelect(key) {
 .item-date {
   font-size: 9.5px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .item-result-score {

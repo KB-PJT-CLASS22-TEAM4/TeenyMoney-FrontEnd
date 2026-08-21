@@ -157,7 +157,7 @@ onBeforeUnmount(() => {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .tab-icon {

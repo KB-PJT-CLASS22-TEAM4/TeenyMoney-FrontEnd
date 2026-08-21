@@ -497,7 +497,7 @@ onBeforeUnmount(() => {
 .summary-label {
   font-weight: 600;
   font-size: 12.5px;
-  color: #8a9099;
+  color: #6a6f76;
   flex-shrink: 0;
 }
 
@@ -541,7 +541,7 @@ onBeforeUnmount(() => {
   display: block;
   font-weight: 700;
   font-size: 12.5px;
-  color: #8a9099;
+  color: #6a6f76;
   margin-bottom: 10px;
 }
 
@@ -683,7 +683,7 @@ onBeforeUnmount(() => {
 
 .photo-hint {
   font-size: 12.5px;
-  color: #b9bec5;
+  color: #8b9097;
   font-weight: 600;
 }
 
@@ -719,7 +719,7 @@ onBeforeUnmount(() => {
 }
 
 .camera-error span { font-weight: 700; font-size: 15px; }
-.camera-error p { margin: 0; font-size: 12.5px; color: #b9bec5; }
+.camera-error p { margin: 0; font-size: 12.5px; color: #8b9097; }
 
 .camera-controls {
   position: absolute;
@@ -780,7 +780,7 @@ onBeforeUnmount(() => {
 
 .content-textarea:disabled {
   background: #fafbfc;
-  color: #8a9099;
+  color: #6a6f76;
 }
 
 .btn-submit {

@@ -194,7 +194,7 @@ function go(path) {
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: #8b9097;
+  color: #6b7077;
   font-size: 26px;
   line-height: 1;
   cursor: pointer;
@@ -217,7 +217,7 @@ function go(path) {
 .group-title {
   margin: 0;
   padding: 12px 40px 6px 18px;
-  color: #8b9097;
+  color: #6b7077;
   font-size: 11px;
   font-weight: 700;
 }

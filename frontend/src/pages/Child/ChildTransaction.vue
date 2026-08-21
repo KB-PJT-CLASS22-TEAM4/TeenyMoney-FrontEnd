@@ -333,7 +333,7 @@ function onScroll() {
   margin: 0;
   font-weight: 600;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .wallet-amount {
@@ -386,7 +386,7 @@ function onScroll() {
 .report-row-sub {
   font-weight: 500;
   font-size: 11px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 /* 거래유형 필터 칩 */
@@ -403,7 +403,7 @@ function onScroll() {
   background: #fff;
   font-weight: 700;
   font-size: 12px;
-  color: #959ba3;
+  color: #73777e;
   cursor: pointer;
 }
 
@@ -428,7 +428,7 @@ function onScroll() {
 .filter-summary {
   font-weight: 600;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 /* 날짜 라벨 */
@@ -436,7 +436,7 @@ function onScroll() {
   margin: 18px 0 8px 4px;
   font-weight: 700;
   font-size: 13px;
-  color: #6b7280;
+  color: #525863;
 }
 
 /* 날짜별 카드 박스 */
@@ -476,7 +476,7 @@ function onScroll() {
 .tx-info {
   font-weight: 500;
   font-size: 12px;
-  color: #959ba3;
+  color: #73777e;
 }
 
 .tx-right {
@@ -503,7 +503,7 @@ function onScroll() {
 .tx-balance {
   font-weight: 500;
   font-size: 12px;
-  color: #959ba3;
+  color: #73777e;
   white-space: nowrap;
 }
 
@@ -542,7 +542,7 @@ function onScroll() {
   margin: 18px 0 10px;
   font-weight: 700;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .sheet-chips {
@@ -558,7 +558,7 @@ function onScroll() {
   background: #fff;
   font-weight: 700;
   font-size: 13px;
-  color: #959ba3;
+  color: #73777e;
   cursor: pointer;
 }
 

@@ -390,7 +390,7 @@ onMounted(() => {
 .mark-read {
   font-weight: 600;
   font-size: 12.7px;
-  color: #8b9097;
+  color: #6b7077;
   cursor: pointer;
 }
 
@@ -420,7 +420,7 @@ onMounted(() => {
   text-align: center;
   font-weight: 600;
   font-size: 13px;
-  color: #9aa0a8;
+  color: #777b81;
 }
 
 .retry-btn {
@@ -444,7 +444,7 @@ onMounted(() => {
   margin: 0 0 6px;
   font-weight: 600;
   font-size: 11.3px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 /* 알림 항목 */
@@ -484,13 +484,13 @@ onMounted(() => {
 .noti-detail {
   font-weight: 500;
   font-size: 10.7px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .noti-time {
   font-weight: 500;
   font-size: 12px;
-  color: #b9bec5;
+  color: #8b9097;
   flex: none;
 }
 
@@ -521,7 +521,7 @@ onMounted(() => {
   cursor: pointer;
 }
 .load-more-btn:disabled {
-  color: #b9bec5;
+  color: #8b9097;
   cursor: not-allowed;
 }
 </style>

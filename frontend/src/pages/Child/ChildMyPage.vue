@@ -257,7 +257,7 @@ function onScroll() {
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
 
       <!-- 프로필 -->
-      <section class="profile">
+      <section class="profile-card">
         <button
           type="button"
           class="avatar-button"
@@ -292,133 +292,139 @@ function onScroll() {
           @change="onProfileFileChange"
         />
         <div class="profile-text">
+          <span class="role-badge">자녀</span>
           <p class="profile-name">{{ user.name }}</p>
           <p class="profile-birth">{{ user.birth }}</p>
         </div>
       </section>
 
-      <!-- 연락처 -->
-      <div class="field">
-        <div class="field-head">
-          <span class="field-label">연락처</span>
+      <!-- 연락처 / 이메일 -->
+      <section class="info-card">
+        <div class="info-item">
+          <span class="info-label">연락처</span>
+          <p class="info-value">{{ formattedPhone }}</p>
         </div>
-        <p class="field-value">{{ formattedPhone }}</p>
-      </div>
-
-      <!-- 이메일 -->
-      <div class="field">
-        <div class="field-head">
-          <span class="field-label">이메일</span>
+        <div class="info-divider"></div>
+        <div class="info-item">
+          <span class="info-label">이메일</span>
+          <p class="info-value">{{ user.email }}</p>
         </div>
-        <p class="field-value">{{ user.email }}</p>
-      </div>
-
-      <hr class="divider" />
+      </section>
 
       <!-- 결제 비밀번호 설정 -->
-      <div class="menu-row" :class="{ 'is-locked': isPasswordSet }" @click="goPasswordSetting">
-        <span class="menu-title">결제 비밀번호 설정</span>
-        <svg v-if="isPasswordSet" viewBox="0 0 24 24" width="18" height="18" fill="none" class="lock-ic" aria-label="설정 완료">
-          <rect x="5" y="11" width="14" height="9" rx="2" stroke="#94a3b8" stroke-width="2"/>
-          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#94a3b8" stroke-width="2"/>
-          <circle cx="12" cy="15.5" r="1.2" fill="#94a3b8"/>
-        </svg>
-        <span v-else class="chev">›</span>
-      </div>
+      <section class="menu-card">
+        <div class="menu-row" :class="{ 'is-locked': isPasswordSet }" @click="goPasswordSetting">
+          <span class="menu-title">결제 비밀번호 설정</span>
+          <svg v-if="isPasswordSet" viewBox="0 0 24 24" width="18" height="18" fill="none" class="lock-ic" aria-label="설정 완료">
+            <rect x="5" y="11" width="14" height="9" rx="2" stroke="#94a3b8" stroke-width="2"/>
+            <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#94a3b8" stroke-width="2"/>
+            <circle cx="12" cy="15.5" r="1.2" fill="#94a3b8"/>
+          </svg>
+          <span v-else class="chev">›</span>
+        </div>
+      </section>
 
       <!-- 연결된 부모님 -->
-      <section class="parents">
+      <section class="section-block">
         <p class="section-label">연결된 부모님</p>
 
-        <div v-if="parent" class="parent-row">
-          <div class="parent-avatar">
-            <img
-              :src="parent.profileImageUrl || PARENT_PROFILE_IMAGE"
-              alt="부모님 프로필"
-              class="parent-avatar-img"
-              :class="{ 'photo-img': !!parent.profileImageUrl }"
-            />
+        <div class="section-card">
+          <div v-if="parent" class="parent-row">
+            <div class="parent-avatar">
+              <img
+                :src="parent.profileImageUrl || PARENT_PROFILE_IMAGE"
+                alt="부모님 프로필"
+                class="parent-avatar-img"
+                :class="{ 'photo-img': !!parent.profileImageUrl }"
+              />
+            </div>
+            <div class="parent-text">
+              <b class="parent-name">{{ parent.name }}</b>
+              <span class="parent-status">연동됨</span>
+            </div>
           </div>
-          <div class="parent-text">
-            <b class="parent-name">{{ parent.name }}</b>
-            <span class="parent-status">연동됨</span>
+
+          <p v-else class="no-parent-text">아직 연동된 부모님이 없어요</p>
+
+          <!-- 부모님 추가 -->
+          <div class="add-parent" :class="{ 'menu-border': parent }" @click="addParent">
+            <span class="plus">+</span>
+            <span class="add-text">부모님 추가 · 연동 코드 입력</span>
           </div>
-        </div>
-
-        <p v-else class="no-parent-text">아직 연동된 부모님이 없어요</p>
-
-        <!-- 부모님 추가 -->
-        <div class="add-parent" @click="addParent">
-          <span class="plus">+</span>
-          <span class="add-text">부모님 추가 · 연동 코드 입력</span>
         </div>
       </section>
 
       <!-- 알림 설정 -->
-      <section class="menu-group">
+      <section class="section-block">
         <p class="section-label">알림 설정</p>
 
-        <div class="toggle-row">
-          <span class="menu-title">금융상품 알림</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              :checked="notificationSettings.notificationFinance"
-              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationFinance'"
-              @change="onToggleNotification('notificationFinance', $event.target.checked)"
-            >
-            <span class="slider"></span>
-          </label>
-        </div>
+        <div class="menu-card">
+          <div class="toggle-row menu-border">
+            <span class="menu-title">금융상품 알림</span>
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="notificationSettings.notificationFinance"
+                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationFinance'"
+                @change="onToggleNotification('notificationFinance', $event.target.checked)"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
 
-        <div class="toggle-row">
-          <span class="menu-title">결제 알림</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              :checked="notificationSettings.notificationPayment"
-              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationPayment'"
-              @change="onToggleNotification('notificationPayment', $event.target.checked)"
-            >
-            <span class="slider"></span>
-          </label>
-        </div>
+          <div class="toggle-row menu-border">
+            <span class="menu-title">결제 알림</span>
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="notificationSettings.notificationPayment"
+                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationPayment'"
+                @change="onToggleNotification('notificationPayment', $event.target.checked)"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
 
-        <div class="toggle-row">
-          <span class="menu-title">퀘스트 알림</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              :checked="notificationSettings.notificationQuest"
-              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationQuest'"
-              @change="onToggleNotification('notificationQuest', $event.target.checked)"
-            >
-            <span class="slider"></span>
-          </label>
+          <div class="toggle-row">
+            <span class="menu-title">퀘스트 알림</span>
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="notificationSettings.notificationQuest"
+                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationQuest'"
+                @change="onToggleNotification('notificationQuest', $event.target.checked)"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
         </div>
       </section>
 
       <!-- 고객지원 -->
-      <section class="menu-group">
+      <section class="section-block">
         <p class="section-label">고객지원</p>
-        <div class="menu-row" @click="goFaq">
-          <span class="menu-title">FAQ</span>
-          <span class="chev">›</span>
-        </div>
-        <div class="menu-row" @click="goPolicy">
-          <span class="menu-title">약관 및 정책</span>
-          <span class="chev">›</span>
+        <div class="menu-card">
+          <div class="menu-row menu-border" @click="goFaq">
+            <span class="menu-title">FAQ</span>
+            <span class="chev">›</span>
+          </div>
+          <div class="menu-row" @click="goPolicy">
+            <span class="menu-title">약관 및 정책</span>
+            <span class="chev">›</span>
+          </div>
         </div>
       </section>
 
-    <!-- 계정관리 -->
-    <section class="menu-group">
-      <p class="section-label">계정관리</p>
-      <div class="menu-row" @click="logout">
-        <span class="menu-title">로그아웃</span>
-        <span class="chev">›</span>
-      </div>
-    </section>
+      <!-- 계정관리 -->
+      <section class="section-block">
+        <p class="section-label">계정관리</p>
+        <div class="menu-card">
+          <div class="menu-row" @click="logout">
+            <span class="menu-title">로그아웃</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- 하단 탭바 -->
@@ -458,7 +464,7 @@ function onScroll() {
   flex-shrink: 0;
   height: 64px;
   padding: 0 20px 4px;
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .nav-title {
@@ -481,7 +487,10 @@ function onScroll() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px 20px;
 }
 
 .scroll::-webkit-scrollbar {
@@ -498,12 +507,24 @@ function onScroll() {
   background: #d8dbdf;
 }
 
+/* 흰 카드 공통 */
+.info-card,
+.menu-card,
+.section-card {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
 /* 프로필 */
-.profile {
+.profile-card {
   display: flex;
   align-items: center;
   gap: 18px;
-  margin-bottom: 26px;
+  padding: 20px 18px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 .avatar-button {
@@ -513,6 +534,11 @@ function onScroll() {
   background: transparent;
   cursor: pointer;
   border-radius: 50%;
+}
+
+.avatar-button:disabled {
+  cursor: default;
+  opacity: 0.7;
 }
 
 .profile-file-input {
@@ -526,8 +552,10 @@ function onScroll() {
   align-items: center;
   width: 76px;
   height: 76px;
-  background: #f2f4f6;
+  padding: 3px;
+  background: #ffbc00;
   border-radius: 50%;
+  box-sizing: border-box;
   flex: none;
 }
 
@@ -536,6 +564,7 @@ function onScroll() {
   height: 100%;
   object-fit: contain;
   border-radius: 50%;
+  background-color: #ffffff;
 }
 
 .avatar-img.photo-img,
@@ -545,70 +574,98 @@ function onScroll() {
 
 .avatar-edit-badge {
   position: absolute;
-  right: 0;
-  bottom: 0;
+  right: -2px;
+  bottom: -2px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
+  border: 2px solid #ffffff;
   border-radius: 50%;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  background: #ffbc00;
+}
+
+.profile-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.role-badge {
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .profile-name {
   margin: 0;
+  overflow: hidden;
   font-weight: 800;
-  font-size: 21px;
+  font-size: 20px;
   color: #191b1e;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-birth {
-  margin: 6px 0 0;
+  margin: 0;
   font-weight: 600;
   font-size: 13px;
-  color: #b9bec5;
+  color: #6b7077;
 }
 
-/* 연락처/이메일 필드 */
-.field {
-  margin-bottom: 20px;
+/* 연락처/이메일 카드 */
+.info-card {
+  padding: 4px 18px;
 }
 
-.field-head {
+.info-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  padding: 14px 0;
 }
 
-.field-label {
+.info-label {
+  flex-shrink: 0;
   font-weight: 600;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
-.field-value {
-  margin: 8px 0 0;
+.info-value {
+  margin: 0;
+  min-width: 0;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 15px;
   color: #191b1e;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
-.divider {
-  border: none;
-  border-top: 1px solid #f0f1f3;
-  margin: 8px 0 20px;
+.info-divider {
+  height: 1px;
+  background: #eef0f2;
 }
 
-/* 메뉴 행 */
+/* 메뉴 카드 안 행 */
 .menu-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 0;
+  padding: 16px 18px;
   cursor: pointer;
+}
+
+.menu-border {
+  border-bottom: 1px solid #eef0f2;
 }
 
 .menu-row.is-locked {
@@ -636,7 +693,7 @@ function onScroll() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 0;
+  padding: 16px 18px;
 }
 
 .switch {
@@ -670,11 +727,17 @@ input:checked + .slider:before { transform: translateX(17px); }
 input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
 
 /* 섹션 라벨 */
+.section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .section-label {
-  margin: 14px 0 10px;
+  margin: 0 0 0 4px;
   font-weight: 600;
   font-size: 12.5px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 /* 연결된 부모님 */
@@ -682,8 +745,7 @@ input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 4px 0 12px;
-  border-bottom: 1px solid #f4f5f7;
+  padding: 16px 18px;
 }
 
 .parent-avatar {
@@ -723,10 +785,11 @@ input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
 }
 
 .no-parent-text {
-  margin: 4px 0 12px;
+  margin: 0;
+  padding: 16px 18px 4px;
   font-weight: 500;
   font-size: 13px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 /* 부모님 추가 */
@@ -734,24 +797,19 @@ input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 0;
+  padding: 16px 18px;
   cursor: pointer;
 }
 
 .plus {
   font-size: 20px;
-  color: #8b9097;
-  padding-left: 8px;
+  color: #6b7077;
 }
 
 .add-text {
   font-weight: 600;
   font-size: 14.5px;
-  color: #8b9097;
-}
-
-.menu-group {
-  margin-top: 8px;
+  color: #6b7077;
 }
 
 /* 하단 탭바 고정 */
