@@ -50,17 +50,12 @@
         </div>
 
         <section
-<<<<<<< HEAD
           v-if="showCreatedProducts && filteredCustomProducts.length"
-=======
-          v-if="filteredCustomProducts.length"
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
           class="custom-section"
         >
           <p class="group-title">
             등록한 상품 {{ filteredCustomProducts.length }}
           </p>
-<<<<<<< HEAD
 
           <div
             v-for="product in filteredCustomProducts"
@@ -201,102 +196,6 @@
 
         <section
           v-if="showEnrolledProducts && filteredCompletedApprovals.length"
-=======
-
-          <div
-            v-for="product in filteredCustomProducts"
-            :key="product.key"
-            class="product-card"
-          >
-            <div class="product-head">
-              <p class="product-title">{{ product.title }}</p>
-              <span class="product-rate">{{ product.rateText }}</span>
-            </div>
-            <p class="custom-meta">
-              {{ product.category }}
-              <template v-if="product.limitText">
-                · {{ product.limitText }}
-              </template>
-            </p>
-            <button
-              class="delete-btn"
-              type="button"
-              :disabled="deletingKey === product.key"
-              @click="handleDeleteCustomProduct(product)"
-            >
-              {{ deletingKey === product.key ? '삭제 중...' : '삭제' }}
-            </button>
-          </div>
-        </section>
-
-        <section
-          v-if="pendingApprovals.length"
-          class="pending-section"
-        >
-          <p class="pending-heading">
-            처리 필요
-            <span class="pending-count">{{ pendingApprovals.length }}</span>
-          </p>
-
-          <div
-            v-for="item in pendingApprovals"
-            :key="item.enrollmentId"
-            class="pending-card clickable"
-            role="button"
-            tabindex="0"
-            @click="goApprovalDetail(item)"
-            @keydown.enter="goApprovalDetail(item)"
-          >
-            <div class="pending-top">
-              <p class="pending-title">{{ item.title }}</p>
-              <span class="pending-badge">승인 대기</span>
-            </div>
-            <p class="pending-meta">
-              {{ formatPendingMeta(item) }}
-            </p>
-          </div>
-        </section>
-
-        <template v-for="group in groupedActiveProducts" :key="group.label">
-          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
-
-          <div
-            v-for="product in group.items"
-            :key="product.enrollmentId"
-            class="product-card"
-          >
-            <div class="product-head">
-              <p class="product-title">{{ product.title }}</p>
-              <span class="product-rate">{{ product.rateText }}</span>
-            </div>
-
-            <p class="product-amount-label">
-              누적 금액
-              <strong>{{ product.accumulatedAmount.toLocaleString() }}원</strong>
-            </p>
-
-            <div class="progress-bar-bg">
-              <div
-                class="progress-bar-fill"
-                :style="{ width: product.progress + '%' }"
-              ></div>
-            </div>
-
-            <div class="product-foot">
-              <span>
-                {{ product.periodMonths }}개월
-                <template v-if="product.totalPayments">
-                  ({{ product.paymentCount }}회납)
-                </template>
-              </span>
-              <span>만기 {{ product.maturityDate }}</span>
-            </div>
-          </div>
-        </template>
-
-        <section
-          v-if="filteredCompletedApprovals.length"
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
           class="completed-list"
         >
           <p class="group-title">
@@ -327,14 +226,7 @@
 
         <div
           v-if="
-<<<<<<< HEAD
             !hasVisibleProducts
-=======
-            !groupedActiveProducts.length &&
-            !pendingApprovals.length &&
-            !filteredCustomProducts.length &&
-            !filteredCompletedApprovals.length
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
           "
           class="empty-box"
         >
@@ -391,15 +283,11 @@ const customProducts = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const deletingKey = ref('')
-<<<<<<< HEAD
 const processingKey = ref('')
-=======
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
 const activeCategory = ref('전체')
 const activeOrigin = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
-<<<<<<< HEAD
 const origins = ['전체', '가입한 상품', '등록한 상품']
 
 const showEnrolledProducts = computed(() => activeOrigin.value !== '등록한 상품')
@@ -415,8 +303,6 @@ function cycleOrigin() {
   const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % origins.length
   activeOrigin.value = origins[nextIndex]
 }
-=======
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
 
 const pendingApprovals = computed(() =>
   [...approvalRequests.value.filter((item) => item.isPending)].sort((a, b) => {
@@ -482,7 +368,6 @@ const filteredCustomProducts = computed(() => {
   )
 })
 
-<<<<<<< HEAD
 const hasVisibleProducts = computed(() => {
   const hasCreated = showCreatedProducts.value && filteredCustomProducts.value.length
   const hasEnrolled = showEnrolledProducts.value && (
@@ -493,8 +378,6 @@ const hasVisibleProducts = computed(() => {
   return Boolean(hasCreated || hasEnrolled)
 })
 
-=======
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
 const emptyCategoryMessage = computed(() => {
   if (activeOrigin.value === '등록한 상품') {
     return activeCategory.value === '전체'
@@ -1063,16 +946,11 @@ onMounted(async () => {
 }
 
 .custom-meta {
-<<<<<<< HEAD
   margin: 0;
-=======
-  margin: 0 0 12px;
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
   font-size: 12px;
   color: #8b9097;
 }
 
-<<<<<<< HEAD
 .product-head-actions {
   display: flex;
   align-items: center;
@@ -1102,22 +980,6 @@ onMounted(async () => {
 
 .trash-btn:disabled {
   opacity: 0.45;
-=======
-.delete-btn {
-  width: 100%;
-  height: 40px;
-  border: 1.5px solid #e0e2e6;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #ff3b30;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.delete-btn:disabled {
-  opacity: 0.6;
->>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
   cursor: not-allowed;
 }
 
