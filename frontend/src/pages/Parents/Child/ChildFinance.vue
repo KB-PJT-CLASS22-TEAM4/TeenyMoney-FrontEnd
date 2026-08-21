@@ -50,19 +50,19 @@
 
         <div class="filters">
           <button
-            v-for="category in categories"
-            :key="category"
-            class="chip"
-            :class="{ off: activeCategory !== category }"
+            class="origin-filter-btn"
+            :class="{ active: activeOrigin !== '전체' }"
             type="button"
-            @click="activeCategory = category"
+            :aria-label="`상품 구분 ${originButtonLabel}`"
+            @click="cycleOrigin"
           >
-            {{ category }}
+            <img src="@/assets/icons/icon-filter.svg" alt="" class="origin-filter-icon" />
+            <span>{{ originButtonLabel }}</span>
           </button>
         </div>
 
         <section
-          v-if="filteredCustomProducts.length"
+          v-if="showCreatedProducts && filteredCustomProducts.length"
           class="custom-section"
         >
           <button
@@ -130,7 +130,7 @@
         </section>
 
         <section
-          v-if="pendingApprovals.length"
+          v-if="showEnrolledProducts && pendingApprovals.length"
           class="pending-section"
         >
           <p class="pending-heading">
@@ -178,7 +178,12 @@
           </div>
         </section>
 
+<<<<<<< HEAD
         <template v-for="group in groupedActiveProducts" :key="group.label">
+=======
+        <template v-if="showEnrolledProducts">
+          <template v-for="group in groupedActiveProducts" :key="group.label">
+>>>>>>> 64e4e45e864064ef714bc6efd57c84d2907c12fb
             <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
 
             <div
@@ -217,9 +222,13 @@
               </div>
             </div>
           </template>
+<<<<<<< HEAD
+=======
+        </template>
+>>>>>>> 64e4e45e864064ef714bc6efd57c84d2907c12fb
 
         <section
-          v-if="filteredCompletedApprovals.length"
+          v-if="showEnrolledProducts && filteredCompletedApprovals.length"
           class="completed-list"
         >
           <p class="group-title">
@@ -311,8 +320,24 @@ const processingKey = ref('')
 const searchKeyword = ref('')
 const customOpen = ref(false)
 const activeCategory = ref('전체')
+const activeOrigin = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
+const origins = ['전체', '가입한 상품', '등록한 상품']
+
+const showEnrolledProducts = computed(() => activeOrigin.value !== '등록한 상품')
+const showCreatedProducts = computed(() => activeOrigin.value !== '가입한 상품')
+const originButtonLabel = computed(() => {
+  if (activeOrigin.value === '가입한 상품') return '가입'
+  if (activeOrigin.value === '등록한 상품') return '등록'
+  return '전체'
+})
+
+function cycleOrigin() {
+  const currentIndex = origins.indexOf(activeOrigin.value)
+  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % origins.length
+  activeOrigin.value = origins[nextIndex]
+}
 
 function matchesSearch(value) {
   const keyword = searchKeyword.value.trim().toLowerCase()
