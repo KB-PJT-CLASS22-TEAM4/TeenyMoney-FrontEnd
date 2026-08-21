@@ -474,7 +474,8 @@ import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import {
   computed,
   onMounted,
-  ref
+  ref,
+  watch
 } from 'vue'
 
 import {
@@ -505,14 +506,13 @@ const authStore = useAuthStore()
 // 기존 childId
 // ========================================
 
-const childId =
-  Number(
-    route.params.childId
-  )
+const childId = computed(() =>
+  Number(route.params.childId)
+)
 
 console.log(
   '현재 자녀 ID:',
-  childId
+  childId.value
 )
 
 
@@ -523,7 +523,7 @@ console.log(
 
 const child =
   ref({
-    id: childId,
+    id: childId.value,
 
     name: '자녀',
 
@@ -582,7 +582,7 @@ function goToHarmfulCategory() {
 
     query: {
       childId:
-        childId,
+        childId.value,
     },
   })
 }
@@ -590,14 +590,14 @@ function goToHarmfulCategory() {
 function goToReport() {
   router.push({
     name: 'parents-child-report',
-    params: { childId },
+    params: { childId: childId.value },
   })
 }
 
 function goToTransactions() {
   router.push({
     name: 'parents-child-transaction',
-    params: { childId },
+    params: { childId: childId.value },
   })
 }
 
@@ -615,7 +615,7 @@ async function fetchWallet() {
       return
     }
 
-    const res = await getChildWallet(authStore.accessToken, childId)
+    const res = await getChildWallet(authStore.accessToken, childId.value)
 
     if (res.success) {
       child.value.balance = res.data.balance ?? 0
@@ -713,7 +713,7 @@ const financePreviewCards = computed(() => {
 
 async function fetchTeenyScore() {
   try {
-    const res = await getTeenyScore(authStore.accessToken, childId)
+    const res = await getTeenyScore(authStore.accessToken, childId.value)
 
     if (!res.success) return
 
@@ -735,7 +735,7 @@ async function fetchChildInfo() {
   try {
     const res = await getChildren(authStore.accessToken)
     const matched = res.data?.find(
-      (item) => Number(item.childId) === childId
+      (item) => Number(item.childId) === childId.value
     )
 
     if (matched) {
@@ -750,7 +750,7 @@ async function fetchFinancePreview() {
   try {
     financeProducts.value = await fetchAllChildFinancialProducts(
       authStore.accessToken,
-      childId,
+      childId.value,
       financialProductsApi
     )
   } catch (error) {
@@ -759,8 +759,10 @@ async function fetchFinancePreview() {
   }
 }
 
-onMounted(async () => {
+async function loadChildDetail() {
   if (!authStore.accessToken) return
+
+  child.value.id = childId.value
 
   await Promise.all([
     fetchChildInfo(),
@@ -768,7 +770,14 @@ onMounted(async () => {
     fetchFinancePreview(),
     fetchWallet(),
   ])
+}
+
+watch(childId, (id, prev) => {
+  if (!Number.isFinite(id) || id === prev) return
+  loadChildDetail()
 })
+
+onMounted(loadChildDetail)
 const activeCard =
   ref(0)
 
@@ -879,7 +888,7 @@ function onScroll() {
   overflow: hidden;
 
   padding:
-    28px 18px 24px;
+    0 18px 24px;
 
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;

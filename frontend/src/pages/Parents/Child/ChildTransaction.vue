@@ -316,6 +316,7 @@ import {
   computed,
   onMounted,
   ref,
+  watch,
 } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'
@@ -333,7 +334,7 @@ import {
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-const childId = Number(route.params.childId)
+const childId = computed(() => Number(route.params.childId))
 const childName = ref('')
 
 
@@ -452,7 +453,7 @@ async function fetchWallet() {
 
     const res = await getChildWallet(
       authStore.accessToken,
-      childId
+      childId.value
     )
 
 
@@ -507,7 +508,7 @@ async function fetchTransactions() {
     const res =
       await getChildTransactions(
         authStore.accessToken,
-        childId,
+        childId.value,
         {
           period:
             selectedPeriod.value,
@@ -703,7 +704,7 @@ function formatTime(createdAt) {
 function goBack() {
   router.push({
     name: 'parents-child-detail',
-    params: { childId },
+    params: { childId: childId.value },
   })
 }
 
@@ -711,7 +712,7 @@ async function fetchChildName() {
   try {
     const res = await getChildren(authStore.accessToken)
     const matched = res.data?.find(
-      (item) => Number(item.childId) === childId
+      (item) => Number(item.childId) === childId.value
     )
     if (matched?.name) childName.value = matched.name
   } catch {
@@ -719,11 +720,19 @@ async function fetchChildName() {
   }
 }
 
-onMounted(() => {
+function loadTransactions() {
   fetchChildName()
   fetchWallet()
   fetchTransactions()
+}
+
+watch(childId, (id, prev) => {
+  if (!Number.isFinite(id) || id === prev) return
+  childName.value = ''
+  loadTransactions()
 })
+
+onMounted(loadTransactions)
 </script>
 
 

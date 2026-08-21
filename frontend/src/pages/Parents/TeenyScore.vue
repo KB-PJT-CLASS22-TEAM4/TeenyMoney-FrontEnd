@@ -267,7 +267,7 @@
 import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -285,7 +285,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const childId = route.params.childId
+const childId = computed(() => route.params.childId)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
@@ -400,13 +400,13 @@ const chartAreaPath = computed(() => {
   return `${chartPath.value} L ${lastX} ${CHART_PLOT_BOTTOM} L ${firstX} ${CHART_PLOT_BOTTOM} Z`
 })
 
-onMounted(async () => {
+async function loadTeenyScore() {
   isLoading.value = true
 
   try {
     const [scoreRes, historyRes, gradesRes] = await Promise.all([
-      getTeenyScore(authStore.accessToken, childId),
-      getTeenyScoreMonthlyHistory(authStore.accessToken, childId),
+      getTeenyScore(authStore.accessToken, childId.value),
+      getTeenyScoreMonthlyHistory(authStore.accessToken, childId.value),
       getTeenyScoreGrades(authStore.accessToken),
     ])
 
@@ -454,7 +454,14 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+}
+
+watch(childId, (id, prev) => {
+  if (!id || String(id) === String(prev)) return
+  loadTeenyScore()
 })
+
+onMounted(loadTeenyScore)
 </script>
 
 <style scoped>

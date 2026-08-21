@@ -50,19 +50,19 @@
 
         <div class="filters">
           <button
-            class="origin-filter-btn"
-            :class="{ active: activeOrigin !== '전체' }"
+            v-for="category in categories"
+            :key="category"
+            class="chip"
+            :class="{ off: activeCategory !== category }"
             type="button"
-            :aria-label="`상품 구분 ${originButtonLabel}`"
-            @click="cycleOrigin"
+            @click="activeCategory = category"
           >
-            <img src="@/assets/icons/icon-filter.svg" alt="" class="origin-filter-icon" />
-            <span>{{ originButtonLabel }}</span>
+            {{ category }}
           </button>
         </div>
 
         <section
-          v-if="showCreatedProducts && filteredCustomProducts.length"
+          v-if="filteredCustomProducts.length"
           class="custom-section"
         >
           <button
@@ -130,7 +130,7 @@
         </section>
 
         <section
-          v-if="showEnrolledProducts && pendingApprovals.length"
+          v-if="pendingApprovals.length"
           class="pending-section"
         >
           <p class="pending-heading">
@@ -219,7 +219,7 @@
         </template>
 
         <section
-          v-if="showEnrolledProducts && filteredCompletedApprovals.length"
+          v-if="filteredCompletedApprovals.length"
           class="completed-list"
         >
           <p class="group-title">
@@ -296,7 +296,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const alertModal = useAlertModal()
 
-const childId = Number(route.params.childId)
+const childId = computed(() => Number(route.params.childId))
 
 const childName = ref('자녀')
 const approvalRequests = ref([])
@@ -309,24 +309,8 @@ const processingKey = ref('')
 const searchKeyword = ref('')
 const customOpen = ref(false)
 const activeCategory = ref('전체')
-const activeOrigin = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
-const origins = ['전체', '가입한 상품', '등록한 상품']
-
-const showEnrolledProducts = computed(() => activeOrigin.value !== '등록한 상품')
-const showCreatedProducts = computed(() => activeOrigin.value !== '가입한 상품')
-const originButtonLabel = computed(() => {
-  if (activeOrigin.value === '가입한 상품') return '가입'
-  if (activeOrigin.value === '등록한 상품') return '등록'
-  return '전체'
-})
-
-function cycleOrigin() {
-  const currentIndex = origins.indexOf(activeOrigin.value)
-  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % origins.length
-  activeOrigin.value = origins[nextIndex]
-}
 
 function matchesSearch(value) {
   const keyword = searchKeyword.value.trim().toLowerCase()
@@ -479,7 +463,7 @@ function formatPendingMeta(item) {
 async function fetchChildInfo() {
   const res = await getChildren(authStore.accessToken)
   const matched = res.data?.find(
-    (item) => Number(item.childId) === childId
+    (item) => Number(item.childId) === childId.value
   )
 
   if (matched) {
@@ -495,17 +479,17 @@ async function fetchProducts() {
     const [approvals, products, created] = await Promise.all([
       fetchChildApprovalRequests(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ),
       fetchAllChildFinancialProducts(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ),
       fetchChildCustomProducts(
         authStore.accessToken,
-        childId,
+        childId.value,
         financialProductsApi,
       ).catch(() => []),
     ])
@@ -530,7 +514,7 @@ function goApprovalDetail(item) {
   router.push({
     name: 'parents-finance-approval-detail',
     params: {
-      childId,
+      childId: childId.value,
       productType: toProductType(item),
       enrollmentId: item.enrollmentId,
     },
@@ -589,7 +573,7 @@ async function handleRejectApproval(item) {
 
 function goCreate() {
   router.push({
-    path: `/parents/children/${childId}/finance/create`,
+    path: `/parents/children/${childId.value}/finance/create`,
   })
 }
 
@@ -606,7 +590,7 @@ async function handleDeleteCustomProduct(product) {
   try {
     await financialProductsApi.deleteFinancialProduct(
       authStore.accessToken,
-      childId,
+      childId.value,
       product.productType,
       product.productId,
     )
@@ -621,7 +605,7 @@ async function handleDeleteCustomProduct(product) {
   }
 }
 
-onMounted(async () => {
+async function loadFinance() {
   if (!authStore.accessToken) {
     authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
     return
@@ -631,7 +615,18 @@ onMounted(async () => {
     fetchChildInfo(),
     fetchProducts(),
   ])
+}
+
+watch(childId, (id, prev) => {
+  if (!Number.isFinite(id) || id === prev) return
+  searchKeyword.value = ''
+  customOpen.value = false
+  activeCategory.value = '전체'
+  childName.value = '자녀'
+  loadFinance()
 })
+
+onMounted(loadFinance)
 </script>
 
 <style scoped>

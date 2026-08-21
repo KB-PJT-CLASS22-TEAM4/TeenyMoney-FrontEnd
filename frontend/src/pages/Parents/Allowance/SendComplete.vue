@@ -32,7 +32,7 @@
       <button class="btn btn-primary" type="button" @click="goToChildHome">
         자녀 지갑으로 가기
       </button>
-      <button class="btn btn-secondary" @click="router.push('/parents/home')">
+      <button class="btn btn-secondary" type="button" @click="router.push('/parents/home')">
         홈으로 이동
       </button>
     </div>
@@ -170,8 +170,7 @@ const currentTime = formatKstDateTime(new Date())
 }
 
 .btn-secondary {
-  background-color: transparent;
-  color: #8b9097;
-  text-decoration: underline;
+  background-color: #f4f5f7;
+  color: #191b1e;
 }
 </style>

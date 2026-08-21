@@ -149,7 +149,7 @@ const menuGroups = [
       { key: 'report', label: '머니 리포트', needsChild: true, childPath: '/report' },
       { key: 'finance', label: '금융상품', needsChild: true, childPath: '/finance' },
       { key: 'score', label: '티니점수', needsChild: true, childPath: '/teeny-score' },
-      { key: 'harmful', label: '유해 업종 설정', needsChild: true, harmful: true },
+      { key: 'harmful', label: '업종별 결제 제한', needsChild: true, harmful: true },
     ],
   },
   {
