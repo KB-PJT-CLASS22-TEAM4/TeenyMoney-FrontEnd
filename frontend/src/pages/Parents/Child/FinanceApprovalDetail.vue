@@ -9,6 +9,23 @@
     </header>
 
     <div v-if="isLoading" class="state-box">불러오는 중입니다...</div>
+    <div v-else-if="isProcessedEmpty" class="content">
+      <section class="processed-card">
+        <span class="processed-badge">처리 완료</span>
+        <h2 class="processed-title">이미 처리된 가입 요청이에요</h2>
+        <p class="processed-desc">
+          승인 또는 거절이 끝난 신청입니다.<br />
+          상품 목록에서 결과를 확인할 수 있어요.
+        </p>
+      </section>
+      <button
+        class="list-back-btn"
+        type="button"
+        @click="goToProductList"
+      >
+        목록으로 돌아가기
+      </button>
+    </div>
     <div v-else-if="errorMessage" class="state-box error-text">
       {{ errorMessage }}
       <button
@@ -31,6 +48,12 @@
     </div>
 
     <div v-else class="content">
+      <p
+        v-if="request.isCompleted"
+        class="processed-notice"
+      >
+        이미 처리된 가입 요청입니다.
+      </p>
       <section class="info-card">
         <div class="head-row">
           <div>
@@ -144,6 +167,7 @@ import { useAlertModal } from '@/composables/useAlertModal'
 import {
   approveFinancialProductApprovalRequest,
   getFinancialProductApprovalRequestDetail,
+  getFinancialProductApprovalRequests,
   rejectFinancialProductApprovalRequest,
 } from '@/api/financialProducts'
 import {
@@ -151,6 +175,7 @@ import {
   formatRepaymentType,
   formatSavingsType,
   normalizeApprovalRequest,
+  fetchChildApprovalRequests,
 } from '@/utils/financialProductMapper'
 import { useAuthStore } from '@/stores/auth'
 import { formatKstDateTime } from '@/utils/datetime'
@@ -167,6 +192,7 @@ const enrollmentId = Number(route.params.enrollmentId)
 const request = ref(null)
 const isLoading = ref(false)
 const errorMessage = ref('')
+const isProcessedEmpty = ref(false)
 const isProcessing = ref(false)
 
 const confirmModal = ref({
@@ -194,9 +220,30 @@ function formatDateTime(value) {
   return formatKstDateTime(value, '-')
 }
 
+function isProcessedError(error) {
+  const message = error?.message || ''
+  return message.includes('이미 처리된') || message.includes('처리된 금융상품')
+}
+
+async function fetchProcessedRequest() {
+  try {
+    const items = await fetchChildApprovalRequests(
+      authStore.accessToken,
+      childId,
+      { getFinancialProductApprovalRequests },
+    )
+
+    return items.find((item) => Number(item.enrollmentId) === enrollmentId) ?? null
+  } catch (error) {
+    console.error('처리된 가입 요청 조회 실패:', error)
+    return null
+  }
+}
+
 async function fetchDetail() {
   isLoading.value = true
   errorMessage.value = ''
+  isProcessedEmpty.value = false
 
   try {
     const res = await getFinancialProductApprovalRequestDetail(
@@ -216,6 +263,19 @@ async function fetchDetail() {
     request.value = normalized
   } catch (error) {
     console.error('가입 신청 상세 조회 실패:', error)
+
+    if (isProcessedError(error)) {
+      const processed = await fetchProcessedRequest()
+      if (processed) {
+        request.value = processed
+        return
+      }
+
+      isProcessedEmpty.value = true
+      request.value = null
+      return
+    }
+
     errorMessage.value = error.message || '신청 정보를 불러오지 못했습니다.'
     request.value = null
   } finally {
@@ -451,6 +511,54 @@ onMounted(async () => {
 
 .error-text {
   color: #ff3b30;
+}
+
+.processed-notice {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f4f5f7;
+  color: #5b6168;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.processed-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 20px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  text-align: center;
+}
+
+.processed-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff6d9;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.processed-title {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #191b1e;
+}
+
+.processed-desc {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8b9097;
+  line-height: 1.5;
 }
 
 .action-bar {
