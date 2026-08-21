@@ -62,6 +62,13 @@
       class="state-box error-text"
     >
       {{ errorMessage }}
+      <button
+        class="list-back-btn"
+        type="button"
+        @click="goToQuestList"
+      >
+        목록으로 돌아가기
+      </button>
     </div>
 
     <!-- 없음 -->
@@ -70,6 +77,13 @@
       class="state-box"
     >
       퀘스트 정보가 없습니다.
+      <button
+        class="list-back-btn"
+        type="button"
+        @click="goToQuestList"
+      >
+        목록으로 돌아가기
+      </button>
     </div>
 
     <!-- 상세 -->
@@ -408,6 +422,14 @@
           </p>
         </div>
       </div>
+
+      <button
+        class="list-back-btn"
+        type="button"
+        @click="goToQuestList"
+      >
+        목록으로 돌아가기
+      </button>
     </div>
 
     <!-- 수정 -->
@@ -789,6 +811,10 @@ const router =
 
 const route =
   useRoute()
+
+function goToQuestList() {
+  router.push({ name: 'parents-quest-list' })
+}
 
 const alertModal = useAlertModal()
 
@@ -1650,6 +1676,18 @@ onMounted(() => {
 
 .error-text {
   color: #ff3b30;
+}
+
+.list-back-btn {
+  width: 100%;
+  height: 49px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #ffbc00;
+  font-size: 15px;
+  font-weight: 700;
+  color: #191b1e;
 }
 
 .content {
