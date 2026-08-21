@@ -90,21 +90,24 @@
           type="button"
           @click="router.push({ name: 'parents-request-list' })"
         >
-          <div class="allowance-left">
-            <div class="allowance-icon-wrap">
-              <img
-                src="@/assets/icons/icon-exclamation.svg"
-                alt=""
-                class="clock-icon"
-              />
-            </div>
-
-            <div>
-              <p class="allowance-main">요청 목록 확인</p>
-            </div>
+          <div class="allowance-content">
+            <span class="allowance-badge request-badge">
+              {{ pendingRequestCount > 0 ? `대기 ${pendingRequestCount}건` : '승인 요청' }}
+            </span>
+            <p class="allowance-main">요청 목록 확인</p>
+            <p class="allowance-sub">
+              대기 중인 요청을<br />
+              바로 확인하고 처리해요
+            </p>
           </div>
 
-          <span class="chev">›</span>
+          <div class="allowance-deco request-deco" aria-hidden="true">
+            <img
+              src="@/assets/icons/icon-exclamation.svg"
+              alt=""
+              class="allowance-deco-icon"
+            />
+          </div>
         </button>
 
         <button
@@ -112,21 +115,22 @@
           type="button"
           @click="router.push({ name: 'parents-finance-create' })"
         >
-          <div class="allowance-left">
-            <div class="allowance-icon-wrap">
-              <img
-                src="@/assets/icons/icon-wallet.svg"
-                alt=""
-                class="clock-icon wallet-icon"
-              />
-            </div>
-
-            <div>
-              <p class="allowance-main">금융 상품 추가</p>
-            </div>
+          <div class="allowance-content">
+            <span class="allowance-badge finance-badge">상품 등록</span>
+            <p class="allowance-main">금융 상품 추가</p>
+            <p class="allowance-sub">
+              자녀에게 보여줄<br />
+              상품을 등록해요
+            </p>
           </div>
 
-          <span class="chev">›</span>
+          <div class="allowance-deco finance-deco" aria-hidden="true">
+            <img
+              src="@/assets/icons/icon-wallet.svg"
+              alt=""
+              class="allowance-deco-icon wallet-icon"
+            />
+          </div>
         </button>
       </section>
 
@@ -207,7 +211,7 @@
 
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet } from '@/api/wallet'
@@ -226,6 +230,8 @@ const {
   requests,
   fetchPendingRequests,
 } = useParentRequests()
+
+const pendingRequestCount = computed(() => requests.value.length)
 
 const parentMascot = PARENT_PROFILE_IMAGE
 
@@ -541,52 +547,96 @@ button {
 }
 
 .allowance-card {
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
   min-width: 0;
-  padding: 14px 12px;
-  border: none;
+  height: 118px;
+  padding: 12px 14px;
+  overflow: hidden;
+  border: 1px solid #eaedf1;
   border-radius: 20px;
   background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  text-align: left;
   cursor: pointer;
+  transition: transform 0.2s ease;
 }
 
-.allowance-left {
+.allowance-card:active {
+  transform: scale(0.97);
+}
+
+.allowance-content {
+  position: relative;
+  z-index: 2;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  text-align: left;
+  flex-direction: column;
+  height: 100%;
+}
+
+.allowance-badge {
+  align-self: flex-start;
+  margin-bottom: 8px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.request-badge {
+  color: #d98200;
+  background: #fff8e6;
+}
+
+.finance-badge {
+  color: #2563eb;
+  background: #eff6ff;
 }
 
 .allowance-main {
-  margin: 0;
-  font-size: 13px;
+  margin: 0 0 8px;
+  font-size: 14px;
   font-weight: 800;
-  color: #191b1e;
-  line-height: 1.35;
+  color: #22252a;
+  line-height: 1.3;
   word-break: keep-all;
 }
 
-.allowance-card .chev {
-  flex-shrink: 0;
+.allowance-sub {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b9097;
+  line-height: 1.35;
 }
 
-.allowance-icon-wrap {
-  position: relative;
+.allowance-deco {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
 }
 
-.clock-icon {
-  width: 22px;
-  height: 22px;
+.request-deco {
+  background: #fff8e6;
+}
+
+.finance-deco {
+  background: #eff6ff;
+}
+
+.allowance-deco-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .wallet-icon {
