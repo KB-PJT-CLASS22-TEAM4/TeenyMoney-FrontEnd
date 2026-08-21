@@ -176,6 +176,9 @@ function resolveProductOrigin(p) {
 }
 
 // 대출 최초 신청 원금 안전 조회 (백엔드 실제 신청금액 최우선)
+// 주의: currentAmount는 "현재 남은 잔액"이라 조기상환할수록 줄어든다.
+// 캐시보다 먼저 검사하면 상환할 때마다 원금이 줄어드는 값으로 덮어써지므로,
+// 반드시 캐시(한 번 저장된 원금)를 currentAmount보다 먼저 확인해야 한다.
 function getOrStoreOriginalLoanPrincipal(enrollmentId, currentAmount, explicitPrincipal) {
   const storageKey = enrollmentId ? `teeny_loan_principal_${enrollmentId}` : null
 
@@ -189,7 +192,15 @@ function getOrStoreOriginalLoanPrincipal(enrollmentId, currentAmount, explicitPr
     return explicitPrincipal
   }
 
-  // 2. 현재 남은 잔액(currentAmount)이 있으면 적용
+  // 2. 이미 저장해둔 원금 캐시가 있으면 그대로 사용 (조기상환 후에도 원금은 불변)
+  if (storageKey) {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw && Number(raw) > 0) return Number(raw)
+    } catch (e) {}
+  }
+
+  // 3. 캐시도 없을 때만 현재 잔액을 원금으로 최초 1회 추정 저장 (아직 상환 전이면 잔액 = 원금)
   if (currentAmount && currentAmount > 0) {
     if (storageKey) {
       try {
@@ -197,14 +208,6 @@ function getOrStoreOriginalLoanPrincipal(enrollmentId, currentAmount, explicitPr
       } catch (e) {}
     }
     return currentAmount
-  }
-
-  // 3. 백엔드에 금액이 0이거나 없을 때만 캐시 참조
-  if (storageKey) {
-    try {
-      const raw = localStorage.getItem(storageKey)
-      if (raw && Number(raw) > 0) return Number(raw)
-    } catch (e) {}
   }
 
   return 0
@@ -297,8 +300,7 @@ function mapEnrolledProduct(p) {
     infoText = `지금 ${(p.currentAmount ?? 0).toLocaleString()}원이 들어 있고 ${formatDateKorean(p.maturityDate)}에 만기가 돼요.`
   } else if (isLoan) {
     const nextDue = calcNextDueDate(p.startDate, paidCount)
-    const nextDueText = nextDue ? `다음 상환일은 ${nextDue.getMonth() + 1}월 ${nextDue.getDate()}일이에요.\n` : ''
-    infoText = `${nextDueText}앞으로 갚을 돈은 ${remainingLoanAmount.toLocaleString()}원이에요.`
+    infoText = nextDue ? `다음 상환일은 ${nextDue.getMonth() + 1}월 ${nextDue.getDate()}일이에요.` : ''
   }
 
   let pendingSummary = ''
@@ -387,6 +389,9 @@ function mapEnrolledProduct(p) {
     monthlyAmountText,
     limitLabel,
     limitText,
+    // 대출: 신청 대출금 아래에 앞으로 갚을 돈을 별도로 표시
+    remainingLabel: isLoan ? '앞으로 갚을 돈' : '',
+    remainingText: isLoan ? `${remainingLoanAmount.toLocaleString()}원` : '',
     isFixedSaving,
     productType: p.productType,
     savingsType: p.savingsType || '',
@@ -764,6 +769,10 @@ function onScroll() {
               <span class="spec-label">{{ product.limitLabel }}</span>
               <span class="spec-val">{{ product.limitText }}</span>
             </div>
+            <div v-if="product.remainingText" class="spec-item">
+              <span class="spec-label">{{ product.remainingLabel }}</span>
+              <span class="spec-val">{{ product.remainingText }}</span>
+            </div>
             <div v-if="(product.isFixedSaving || product.isFreeSaving) && product.termMonths > 0" class="spec-item">
               <span class="spec-label">가입기간</span>
               <span class="spec-val">{{ product.termMonths }}개월</span>
@@ -810,6 +819,10 @@ function onScroll() {
             <div v-if="product.limitText" class="spec-item">
               <span class="spec-label">{{ product.limitLabel }}</span>
               <span class="spec-val">{{ product.limitText }}</span>
+            </div>
+            <div v-if="product.remainingText" class="spec-item">
+              <span class="spec-label">{{ product.remainingLabel }}</span>
+              <span class="spec-val">{{ product.remainingText }}</span>
             </div>
             <div v-if="(product.isFixedSaving || product.isFreeSaving) && product.termMonths > 0" class="spec-item">
               <span class="spec-label">가입기간</span>
