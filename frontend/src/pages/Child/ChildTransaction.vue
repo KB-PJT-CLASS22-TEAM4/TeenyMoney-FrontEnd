@@ -20,6 +20,7 @@
             <p class="wallet-label">티니머니</p>
             <p class="wallet-amount">{{ balance.toLocaleString() }}원</p>
           </div>
+          <img src="@/assets/mascot/teeny-wink.png" class="wallet-mascot" alt="" />
         </div>
 
         <button class="report-row" @click="goReport">
@@ -312,6 +313,7 @@ function onScroll() {
 }
 
 .wallet {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -327,6 +329,19 @@ function onScroll() {
 .wallet-text {
   flex: 1;
   min-width: 0;
+}
+
+.wallet-mascot {
+  position: absolute;
+  right: 30px;
+  top: 100%;
+  transform: translateY(-80%);
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .wallet-label {

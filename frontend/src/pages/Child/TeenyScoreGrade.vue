@@ -599,10 +599,10 @@ function goBack() {
 }
 
 .guide-row.current {
-  background: #eaf4dc;
+  background: #fff8e5;
   border-radius: 14px;
-  border: 1px solid #d5e6b8;
-  border-bottom: 1px solid #d5e6b8;
+  border: 1px solid #ffe89a;
+  border-bottom: 1px solid #ffe89a;
   padding: 14px 10px;
 }
 

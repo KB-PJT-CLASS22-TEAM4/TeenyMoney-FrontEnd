@@ -128,7 +128,7 @@
         </div>
 
         <div class="carousel-indicators">
-          <span v-for="(_, i) in benefits" :key="i"
+          <span v-for="(_, i) in benefits.slice(0, -1)" :key="i"
                 class="dot" :class="{ active: i === activeBenefitCard }"></span>
         </div>
       </section>

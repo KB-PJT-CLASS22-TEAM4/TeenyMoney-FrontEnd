@@ -668,8 +668,9 @@ function onTabSelect(key) {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  height: 730px;
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
   margin: 0 auto;
   background: #f8fafc;
   overflow: hidden;
