@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { issueSseTicket } from '@/api/sse'
 import { useAuthStore } from '@/stores/auth'
+import { createLatestRequestGuard } from '@/utils/latestRequestGuard'
 
 const API_BASE_URL = import.meta.env.DEV
   ? ''
@@ -48,6 +49,7 @@ export const useSseStore = defineStore('sse', () => {
   let source = null
   let reconnectTimer = null
   let reconnectDelayMs = RECONNECT_MIN_MS
+  const connectGuard = createLatestRequestGuard()
   // 티켓 발급은 비동기라, 응답을 기다리는 사이에 connect()가 또 불릴 수 있다.
   // source만 보고 판단하면 그 틈에 연결이 두 개 만들어진다.
   let connecting = false
@@ -58,6 +60,8 @@ export const useSseStore = defineStore('sse', () => {
     if (!authStore.isAuthenticated) return
     if (source || connecting) return
 
+    const request = connectGuard.begin()
+    const memberId = authStore.memberId
     connecting = true
 
     try {
@@ -68,15 +72,20 @@ export const useSseStore = defineStore('sse', () => {
         throw new Error('티켓이 비어 있습니다.')
       }
 
-      // 티켓을 받는 사이에 로그아웃했으면 연결하지 않는다.
-      if (!authStore.isAuthenticated) return
+      // 티켓을 받는 사이에 로그아웃하거나 계정이 바뀌었으면 이전 티켓을 버린다.
+      if (
+        !authStore.isAuthenticated ||
+        !connectGuard.isLatest(request) ||
+        authStore.memberId !== memberId
+      ) return
 
       openStream(ticket)
     } catch (e) {
+      if (!connectGuard.isLatest(request)) return
       console.log('SSE 연결 실패:', e.message)
       scheduleReconnect()
     } finally {
-      connecting = false
+      if (connectGuard.isLatest(request)) connecting = false
     }
   }
 
@@ -144,6 +153,9 @@ export const useSseStore = defineStore('sse', () => {
   }
 
   function disconnect() {
+    connectGuard.invalidate()
+    connecting = false
+
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
