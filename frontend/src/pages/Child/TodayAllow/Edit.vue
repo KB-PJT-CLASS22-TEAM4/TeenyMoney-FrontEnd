@@ -266,7 +266,7 @@ async function processDelete() {
   margin: 18px 0 0;
   font-weight: 700;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 /* 신청한 업종 배지 (읽기 전용) */
@@ -333,7 +333,7 @@ async function processDelete() {
   line-height: 22px;
   color: #15171b;
 }
-.reason::placeholder { color: #c6cbd2; }
+.reason::placeholder { color: #989ca2; }
 .reason:focus {
   outline: none;
   border-color: #ffbc00;
@@ -343,13 +343,13 @@ async function processDelete() {
   right: 14px;
   bottom: 12px;
   font-size: 11px;
-  color: #c6cbd2;
+  color: #989ca2;
 }
 .helper {
   margin: 6px 0 0;
   font-weight: 500;
   font-size: 11px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .submit-error {
@@ -510,7 +510,7 @@ async function processDelete() {
 
 .btn-kids--cancel {
   background: #f1f3f5;
-  color: #61666d;
+  color: #4b4f54;
 }
 
 .btn-kids--confirm {

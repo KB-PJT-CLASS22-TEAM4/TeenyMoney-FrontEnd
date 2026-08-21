@@ -204,7 +204,7 @@ const isExpired = computed(() => remainSec.value <= 0)
 .exp-text {
   font-weight: 600;
   font-size: 15px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .refresh-btn {
@@ -250,7 +250,7 @@ const isExpired = computed(() => remainSec.value <= 0)
   font-weight: 500;
   font-size: 12px;
   line-height: 18px;
-  color: #b9bec5;
+  color: #8b9097;
   text-align: center;
 }
 
@@ -272,7 +272,7 @@ const isExpired = computed(() => remainSec.value <= 0)
 .balance-label {
   font-weight: 500;
   font-size: 11px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .eye-btn {

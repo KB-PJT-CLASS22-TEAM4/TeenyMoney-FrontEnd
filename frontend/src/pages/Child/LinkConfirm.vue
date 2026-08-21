@@ -241,7 +241,7 @@ function goToCompletePage() {
 .sub-desc {
   margin: 0;
   font-size: 14px;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1.4;
   letter-spacing: -0.2px;
 }
@@ -318,7 +318,7 @@ function goToCompletePage() {
 
 .guardian-status {
   font-size: 13px;
-  color: #64748b;
+  color: #4d596b;
   font-weight: 500;
 }
 
@@ -366,7 +366,7 @@ function goToCompletePage() {
 
 .feature-desc {
   font-size: 12.5px;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1.35;
 }
 
@@ -382,7 +382,7 @@ function goToCompletePage() {
 .notice-text {
   margin: 0;
   font-size: 12.5px;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1.45;
   letter-spacing: -0.2px;
 }

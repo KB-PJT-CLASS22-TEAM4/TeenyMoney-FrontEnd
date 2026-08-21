@@ -1045,7 +1045,7 @@ function goToApply(product) {
   font-weight: 700;
   font-size: 14px;
   line-height: 20px;
-  color: #b9bec5;
+  color: #8b9097;
   transition: color 0.15s ease;
 }
 
@@ -1119,7 +1119,7 @@ function goToApply(product) {
   transition: background 0.15s ease;
 }
 .page-nav-btn:hover:not(:disabled) { background: #f8f9fa; }
-.page-nav-btn:disabled { color: #c6cbd2; cursor: not-allowed; opacity: 0.5; }
+.page-nav-btn:disabled { color: #989ca2; cursor: not-allowed; opacity: 0.5; }
 .page-number-row {
   display: flex;
   align-items: center;
@@ -1131,7 +1131,7 @@ function goToApply(product) {
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: #8b9097;
+  color: #6b7077;
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
@@ -1235,7 +1235,7 @@ function goToApply(product) {
   border-radius: 50%;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  color: #64748b;
+  color: #4d596b;
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
@@ -1284,7 +1284,7 @@ function goToApply(product) {
   padding: 12px 0;
   border-radius: 12px;
   background: #f1f5f9;
-  color: #64748b;
+  color: #4d596b;
   border: none;
   font-family: inherit;
   font-size: 14px;
@@ -1315,7 +1315,7 @@ function goToApply(product) {
 .modal-desc {
   margin: 0 0 18px;
   font-size: 13px;
-  color: #6b7280;
+  color: #525863;
   line-height: 1.5;
   white-space: pre-line;
   word-break: keep-all;
@@ -1375,7 +1375,7 @@ function goToApply(product) {
 
 .chevron-icon {
   flex-shrink: 0;
-  color: #94a3b8;
+  color: #727e8e;
 }
 
 .filter-chip-btn.active .chevron-icon {
@@ -1570,7 +1570,7 @@ function goToApply(product) {
 .d-label {
   font-weight: 600;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .d-value {
@@ -1641,19 +1641,19 @@ function goToApply(product) {
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #727e8e;
   cursor: pointer;
   transition: color 0.15s;
 }
 .sheet-reset-btn:hover {
-  color: #64748b;
+  color: #4d596b;
 }
 
 .sheet-group-title {
   margin: 16px 0 10px;
   font-weight: 700;
   font-size: 13px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .sheet-chips {
@@ -1670,7 +1670,7 @@ function goToApply(product) {
   font-family: inherit;
   font-weight: 700;
   font-size: 13px;
-  color: #959ba3;
+  color: #73777e;
   cursor: pointer;
   transition: all 0.15s ease;
 }

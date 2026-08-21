@@ -679,7 +679,7 @@ onMounted(async () => {
   border-radius: 50%;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
-  color: #64748b;
+  color: #4d596b;
   font-size: 10.5px;
   font-weight: 800;
   cursor: pointer;
@@ -725,7 +725,7 @@ onMounted(async () => {
   margin: 2px 0 0;
   font-weight: 500;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .notice-card {
@@ -734,7 +734,7 @@ onMounted(async () => {
 }
 
 .notice-text {
-  color: #6b7280;
+  color: #525863;
   line-height: 1.4;
 }
 
@@ -820,7 +820,7 @@ onMounted(async () => {
 .summary-label {
   font-weight: 600;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
   margin-bottom: 4px;
 }
 
@@ -846,7 +846,7 @@ onMounted(async () => {
 
 .gray-text {
   font-weight: 500;
-  color: #9aa0a8;
+  color: #777b81;
 }
 
 /* 해지/상환 내역 카드 */
@@ -872,7 +872,7 @@ onMounted(async () => {
 .d-label {
   font-weight: 600;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .d-value {
@@ -927,7 +927,7 @@ onMounted(async () => {
 .s-label {
   font-weight: 600;
   font-size: 11.5px;
-  color: #8b9097;
+  color: #6b7077;
   margin-bottom: 2px;
 }
 
@@ -960,13 +960,13 @@ onMounted(async () => {
 .flat-badge {
   font-weight: 700;
   font-size: 12px;
-  color: #9aa0a8;
+  color: #777b81;
 }
 
 .drop-sub {
   font-weight: 500;
   font-size: 10.5px;
-  color: #9aa0a8;
+  color: #777b81;
 }
 
 .progress-container {
@@ -994,7 +994,7 @@ onMounted(async () => {
   justify-content: space-between;
   font-weight: 500;
   font-size: 11px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .warning-box {
@@ -1068,7 +1068,7 @@ onMounted(async () => {
   font-family: inherit;
   font-weight: 800;
   font-size: 15px;
-  color: #9aa0a8;
+  color: #777b81;
   cursor: not-allowed;
   transition: all 0.2s ease;
 }
@@ -1153,7 +1153,7 @@ onMounted(async () => {
   font-weight: 500;
   font-size: 13.5px;
   line-height: 1.45;
-  color: #6b7280;
+  color: #525863;
 }
 
 .modal-desc strong {

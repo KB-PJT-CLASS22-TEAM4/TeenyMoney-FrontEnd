@@ -313,7 +313,7 @@ function goBack() {
   padding: 40px 0;
   text-align: center;
   font-size: 13px;
-  color: #8a9099;
+  color: #6a6f76;
 }
 .state-text.error {
   color: #e5484d;
@@ -360,12 +360,12 @@ function goBack() {
   font-weight: 700;
   font-size: 12.5px;
   letter-spacing: 0.36px;
-  color: #8a9099;
+  color: #6a6f76;
   margin-bottom: 10px;
 }
 
 .faint {
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 /* 현재 등급 섹션 */
@@ -402,7 +402,7 @@ function goBack() {
 .score-unit {
   font-size: 15px;
   font-weight: 700;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .grade-pill {
@@ -433,7 +433,7 @@ function goBack() {
 .sub-text {
   font-size: 12.5px;
   font-weight: 600;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .sub-diff {
@@ -551,7 +551,7 @@ function goBack() {
   text-align: center;
   font-size: 10.5px;
   font-weight: 600;
-  color: #c6cbd2;
+  color: #989ca2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -567,7 +567,7 @@ function goBack() {
   margin-top: 6px;
   font-size: 10.5px;
   font-weight: 600;
-  color: #c6cbd2;
+  color: #989ca2;
 }
 
 /* 등급 안내 */
@@ -599,10 +599,10 @@ function goBack() {
 }
 
 .guide-row.current {
-  background: #eaf4dc;
+  background: #fff8e5;
   border-radius: 14px;
-  border: 1px solid #d5e6b8;
-  border-bottom: 1px solid #d5e6b8;
+  border: 1px solid #ffe89a;
+  border-bottom: 1px solid #ffe89a;
   padding: 14px 10px;
 }
 
@@ -667,6 +667,6 @@ function goBack() {
   font-weight: 500;
   font-size: 12px;
   line-height: 17px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 </style>

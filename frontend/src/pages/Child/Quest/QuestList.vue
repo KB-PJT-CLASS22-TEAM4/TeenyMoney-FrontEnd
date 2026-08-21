@@ -683,7 +683,7 @@ function onTabSelect(key) {
   font-weight: 700;
   font-size: 13px;
   line-height: 20px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .tab-btn.active span.tab-label {
@@ -710,7 +710,7 @@ function onTabSelect(key) {
   padding: 0 3px;
   border-radius: 999px;
   background: #f0f1f3;
-  color: #b9bec5;
+  color: #8b9097;
   font-size: 9px;
   font-weight: 700;
   line-height: 14px;
@@ -744,7 +744,7 @@ function onTabSelect(key) {
 .section-count {
   font-weight: 600;
   font-size: 12px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .icon-btn {
@@ -777,7 +777,7 @@ function onTabSelect(key) {
   align-items: center;
   gap: 10px;
   padding: 60px 0;
-  color: #b9bec5;
+  color: #8b9097;
   font-size: 13px;
 }
 
@@ -813,7 +813,7 @@ function onTabSelect(key) {
 .bottom-tip-desc {
   margin: 0;
   font-size: 11.5px;
-  color: #b9bec5;
+  color: #8b9097;
   line-height: 17px;
 }
 
@@ -939,7 +939,7 @@ function onTabSelect(key) {
 
 .quest-row-meta {
   font-size: 12px;
-  color: #8a9099;
+  color: #6a6f76;
   font-weight: 500;
 }
 
@@ -950,7 +950,7 @@ function onTabSelect(key) {
 .status-rejected  { color: #e5484d; background: #fbe9e9; }
 .status-success   { color: #62b24a; background: #e8f4e2; }
 .status-failed    { color: #b96565; background: #f4e9e9; }
-.status-neutral   { color: #8a9099; background: #f2f4f6; }
+.status-neutral   { color: #6a6f76; background: #f2f4f6; }
 
 .encourage   { color: #62b24a; font-weight: 600; }
 
@@ -1165,7 +1165,7 @@ function onTabSelect(key) {
 .modal-desc {
   margin: 0 0 20px;
   font-size: 13.5px;
-  color: #64748b;
+  color: #4d596b;
   line-height: 1.5;
   word-break: keep-all;
 }
@@ -1184,7 +1184,7 @@ function onTabSelect(key) {
   padding: 12px 0;
   border-radius: 12px;
   background: #f1f5f9;
-  color: #64748b;
+  color: #4d596b;
   border: none;
   font-family: inherit;
   font-size: 14px;
@@ -1352,7 +1352,7 @@ function onTabSelect(key) {
 .completed-date {
   font-weight: 700;
   font-size: 12px;
-  color: #8a9099;
+  color: #6a6f76;
   padding: 4px 2px;
 }
 </style>

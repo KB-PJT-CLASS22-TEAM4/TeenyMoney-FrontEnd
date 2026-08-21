@@ -404,7 +404,7 @@ async function processSubmit() {
   margin: 18px 0 0;
   font-weight: 700;
   font-size: 12.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 .legend {
@@ -429,7 +429,7 @@ async function processSubmit() {
 .legend-desc {
   font-weight: 500;
   font-size: 11px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .chip-group {
@@ -444,7 +444,7 @@ async function processSubmit() {
   border: 1px solid #e7e9ec;
   border-radius: 999px;
   background: #fff;
-  color: #959ba3;
+  color: #73777e;
   font-family: inherit;
   font-weight: 700;
   font-size: 13px;
@@ -482,7 +482,7 @@ async function processSubmit() {
   line-height: 22px;
   color: #15171b;
 }
-.reason::placeholder { color: #c6cbd2; }
+.reason::placeholder { color: #989ca2; }
 .reason:focus {
   outline: none;
   border-color: #ffbc00;
@@ -492,13 +492,13 @@ async function processSubmit() {
   right: 14px;
   bottom: 12px;
   font-size: 11px;
-  color: #c6cbd2;
+  color: #989ca2;
 }
 .helper {
   margin: 6px 0 0;
   font-weight: 500;
   font-size: 11px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .submit-error {
@@ -527,7 +527,7 @@ async function processSubmit() {
 .selected-title {
   font-weight: 600;
   font-size: 12px;
-  color: #8b9097;
+  color: #6b7077;
   white-space: nowrap;
 }
 .selected-chips {
@@ -538,7 +538,7 @@ async function processSubmit() {
 }
 .selected-empty {
   font-size: 12px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 .mini-chip {
   padding: 3px 8px;
@@ -690,7 +690,7 @@ async function processSubmit() {
 
 .btn-kids--cancel {
   background: #f1f3f5;
-  color: #61666d;
+  color: #4b4f54;
 }
 
 .btn-kids--confirm {

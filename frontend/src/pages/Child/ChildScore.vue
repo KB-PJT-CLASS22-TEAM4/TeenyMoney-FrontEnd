@@ -318,14 +318,14 @@ const benefits = computed(() => {
   margin-top: 7px;
   font-weight: 600;
   font-size: 10.8px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 .hero-hint {
   margin: 14px 0 0;
   font-weight: 600;
   font-size: 11.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 /* 2. 등급 전환 — 확정(실선) vs 예정(점선) */
@@ -362,7 +362,7 @@ const benefits = computed(() => {
   gap: 4px;
   font-weight: 700;
   font-size: 10.5px;
-  color: #8b9097;
+  color: #6b7077;
 }
 .gcard-name {
   font-weight: 800;
@@ -373,7 +373,7 @@ const benefits = computed(() => {
   font-weight: 500;
   font-size: 10px;
   line-height: 1.35;
-  color: #b9bec5;
+  color: #8b9097;
 }
 .gcard-arrow {
   align-self: center;
@@ -398,7 +398,7 @@ const benefits = computed(() => {
   margin: 8px 0 0;
   font-weight: 500;
   font-size: 11.3px;
-  color: #8b9097;
+  color: #6b7077;
 }
 .month-note b {
   font-weight: 700;
@@ -423,7 +423,7 @@ const benefits = computed(() => {
 .block-sub {
   font-weight: 600;
   font-size: 11.3px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 /* 3. 혜택 */
@@ -471,7 +471,7 @@ const benefits = computed(() => {
   margin: 10px 0 0;
   font-weight: 500;
   font-size: 10.8px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 
 /* 4. 등급 기준 */
@@ -503,7 +503,7 @@ const benefits = computed(() => {
   flex: 1;
   font-weight: 500;
   font-size: 11.3px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 .tag {
   padding: 3px 7px;
@@ -518,7 +518,7 @@ const benefits = computed(() => {
 }
 .tag.next {
   border: 1px dashed #c9ced6;
-  color: #8b9097;
+  color: #6b7077;
 }
 
 /* 5. 최근 점수 변화 */
@@ -545,7 +545,7 @@ const benefits = computed(() => {
 .hist-date {
   font-weight: 500;
   font-size: 10.5px;
-  color: #b9bec5;
+  color: #8b9097;
 }
 .hist-delta {
   font-weight: 700;
@@ -576,7 +576,7 @@ const benefits = computed(() => {
   font-weight: 500;
   font-size: 11.2px;
   line-height: 1.5;
-  color: #8b9097;
+  color: #6b7077;
 }
 .rule:last-child {
   margin-bottom: 0;
