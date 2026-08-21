@@ -88,5 +88,8 @@ tmp/
 temp/
 .cache/
 
+# Agent tooling scratch (브레인스토밍 산출물, 로컬 서버 PID 등)
+.superpowers/
+
 
 frontend/teenymoney-frontend.tar.gz
