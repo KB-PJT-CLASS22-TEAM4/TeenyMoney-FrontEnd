@@ -46,7 +46,7 @@ defineProps({
   padding: 16px;
   box-sizing: border-box;
   background: #ffffff;
-  border: 1.3px solid #eaedf1;
+  border: 1.3px solid #ffe08a;
   border-radius: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   scroll-snap-align: start;
@@ -66,8 +66,8 @@ defineProps({
   font-weight: 800;
   font-size: 10.5px;
   letter-spacing: 0.2px;
-  background: #fff8e6;
-  color: #b45309;
+  background: #facc15;
+  color: #ffffff;
 }
 
 .rate-badge {
@@ -75,8 +75,8 @@ defineProps({
   border-radius: 7px;
   font-weight: 700;
   font-size: 11px;
-  background: #fff8e6;
-  color: #b45309;
+  background: #facc15;
+  color: #ffffff;
 }
 
 .name {
