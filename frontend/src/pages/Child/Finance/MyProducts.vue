@@ -28,8 +28,52 @@ watch(activeTab, (val) => {
   }
 })
 
-const activeCategory = ref('전체')
 const categories = ['전체', '적금', '예금', '대출']
+const statuses = ['전체', '승인 대기 중', '진행 중', '완료됨']
+
+// 적용된 필터 상태
+const activeCategory = ref('전체')
+const activeStatus = ref('전체')
+
+// 필터 바텀시트 상태
+const showFilterSheet = ref(false)
+const tempCategory = ref('전체')
+const tempStatus = ref('전체')
+
+function openFilterSheet() {
+  tempCategory.value = activeCategory.value
+  tempStatus.value = activeStatus.value
+  showFilterSheet.value = true
+}
+
+function closeFilterSheet() {
+  showFilterSheet.value = false
+}
+
+function applyFilter() {
+  activeCategory.value = tempCategory.value
+  activeStatus.value = tempStatus.value
+  showFilterSheet.value = false
+}
+
+function resetFilter() {
+  tempCategory.value = '전체'
+  tempStatus.value = '전체'
+}
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (activeCategory.value !== '전체') count++
+  if (activeStatus.value !== '전체') count++
+  return count
+})
+
+const filterSummaryText = computed(() => {
+  const parts = []
+  if (activeCategory.value !== '전체') parts.push(activeCategory.value)
+  if (activeStatus.value !== '전체') parts.push(activeStatus.value)
+  return parts.length > 0 ? parts.join(' · ') : '전체 필터'
+})
 
 // 매핑 테이블
 const typeMap = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
@@ -40,21 +84,39 @@ const statusMap = {
   PENDING: { label: '승인 대기 중', color: 'orange' },
   ACTIVE: null,
   TERMINATED: { label: '중도해지 완료', color: 'red' },
-  CANCELLED: { label: '중도해지 완료', color: 'red' },
   CLOSED: { label: '중도해지 완료', color: 'red' },
+  // 승인 대기 중 신청을 취소한 경우 (중도해지와는 다른 상태라 문구를 구분)
+  CANCELLED: { label: '신청취소 완료', color: 'gray' },
+  CANCELED: { label: '신청취소 완료', color: 'gray' },
   REPAID: { label: '상환 완료', color: 'green' },
 }
 
 // 해지(중도해지/만기 등으로 종료)된 계약인지 판별
 // 백엔드가 status 문자열(TERMINATED 등)로 줄지, terminated boolean으로 줄지 확실치 않아 둘 다 체크
+// CANCELLED/CANCELED 두 철자를 모두 내려줄 수 있어 둘 다 체크
 function isEnrollmentTerminated(p) {
   return (
     p.terminated === true ||
     p.status === 'TERMINATED' ||
     p.status === 'CANCELLED' ||
+    p.status === 'CANCELED' ||
     p.status === 'CLOSED' ||
     p.status === 'REPAID'
   )
+}
+
+// 정액적금 예상 만기 수령액 (월 납입금 x 개월 + 예상 이자)
+function calcFixedSavingMaturity(monthlyAmount, termMonths, appliedRatePercent, isCompound) {
+  if (!(monthlyAmount > 0) || !(termMonths > 0)) return 0
+  const rate = (appliedRatePercent || 0) / 100
+  let interest = 0
+  for (let k = 1; k <= termMonths; k++) {
+    const monthsHeld = termMonths - k + 1
+    interest += isCompound
+      ? monthlyAmount * (Math.pow(1 + rate / 12, monthsHeld) - 1)
+      : monthlyAmount * rate * (monthsHeld / 12)
+  }
+  return monthlyAmount * termMonths + Math.floor(interest)
 }
 
 // 날짜 파싱 유틸
@@ -155,6 +217,7 @@ function mapEnrolledProduct(p) {
   const isDeposit = p.productType === 'DEPOSIT'
   const isPending = p.status === 'PENDING'
   const isTerminated = isEnrollmentTerminated(p)
+  const isCancelled = p.status === 'CANCELLED' || p.status === 'CANCELED'
   const isFreeSaving = isSaving && p.savingsType === 'FREE'
 
   const statusInfo = statusMap[p.status] ?? {
@@ -216,7 +279,9 @@ function mapEnrolledProduct(p) {
   if (isTerminated) {
     infoText = p.status === 'REPAID'
       ? '대출이 모두 상환 완료됐어요.'
-      : '중도해지가 완료된 상품이에요.'
+      : isCancelled
+        ? '신청 취소된 상품이에요.'
+        : '중도해지가 완료된 상품이에요.'
   } else if (isPending) {
     infoText = '부모님의 승인을 기다리고 있어요.'
   } else if (isSaving) {
@@ -259,12 +324,22 @@ function mapEnrolledProduct(p) {
     ? (savingsTypeMap[p.savingsType] || '적금')
     : (typeMap[p.productType] ?? p.productType)
 
-  const limitLabel = isFreeSaving ? '총 목표액' : isLoan ? '신청 대출금' : isDeposit ? '예치한도' : '납입한도'
-  const limitText = isFreeSaving
-    ? (freeGoalAmount > 0 ? `${freeGoalAmount.toLocaleString()}원` : '-')
-    : isLoan
-      ? (totalLoanPrincipal > 0 ? `${totalLoanPrincipal.toLocaleString()}원` : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-'))
-      : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-')
+  // 정액적금은 상품 납입한도 대신 예상 만기 수령액과 가입기간을 보여준다.
+  const isFixedSaving = isSaving && !isFreeSaving
+  const fixedSavingMaturity = isFixedSaving
+    ? calcFixedSavingMaturity(monthlyAmount, p.termMonths, p.appliedRate, p.interestCalculationType === 'COMPOUND')
+    : 0
+
+  const limitLabel = isFixedSaving
+    ? '예상 만기 수령액'
+    : isFreeSaving ? '총 목표액' : isLoan ? '신청 대출금' : isDeposit ? '예치한도' : '납입한도'
+  const limitText = isFixedSaving
+    ? (fixedSavingMaturity > 0 ? `${fixedSavingMaturity.toLocaleString()}원` : '-')
+    : isFreeSaving
+      ? (freeGoalAmount > 0 ? `${freeGoalAmount.toLocaleString()}원` : '-')
+      : isLoan
+        ? (totalLoanPrincipal > 0 ? `${totalLoanPrincipal.toLocaleString()}원` : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-'))
+        : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-')
 
   const transferDay = p.paymentDay ?? p.transferDay ?? p.autoTransferDay ?? parseDateParts(p.startDate)?.d
 
@@ -273,18 +348,21 @@ function mapEnrolledProduct(p) {
     : isSaving && !isFreeSaving
       ? '월 납입금액'
       : isFreeSaving
-        ? '현재 모은 금액'
+        ? (isPending ? '첫 저축액' : '현재 모은 금액')
         : ''
   let monthlyAmountText = ''
   if (isFreeSaving) {
-    monthlyAmountText = `${currentTotal.toLocaleString()}원`
+    // 승인 대기 중에는 아직 저축이 시작되지 않아 "현재 모은 금액" 대신 신청 시 입력한 첫 저축액을 보여준다.
+    monthlyAmountText = isPending
+      ? (monthlyAmount > 0 ? `${monthlyAmount.toLocaleString()}원` : '')
+      : `${currentTotal.toLocaleString()}원`
   } else if (monthlyAmount > 0 && !isDeposit) {
     const daySuffix = transferDay ? ` (매월 ${transferDay}일)` : ''
     monthlyAmountText = `${monthlyAmount.toLocaleString()}원${daySuffix}`
   }
 
   return {
-    id: p.enrollmentId,
+    id: enrollmentId,
     category: typeMap[p.productType] ?? p.productType,
     displayTypeLabel,
     originType: origin.type,
@@ -309,6 +387,7 @@ function mapEnrolledProduct(p) {
     monthlyAmountText,
     limitLabel,
     limitText,
+    isFixedSaving,
     productType: p.productType,
     savingsType: p.savingsType || '',
     interestCalculationType: p.interestCalculationType || 'SIMPLE',
@@ -401,24 +480,29 @@ onMounted(() => {
   fetchWalletBalance()
 })
 
-const filteredProducts = computed(() => {
-  const base = activeCategory.value === '전체'
+// 상품 종류(적금/예금/대출) 필터만 적용한 목록
+const categoryFilteredProducts = computed(() =>
+  activeCategory.value === '전체'
     ? myProducts.value
     : myProducts.value.filter((p) => p.category === activeCategory.value)
-  // 중도해지 등으로 종료된 상품은 진행 중 목록에서 제외
-  return base.filter((p) => !p.isTerminated)
-})
+)
 
-const pendingProducts = computed(() => filteredProducts.value.filter((p) => p.isPending))
-const activeProducts = computed(() => filteredProducts.value.filter((p) => !p.isPending))
+const pendingProducts = computed(() => categoryFilteredProducts.value.filter((p) => p.isPending))
+const activeProducts = computed(() => categoryFilteredProducts.value.filter((p) => !p.isPending && !p.isTerminated))
 
 // 완료(중도해지/만기 등)된 상품 — 진행 중 목록과는 별도로 모아서 보여줌
-const completedProducts = computed(() => {
-  const base = activeCategory.value === '전체'
-    ? myProducts.value
-    : myProducts.value.filter((p) => p.category === activeCategory.value)
-  return base.filter((p) => p.isTerminated)
-})
+const completedProducts = computed(() => categoryFilteredProducts.value.filter((p) => p.isTerminated))
+
+// 상태 필터에 따라 어느 그룹을 보여줄지 결정
+const showPendingGroup = computed(() => activeStatus.value === '전체' || activeStatus.value === '승인 대기 중')
+const showActiveGroup = computed(() => activeStatus.value === '전체' || activeStatus.value === '진행 중')
+const showCompletedGroup = computed(() => activeStatus.value === '전체' || activeStatus.value === '완료됨')
+
+const visibleProductCount = computed(() =>
+  (showPendingGroup.value ? pendingProducts.value.length : 0) +
+  (showActiveGroup.value ? activeProducts.value.length : 0) +
+  (showCompletedGroup.value ? completedProducts.value.length : 0)
+)
 
 // 승인 대기 신청 취소 모달 상태
 const showCancelPendingModal = ref(false)
@@ -561,6 +645,7 @@ async function handleDepositSubmit() {
     if (targetItem) {
       targetItem.principal = result.accumulatedAmount
       targetItem.infoText = `지금까지 총 ${targetItem.principal.toLocaleString()}원을 모았어요.`
+      targetItem.monthlyAmountText = `${targetItem.principal.toLocaleString()}원`
     }
 
     myWalletBalance.value = Math.max(0, myWalletBalance.value - depositAmount.value)
@@ -640,18 +725,24 @@ function onScroll() {
     </div>
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-      <div class="filters">
-        <button
-          v-for="c in categories"
-          :key="c"
-          class="chip"
-          :class="{ off: c !== activeCategory }"
-          @click="activeCategory = c"
-        >{{ c }}</button>
+      <!-- 상단 카운트 및 인라인 필터 버튼 -->
+      <div class="list-header-row">
+        <p class="count-row">상품<span class="count-num">{{ visibleProductCount }}</span></p>
+
+        <button class="filter-chip-btn" :class="{ active: activeFilterCount > 0 }" @click="openFilterSheet">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" class="filter-icon">
+            <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span class="filter-summary-text">{{ filterSummaryText }}</span>
+          <span v-if="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</span>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
       </div>
 
       <!-- 승인 대기 중 -->
-      <template v-if="pendingProducts.length">
+      <template v-if="showPendingGroup && pendingProducts.length">
         <h2 class="group-title">승인 대기 중</h2>
         <div v-for="product in pendingProducts" :key="product.id" class="card pending">
           <div class="pending-top">
@@ -673,6 +764,10 @@ function onScroll() {
               <span class="spec-label">{{ product.limitLabel }}</span>
               <span class="spec-val">{{ product.limitText }}</span>
             </div>
+            <div v-if="(product.isFixedSaving || product.isFreeSaving) && product.termMonths > 0" class="spec-item">
+              <span class="spec-label">가입기간</span>
+              <span class="spec-val">{{ product.termMonths }}개월</span>
+            </div>
           </div>
           <div class="pending-bottom-row">
             <p class="pending-info-text">{{ product.infoText }}</p>
@@ -688,7 +783,7 @@ function onScroll() {
       </template>
 
       <!-- 진행 중 -->
-      <template v-if="activeProducts.length">
+      <template v-if="showActiveGroup && activeProducts.length">
         <h2 class="group-title">진행 중</h2>
         <div v-for="product in activeProducts" :key="product.id" class="card">
           <div class="card-top">
@@ -715,6 +810,10 @@ function onScroll() {
             <div v-if="product.limitText" class="spec-item">
               <span class="spec-label">{{ product.limitLabel }}</span>
               <span class="spec-val">{{ product.limitText }}</span>
+            </div>
+            <div v-if="(product.isFixedSaving || product.isFreeSaving) && product.termMonths > 0" class="spec-item">
+              <span class="spec-label">가입기간</span>
+              <span class="spec-val">{{ product.termMonths }}개월</span>
             </div>
           </div>
 
@@ -765,7 +864,7 @@ function onScroll() {
       </template>
 
       <!-- 완료됨 (중도해지 등으로 종료된 상품) -->
-      <template v-if="completedProducts.length">
+      <template v-if="showCompletedGroup && completedProducts.length">
         <h2 class="group-title">완료됨</h2>
         <div v-for="product in completedProducts" :key="product.id" class="card completed">
           <div class="title-with-badge">
@@ -782,6 +881,48 @@ function onScroll() {
         </div>
       </template>
     </div>
+
+    <!-- 나의 상품 필터 바텀시트 -->
+    <transition name="sheet">
+      <div v-if="showFilterSheet" class="sheet-dim" @click.self="closeFilterSheet">
+        <div class="sheet">
+          <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <h3 class="sheet-title">상품 필터</h3>
+            <button class="sheet-reset-btn" type="button" @click="resetFilter">초기화</button>
+          </div>
+
+          <!-- 1. 상품 종류 -->
+          <p class="sheet-group-title">상품 종류</p>
+          <div class="sheet-chips">
+            <button
+              v-for="c in categories"
+              :key="c"
+              type="button"
+              class="s-chip"
+              :class="{ on: c === tempCategory }"
+              @click="tempCategory = c"
+            >{{ c }}</button>
+          </div>
+
+          <!-- 2. 상태 -->
+          <p class="sheet-group-title">상태</p>
+          <div class="sheet-chips">
+            <button
+              v-for="s in statuses"
+              :key="s"
+              type="button"
+              class="s-chip"
+              :class="{ on: s === tempStatus }"
+              @click="tempStatus = s"
+            >{{ s }}</button>
+          </div>
+
+          <button class="sheet-apply" type="button" @click="applyFilter">적용하기</button>
+        </div>
+      </div>
+    </transition>
 
     <!-- 간편 이체 바텀시트 -->
     <div
@@ -925,7 +1066,7 @@ function onScroll() {
 
     <BottomTabBar active="finance" @select="onTabSelect" />
 
-    <Chatbot :hide-for-modal="showDepositSheet || showSuccessModal || showTransferErrorModal || showCancelPendingModal || showCancelPendingSuccessModal" hint-text="가입한 상품이 궁금하세요?" />
+    <Chatbot :hide-for-modal="showDepositSheet || showSuccessModal || showTransferErrorModal || showCancelPendingModal || showCancelPendingSuccessModal || showFilterSheet" hint-text="가입한 상품이 궁금하세요?" />
   </div>
 </template>
 
@@ -1031,27 +1172,198 @@ function onScroll() {
   border-radius: 999px;
 }
 
-.filters {
+/* 상단 카운트 및 인라인 필터 버튼 */
+.list-header-row {
   display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 10px;
 }
-.chip {
-  padding: 7px 16px;
-  border: none;
+
+.count-row {
+  font-weight: 800;
+  font-size: 16px;
+  color: #15171b;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.count-num {
+  color: #2e7bf0;
+  margin-left: 6px;
+}
+
+.filter-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1.2px solid #e2e8f0;
   border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  color: #475569;
+  max-width: 220px;
+  transition: all 0.2s ease;
+}
+.filter-chip-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.filter-chip-btn.active {
+  background: #fffdf2;
+  border-color: #ffbc00;
+  color: #b45309;
+}
+
+.filter-icon {
+  flex-shrink: 0;
+}
+
+.filter-summary-text {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron-icon {
+  flex-shrink: 0;
+  color: #727e8e;
+}
+.filter-chip-btn.active .chevron-icon {
+  color: #d97706;
+}
+
+.filter-badge {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffbc00;
+  color: #15171b;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* 필터 바텀시트 */
+.sheet-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  z-index: 105;
+  backdrop-filter: blur(2px);
+}
+
+.sheet {
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 16px 20px 28px;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.sheet-handle-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.sheet-reset-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #727e8e;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.sheet-reset-btn:hover {
+  color: #4d596b;
+}
+
+.sheet-group-title {
+  margin: 16px 0 10px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #6b7077;
+}
+
+.sheet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.s-chip {
+  padding: 8px 16px;
+  border: 1px solid #e7e9ec;
+  border-radius: 999px;
+  background: #ffffff;
   font-family: inherit;
   font-weight: 700;
   font-size: 13px;
-  color: #15171b;
-  background: #ffbc00;
+  color: #73777e;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
-.chip.off {
-  background: #ffffff;
-  border: 1.3px solid #e7e9ec;
-  color: #4a4e55;
-  font-weight: 600;
+.s-chip.on {
+  background: #fff8e6;
+  border-color: #ffbc00;
+  color: #d97706;
+}
+
+.sheet-apply {
+  width: 100%;
+  height: 48px;
+  margin-top: 24px;
+  border: none;
+  border-radius: 12px;
+  background: #ffbc00;
+  color: #191b1e;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-shadow: 0 4px 12px rgba(255, 188, 0, 0.25);
+}
+.sheet-apply:hover {
+  background: #f5b300;
+}
+
+.sheet-enter-active, .sheet-leave-active {
+  transition: opacity 0.25s ease;
+}
+.sheet-enter-active .sheet, .sheet-leave-active .sheet {
+  transition: transform 0.25s ease;
+}
+.sheet-enter-from, .sheet-leave-to {
+  opacity: 0;
+}
+.sheet-enter-from .sheet, .sheet-leave-to .sheet {
+  transform: translateY(100%);
 }
 
 .group-title {
@@ -1130,6 +1442,7 @@ function onScroll() {
 .status-text.blue  { color: #4d8ad6; }
 .status-text.red   { color: #e0554f; }
 .status-text.orange { color: #f57c00; }
+.status-text.gray  { color: #8b9097; }
 
 .card.pending {
   padding: 14px 16px;
@@ -1329,7 +1642,7 @@ function onScroll() {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.45);
-  z-index: 99;
+  z-index: 105;
   display: flex;
   align-items: flex-end;
   animation: fadeIn 0.2s ease-out;
@@ -1621,7 +1934,7 @@ function onScroll() {
 }
 
 .modal-icon-wrap.info {
-  background: #3b82f6;
+  background: #ffbc00;
 }
 
 .modal-error-text {

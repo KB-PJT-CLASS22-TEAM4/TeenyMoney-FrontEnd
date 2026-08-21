@@ -240,7 +240,9 @@ const allSelectedCategories = computed(() => [
 
 const hasBlockSelected = computed(() => selectedBlockIds.value.length > 0)
 const canSubmit = computed(() =>
-  allSelectedCategories.value.length > 0 && !isMonthlyLimitReached.value
+  allSelectedCategories.value.length > 0 &&
+  reason.value.trim().length > 0 &&
+  !isMonthlyLimitReached.value
 )
 
 const scrolling = ref(false)

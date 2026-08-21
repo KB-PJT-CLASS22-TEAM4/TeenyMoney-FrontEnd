@@ -375,6 +375,7 @@ onMounted(async () => {
         item.terminated === true ||
         item.status === 'TERMINATED' ||
         item.status === 'CANCELLED' ||
+        item.status === 'CANCELED' ||
         item.status === 'CLOSED' ||
         item.status === 'REPAID'
       )
@@ -1104,6 +1105,7 @@ function goToApply(product) {
   justify-content: center;
   gap: 14px;
   margin-top: 12px;
+  margin-bottom: 40px;
 }
 .page-nav-btn {
   width: 30px;
