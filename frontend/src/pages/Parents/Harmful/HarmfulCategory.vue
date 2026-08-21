@@ -325,15 +325,123 @@
 
         <!-- 처리 완료 탭 -->
         <div v-else>
-          <div
-            v-if="!completedRequests.length"
-            class="empty-request"
-          >
-            <p>처리 완료된 승인 요청이 없습니다.</p>
+          <div class="completed-filters">
+            <div class="filter-tabs">
+              <button
+                type="button"
+                class="tab"
+                :class="{ 'tab-active': completedStatus === 'ALL' }"
+                @click="changeCompletedStatus('ALL')"
+              >
+                전체
+              </button>
+              <button
+                type="button"
+                class="tab"
+                :class="{ 'tab-active': completedStatus === 'APPROVED' }"
+                @click="changeCompletedStatus('APPROVED')"
+              >
+                승인
+              </button>
+              <button
+                type="button"
+                class="tab"
+                :class="{ 'tab-active': completedStatus === 'REJECTED' }"
+                @click="changeCompletedStatus('REJECTED')"
+              >
+                거절
+              </button>
+              <button
+                type="button"
+                class="tab tab-period"
+                :class="{ 'tab-active': isCompletedPeriodOpen }"
+                @click="toggleCompletedPeriodMenu"
+              >
+                <img
+                  src="@/assets/icons/icon-calendar.svg"
+                  alt=""
+                  class="calendar-icon"
+                />
+                {{ completedPeriodLabel }}
+              </button>
+            </div>
+
+            <div
+              v-if="isCompletedPeriodOpen"
+              class="period-menu"
+            >
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'WEEK' }"
+                @click="changeCompletedPeriod('WEEK')"
+              >
+                1주
+              </button>
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'MONTH' }"
+                @click="changeCompletedPeriod('MONTH')"
+              >
+                1개월
+              </button>
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'THREE_MONTHS' }"
+                @click="changeCompletedPeriod('THREE_MONTHS')"
+              >
+                3개월
+              </button>
+              <button
+                type="button"
+                class="period-option"
+                :class="{ active: completedPeriod === 'SIX_MONTHS' }"
+                @click="changeCompletedPeriod('SIX_MONTHS')"
+              >
+                6개월
+              </button>
+            </div>
+
+            <div class="sort-area">
+              <button
+                type="button"
+                class="sort-button"
+                @click="toggleCompletedSort"
+              >
+                <span class="sort-label">
+                  {{ completedSort === 'DESC' ? '최신순' : '과거순' }}
+                </span>
+                <svg
+                  class="sort-switch-icon"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M7 10l5-5 5 5M7 14l5 5 5-5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div
-            v-for="req in completedRequests"
+            v-if="!filteredCompletedRequests.length"
+            class="empty-request"
+          >
+            <p>{{ completedEmptyText }}</p>
+          </div>
+
+          <div
+            v-for="req in filteredCompletedRequests"
             :key="requestKey(req)"
             class="request-card"
           >
@@ -802,6 +910,77 @@ const completedRequests = computed(() =>
     (req) => req.status === 'APPROVED' || req.status === 'REJECTED'
   )
 )
+
+const completedStatus = ref('ALL')
+const completedPeriod = ref('MONTH')
+const completedSort = ref('DESC')
+const isCompletedPeriodOpen = ref(false)
+
+const completedPeriodLabel = computed(() => {
+  switch (completedPeriod.value) {
+    case 'WEEK':
+      return '1주'
+    case 'MONTH':
+      return '1개월'
+    case 'THREE_MONTHS':
+      return '3개월'
+    case 'SIX_MONTHS':
+      return '6개월'
+    default:
+      return '기간'
+  }
+})
+
+function completedPeriodCutoff() {
+  const days = {
+    WEEK: 7,
+    MONTH: 30,
+    THREE_MONTHS: 90,
+    SIX_MONTHS: 180,
+  }[completedPeriod.value] || 30
+
+  return startOfKstDay(new Date()).getTime() - (days - 1) * 86400000
+}
+
+const filteredCompletedRequests = computed(() => {
+  const cutoff = completedPeriodCutoff()
+  const status = completedStatus.value
+  const list = completedRequests.value.filter((req) => {
+    if (status !== 'ALL' && req.status !== status) return false
+    const time = getTimestamp(req.updatedAt || req.approvedAt || req.createdAt)
+    return time >= cutoff
+  })
+
+  return [...list].sort((a, b) => {
+    const diff =
+      getTimestamp(a.updatedAt || a.approvedAt || a.createdAt)
+      - getTimestamp(b.updatedAt || b.approvedAt || b.createdAt)
+    return completedSort.value === 'DESC' ? -diff : diff
+  })
+})
+
+const completedEmptyText = computed(() => {
+  if (!completedRequests.value.length) return '처리 완료된 승인 요청이 없습니다.'
+  return '해당 조건의 처리 내역이 없습니다.'
+})
+
+function changeCompletedStatus(status) {
+  completedStatus.value = status
+  isCompletedPeriodOpen.value = false
+}
+
+function toggleCompletedPeriodMenu() {
+  isCompletedPeriodOpen.value = !isCompletedPeriodOpen.value
+}
+
+function changeCompletedPeriod(period) {
+  completedPeriod.value = period
+  isCompletedPeriodOpen.value = false
+}
+
+function toggleCompletedSort() {
+  completedSort.value = completedSort.value === 'DESC' ? 'ASC' : 'DESC'
+}
 
 const requestTabs = computed(() => [
   {
@@ -1380,6 +1559,10 @@ watch(
   }
 )
 
+watch(activeRequestTab, () => {
+  isCompletedPeriodOpen.value = false
+})
+
 onUnmounted(() => {
   stopRemainTimer()
 })
@@ -1751,6 +1934,103 @@ onUnmounted(() => {
   gap: 8px;
   width: 100%;
   margin-bottom: 12px;
+}
+
+.completed-filters {
+  margin-bottom: 4px;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+}
+
+.filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid #e0e3e7;
+  border-radius: 18px;
+  color: #8b9097;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.tab-active {
+  border-color: #ffbc00;
+  color: #191b1e;
+  background-color: #ffbc00;
+}
+
+.tab-period {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.calendar-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.period-menu {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.period-option {
+  flex: 1;
+  height: 32px;
+  border: none;
+  border-radius: 7px;
+  color: #8b9097;
+  font-size: 11px;
+  background-color: #f4f5f7;
+  cursor: pointer;
+}
+
+.period-option.active {
+  color: #191b1e;
+  font-weight: 700;
+  background-color: #ffbc00;
+}
+
+.sort-area {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 2px 10px;
+}
+
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: none;
+  color: #8b9097;
+  font-size: 11px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sort-label {
+  line-height: 1;
+}
+
+.sort-switch-icon {
+  flex-shrink: 0;
+  color: #8b9097;
 }
 
 .chip {
