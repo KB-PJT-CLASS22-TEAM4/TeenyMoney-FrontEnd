@@ -7,6 +7,7 @@ import {
   declineQuest as declineQuestApi,
 } from '@/api/quest'
 import { calcKstDDay, formatKstDate } from '@/utils/datetime'
+import { createLatestRequestGuard } from '@/utils/latestRequestGuard'
 
 function formatDate(raw) {
   return formatKstDate(raw)
@@ -51,8 +52,16 @@ export const useQuestStore = defineStore('quest', () => {
     COMPLETED: completedQuests,
   }
 
+  const requestGuards = {
+    AVAILABLE: createLatestRequestGuard(),
+    ONGOING: createLatestRequestGuard(),
+    COMPLETED: createLatestRequestGuard(),
+  }
+
   async function fetchTab(accessToken, tabKey, { childId, more = false } = {}) {
     const tab = TAB_MAP[tabKey]
+    const requestGuard = requestGuards[tab]
+    const request = requestGuard.begin()
     const cursor = more && nextCursor.value[tab] ? nextCursor.value[tab] : null
 
     // getQuests(accessToken, tab, childId, cursor) — questApi.js는 개별 인자를 순서대로 받음
@@ -78,6 +87,9 @@ export const useQuestStore = defineStore('quest', () => {
         })
       )
     }
+
+    // 같은 탭의 더 최신 조회가 끝났다면 이전 응답으로 화면을 되돌리지 않는다.
+    if (!requestGuard.isLatest(request)) return items
 
     const target = TARGET[tab]
     target.value = more ? [...target.value, ...items] : items
@@ -128,6 +140,15 @@ export const useQuestStore = defineStore('quest', () => {
     loadedTabs.value.delete(TAB_MAP[tabKey])
   }
 
+  function reset() {
+    availableQuests.value = []
+    ongoingQuests.value = []
+    completedQuests.value = []
+    nextCursor.value = { AVAILABLE: null, ONGOING: null, COMPLETED: null }
+    loadedTabs.value.clear()
+    Object.values(requestGuards).forEach((guard) => guard.invalidate())
+  }
+
   return {
     availableQuests,
     ongoingQuests,
@@ -138,5 +159,6 @@ export const useQuestStore = defineStore('quest', () => {
     accept,
     decline,
     invalidateTab,
+    reset,
   }
 })

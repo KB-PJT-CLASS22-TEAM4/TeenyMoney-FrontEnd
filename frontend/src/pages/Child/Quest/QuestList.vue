@@ -321,12 +321,15 @@ import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
+import { useSseStore } from '@/stores/sse'
+import { useRefreshOnVisible } from '@/composables/useRefreshOnVisible'
 import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const questStore = useQuestStore()
+const sseStore = useSseStore()
 
 const tabs = [
   { key: 'available', label: '시작 가능' },
@@ -375,9 +378,11 @@ async function loadTab(tabKey, opts = {}) {
   }
 }
 
-onMounted(() => {
-  tabs.forEach((t) => loadTab(t.key))
-})
+function refreshTabs() {
+  return Promise.all(tabs.map((t) => loadTab(t.key, { force: true })))
+}
+
+onMounted(refreshTabs)
 watch(activeTab, (key) => loadTab(key))
 watch(
   () => route.query.tab,
@@ -395,9 +400,14 @@ watch(
 //
 // QUEST로 좁히는 이유: 탭이 셋이라 신호 하나에 조회가 세 번 나간다. 홈 화면처럼 한 번에
 // 묶인 load()와 달리 빗나간 이벤트의 비용이 세 배다.
-useServerEvents(() => {
-  tabs.forEach((t) => loadTab(t.key, { force: true }))
-}, ['QUEST'])
+useRefreshOnVisible(refreshTabs)
+useServerEvents(refreshTabs, ['QUEST'])
+watch(
+  () => sseStore.connected,
+  (connected, wasConnected) => {
+    if (connected && wasConnected === false) refreshTabs()
+  }
+)
 
 function toggleFavorite(q) {
   q.favorited = !q.favorited
