@@ -498,7 +498,7 @@ function toggleGroup(name) {
 // 카테고리 정책 전체 조회
 //
 // GET
-// /api/v1/category-policies?childId=3
+// /api/v1/category-policies/parent-groups?childId=3
 // ========================================
 
 async function fetchPlaces() {
