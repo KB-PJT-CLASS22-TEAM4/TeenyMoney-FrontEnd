@@ -29,6 +29,10 @@
         v-for="item in requests"
         :key="item.key"
         class="request-card"
+        role="button"
+        tabindex="0"
+        @click="openRequestDetail(item)"
+        @keydown.enter="openRequestDetail(item)"
       >
         <div class="request-top">
           <span
@@ -67,7 +71,7 @@
             class="request-btn view"
             type="button"
             :disabled="processingKey === item.key"
-            @click="openRequestDetail(item)"
+            @click.stop="openRequestDetail(item)"
           >
             상세보기
           </button>
@@ -75,7 +79,7 @@
             class="request-btn ghost"
             type="button"
             :disabled="processingKey === item.key"
-            @click="handleRejectRequest(item)"
+            @click.stop="handleRejectRequest(item)"
           >
             거절
           </button>
@@ -83,7 +87,7 @@
             class="request-btn primary"
             type="button"
             :disabled="processingKey === item.key"
-            @click="handleApproveRequest(item)"
+            @click.stop="handleApproveRequest(item)"
           >
             {{ processingKey === item.key ? '처리 중...' : '승인' }}
           </button>
@@ -236,6 +240,7 @@ onActivated(() => {
   border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
 }
 
 .request-top {
