@@ -46,19 +46,9 @@ export function isPublicPagePath(pathname = window.location.pathname) {
   ))
 }
 
-export function handleUnauthorizedResponse(response, url) {
-  if (shouldOmitLoginSession(url) || !isAuthApiUrl(url)) return
-  if (response.status !== 401 && response.status !== 403) return
-  if (isPublicPagePath()) return
-
-  const authStore = useAuthStore()
-
-  if (authStore.isAuthenticated) {
-    authStore.handleUnauthorized(
-      '로그인이 만료되었습니다.\n다시 로그인해 주세요.'
-    )
-    return
-  }
-
-  authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+export function shouldAttemptTokenReissue(response, url) {
+  if (shouldOmitLoginSession(url) || !isAuthApiUrl(url)) return false
+  if (response.status !== 401) return false
+  if (isPublicPagePath()) return false
+  return true
 }
