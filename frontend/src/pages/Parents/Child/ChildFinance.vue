@@ -72,7 +72,8 @@
             @click="customOpen = !customOpen"
           >
             <p class="group-title">
-              등록한 상품 {{ filteredCustomProducts.length }}
+              등록한 상품
+              <span class="count-badge">{{ filteredCustomProducts.length }}</span>
             </p>
             <img
               src="@/assets/icons/icon-chevron.svg"
@@ -135,7 +136,7 @@
         >
           <p class="pending-heading">
             처리 필요
-            <span class="pending-count">{{ pendingApprovals.length }}</span>
+            <span class="count-badge">{{ pendingApprovals.length }}</span>
           </p>
 
           <div
@@ -179,7 +180,10 @@
         </section>
 
         <template v-for="group in groupedActiveProducts" :key="group.label">
-          <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
+          <p class="group-title">
+            {{ group.label }}
+            <span class="count-badge">{{ group.items.length }}</span>
+          </p>
 
           <div
             v-for="product in group.items"
@@ -223,7 +227,8 @@
           class="completed-list"
         >
           <p class="group-title">
-            처리 완료 {{ filteredCompletedApprovals.length }}
+            처리 완료
+            <span class="count-badge">{{ filteredCompletedApprovals.length }}</span>
           </p>
 
           <div
@@ -710,7 +715,7 @@ onMounted(loadFinance)
   color: #191b1e;
 }
 
-.pending-count {
+.count-badge {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
@@ -1000,6 +1005,9 @@ onMounted(loadFinance)
 }
 
 .group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 10px;
   font-size: 14px;
   font-weight: 800;
