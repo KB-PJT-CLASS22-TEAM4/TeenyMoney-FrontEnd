@@ -144,7 +144,11 @@
           <div
             v-for="item in pendingApprovals"
             :key="item.enrollmentId"
-            class="pending-card"
+            class="pending-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goApprovalDetail(item)"
+            @keydown.enter="goApprovalDetail(item)"
           >
             <div class="pending-top">
               <p class="pending-title">{{ item.title }}</p>
@@ -157,7 +161,7 @@
               <button
                 class="detail-btn"
                 type="button"
-                @click="goApprovalDetail(item)"
+                @click.stop="goApprovalDetail(item)"
               >
                 상세보기
               </button>
@@ -165,7 +169,7 @@
                 class="reject-btn"
                 type="button"
                 :disabled="processingKey === item.enrollmentId"
-                @click="handleRejectApproval(item)"
+                @click.stop="handleRejectApproval(item)"
               >
                 거절
               </button>
@@ -173,7 +177,7 @@
                 class="approve-btn"
                 type="button"
                 :disabled="processingKey === item.enrollmentId"
-                @click="handleApproveApproval(item)"
+                @click.stop="handleApproveApproval(item)"
               >
                 {{ processingKey === item.enrollmentId ? '처리 중...' : '승인' }}
               </button>

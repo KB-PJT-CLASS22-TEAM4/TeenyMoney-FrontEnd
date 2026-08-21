@@ -362,34 +362,39 @@
       <!-- =========================
            생성
       ========================== -->
-      <div class="submit-row">
-        <button
-          class="submit-btn"
-          :disabled="
-            !canSubmit ||
-            isCreating
-          "
-          @click="handleCreate(false)"
-        >
-          {{
-            isCreating
-              ? '생성 중...'
-              : '생성하기'
-          }}
-        </button>
-
-        <button
-          class="submit-continue-btn"
-          type="button"
-          :disabled="
-            !canSubmit ||
-            isCreating
-          "
-          @click="handleCreate(true)"
-        >
+      <label class="continue-check">
+        <input
+          v-model="continueCreating"
+          class="continue-check-input"
+          type="checkbox"
+        />
+        <span class="continue-check-box">
+          <img
+            v-if="continueCreating"
+            src="@/assets/icons/icon-check.svg"
+            alt=""
+            class="continue-check-icon"
+          />
+        </span>
+        <span class="continue-check-label">
           계속 생성하기
-        </button>
-      </div>
+        </span>
+      </label>
+
+      <button
+        class="submit-btn"
+        :disabled="
+          !canSubmit ||
+          isCreating
+        "
+        @click="handleCreate"
+      >
+        {{
+          isCreating
+            ? '생성 중...'
+            : '생성하기'
+        }}
+      </button>
 
       <p class="submit-notice">
         생성된 퀘스트는 자녀의 대시보드에 즉시 노출됩니다.
@@ -827,6 +832,9 @@ const isChildrenLoading =
   ref(false)
 
 const isCreating =
+  ref(false)
+
+const continueCreating =
   ref(false)
 
 const childrenError =
@@ -1608,9 +1616,7 @@ function resetCreateForm() {
 
 
 // 퀘스트 생성
-async function handleCreate(
-  continueCreating = false
-) {
+async function handleCreate() {
 
   if (
     !canSubmit.value ||
@@ -1677,7 +1683,7 @@ async function handleCreate(
         '퀘스트가 생성됐어요!'
       )
 
-      if (continueCreating) {
+      if (continueCreating.value) {
         resetCreateForm()
         return
       }
@@ -2272,15 +2278,56 @@ async function handleCreate(
    생성 버튼
 ========================= */
 
-.submit-row {
+.continue-check {
   display: flex;
-  align-items: stretch;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.continue-check-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.continue-check-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #c5c9d0;
+  border-radius: 3px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.continue-check:has(.continue-check-input:checked) .continue-check-box {
+  border-color: #ffbc00;
+  background: #ffbc00;
+}
+
+.continue-check-icon {
+  width: 10px;
+  height: 10px;
+}
+
+.continue-check-label {
+  color: #8b9097;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .submit-btn {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   height: 49px;
 
   border: none;
@@ -2298,31 +2345,6 @@ async function handleCreate(
 }
 
 .submit-btn:disabled {
-  opacity: 0.4;
-
-  cursor: not-allowed;
-}
-
-.submit-continue-btn {
-  flex: 0 0 auto;
-  height: 49px;
-  padding: 0 12px;
-
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-
-  background: #ffffff;
-
-  color: #191b1e;
-
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-
-  cursor: pointer;
-}
-
-.submit-continue-btn:disabled {
   opacity: 0.4;
 
   cursor: not-allowed;
