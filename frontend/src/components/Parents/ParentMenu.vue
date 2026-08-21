@@ -414,7 +414,13 @@ function goWithChild(childId) {
 
 .menu-item.active,
 .menu-item.picking {
-  background: #fff8dc;
+  background: #f4f5f7;
+  box-shadow: inset 3px 0 0 #191b1e;
+}
+
+.menu-item.active .item-chevron,
+.menu-item.picking .item-chevron {
+  color: #191b1e;
 }
 
 .item-chevron {
