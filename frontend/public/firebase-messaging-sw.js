@@ -21,7 +21,7 @@ messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || '티니머니'
   const options = {
     body: payload.notification?.body || '',
-    icon: '/favicon.ico',
+    icon: '/icons/icon-192.png',
   }
   self.registration.showNotification(title, options)
 })

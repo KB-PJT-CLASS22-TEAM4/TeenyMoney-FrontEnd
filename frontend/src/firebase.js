@@ -41,7 +41,9 @@ export async function requestFcmToken() {
       return null
     }
 
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: '/firebase-cloud-messaging-push-scope',
+    })
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,

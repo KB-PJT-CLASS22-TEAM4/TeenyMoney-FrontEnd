@@ -43,6 +43,21 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // 앱이 켜질 때, 서버에 등록된 FCM 토큰을 현재 기기 토큰으로 맞춘다.
+  // 브라우저는 FCM 토큰을 임의로 갱신하는데 로그인 시점에만 보내면, 그 사이 주소가
+  // 바뀐 것을 서버가 모른 채 옛 주소로 계속 보낸다. 에러도 나지 않고 알림만 조용히
+  // 끊기며, 로그인은 2주간 유지되므로 다시 로그인하기 전까지 복구되지 않는다.
+  //
+  // 이미 권한을 허용한 사용자만 대상이다. 여기서 권한을 다시 물으면 앱을 열 때마다
+  // 팝업이 뜬다. 권한이 없는 사용자는 로그인 시 setUser가 요청한다.
+  if (
+    isAuthenticated.value &&
+    typeof Notification !== 'undefined' &&
+    Notification.permission === 'granted'
+  ) {
+    registerFcmToken();
+  }
+
   function clearUser() {
     accessToken.value = null;
     memberId.value = null;
