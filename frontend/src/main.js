@@ -19,3 +19,10 @@ setupFetchAuthInterceptor()
 setupAuthRouterGuard(router)
 
 app.mount('#app')
+
+// PWA 설치용 서비스워커 (FCM 워커와 scope가 겹치지 않도록 분리)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}
