@@ -34,13 +34,6 @@
             </div>
           </div>
 
-          <div class="sub-row">
-            <span class="sub-text">지난 달 보다</span>
-            <span class="sub-diff" :style="{ color: scoreDiff < 0 ? '#e5484d' : currentGradeInfo.color }">
-              {{ scoreDiff >= 0 ? '+' : '' }}{{ scoreDiff }}점
-            </span>
-          </div>
-
           <!-- 등급 갱신 주기 안내 배너 -->
           <div
             class="notice-banner"
@@ -61,7 +54,7 @@
           </div>
 
           <!-- 등급 세그먼트 트랙 -->
-          <div class="segment-wrap" :class="{ 'has-mismatch': isGradeMismatch }">
+          <div class="segment-wrap">
             <div class="segment-track">
               <div class="segment-track-bg">
                 <div
@@ -72,7 +65,7 @@
                 ></div>
               </div>
               <div class="segment-pointer" :style="{ left: thumbPercent + '%' }">
-                <span v-if="isGradeMismatch" class="segment-pointer-bubble">다음 달 등급</span>
+                <span class="segment-pointer-bubble">{{ isGradeMismatch ? '다음 달 등급' : '현재 등급' }}</span>
                 <span class="segment-pointer-dot" :style="{ borderColor: (projectedGrade ?? currentGradeInfo).color }"></span>
               </div>
               <div
@@ -144,12 +137,11 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getTeenyScore, getTeenyScoreGrades, getMyHistories } from '@/api/teenyScore'
+import { getTeenyScore, getTeenyScoreGrades } from '@/api/teenyScore'
 import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildNavActions from '@/components/Child/ChildNavActions.vue'
-import { parseServerDate } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -171,28 +163,22 @@ const GRADE_ID_META = {
 const FALLBACK_META = { color: '#999999', headline: '', perks: [] }
 
 const score = ref(0)
-const grade = ref('') 
-const scoreDiff = ref(0)
-const gradesAsc = ref([]) 
+const grade = ref('')
+const gradesAsc = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
-
-function parseCreatedAt(dateVal) {
-  return parseServerDate(dateVal)
-}
 
 async function loadData() {
   loading.value = true
   errorMsg.value = ''
   try {
-    const [scoreRes, gradesRes, historyRes] = await Promise.all([
+    const [scoreRes, gradesRes] = await Promise.all([
       getTeenyScore(accessToken.value, childId.value),
       getTeenyScoreGrades(accessToken.value),
-      getMyHistories(accessToken.value),
     ])
 
     score.value = scoreRes.data.teenyScore
-    grade.value = scoreRes.data.gradeName 
+    grade.value = scoreRes.data.gradeName
 
     gradesAsc.value = [...gradesRes.data]
       .sort((a, b) => a.minScore - b.minScore)
@@ -203,20 +189,11 @@ async function loadData() {
           label: g.gradeName,
           min: g.minScore,
           max: g.maxScore,
-          color: g.color, 
+          color: g.color,
           headline: meta.headline,
           perks: meta.perks,
         }
       })
-
-    const histories = [...historyRes.data]
-      .map((h) => ({ ...h, parsedDate: parseCreatedAt(h.createdAt) }))
-      .filter((h) => h.parsedDate !== null)
-      .sort((a, b) => b.parsedDate - a.parsedDate)
-
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-    const weekAgoEntry = histories.find((h) => h.parsedDate.getTime() <= weekAgo)
-    scoreDiff.value = weekAgoEntry ? score.value - weekAgoEntry.scoreAfter : 0
   } catch (e) {
     errorMsg.value = e.message || '등급 정보를 불러오지 못했어요.'
   } finally {
@@ -422,25 +399,6 @@ function goBack() {
   flex-shrink: 0;
 }
 
-.sub-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 10px;
-}
-
-.sub-text {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #6b7077;
-}
-
-.sub-diff {
-  font-size: 12.5px;
-  font-weight: 800;
-}
-
 .notice-banner {
   display: flex;
   align-items: center;
@@ -468,12 +426,8 @@ function goBack() {
 }
 
 /* 세그먼트 트랙 */
+/* 점 위에 항상 말풍선 라벨이 뜨므로 윗 요소와 겹치지 않도록 여유를 준다 */
 .segment-wrap {
-  margin-top: 20px;
-}
-
-/* 점 위에 말풍선 라벨이 뜰 때 윗 요소와 겹치지 않도록 여유를 더 준다 */
-.segment-wrap.has-mismatch {
   margin-top: 44px;
 }
 
@@ -600,7 +554,6 @@ function goBack() {
 
 .guide-row.current {
   background: #fff8e5;
-  border-radius: 14px;
   border: 1px solid #ffe89a;
   border-bottom: 1px solid #ffe89a;
   padding: 14px 10px;

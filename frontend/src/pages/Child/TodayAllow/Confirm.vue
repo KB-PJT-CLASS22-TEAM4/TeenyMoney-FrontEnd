@@ -32,7 +32,7 @@ function goHome() {
 
       <!-- 타이틀 -->
       <h1 class="title">요청을 보냈어요</h1>
-      <p class="subtitle">보호자가 승인하면 알림으로 알려줄게요</p>
+      <p class="subtitle">부모님이 승인하면 알림으로 알려줄게요</p>
 
       <!-- 요청 정보 카드 -->
       <div class="info-card">
@@ -49,7 +49,7 @@ function goHome() {
         <!-- 허용 기간 -->
         <div class="info-row info-row--border">
           <span class="info-label">허용 기간</span>
-          <span class="info-value">오늘 자정까지</span>
+          <span class="info-value">오늘 11:59분까지</span>
         </div>
 
         <!-- 상태 -->
@@ -64,7 +64,7 @@ function goHome() {
 
       <!-- 안내 배너 -->
       <div class="notice">
-        승인된 업종은 오늘 자정까지만 이용할 수 있어요<br />
+        승인된 업종은 오늘 11:59분까지만 이용할 수 있어요<br />
         내일 오전 0시에 자동으로 원래 설정으로 돌아가요
       </div>
     </main>
@@ -99,7 +99,7 @@ function goHome() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 24px 0;
+  padding: 90px 24px 0;
 }
 
 /* 체크 아이콘 원 */
