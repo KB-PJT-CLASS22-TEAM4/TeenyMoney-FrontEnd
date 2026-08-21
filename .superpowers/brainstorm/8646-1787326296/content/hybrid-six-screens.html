@@ -1,0 +1,120 @@
+<style>
+  :root { --yellow:#ffbc00; --ink:#17191d; --muted:#858d98; --parent:#58ae7a; --child:#579be9; }
+  .role-head { display:flex; align-items:center; gap:10px; margin:30px 0 16px; }
+  .role-head:first-of-type { margin-top:22px; }
+  .role-chip { padding:7px 11px; border-radius:999px; background:#eaf7ef; color:#328055; font-size:12px; font-weight:850; }
+  .role-chip.child { background:#eaf4ff; color:#397fc9; }
+  .role-head h3 { margin:0; font-size:20px; }
+  .screens { display:grid; grid-template-columns:repeat(3,minmax(250px,1fr)); gap:22px; }
+  .concept { padding:15px; border:1px solid #e7e9ed; border-radius:24px; background:#fff; cursor:pointer; transition:.2s ease; }
+  .concept:hover { transform:translateY(-3px); box-shadow:0 14px 32px rgba(27,36,48,.1); }
+  .concept.selected { border:2px solid var(--yellow); box-shadow:0 0 0 4px rgba(255,188,0,.14); }
+  .phone { position:relative; width:100%; max-width:275px; height:520px; margin:0 auto 14px; overflow:hidden; border:8px solid #1c1d20; border-radius:35px; background:#fff; box-shadow:0 12px 26px rgba(20,27,37,.16); }
+  .status { position:absolute; z-index:15; top:0; left:0; right:0; height:24px; padding:7px 16px; color:#66707a; font-size:8px; font-weight:800; }
+  .skip { position:absolute; z-index:15; top:29px; right:14px; padding:6px 8px; color:#7d858f; font-size:8px; font-weight:700; }
+  .visual { position:relative; height:330px; overflow:hidden; }
+  .visual.parent { background:linear-gradient(150deg,#fff5cb 0%,#e8f8ef 100%); }
+  .visual.child { background:linear-gradient(150deg,#e6f5ff 0%,#fff5c9 100%); }
+  .scene { position:absolute; z-index:2; bottom:-53px; width:235px; height:295px; object-fit:cover; filter:drop-shadow(0 8px 10px rgba(40,58,50,.12)); }
+  .scene.left { left:-35px; object-position:38% 66%; }
+  .scene.right { right:-38px; object-position:60% 68%; }
+  .float { position:absolute; z-index:5; padding:11px 12px; border:1px solid rgba(255,255,255,.9); border-radius:15px; background:rgba(255,255,255,.94); box-shadow:0 10px 23px rgba(48,64,58,.14); backdrop-filter:blur(8px); }
+  .float small { display:block; margin-bottom:5px; color:#9299a2; font-size:7px; font-weight:650; }
+  .float strong { display:block; color:#1a1c20; font-size:14px; line-height:1.15; }
+  .float .sub { margin-top:5px; color:#6f7781; font-size:7px; }
+  .float .positive { color:#45a56d; }
+  .float .yellow { color:#b77d00; }
+  .float .blue { color:#438bd7; }
+  .f-wide { top:64px; right:12px; width:126px; }
+  .f-small { top:151px; right:23px; width:102px; }
+  .child .f-wide { left:12px; right:auto; }
+  .child .f-small { left:25px; right:auto; }
+  .progress { height:7px; margin-top:8px; overflow:hidden; border-radius:7px; background:#edf0f3; }
+  .progress i { display:block; width:64%; height:100%; border-radius:7px; background:var(--parent); }
+  .child .progress i { width:72%; background:var(--child); }
+  .mini-row { display:flex; justify-content:space-between; gap:5px; margin-top:7px; color:#747d87; font-size:7px; }
+  .pill { display:inline-block; margin-top:7px; padding:4px 7px; border-radius:8px; background:#fff1b8; color:#a56f00; font-size:7px; font-weight:800; }
+  .pill.green { background:#e6f6ec; color:#338358; }
+  .pill.blue { background:#e7f2ff; color:#3c7fc4; }
+  .star { position:absolute; z-index:3; color:#ffbd16; text-shadow:0 5px 12px rgba(175,117,0,.2); }
+  .star.s1 { top:72px; left:23px; font-size:29px; transform:rotate(-10deg); }
+  .star.s2 { top:132px; right:18px; font-size:18px; transform:rotate(14deg); }
+  .coin { position:absolute; z-index:3; display:grid; width:30px; height:30px; place-items:center; border-radius:50%; background:#ffcb2f; box-shadow:0 6px 12px rgba(134,93,0,.18); color:#9e6800; font-size:13px; font-weight:900; }
+  .coin.c1 { top:76px; left:23px; transform:rotate(-8deg); }
+  .coin.c2 { top:124px; right:20px; transform:scale(.75) rotate(12deg); }
+  .copy { position:absolute; z-index:10; left:0; right:0; bottom:0; min-height:218px; padding:19px 18px 16px; border-radius:24px 24px 0 0; background:#fff; box-shadow:0 -9px 22px rgba(66,73,81,.06); }
+  .dots { display:flex; justify-content:center; gap:5px; margin-bottom:14px; }
+  .dots i { width:6px; height:6px; border-radius:6px; background:#dfe3e8; }
+  .dots i.on { width:19px; background:var(--yellow); }
+  .copy .eyebrow { margin:0 0 7px; color:#d18d00; font-size:9px; font-weight:850; }
+  .copy h4 { margin:0 0 8px; color:var(--ink); font-size:19px; line-height:1.25; letter-spacing:-.7px; }
+  .copy p { min-height:34px; margin:0 0 14px; color:var(--muted); font-size:10px; line-height:1.5; }
+  .next { width:100%; height:39px; border:0; border-radius:11px; background:var(--yellow); color:var(--ink); font-size:11px; font-weight:850; }
+  .concept > h4 { margin:0 0 5px; font-size:15px; }
+  .concept > p { margin:0; color:#7b838e; font-size:11px; line-height:1.45; }
+  .flow { margin-top:28px; padding:18px; border-radius:18px; background:#f7f8fa; }
+  .flow strong { display:block; margin-bottom:10px; font-size:14px; }
+  .flow-line { display:flex; align-items:center; justify-content:center; gap:9px; flex-wrap:wrap; }
+  .flow-line span { padding:8px 11px; border-radius:10px; background:#fff; border:1px solid #e8eaee; color:#555e69; font-size:11px; font-weight:750; }
+  .flow-line b { color:#b9bec5; }
+  .approval { margin-top:18px; padding:17px; border:2px solid #ffd15a; border-radius:17px; background:#fff9e4; cursor:pointer; text-align:center; }
+  .approval.selected { background:#fff2bc; box-shadow:0 0 0 4px rgba(255,188,0,.14); }
+  .approval strong { display:block; margin-bottom:4px; color:#604600; font-size:14px; }
+  .approval span { color:#8e741f; font-size:11px; }
+  @media (max-width:980px) { .screens { grid-template-columns:repeat(2,minmax(250px,1fr)); } }
+  @media (max-width:650px) { .screens { grid-template-columns:1fr; } }
+</style>
+
+<h2>C안 확장: 역할별 기능 소개 온보딩 6장</h2>
+<p class="subtitle">캐릭터는 감정을 전달하고, 플로팅 기능 카드는 실제로 무엇을 할 수 있는지 보여줍니다.</p>
+
+<div class="role-head"><span class="role-chip">부모 계정</span><h3>함께 관리하고 성장시키는 경험</h3></div>
+<div class="screens">
+  <div class="concept" data-choice="parent-allowance" onclick="toggleSelect(this)">
+    <div class="phone"><div class="status">9:41</div><div class="skip">건너뛰기</div>
+      <div class="visual parent"><span class="coin c1">₩</span><img class="scene left" src="/files/frontend/src/assets/onboarding/parent-scene.png" alt="부모 캐릭터"><div class="float f-wide"><small>이번 달 용돈</small><strong>50,000원</strong><div class="progress"><i></i></div><div class="mini-row"><span>사용 32%</span><span>남음 68%</span></div></div><div class="float f-small"><small>새로운 요청</small><strong>1건</strong><span class="pill">확인하기</span></div></div>
+      <div class="copy"><div class="dots"><i class="on"></i><i></i><i></i></div><p class="eyebrow">01 · 용돈과 소비 관리</p><h4>쉽게 보고,<br>함께 관리해요</h4><p>용돈을 보내고 사용 내역과 허용 요청을 한눈에 확인해요.</p><button class="next">다음</button></div>
+    </div><h4>부모 1 · 용돈 관리</h4><p>월 용돈 현황과 승인 요청을 기능 카드로 표현</p>
+  </div>
+
+  <div class="concept" data-choice="parent-finance" onclick="toggleSelect(this)">
+    <div class="phone"><div class="status">9:41</div><div class="skip">건너뛰기</div>
+      <div class="visual parent"><img class="scene right" src="/files/frontend/src/assets/onboarding/parent-scene.png" alt="부모 캐릭터"><div class="float f-wide" style="left:13px;right:auto"><small>우리 가족 적금</small><strong>꿈나무 적금</strong><div class="sub">매주 5,000원 · 12주</div><span class="pill green">연 5.0%</span></div><div class="float f-small" style="left:27px;right:auto;top:170px"><small>가입 승인</small><strong class="positive">대기 1건</strong></div><span class="coin c2">₩</span></div>
+      <div class="copy"><div class="dots"><i></i><i class="on"></i><i></i></div><p class="eyebrow">02 · 우리 가족 금융상품</p><h4>아이에게 맞는<br>금융 경험을 만들어요</h4><p>예·적금 상품을 만들고 자녀의 가입을 함께 결정해요.</p><button class="next">다음</button></div>
+    </div><h4>부모 2 · 금융상품</h4><p>상품 조건과 가입 승인이라는 부모 역할을 강조</p>
+  </div>
+
+  <div class="concept" data-choice="parent-growth" onclick="toggleSelect(this)">
+    <div class="phone"><div class="status">9:41</div><div class="skip">건너뛰기</div>
+      <div class="visual parent"><span class="star s1">★</span><span class="star s2">★</span><img class="scene left" src="/files/frontend/src/assets/onboarding/parent-scene.png" alt="부모 캐릭터"><div class="float f-wide"><small>이번 주 퀘스트</small><strong>책상 정리하기</strong><div class="progress"><i style="width:88%"></i></div><span class="pill green">인증 기다리는 중</span></div><div class="float f-small"><small>티니점수</small><strong class="yellow">720점</strong><div class="sub">+35 성장</div></div></div>
+      <div class="copy"><div class="dots"><i></i><i></i><i class="on"></i></div><p class="eyebrow">03 · 퀘스트와 티니점수</p><h4>즐거운 도전이<br>좋은 습관이 돼요</h4><p>퀘스트를 만들고 티니점수로 자녀의 성장을 응원해요.</p><button class="next">자녀와 연결하기</button></div>
+    </div><h4>부모 3 · 성장 관리</h4><p>퀘스트 진행과 점수 변화를 하나의 성장 장면으로 표현</p>
+  </div>
+</div>
+
+<div class="role-head"><span class="role-chip child">자녀 계정</span><h3>직접 선택하고 경험하는 금융 모험</h3></div>
+<div class="screens">
+  <div class="concept" data-choice="child-allowance" onclick="toggleSelect(this)">
+    <div class="phone"><div class="status">9:41</div><div class="skip">건너뛰기</div>
+      <div class="visual child"><img class="scene right" src="/files/frontend/src/assets/onboarding/child-scene.png" alt="자녀 캐릭터"><div class="float f-wide"><small>내 용돈</small><strong>32,500원</strong><div class="mini-row"><span>이번 달 사용</span><b>17,500원</b></div></div><div class="float f-small"><small>오늘만 허용</small><strong class="blue">요청하기</strong><span class="pill blue">문화·여가</span></div><span class="coin c2">₩</span></div>
+      <div class="copy"><div class="dots"><i class="on"></i><i></i><i></i></div><p class="eyebrow">01 · 내 용돈 관리</p><h4>내 용돈을 보고,<br>필요할 땐 요청해요</h4><p>잔액과 사용 내역을 확인하고 부모님께 허용을 요청해요.</p><button class="next">다음</button></div>
+    </div><h4>자녀 1 · 용돈과 요청</h4><p>잔액 확인과 오늘만 허용 요청을 직관적으로 표현</p>
+  </div>
+
+  <div class="concept" data-choice="child-finance" onclick="toggleSelect(this)">
+    <div class="phone"><div class="status">9:41</div><div class="skip">건너뛰기</div>
+      <div class="visual child"><img class="scene left" src="/files/frontend/src/assets/onboarding/child-scene.png" alt="자녀 캐릭터"><div class="float f-wide" style="right:12px;left:auto"><small>추천 금융상품</small><strong>꿈나무 적금</strong><div class="sub">목표 60,000원 · 12주</div><span class="pill blue">도전해 보기</span></div><div class="float f-small" style="right:28px;left:auto;top:174px"><small>목표 달성</small><strong class="blue">72%</strong><div class="progress"><i></i></div></div><span class="coin c1">₩</span></div>
+      <div class="copy"><div class="dots"><i></i><i class="on"></i><i></i></div><p class="eyebrow">02 · 직접 경험하는 금융상품</p><h4>내가 고르고,<br>목표를 향해 모아요</h4><p>부모님이 만든 예·적금을 살펴보고 직접 가입해요.</p><button class="next">다음</button></div>
+    </div><h4>자녀 2 · 금융상품</h4><p>상품 선택과 저축 목표 달성 경험을 강조</p>
+  </div>
+
+  <div class="concept" data-choice="child-growth" onclick="toggleSelect(this)">
+    <div class="phone"><div class="status">9:41</div><div class="skip">건너뛰기</div>
+      <div class="visual child"><span class="star s1">★</span><span class="star s2">★</span><img class="scene right" src="/files/frontend/src/assets/onboarding/child-scene.png" alt="자녀 캐릭터"><div class="float f-wide"><small>오늘의 퀘스트</small><strong>심부름 완료!</strong><span class="pill blue">+100 포인트</span></div><div class="float f-small"><small>티니점수</small><strong class="blue">720점</strong><div class="sub">다음 등급까지 80</div></div></div>
+      <div class="copy"><div class="dots"><i></i><i></i><i class="on"></i></div><p class="eyebrow">03 · 퀘스트와 티니점수</p><h4>도전할수록<br>금융 실력이 자라요</h4><p>퀘스트를 완료하고 티니점수와 금융 경험을 쌓아요.</p><button class="next">부모님과 연결하기</button></div>
+    </div><h4>자녀 3 · 퀘스트와 점수</h4><p>보상과 다음 등급을 보여줘 참여 동기를 강조</p>
+  </div>
+</div>
+
+<div class="flow"><strong>최종 사용자 흐름</strong><div class="flow-line"><span>회원가입·로그인</span><b>→</b><span>역할별 기능 소개 3장</span><b>→</b><span>현재 가족연동 온보딩</span><b>→</b><span>홈</span></div></div>
+<div class="approval" data-choice="approve-hybrid-six" onclick="toggleSelect(this)"><strong>이 하이브리드 6장 구성을 기준으로 발전시키기</strong><span>화면을 살펴본 뒤 이 영역을 클릭하거나 터미널에 수정 의견을 남겨주세요.</span></div>

@@ -563,6 +563,7 @@ import { useAuthStore } from '@/stores/auth'
 
 import {
   confirmGuardianVerification,
+  login,
   sendGuardianVerificationCode,
   sendPhoneVerificationCode,
   signup,
@@ -577,6 +578,7 @@ import {
 } from '@/api/terms'
 import AlertHost from '@/components/AlertHost.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
+import { ONBOARDING_PENDING_MEMBER_KEY } from '@/utils/onboarding'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -1776,8 +1778,30 @@ async function doSignup() {
       return
     }
 
+    if (response.data?.memberId != null) {
+      localStorage.setItem(
+        ONBOARDING_PENDING_MEMBER_KEY,
+        String(response.data.memberId),
+      )
+    }
+
+    try {
+      const loginResponse = await login(
+        requestData.email,
+        requestData.password,
+      )
+
+      if (loginResponse.success) {
+        authStore.setUser(loginResponse.data)
+        await router.push({ name: 'onboarding' })
+        return
+      }
+    } catch (loginError) {
+      console.warn('가입 후 자동 로그인 실패:', loginError)
+    }
+
     alertModal.showAlert(
-      '회원가입이 완료됐어요!',
+      '회원가입이 완료됐어요. 로그인해 주세요.',
     )
     await router.push('/login')
     
