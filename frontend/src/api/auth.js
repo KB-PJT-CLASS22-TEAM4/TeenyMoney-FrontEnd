@@ -94,18 +94,36 @@ export async function login(email, password) {
 
 // 로그아웃
 export async function logout(accessToken) {
-  const csrfToken = await getCsrfToken();
+  if (!accessToken) {
+    throw new Error('로그인 정보가 없습니다.')
+  }
+
+  const headers = {
+    Accept: 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+  }
+
+  try {
+    const csrfToken = await getCsrfToken()
+    headers['Content-Type'] = 'application/json'
+    headers['X-XSRF-TOKEN'] = csrfToken
+  } catch {
+    // swagger 명세는 Authorization만 필수
+  }
 
   const res = await fetch(`${BASE_URL}/logout`, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      'X-XSRF-TOKEN': csrfToken,
-    },
-  });
-  return res.json();
+    headers,
+  })
+
+  const result = await parseJsonSafe(res)
+
+  if (!isApiSuccess(res, result)) {
+    throw new Error(result?.message || '로그아웃에 실패했습니다.')
+  }
+
+  return result ?? { success: true }
 }
 
 // 재발급: refresh는 쿠키로 가고, 새 access를 받아온다. CSRF 대상 경로다.

@@ -242,401 +242,573 @@ function onScroll() {
 
 
 <template>
-  <div class="mypage-screen">
+  <div class="page">
     <header class="nav">
-      <button class="back-btn" type="button" aria-label="뒤로가기" @click="goBack">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <img
+        src="@/assets/icons/icon-back.svg"
+        alt=""
+        class="back-icon"
+        @click="goBack"
+      />
+
       <h1 class="nav-title">마이페이지</h1>
+
       <ChildNavActions />
     </header>
 
-    <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
-
-      <!-- 프로필 -->
-      <section class="profile">
+    <main class="content">
+      <section class="profile-card">
         <button
           type="button"
-          class="avatar-button"
+          class="profile-image-wrapper"
           :disabled="isUploadingProfile"
           aria-label="프로필 사진 변경"
           @click="openProfilePicker"
         >
-          <div class="avatar">
-            <img
-              :src="user.profileImageUrl || CHILD_PROFILE_IMAGE"
-              alt="프로필 이미지"
-              class="avatar-img"
-              :class="{ 'photo-img': !!user.profileImageUrl }"
-            />
-            <span class="avatar-edit-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none">
-                <path
-                  d="M4 8.5h2.2l1.1-2.2h9.4L18 8.5H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5z"
-                  stroke="#191b1e"
-                  stroke-width="1.6"
-                />
-                <circle cx="12" cy="14" r="3.2" stroke="#191b1e" stroke-width="1.6"/>
-              </svg>
-            </span>
-          </div>
+          <img
+            :src="user.profileImageUrl || CHILD_PROFILE_IMAGE"
+            alt="프로필 이미지"
+            class="profile-image"
+            :class="{ photo: !!user.profileImageUrl }"
+          />
+          <span class="profile-edit-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
+              <path
+                d="M4 8.5h2.2l1.1-2.2h9.4L18 8.5H20a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 19.5H4A1.5 1.5 0 0 1 2.5 18v-8A1.5 1.5 0 0 1 4 8.5z"
+                stroke="#191b1e"
+                stroke-width="1.6"
+              />
+              <circle cx="12" cy="14" r="3.2" stroke="#191b1e" stroke-width="1.6"/>
+            </svg>
+          </span>
         </button>
         <input
           ref="profileFileInput"
+          class="profile-file-input"
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          class="profile-file-input"
           @change="onProfileFileChange"
         />
+
         <div class="profile-text">
-          <p class="profile-name">{{ user.name }}</p>
-          <p class="profile-birth">{{ user.birth }}</p>
+          <span class="role-badge">자녀</span>
+          <strong class="member-name">
+            {{ user.name || '-' }}
+          </strong>
+          <span class="member-birth">
+            {{ user.birth || '-' }}
+          </span>
         </div>
       </section>
 
-      <!-- 연락처 -->
-      <div class="field">
-        <div class="field-head">
-          <span class="field-label">연락처</span>
+      <section class="info-card">
+        <div class="info-item">
+          <span class="info-label">연락처</span>
+          <p class="info-value">
+            {{ formattedPhone || '-' }}
+          </p>
         </div>
-        <p class="field-value">{{ formattedPhone }}</p>
-      </div>
 
-      <!-- 이메일 -->
-      <div class="field">
-        <div class="field-head">
-          <span class="field-label">이메일</span>
+        <div class="info-divider"></div>
+
+        <div class="info-item">
+          <span class="info-label">이메일</span>
+          <p class="info-value">
+            {{ user.email || '-' }}
+          </p>
         </div>
-        <p class="field-value">{{ user.email }}</p>
-      </div>
+      </section>
 
-      <hr class="divider" />
+      <section class="menu-card">
+        <button
+          type="button"
+          class="menu-button"
+          :class="{ 'is-locked': isPasswordSet }"
+          @click="goPasswordSetting"
+        >
+          <span class="menu-label">결제 비밀번호</span>
+          <span
+            class="status-pill"
+            :class="isPasswordSet ? 'on' : 'off'"
+          >
+            {{ isPasswordSet ? '등록됨' : '미등록' }}
+          </span>
+        </button>
+      </section>
 
-      <!-- 결제 비밀번호 설정 -->
-      <div class="menu-row" :class="{ 'is-locked': isPasswordSet }" @click="goPasswordSetting">
-        <span class="menu-title">결제 비밀번호 설정</span>
-        <svg v-if="isPasswordSet" viewBox="0 0 24 24" width="18" height="18" fill="none" class="lock-ic" aria-label="설정 완료">
-          <rect x="5" y="11" width="14" height="9" rx="2" stroke="#94a3b8" stroke-width="2"/>
-          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#94a3b8" stroke-width="2"/>
-          <circle cx="12" cy="15.5" r="1.2" fill="#94a3b8"/>
-        </svg>
-        <span v-else class="chev">›</span>
-      </div>
+      <section class="section-block">
+        <h2 class="section-title">연결된 부모님</h2>
 
-      <!-- 연결된 부모님 -->
-      <section class="parents">
-        <p class="section-label">연결된 부모님</p>
+        <div class="section-card">
+          <div v-if="parent" class="parent-item">
+            <div class="parent-info">
+              <img
+                :src="parent.profileImageUrl || PARENT_PROFILE_IMAGE"
+                alt=""
+                class="parent-icon"
+                :class="{ photo: !!parent.profileImageUrl }"
+              />
+              <div class="parent-text">
+                <strong class="parent-name">{{ parent.name }}</strong>
+                <span class="parent-status">연동됨</span>
+              </div>
+            </div>
+          </div>
 
-        <div v-if="parent" class="parent-row">
-          <div class="parent-avatar">
+          <p
+            v-else
+            class="empty-message"
+          >
+            아직 연동된 부모님이 없어요
+          </p>
+
+          <button
+            type="button"
+            class="add-parent-btn"
+            @click="addParent"
+          >
+            + 부모님 추가 · 연동 코드 입력
+          </button>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <h2 class="section-title">알림 설정</h2>
+
+        <div class="menu-card">
+          <div class="toggle-row menu-border">
+            <span class="menu-label">금융상품 알림</span>
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="notificationSettings.notificationFinance"
+                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationFinance'"
+                @change="onToggleNotification('notificationFinance', $event.target.checked)"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row menu-border">
+            <span class="menu-label">결제 알림</span>
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="notificationSettings.notificationPayment"
+                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationPayment'"
+                @change="onToggleNotification('notificationPayment', $event.target.checked)"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <span class="menu-label">퀘스트 알림</span>
+            <label class="switch">
+              <input
+                type="checkbox"
+                :checked="notificationSettings.notificationQuest"
+                :disabled="notificationSettingLoading || notificationSavingKey === 'notificationQuest'"
+                @change="onToggleNotification('notificationQuest', $event.target.checked)"
+              >
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <h2 class="section-title">고객지원</h2>
+
+        <div class="menu-card">
+          <button
+            type="button"
+            class="menu-button menu-border"
+            @click="goFaq"
+          >
+            <span class="menu-label">FAQ</span>
             <img
-              :src="parent.profileImageUrl || PARENT_PROFILE_IMAGE"
-              alt="부모님 프로필"
-              class="parent-avatar-img"
-              :class="{ 'photo-img': !!parent.profileImageUrl }"
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
             />
-          </div>
-          <div class="parent-text">
-            <b class="parent-name">{{ parent.name }}</b>
-            <span class="parent-status">연동됨</span>
-          </div>
-        </div>
+          </button>
 
-        <p v-else class="no-parent-text">아직 연동된 부모님이 없어요</p>
-
-        <!-- 부모님 추가 -->
-        <div class="add-parent" @click="addParent">
-          <span class="plus">+</span>
-          <span class="add-text">부모님 추가 · 연동 코드 입력</span>
-        </div>
-      </section>
-
-      <!-- 알림 설정 -->
-      <section class="menu-group">
-        <p class="section-label">알림 설정</p>
-
-        <div class="toggle-row">
-          <span class="menu-title">금융상품 알림</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              :checked="notificationSettings.notificationFinance"
-              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationFinance'"
-              @change="onToggleNotification('notificationFinance', $event.target.checked)"
-            >
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="toggle-row">
-          <span class="menu-title">결제 알림</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              :checked="notificationSettings.notificationPayment"
-              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationPayment'"
-              @change="onToggleNotification('notificationPayment', $event.target.checked)"
-            >
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="toggle-row">
-          <span class="menu-title">퀘스트 알림</span>
-          <label class="switch">
-            <input
-              type="checkbox"
-              :checked="notificationSettings.notificationQuest"
-              :disabled="notificationSettingLoading || notificationSavingKey === 'notificationQuest'"
-              @change="onToggleNotification('notificationQuest', $event.target.checked)"
-            >
-            <span class="slider"></span>
-          </label>
+          <button
+            type="button"
+            class="menu-button"
+            @click="goPolicy"
+          >
+            <span class="menu-label">약관 및 정책</span>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
+            />
+          </button>
         </div>
       </section>
 
-      <!-- 고객지원 -->
-      <section class="menu-group">
-        <p class="section-label">고객지원</p>
-        <div class="menu-row" @click="goFaq">
-          <span class="menu-title">FAQ</span>
-          <span class="chev">›</span>
-        </div>
-        <div class="menu-row" @click="goPolicy">
-          <span class="menu-title">약관 및 정책</span>
-          <span class="chev">›</span>
+      <section class="section-block">
+        <h2 class="section-title">계정관리</h2>
+
+        <div class="menu-card">
+          <button
+            type="button"
+            class="menu-button"
+            @click="logout"
+          >
+            <span class="menu-label">로그아웃</span>
+          </button>
         </div>
       </section>
+    </main>
 
-    <!-- 계정관리 -->
-    <section class="menu-group">
-      <p class="section-label">계정관리</p>
-      <div class="menu-row" @click="logout">
-        <span class="menu-title">로그아웃</span>
-        <span class="chev">›</span>
-      </div>
-    </section>
-    </div>
-
-    <!-- 하단 탭바 -->
     <BottomTabBar active="my" @select="onTabSelect" />
 
-    <!-- 로그아웃 확인 모달 -->
     <ConfirmModal
       :show="showLogoutModal"
       title="로그아웃할까요?"
       confirm-text="로그아웃"
-      description="더 이상 티니머니를 이용할 수 없습니다"
+      description="로그아웃 하시겠습니까?"
       cancel-text="취소"
       @confirm="confirmLogout"
       @cancel="cancelLogout"
     />
-
   </div>
 </template>
 
 <style scoped>
-.mypage-screen {
+* {
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+}
+
+button {
+  font: inherit;
+}
+
+.page {
+  position: relative;
+  width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
+  padding-bottom: 88px;
+  color: #191b1e;
   background: #f8fafc;
-  overflow: hidden;
 }
 
 .nav {
+  position: relative;
   display: flex;
-  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  flex-shrink: 0;
-  height: 64px;
-  padding: 0 20px 4px;
-  background: #f8fafc;
+  height: 56px;
+  padding: 0 16px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #eceef1;
+}
+
+.back-icon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
 }
 
 .nav-title {
+  position: absolute;
+  left: 50%;
   margin: 0;
-  font-weight: 700;
-  font-size: 18px;
   color: #191b1e;
+  font-size: 16px;
+  font-weight: 700;
+  transform: translateX(-50%);
 }
 
-.back-btn {
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.profile-image-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  padding: 3px;
+  border: none;
+  border-radius: 50%;
+  background: #ffbc00;
+  cursor: pointer;
+}
+
+.profile-image-wrapper:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.profile-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: contain;
+  background-color: #ffffff;
+}
+
+.profile-image.photo {
+  object-fit: cover;
+}
+
+.profile-edit-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.scroll {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 20px 20px;
-}
-
-.scroll::-webkit-scrollbar {
-  width: 3px;
-}
-
-.scroll::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 999px;
-  transition: background 0.3s;
-}
-
-.scroll.scrolling::-webkit-scrollbar-thumb {
-  background: #d8dbdf;
-}
-
-/* 프로필 */
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 26px;
-}
-
-.avatar-button {
-  position: relative;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ffffff;
   border-radius: 50%;
+  background: #ffbc00;
 }
 
 .profile-file-input {
   display: none;
 }
 
-.avatar {
-  position: relative;
+.profile-text {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 76px;
-  height: 76px;
-  background: #f2f4f6;
-  border-radius: 50%;
-  flex: none;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 50%;
-}
-
-.avatar-img.photo-img,
-.parent-avatar-img.photo-img {
-  object-fit: cover;
-}
-
-.avatar-edit-badge {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.profile-name {
-  margin: 0;
-  font-weight: 800;
-  font-size: 21px;
+.role-badge {
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ffbc00;
   color: #191b1e;
-}
-
-.profile-birth {
-  margin: 6px 0 0;
-  font-weight: 600;
-  font-size: 13px;
-  color: #b9bec5;
-}
-
-/* 연락처/이메일 필드 */
-.field {
-  margin-bottom: 20px;
-}
-
-.field-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.field-label {
-  font-weight: 600;
-  font-size: 13px;
-  color: #8b9097;
-}
-
-.field-value {
-  margin: 8px 0 0;
+  font-size: 11px;
   font-weight: 700;
-  font-size: 17px;
+}
+
+.member-name {
+  overflow: hidden;
   color: #191b1e;
+  font-size: 20px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.divider {
-  border: none;
-  border-top: 1px solid #f0f1f3;
-  margin: 8px 0 20px;
+.member-birth {
+  color: #8b9097;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-/* 메뉴 행 */
-.menu-row {
+.info-card,
+.menu-card,
+.section-card {
+  overflow: hidden;
+  border-radius: 16px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.info-card {
+  padding: 4px 16px;
+}
+
+.info-item {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 12px;
   padding: 14px 0;
+}
+
+.info-label {
+  flex-shrink: 0;
+  color: #8b9097;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.info-value {
+  margin: 0;
+  min-width: 0;
+  color: #191b1e;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.info-divider {
+  height: 1px;
+  background: #e8eaee;
+}
+
+.section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-title {
+  margin: 0 0 0 4px;
+  color: #8b9097;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.menu-button,
+.payment-password-row,
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  border: none;
+  color: #191b1e;
+  background-color: transparent;
+  text-align: left;
+}
+
+.menu-button {
   cursor: pointer;
 }
 
-.menu-row.is-locked {
+.menu-button:active {
+  background-color: #fafafa;
+}
+
+.menu-button.is-locked {
   cursor: default;
 }
 
-.lock-ic {
-  flex-shrink: 0;
-  margin-right: 4px;
+.menu-label {
+  font-size: 15px;
+  font-weight: 700;
 }
 
-.menu-title {
+.menu-border {
+  border-bottom: 1px solid #e8eaee;
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 700;
-  font-size: 15px;
+}
+
+.status-pill.on {
+  background: #ffbc00;
   color: #191b1e;
 }
 
-.chev {
-  font-size: 20px;
-  color: #c5cad0;
+.status-pill.off {
+  border: 1px solid #e8eaee;
+  background: #ffffff;
+  color: #8b9097;
 }
 
-/* 알림 설정 토글 행 (menu-row와 동일 레이아웃, chevron 대신 스위치) */
-.toggle-row {
+.chevron-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.parent-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 14px 0;
+  justify-content: space-between;
+  min-height: 72px;
+  padding: 10px 14px;
+}
+
+.parent-info {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.parent-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e8eaee;
+  border-radius: 50%;
+  object-fit: contain;
+  background-color: #ffffff;
+}
+
+.parent-icon.photo {
+  object-fit: cover;
+}
+
+.parent-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.parent-name {
+  overflow: hidden;
+  color: #191b1e;
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.parent-status {
+  color: #ffbc00;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.empty-message {
+  margin: 0;
+  padding: 20px 16px 8px;
+  color: #b9bec5;
+  font-size: 13px;
+  text-align: center;
+}
+
+.add-parent-btn {
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-top: 1px solid #e8eaee;
+  background: transparent;
+  color: #8b9097;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
 }
 
 .switch {
@@ -646,7 +818,13 @@ function onScroll() {
   height: 25px;
   flex: none;
 }
-.switch input { opacity: 0; width: 0; height: 0; }
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
 .slider {
   position: absolute;
   cursor: pointer;
@@ -655,107 +833,30 @@ function onScroll() {
   border-radius: 25px;
   transition: .3s;
 }
+
 .slider:before {
   position: absolute;
   content: "";
-  height: 19px; width: 19px;
-  left: 3px; bottom: 3px;
+  height: 19px;
+  width: 19px;
+  left: 3px;
+  bottom: 3px;
   background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   transition: .3s;
 }
-input:checked + .slider { background: #ffbc00; }
-input:checked + .slider:before { transform: translateX(17px); }
-input:disabled + .slider { opacity: 0.6; cursor: not-allowed; }
 
-/* 섹션 라벨 */
-.section-label {
-  margin: 14px 0 10px;
-  font-weight: 600;
-  font-size: 12.5px;
-  color: #b9bec5;
+input:checked + .slider {
+  background: #ffbc00;
 }
 
-/* 연결된 부모님 */
-.parent-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 0 12px;
-  border-bottom: 1px solid #f4f5f7;
+input:checked + .slider:before {
+  transform: translateX(17px);
 }
 
-.parent-avatar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 38px;
-  height: 38px;
-  background: #f2f4f6;
-  border-radius: 50%;
-  flex: none;
-  overflow: hidden;
-}
-
-.parent-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.parent-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.parent-name {
-  font-weight: 700;
-  font-size: 15px;
-  color: #191b1e;
-}
-
-.parent-status {
-  font-weight: 700;
-  font-size: 12px;
-  color: #ffbc00;
-}
-
-.no-parent-text {
-  margin: 4px 0 12px;
-  font-weight: 500;
-  font-size: 13px;
-  color: #b9bec5;
-}
-
-/* 부모님 추가 */
-.add-parent {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 0;
-  cursor: pointer;
-}
-
-.plus {
-  font-size: 20px;
-  color: #8b9097;
-  padding-left: 8px;
-}
-
-.add-text {
-  font-weight: 600;
-  font-size: 14.5px;
-  color: #8b9097;
-}
-
-.menu-group {
-  margin-top: 8px;
-}
-
-/* 하단 탭바 고정 */
-.mypage-screen :deep(.tabbar) {
-  margin-top: auto;
+input:disabled + .slider {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

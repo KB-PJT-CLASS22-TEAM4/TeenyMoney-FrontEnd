@@ -69,7 +69,7 @@
             :disabled="processingKey === item.key"
             @click="openRequestDetail(item)"
           >
-            확인하기
+            상세보기
           </button>
           <button
             class="request-btn ghost"

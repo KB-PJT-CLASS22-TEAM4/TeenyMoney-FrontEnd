@@ -244,7 +244,7 @@
           </div>
 
 
-          <!-- 유해 업소 설정 -->
+          <!-- 유해 업종 설정 -->
           <div
             class="manage-card"
             @click="goToHarmfulCategory"
@@ -257,7 +257,7 @@
               </div>
 
               <div class="manage-card-title">
-                유해 업소 설정
+                업종별 결제 제한
               </div>
 
               <div class="manage-card-sub large-sub">
@@ -571,7 +571,7 @@ const scorePercent =
 
 
 // ========================================
-// 기존 유해 업소 설정 이동
+// 기존 유해 업종 설정 이동
 // ========================================
 
 function goToHarmfulCategory() {

@@ -148,6 +148,21 @@ export async function getChildCustomProducts(accessToken, childId, productType) 
   return parseResponse(response)
 }
 
+export async function getAllChildCustomProducts(accessToken, childId) {
+  ensureAccessToken(accessToken)
+  if (!childId) throw new Error('자녀 정보가 필요합니다.')
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/custom-products`,
+    {
+      method: 'GET',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}
+
 export async function deleteFinancialProduct(
   accessToken,
   childId,

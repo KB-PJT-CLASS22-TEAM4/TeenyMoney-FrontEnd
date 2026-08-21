@@ -198,7 +198,6 @@
                 >
                   {{ unlinkingId === child.childId ? '해제 중...' : '연동 해제' }}
                 </button>
-                <span class="child-chevron">›</span>
               </div>
             </div>
           </template>
@@ -223,7 +222,11 @@
             @click="goToFaq"
           >
             <span class="menu-label">FAQ</span>
-            <span class="chevron">›</span>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
+            />
           </button>
 
           <button
@@ -232,7 +235,11 @@
             @click="goToTerms"
           >
             <span class="menu-label">약관 및 정책</span>
-            <span class="chevron">›</span>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
+            />
           </button>
         </div>
       </section>
@@ -282,6 +289,7 @@ import {
 import { useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { logout as logoutApi } from '@/api/auth'
 import { getMyInfo, updateMyProfileImage } from '@/api/member'
 import { getChildren } from '@/api/children'
 import { unlinkFamily } from '@/api/families'
@@ -682,7 +690,6 @@ async function onProfileFileChange(event) {
 ========================= */
 
 async function logout() {
-
   const confirmed = await alertModal.showConfirm(
     '로그아웃하시겠습니까?'
   )
@@ -691,8 +698,14 @@ async function logout() {
     return
   }
 
-  authStore.clearUser()
-  router.replace('/login')
+  try {
+    await logoutApi(authStore.accessToken)
+  } catch (error) {
+    console.error('로그아웃 요청 실패:', error)
+  } finally {
+    authStore.clearUser()
+    router.replace('/login')
+  }
 }
 
 /* =========================
@@ -978,12 +991,10 @@ button {
   color: #8b9097;
 }
 
-.chevron,
-.child-chevron {
-  color: #c5cad0;
-  font-size: 22px;
-  font-weight: 300;
-  line-height: 1;
+.chevron-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .menu-button.danger .menu-label {

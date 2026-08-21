@@ -218,7 +218,11 @@
       <!-- 최근 이용내역 -->
       <section class="history">
         <div class="history-head" @click="goPayment" style="cursor: pointer;">
+<<<<<<< HEAD
+          <span class="history-title">최근 이용내역</span>
+=======
           <span class="history-title">최근 거래내역</span>
+>>>>>>> 05d43cd2eec2d5d1a87be14c01cfe3086f3498e7
           <img
             src="@/assets/icons/icon-chevron.svg"
             alt=""
