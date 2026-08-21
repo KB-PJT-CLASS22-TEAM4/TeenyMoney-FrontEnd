@@ -252,7 +252,7 @@ import {
   updateCategoryPolicies,
 } from '@/api/categoryPolicy'
 
-import { getPermissions, getPermissionHistory } from '@/api/permissions'
+import { getPermissions } from '@/api/permissions'
 
 
 const router = useRouter()
@@ -446,28 +446,13 @@ async function fetchApprovedPermissions() {
   }
 
   try {
-    const [permRes, historyRes] = await Promise.allSettled([
-      getPermissions(authStore.accessToken, childId.value),
-      getPermissionHistory(authStore.accessToken, childId.value),
-    ])
+    const res = await getPermissions(
+      authStore.accessToken,
+      childId.value
+    )
 
-    const fromPermissions =
-      permRes.status === 'fulfilled'
-        ? extractPermissionsList(permRes.value.data)
-        : []
-    const fromHistory =
-      historyRes.status === 'fulfilled'
-        ? extractPermissionsList(historyRes.value.data)
-        : []
-
-    const merged = new Map()
-    ;[...fromPermissions, ...fromHistory].forEach((permission) => {
-      if (permission?.status !== 'APPROVED') return
-      const key = permission.id ?? permission.permissionId ?? JSON.stringify(permission)
-      merged.set(key, permission)
-    })
-
-    approvedPermissions.value = Array.from(merged.values())
+    approvedPermissions.value = extractPermissionsList(res.data)
+      .filter((permission) => permission?.status === 'APPROVED')
   } catch (error) {
     console.error('오늘만 허용 승인 내역 조회 실패:', error)
     approvedPermissions.value = []
