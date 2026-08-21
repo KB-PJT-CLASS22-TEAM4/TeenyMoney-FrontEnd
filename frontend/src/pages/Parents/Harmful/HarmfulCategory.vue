@@ -94,6 +94,9 @@
             <div
               v-else
               class="toggle-group"
+              :class="{
+                open: isPolicyGroupExpanded(section.key, group.name),
+              }"
             >
               <button
                 class="toggle-header"
@@ -117,23 +120,22 @@
                 />
               </button>
 
-              <div
-                v-if="isPolicyGroupExpanded(section.key, group.name)"
-                class="toggle-body"
-              >
-                <p
-                  v-for="item in group.items"
-                  :key="item.id"
-                  class="policy-item"
-                >
-                  {{ item.categoryName }}
-                  <span
-                    v-if="item.temporaryUntil"
-                    class="temp-deadline"
+              <div class="toggle-panel">
+                <div class="toggle-body">
+                  <p
+                    v-for="item in group.items"
+                    :key="item.id"
+                    class="policy-item"
                   >
-                    {{ formatAllowDeadline(item.temporaryUntil) }}
-                  </span>
-                </p>
+                    {{ item.categoryName }}
+                    <span
+                      v-if="item.temporaryUntil"
+                      class="temp-deadline"
+                    >
+                      {{ formatAllowDeadline(item.temporaryUntil) }}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
           </template>
@@ -540,10 +542,18 @@ function isPolicyGroupExpanded(policy, name) {
 
 function togglePolicyGroup(policy, name) {
   const key = policyGroupKey(policy, name)
-  expandedPolicyGroups.value = {
-    ...expandedPolicyGroups.value,
-    [key]: !isPolicyGroupExpanded(policy, name),
-  }
+  const willOpen = !isPolicyGroupExpanded(policy, name)
+  const next = { ...expandedPolicyGroups.value }
+
+  policySections.value
+    .find((section) => section.key === policy)
+    ?.groups.forEach((group) => {
+      if (isFlatGroup(group)) return
+      next[policyGroupKey(policy, group.name)] = willOpen && group.name === name
+    })
+
+  next[key] = willOpen
+  expandedPolicyGroups.value = next
 }
 
 
@@ -1181,7 +1191,7 @@ watch(
 .toggle-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  border-radius: 12px;
 }
 
 .toggle-header {
@@ -1189,10 +1199,26 @@ watch(
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 6px 0;
+  padding: 10px 10px;
   border: none;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.toggle-header:hover {
+  background: #f4f5f7;
+}
+
+.toggle-header:active {
+  background: #eceff3;
+}
+
+.toggle-group.open .toggle-header {
+  background: #f4f5f7;
 }
 
 .toggle-title {
@@ -1206,9 +1232,20 @@ watch(
 
 .toggle-count {
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #8b9097;
+  min-width: 20px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #eceff3;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7077;
+  line-height: 16px;
+  text-align: center;
+}
+
+.toggle-group.open .toggle-count {
+  background: #ffbc00;
+  color: #191b1e;
 }
 
 .toggle-chevron {
@@ -1216,18 +1253,67 @@ watch(
   height: 16px;
   flex-shrink: 0;
   transform: rotate(0deg);
-  transition: transform 0.2s ease;
+  transition: transform 0.22s ease;
 }
 
 .toggle-chevron.open {
   transform: rotate(90deg);
 }
 
+.toggle-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+
+.toggle-group.open .toggle-panel {
+  grid-template-rows: 1fr;
+}
+
 .toggle-body {
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  padding: 0 4px 8px 14px;
+  margin: 0 6px 4px;
+  border-left: 2px solid #eceff3;
+}
+
+.policy-item {
+  margin: 0;
+  padding: 8px 6px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a4e55;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  padding: 0 0 6px 8px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.toggle-group.open .policy-item {
+  opacity: 1;
+  transform: none;
+}
+
+.toggle-group.open .policy-item:nth-child(1) { transition-delay: 0.02s; }
+.toggle-group.open .policy-item:nth-child(2) { transition-delay: 0.04s; }
+.toggle-group.open .policy-item:nth-child(3) { transition-delay: 0.06s; }
+.toggle-group.open .policy-item:nth-child(4) { transition-delay: 0.08s; }
+.toggle-group.open .policy-item:nth-child(5) { transition-delay: 0.1s; }
+.toggle-group.open .policy-item:nth-child(n + 6) { transition-delay: 0.12s; }
+
+.policy-item:hover {
+  background: #f8fafc;
+  color: #191b1e;
 }
 
 .flat-group {
@@ -1253,16 +1339,6 @@ watch(
   font-size: 11px;
   font-weight: 700;
   color: #ff9500;
-}
-
-.policy-item {
-  margin: 0;
-  font-size: 14px;
-  color: #191b1e;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
 }
 
 .policy-badge.allow,
@@ -1312,6 +1388,18 @@ watch(
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   text-align: left;
   cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.list-card:hover {
+  border-color: #dce3ee;
+  background: #fbfcfe;
+  box-shadow: 0 8px 18px rgba(21, 23, 27, 0.06);
+  transform: translateY(-1px);
 }
 
 .list-card:active {
@@ -1371,6 +1459,11 @@ watch(
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.list-card:hover .chevron-icon {
+  transform: translateX(2px);
 }
 
 .request-section {
@@ -1408,6 +1501,15 @@ watch(
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.chip:active {
+  transform: scale(0.97);
 }
 
 .chip.off {

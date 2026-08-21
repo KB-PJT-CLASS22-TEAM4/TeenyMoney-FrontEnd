@@ -82,6 +82,10 @@
         v-for="group in filteredGroups"
         :key="group.name"
         class="place-group"
+        :class="{
+          nested: !isFlatGroup(group),
+          open: isFlatGroup(group) || isGroupExpanded(group.name),
+        }"
       >
         <div
           v-if="!isFlatGroup(group)"
@@ -112,7 +116,7 @@
               class="status-btn"
               type="button"
               :class="{ 'active-allow': isGroupAllowActive(group) }"
-              @click="setGroupStatus(group.name, 'ALLOW')"
+              @click.stop="setGroupStatus(group.name, 'ALLOW')"
             >
               <span v-if="isGroupAllowActive(group)">✓</span>
               허용
@@ -122,7 +126,7 @@
               class="status-btn"
               type="button"
               :class="{ 'active-caution': isGroupCautionActive(group) }"
-              @click="setGroupStatus(group.name, 'WATCH')"
+              @click.stop="setGroupStatus(group.name, 'WATCH')"
             >
               <span v-if="isGroupCautionActive(group)">✓</span>
               주의
@@ -132,7 +136,7 @@
               class="status-btn"
               type="button"
               :class="{ 'active-block': isGroupBlockActive(group) }"
-              @click="setGroupStatus(group.name, 'BLOCK')"
+              @click.stop="setGroupStatus(group.name, 'BLOCK')"
             >
               <span v-if="isGroupBlockActive(group)">✓</span>
               차단
@@ -141,54 +145,58 @@
         </div>
 
         <div
-          v-if="isFlatGroup(group) || isGroupExpanded(group.name)"
-          class="toggle-body"
+          class="toggle-panel"
+          :class="{
+            open: isFlatGroup(group) || isGroupExpanded(group.name),
+          }"
         >
-          <div
-            v-for="place in group.items"
-            :key="place.id"
-            class="place-card"
-          >
-            <p class="place-name">
-              {{ place.categoryName }}
-              <span
-                v-if="isTemporaryAllow(place)"
-                class="temp-deadline"
-              >
-                {{ formatAllowDeadline() }}
-              </span>
-            </p>
+          <div class="toggle-body">
+            <div
+              v-for="place in group.items"
+              :key="place.id"
+              class="place-card"
+            >
+              <p class="place-name">
+                {{ place.categoryName }}
+                <span
+                  v-if="isTemporaryAllow(place)"
+                  class="temp-deadline"
+                >
+                  {{ formatAllowDeadline() }}
+                </span>
+              </p>
 
-            <div class="place-btns">
-              <button
-                class="status-btn"
-                type="button"
-                :class="{ 'active-allow': isAllowActive(place) }"
-                @click="setStatus(place.id, 'ALLOW')"
-              >
-                <span v-if="isAllowActive(place)">✓</span>
-                허용
-              </button>
+              <div class="place-btns">
+                <button
+                  class="status-btn"
+                  type="button"
+                  :class="{ 'active-allow': isAllowActive(place) }"
+                  @click="setStatus(place.id, 'ALLOW')"
+                >
+                  <span v-if="isAllowActive(place)">✓</span>
+                  허용
+                </button>
 
-              <button
-                class="status-btn"
-                type="button"
-                :class="{ 'active-caution': isCautionActive(place) }"
-                @click="setStatus(place.id, 'WATCH')"
-              >
-                <span v-if="isCautionActive(place)">✓</span>
-                주의
-              </button>
+                <button
+                  class="status-btn"
+                  type="button"
+                  :class="{ 'active-caution': isCautionActive(place) }"
+                  @click="setStatus(place.id, 'WATCH')"
+                >
+                  <span v-if="isCautionActive(place)">✓</span>
+                  주의
+                </button>
 
-              <button
-                class="status-btn"
-                type="button"
-                :class="{ 'active-block': isBlockActive(place) }"
-                @click="setStatus(place.id, 'BLOCK')"
-              >
-                <span v-if="isBlockActive(place)">✓</span>
-                차단
-              </button>
+                <button
+                  class="status-btn"
+                  type="button"
+                  :class="{ 'active-block': isBlockActive(place) }"
+                  @click="setStatus(place.id, 'BLOCK')"
+                >
+                  <span v-if="isBlockActive(place)">✓</span>
+                  차단
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -472,10 +480,18 @@ function isGroupExpanded(name) {
 function toggleGroup(name) {
   if (searchQuery.value.trim()) return
 
-  expandedGroups.value = {
-    ...expandedGroups.value,
-    [name]: !isGroupExpanded(name),
+  const willOpen = !isGroupExpanded(name)
+  const next = { ...expandedGroups.value }
+
+  if (willOpen) {
+    filteredGroups.value.forEach((group) => {
+      if (isFlatGroup(group)) return
+      next[group.name] = group.name === name
+    })
   }
+
+  next[name] = willOpen
+  expandedGroups.value = next
 }
 
 
@@ -940,6 +956,16 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 2px 0;
+  border-radius: 18px;
+  transition:
+    background-color 0.22s ease,
+    padding 0.22s ease;
+}
+
+.place-group.nested.open {
+  padding: 10px 8px 8px;
+  background: #f6f7f9;
 }
 
 .group-head {
@@ -957,10 +983,20 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 4px 0;
+  padding: 10px 8px;
   border: none;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-header:active {
+  background: #eceff3;
+}
+
+.place-group.open .toggle-header {
+  background: #ffffff;
 }
 
 .group-title {
@@ -975,9 +1011,23 @@ onMounted(() => {
 
 .toggle-count {
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #8b9097;
+  min-width: 20px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #eceff3;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7077;
+  line-height: 16px;
+  text-align: center;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.place-group.open .toggle-count {
+  background: #ffbc00;
+  color: #191b1e;
 }
 
 .toggle-chevron {
@@ -985,14 +1035,25 @@ onMounted(() => {
   height: 16px;
   flex-shrink: 0;
   transform: rotate(0deg);
-  transition: transform 0.2s ease;
+  transition: transform 0.22s ease;
 }
 
 .toggle-chevron.open {
   transform: rotate(90deg);
 }
 
+.toggle-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.toggle-panel.open {
+  grid-template-rows: 1fr;
+}
+
 .toggle-body {
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1004,7 +1065,26 @@ onMounted(() => {
   border: 1px solid #eaedf1;
   background-color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
+
+.toggle-panel.open .place-card {
+  opacity: 1;
+  transform: none;
+}
+
+.toggle-panel.open .place-card:nth-child(1) { transition-delay: 0.02s; }
+.toggle-panel.open .place-card:nth-child(2) { transition-delay: 0.05s; }
+.toggle-panel.open .place-card:nth-child(3) { transition-delay: 0.08s; }
+.toggle-panel.open .place-card:nth-child(4) { transition-delay: 0.11s; }
+.toggle-panel.open .place-card:nth-child(5) { transition-delay: 0.14s; }
+.toggle-panel.open .place-card:nth-child(n + 6) { transition-delay: 0.16s; }
 
 .place-name {
   display: flex;
@@ -1041,6 +1121,14 @@ onMounted(() => {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.15s ease;
+}
+
+.status-btn:active {
+  transform: scale(0.97);
 }
 
 .active-allow {
