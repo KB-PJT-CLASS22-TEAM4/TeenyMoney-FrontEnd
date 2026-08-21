@@ -23,42 +23,68 @@
       <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
 
       <template v-else>
-        <div class="filter-row">
-          <div class="filters">
+        <div class="product-search-wrap">
+          <div class="product-search-box">
+            <img
+              src="@/assets/icons/icon-search.svg"
+              alt=""
+              class="search-icon"
+            />
+            <input
+              v-model="searchKeyword"
+              type="text"
+              class="search-input"
+              placeholder="상품 검색"
+            />
             <button
-              v-for="category in categories"
-              :key="category"
-              class="chip"
-              :class="{ off: activeCategory !== category }"
+              v-if="searchKeyword"
               type="button"
-              @click="activeCategory = category"
+              class="search-clear-btn"
+              aria-label="검색어 지우기"
+              @click="searchKeyword = ''"
             >
-              {{ category }}
+              ×
             </button>
           </div>
+        </div>
 
+        <div class="filters">
           <button
-            class="origin-filter-btn"
-            :class="{ active: activeOrigin !== '전체' }"
+            v-for="category in categories"
+            :key="category"
+            class="chip"
+            :class="{ off: activeCategory !== category }"
             type="button"
-            :aria-label="`상품 구분 ${originButtonLabel}`"
-            @click="cycleOrigin"
+            @click="activeCategory = category"
           >
-            <img src="@/assets/icons/icon-filter.svg" alt="" class="origin-filter-icon" />
-            <span>{{ originButtonLabel }}</span>
+            {{ category }}
           </button>
         </div>
 
         <section
-          v-if="showCreatedProducts && filteredCustomProducts.length"
+          v-if="filteredCustomProducts.length"
           class="custom-section"
         >
-          <p class="group-title">
-            등록한 상품 {{ filteredCustomProducts.length }}
-          </p>
+          <button
+            class="custom-toggle"
+            type="button"
+            :aria-expanded="customOpen"
+            @click="customOpen = !customOpen"
+          >
+            <p class="group-title">
+              등록한 상품 {{ filteredCustomProducts.length }}
+            </p>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="custom-chevron"
+              :class="{ open: customOpen }"
+            />
+          </button>
 
           <div
             v-for="product in filteredCustomProducts"
+            v-show="customOpen"
             :key="product.key"
             class="product-card"
           >
@@ -104,7 +130,7 @@
         </section>
 
         <section
-          v-if="showEnrolledProducts && pendingApprovals.length"
+          v-if="pendingApprovals.length"
           class="pending-section"
         >
           <p class="pending-heading">
@@ -152,8 +178,7 @@
           </div>
         </section>
 
-        <template v-if="showEnrolledProducts">
-          <template v-for="group in groupedActiveProducts" :key="group.label">
+        <template v-for="group in groupedActiveProducts" :key="group.label">
             <p class="group-title">{{ group.label }} {{ group.items.length }}</p>
 
             <div
@@ -192,10 +217,9 @@
               </div>
             </div>
           </template>
-        </template>
 
         <section
-          v-if="showEnrolledProducts && filteredCompletedApprovals.length"
+          v-if="filteredCompletedApprovals.length"
           class="completed-list"
         >
           <p class="group-title">
@@ -254,7 +278,7 @@ import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -284,28 +308,29 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 const deletingKey = ref('')
 const processingKey = ref('')
+const searchKeyword = ref('')
+const customOpen = ref(false)
 const activeCategory = ref('전체')
-const activeOrigin = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
-const origins = ['전체', '가입한 상품', '등록한 상품']
 
-const showEnrolledProducts = computed(() => activeOrigin.value !== '등록한 상품')
-const showCreatedProducts = computed(() => activeOrigin.value !== '가입한 상품')
-const originButtonLabel = computed(() => {
-  if (activeOrigin.value === '가입한 상품') return '가입'
-  if (activeOrigin.value === '등록한 상품') return '등록'
-  return '전체'
-})
+function matchesSearch(value) {
+  const keyword = searchKeyword.value.trim().toLowerCase()
+  if (!keyword) return true
+  return String(value || '').toLowerCase().includes(keyword)
+}
 
-function cycleOrigin() {
-  const currentIndex = origins.indexOf(activeOrigin.value)
-  const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % origins.length
-  activeOrigin.value = origins[nextIndex]
+function matchesCategory(item) {
+  if (activeCategory.value === '전체') return true
+  return item.category === activeCategory.value
 }
 
 const pendingApprovals = computed(() =>
-  [...approvalRequests.value.filter((item) => item.isPending)].sort((a, b) => {
+  [...approvalRequests.value.filter((item) => (
+    item.isPending
+    && matchesCategory(item)
+    && matchesSearch(item.title)
+  ))].sort((a, b) => {
     const left = parseServerDate(a.requestedAt)?.getTime() ?? 0
     const right = parseServerDate(b.requestedAt)?.getTime() ?? 0
     return right - left
@@ -316,25 +341,17 @@ const completedApprovals = computed(() =>
   approvalRequests.value.filter((item) => item.isCompleted)
 )
 
-const filteredCompletedApprovals = computed(() => {
-  if (activeCategory.value === '전체') {
-    return completedApprovals.value
-  }
+const filteredCompletedApprovals = computed(() =>
+  completedApprovals.value.filter((item) => (
+    matchesCategory(item) && matchesSearch(item.title)
+  ))
+)
 
-  return completedApprovals.value.filter(
-    (item) => item.category === activeCategory.value
-  )
-})
-
-const filteredActiveProducts = computed(() => {
-  if (activeCategory.value === '전체') {
-    return activeProducts.value
-  }
-
-  return activeProducts.value.filter(
-    (item) => item.category === activeCategory.value
-  )
-})
+const filteredActiveProducts = computed(() =>
+  activeProducts.value.filter((item) => (
+    matchesCategory(item) && matchesSearch(item.title)
+  ))
+)
 
 const groupedActiveProducts = computed(() => {
   const groups = new Map()
@@ -358,19 +375,21 @@ const groupedActiveProducts = computed(() => {
   }))
 })
 
-const filteredCustomProducts = computed(() => {
-  if (activeCategory.value === '전체') {
-    return customProducts.value
-  }
+const filteredCustomProducts = computed(() =>
+  customProducts.value.filter((item) => (
+    matchesCategory(item) && matchesSearch(item.title)
+  ))
+)
 
-  return customProducts.value.filter(
-    (item) => item.category === activeCategory.value
-  )
+watch(searchKeyword, (value) => {
+  if (value.trim() && filteredCustomProducts.value.length) {
+    customOpen.value = true
+  }
 })
 
 const hasVisibleProducts = computed(() => {
-  const hasCreated = showCreatedProducts.value && filteredCustomProducts.value.length
-  const hasEnrolled = showEnrolledProducts.value && (
+  const hasCreated = filteredCustomProducts.value.length
+  const hasEnrolled = (
     groupedActiveProducts.value.length
     || pendingApprovals.value.length
     || filteredCompletedApprovals.value.length
@@ -379,19 +398,8 @@ const hasVisibleProducts = computed(() => {
 })
 
 const emptyCategoryMessage = computed(() => {
-  if (activeOrigin.value === '등록한 상품') {
-    return activeCategory.value === '전체'
-      ? '등록한 상품이 없습니다.'
-      : `등록한 ${activeCategory.value} 상품이 없습니다.`
-  }
-
-  if (activeOrigin.value === '가입한 상품') {
-    if (activeCategory.value === '전체') {
-      return pendingApprovals.value.length
-        ? '가입 중인 상품이 없습니다.'
-        : '가입한 금융 상품이 없습니다.'
-    }
-    return `가입한 ${activeCategory.value} 상품이 없습니다.`
+  if (searchKeyword.value.trim()) {
+    return '검색 결과가 없습니다.'
   }
 
   if (activeCategory.value === '전체') {
@@ -872,12 +880,60 @@ onMounted(async () => {
   border: 1px solid #e7e9ec;
 }
 
-.filter-row {
+.product-search-box {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 0 0 16px;
+  width: 100%;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1px solid #eceef1;
+  border-radius: 12px;
+  background: #f6f7f8;
+}
+
+.search-icon {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  margin-right: 9px;
+  opacity: 0.55;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #191b1e;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.search-input::placeholder {
+  color: #a7acb3;
+}
+
+.search-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #8b9097;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.product-search-wrap {
+  margin: 0 0 12px;
 }
 
 .filters {
@@ -886,33 +942,7 @@ onMounted(async () => {
   min-width: 0;
   flex-wrap: nowrap;
   overflow-x: auto;
-}
-
-.origin-filter-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-  padding: 7px 10px;
-  border: 1.3px solid #e7e9ec;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #4a4e55;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.origin-filter-btn.active {
-  border-color: #ffbc00;
-  background: #fff8e6;
-  color: #191b1e;
-}
-
-.origin-filter-icon {
-  width: 13px;
-  height: 12px;
+  margin: 0 0 16px;
 }
 
 .chip {
@@ -932,6 +962,33 @@ onMounted(async () => {
   border: 1.3px solid #e7e9ec;
   color: #4a4e55;
   font-weight: 600;
+}
+
+.custom-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.custom-toggle .group-title {
+  margin: 0;
+}
+
+.custom-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+
+.custom-chevron.open {
+  transform: rotate(90deg);
 }
 
 .group-title {
