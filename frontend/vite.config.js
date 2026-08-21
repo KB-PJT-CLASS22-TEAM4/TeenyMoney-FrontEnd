@@ -18,6 +18,21 @@ export default defineConfig({
         target: 'https://www.teenymoney.kro.kr',
         changeOrigin: true,
         secure: true,
+        cookieDomainRewrite: '',
+        configure(proxy) {
+          proxy.on('proxyRes', (proxyRes) => {
+            const setCookie = proxyRes.headers['set-cookie']
+            if (!setCookie) return
+
+            proxyRes.headers['set-cookie'] = setCookie.map((cookie) =>
+              cookie
+                .replace(/;\s*Domain=[^;]*/gi, '')
+                .replace(/;\s*Secure/gi, '')
+                .replace(/;\s*Partitioned/gi, '')
+                .replace(/;\s*SameSite=None/gi, '; SameSite=Lax'),
+            )
+          })
+        },
       },
     },
   },

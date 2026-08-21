@@ -362,20 +362,34 @@
       <!-- =========================
            생성
       ========================== -->
-      <button
-        class="submit-btn"
-        :disabled="
-          !canSubmit ||
-          isCreating
-        "
-        @click="handleCreate"
-      >
-        {{
-          isCreating
-            ? '생성 중...'
-            : '생성하기'
-        }}
-      </button>
+      <div class="submit-row">
+        <button
+          class="submit-btn"
+          :disabled="
+            !canSubmit ||
+            isCreating
+          "
+          @click="handleCreate(false)"
+        >
+          {{
+            isCreating
+              ? '생성 중...'
+              : '생성하기'
+          }}
+        </button>
+
+        <button
+          class="submit-continue-btn"
+          type="button"
+          :disabled="
+            !canSubmit ||
+            isCreating
+          "
+          @click="handleCreate(true)"
+        >
+          계속 생성하기
+        </button>
+      </div>
 
       <p class="submit-notice">
         생성된 퀘스트는 자녀의 대시보드에 즉시 노출됩니다.
@@ -1565,8 +1579,38 @@ function addAmount(
 }
 
 
+function resetCreateForm() {
+  form.value = {
+    title: '',
+    content: '',
+    deadline: '',
+    rewardAmount: 0,
+    teenyScoreEnabled:
+      form.value.teenyScoreEnabled,
+    verificationRequirement:
+      form.value.verificationRequirement,
+  }
+
+  selectedDate.value = null
+  selectedHour.value = '18'
+  selectedMinute.value = '00'
+  openTimeMenu.value = null
+  isCalendarOpen.value = false
+
+  const now = new Date()
+  calendarYear.value = now.getFullYear()
+  calendarMonth.value = now.getMonth()
+
+  window.scrollTo(0, 0)
+  document.querySelector('.page')
+    ?.scrollTo?.(0, 0)
+}
+
+
 // 퀘스트 생성
-async function handleCreate() {
+async function handleCreate(
+  continueCreating = false
+) {
 
   if (
     !canSubmit.value ||
@@ -1632,6 +1676,11 @@ async function handleCreate() {
       alertModal.showAlert(
         '퀘스트가 생성됐어요!'
       )
+
+      if (continueCreating) {
+        resetCreateForm()
+        return
+      }
 
       router.back()
     }
@@ -2223,8 +2272,15 @@ async function handleCreate() {
    생성 버튼
 ========================= */
 
+.submit-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .submit-btn {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 49px;
 
   border: none;
@@ -2242,6 +2298,31 @@ async function handleCreate() {
 }
 
 .submit-btn:disabled {
+  opacity: 0.4;
+
+  cursor: not-allowed;
+}
+
+.submit-continue-btn {
+  flex: 0 0 auto;
+  height: 49px;
+  padding: 0 12px;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  color: #191b1e;
+
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.submit-continue-btn:disabled {
   opacity: 0.4;
 
   cursor: not-allowed;
