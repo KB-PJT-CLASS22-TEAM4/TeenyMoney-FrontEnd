@@ -4,7 +4,7 @@
       <button class="back-btn" type="button" @click="router.back()">
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
-      <h1 class="nav-title">티니 점수</h1>
+      <h1 class="nav-title">티니 등급</h1>
       <ParentNavActions />
     </header>
 
@@ -20,7 +20,7 @@
       <section class="score-summary">
         <div class="trust-header">
           <div class="trust-header-left">
-            <span class="trust-label">신뢰도 등급</span>
+            <span class="trust-label">티니 등급</span>
             <button
               class="help-btn"
               type="button"
@@ -449,8 +449,8 @@ async function loadTeenyScore() {
         })
     }
   } catch (error) {
-    console.error('티니 점수 불러오기 실패:', error)
-    errorMessage.value = '티니 점수를 불러오지 못했습니다.'
+    console.error('티니 등급 불러오기 실패:', error)
+    errorMessage.value = '티니 등급 불러오지 못했습니다.'
   } finally {
     isLoading.value = false
   }
