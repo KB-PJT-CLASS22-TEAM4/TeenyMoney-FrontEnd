@@ -7,7 +7,7 @@
           <path d="M15 19l-7-7 7-7" stroke="#191b1e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1 class="nav-title">보호자 연동</h1>
+      <h1 class="nav-title">부모님 연동</h1>
       <div class="nav-right-placeholder"></div>
     </header>
 
@@ -17,8 +17,7 @@
       <section class="heading-section">
         <span class="step-badge">가족 연결 확인</span>
         <h2 class="main-title">
-          연동할 보호자 정보를<br />
-          <span class="highlight-text">확인해 주세요</span>
+          연동할 부모님 정보를 <span class="highlight-text">확인해 주세요</span>
         </h2>
         <p class="sub-desc">
           연동 후 부모님과 함께 안전하게 용돈을 관리할 수 있어요
@@ -27,56 +26,26 @@
 
       <!-- 보호자 프로필 카드 -->
       <section class="guardian-hero-card">
-        <div class="profile-header">
+        <div class="profile-header profile-header-centered">
           <div class="avatar-box">
             <img
               v-if="guardian.profileImageUrl"
               :src="guardian.profileImageUrl"
-              alt="보호자 프로필"
+              alt="부모님 프로필"
               class="avatar-img"
             />
             <img
               v-else
               :src="PARENT_PROFILE_IMAGE"
-              alt="보호자 기본 프로필"
+              alt="부모님 기본 프로필"
               class="avatar-img default"
             />
           </div>
 
           <div class="guardian-identity">
             <div class="name-row">
-              <strong class="guardian-name">{{ guardian.name || '보호자' }}</strong>
-              <span class="relation-pill">{{ guardian.relation || '보호자' }}</span>
-            </div>
-            <span class="guardian-status">티니머니 패밀리 멤버</span>
-          </div>
-        </div>
-
-        <div class="card-divider"></div>
-
-        <!-- 혜택/기능 안내 리스트 -->
-        <div class="feature-list">
-          <div class="feature-item">
-            <span class="bullet-dot"></span>
-            <div class="feature-text">
-              <span class="feature-title">용돈 지급 및 송금</span>
-              <span class="feature-desc">부모님에게 바로 용돈을 받고 보낼 수 있어요</span>
-            </div>
-          </div>
-
-          <div class="feature-item">
-            <span class="bullet-dot"></span>
-            <div class="feature-text">
-              <span class="feature-title">안심 소비 관리</span>
-              <span class="feature-desc">유해 가맹점 차단 및 오늘만 허용 요청</span>
-            </div>
-          </div>
-
-          <div class="feature-item">
-            <span class="bullet-dot"></span>
-            <div class="feature-text">
-              <span class="feature-title">퀘스트 및 금융 미션</span>
-              <span class="feature-desc">미션을 완료하고 보상금을 획득하세요</span>
+              <strong class="guardian-name">{{ guardian.name || '부모님' }}</strong>
+              <span class="relation-pill">{{ guardian.relation || '부모님' }}</span>
             </div>
           </div>
         </div>
@@ -93,7 +62,7 @@
     <!-- 하단 고정 액션 버튼 -->
     <footer class="bottom-action-bar">
       <button class="submit-button" type="button" @click="goToCompletePage">
-        이 보호자로 연동하기
+        이 부모님으로 연동하기
       </button>
     </footer>
   </div>
@@ -117,7 +86,7 @@ onMounted(async () => {
     const res = await getMyParent(authStore.accessToken)
     if (res?.data) {
       guardian.value.name = res.data.name || ''
-      guardian.value.relation = res.data.relation || '보호자'
+      guardian.value.relation = res.data.relation || '부모님'
       guardian.value.profileImageUrl = resolveProfileImageUrl(
         pickProfileImageUrl(res.data),
         PARENT_PROFILE_IMAGE
@@ -189,7 +158,7 @@ function goToCompletePage() {
   top: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 17px;
   color: #191b1e;
   letter-spacing: -0.3px;
@@ -204,7 +173,7 @@ function goToCompletePage() {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px 20px 24px;
+  padding: 120px 20px 24px;
   box-sizing: border-box;
 }
 
@@ -216,7 +185,7 @@ function goToCompletePage() {
 .step-badge {
   display: inline-block;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: #d97706;
   background: #fef3c7;
   padding: 4px 10px;
@@ -228,14 +197,14 @@ function goToCompletePage() {
 .main-title {
   margin: 0 0 8px;
   font-size: 23px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.35;
   color: #0f172a;
   letter-spacing: -0.5px;
 }
 
 .highlight-text {
-  color: #2563eb;
+  color: #191b1e;
 }
 
 .sub-desc {
@@ -249,7 +218,7 @@ function goToCompletePage() {
 /* 보호자 프로필 히어로 카드 */
 .guardian-hero-card {
   position: relative;
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid #edf2f7;
   border-radius: 20px;
   padding: 24px 20px;
@@ -261,6 +230,16 @@ function goToCompletePage() {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.profile-header-centered {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.profile-header-centered .guardian-identity {
+  align-items: center;
 }
 
 .avatar-box {
@@ -301,78 +280,24 @@ function goToCompletePage() {
 
 .guardian-name {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: #0f172a;
   letter-spacing: -0.4px;
 }
 
 .relation-pill {
   font-size: 11.5px;
-  font-weight: 700;
-  color: #2563eb;
-  background: #ffffff;
+  font-weight: 600;
+  color: #d97706;
+  background: #fef3c7;
   padding: 3px 8px;
   border-radius: 6px;
-  border: 1px solid #dbeafe;
-}
-
-.guardian-status {
-  font-size: 13px;
-  color: #4d596b;
-  font-weight: 500;
-}
-
-/* 카드 내부 구분선 */
-.card-divider {
-  height: 1px;
-  background: #e2e8f0;
-  margin: 20px 0 16px;
-}
-
-/* 혜택/기능 리스트 */
-.feature-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.feature-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.bullet-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #94a3b8;
-  margin-top: 8px;
-  flex-shrink: 0;
-}
-
-.feature-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.feature-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1e293b;
-  letter-spacing: -0.2px;
-}
-
-.feature-desc {
-  font-size: 12.5px;
-  color: #4d596b;
-  line-height: 1.35;
+  border: none;
 }
 
 /* 안내 팁 박스 */
 .notice-box {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid #edf2f7;
   border-radius: 14px;
   padding: 14px 16px;
@@ -389,8 +314,8 @@ function goToCompletePage() {
 
 /* 하단 고정 액션 버튼 */
 .bottom-action-bar {
-  padding: 16px 20px 24px;
-  background: #ffffff;
+  padding: 0 20px 20px;
+  background: #f8fafc;
   box-sizing: border-box;
   width: 100%;
 }
@@ -400,25 +325,14 @@ function goToCompletePage() {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 54px;
   border: none;
   border-radius: 14px;
   background: #ffbc00;
   color: #191b1e;
-  font-size: 16px;
-  font-weight: 700;
+  padding: 15px;
+  font-size: 14.5px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(255, 188, 0, 0.35);
-  transition: all 0.15s ease-in-out;
-}
-
-.submit-button:hover {
-  background: #f5b300;
-  box-shadow: 0 6px 18px rgba(255, 188, 0, 0.45);
-}
-
-.submit-button:active {
-  transform: scale(0.985);
-  box-shadow: 0 2px 8px rgba(255, 188, 0, 0.25);
+  box-sizing: border-box;
 }
 </style>
