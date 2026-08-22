@@ -49,8 +49,13 @@
         </div>
 
         <TransitionGroup v-else name="card-move" tag="div" class="quest-list">
-          <template v-for="(q, i) in filteredAvailable" :key="q.id">
-            <div class="quest-row" :class="{ liked: q.favorited }" @click="toggleExpand(q.id)">
+          <div
+            v-for="(q, i) in filteredAvailable"
+            :key="q.id"
+            class="quest-card"
+            :class="{ liked: q.favorited, expanded: expandedId === q.id }"
+          >
+            <div class="quest-row" @click="toggleExpand(q.id)">
               <div class="quest-icon-wrap">
                 <div class="quest-icon" :style="{ background: i % 2 === 0 ? '#fff3d6' : '#eef2fb' }">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
@@ -92,46 +97,40 @@
               </div>
             </div>
 
-            <div v-if="expandedId === q.id" :key="`${q.id}-expand`" class="quest-expand" @click.stop>
-              <p class="quest-expand-content">{{ q.content }}</p>
+            <div class="quest-expand-wrap" :class="{ open: expandedId === q.id }">
+              <div class="quest-expand" @click.stop>
+                <div class="quest-expand-inner">
+                  <p class="quest-expand-content">{{ q.content }}</p>
 
-              <div v-if="decliningId !== q.id" class="quest-actions">
-                <button class="btn btn-outline" @click="startDecline(q.id)">거절하기</button>
-                <button class="btn btn-primary" @click="acceptQuest(q)">승인하기</button>
-              </div>
+                  <div v-if="decliningId !== q.id" class="quest-actions">
+                    <button class="btn btn-outline" @click="startDecline(q.id)">거절하기</button>
+                    <button class="btn btn-primary" @click="acceptQuest(q)">승인하기</button>
+                  </div>
 
-              <!-- 거절 사유 패널 -->
-              <div v-else class="decline-panel">
-                <span class="decline-title">거절 사유를 알려주세요</span>
-                <div class="decline-reasons">
-                  <label v-for="r in declineReasons" :key="r.code" class="decline-reason-item"
-                         :class="{ selected: declineReasonCode === r.code }">
-                    <input type="radio" :value="r.code" v-model="declineReasonCode" name="declineReasonAvailable">
-                    {{ r.label }}
-                  </label>
-                </div>
-                <textarea v-if="declineReasonCode" class="decline-textarea"
-                          v-model="declineDetail"
-                          :placeholder="declineReasonCode === 'OTHER' ? '사유를 자세히 알려주세요 (필수)' : '하고 싶은 말이 있다면 적어주세요 (선택)'"></textarea>
+                  <!-- 거절 사유 패널 -->
+                  <div v-else class="decline-panel">
+                    <span class="decline-title">거절 사유를 알려주세요</span>
+                    <div class="decline-reasons">
+                      <label v-for="r in declineReasons" :key="r.code" class="decline-reason-item"
+                             :class="{ selected: declineReasonCode === r.code }">
+                        <input type="radio" :value="r.code" v-model="declineReasonCode" name="declineReasonAvailable">
+                        {{ r.label }}
+                      </label>
+                    </div>
+                    <textarea v-if="declineReasonCode" class="decline-textarea"
+                              v-model="declineDetail"
+                              :placeholder="declineReasonCode === 'OTHER' ? '사유를 자세히 알려주세요 (필수)' : '하고 싶은 말이 있다면 적어주세요 (선택)'"></textarea>
 
-                <div class="quest-actions">
-                  <button class="btn btn-outline" @click="cancelDecline">취소</button>
-                  <button class="btn btn-danger" :disabled="!canConfirmDecline" @click="confirmDecline(q)">거절 확정</button>
+                    <div class="quest-actions">
+                      <button class="btn btn-outline" @click="cancelDecline">취소</button>
+                      <button class="btn btn-danger" :disabled="!canConfirmDecline" @click="confirmDecline(q)">거절 확정</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </template>
-        </TransitionGroup>
-
-        <div v-if="filteredAvailable.length > 0" class="bottom-tip">
-          <div class="bottom-tip-icon">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-              <path d="M12 5v14M5 12h14" stroke="#d99a00" stroke-width="2" stroke-linecap="round"/>
-            </svg>
           </div>
-          <span class="bottom-tip-title">퀘스트는 계속 추가돼요</span>
-          <p class="bottom-tip-desc">부모님이 새로운 퀘스트를 등록하면<br>여기에 바로 나타나요</p>
-        </div>
+        </TransitionGroup>
       </template>
 
       <!-- 진행 중 -->
@@ -187,10 +186,6 @@
             <!-- 승인 대기: 안내 + 인증 보기 링크 -->
             <div v-else-if="effectiveStatus(q) === 'PENDING'" class="pending-box">
               <span class="pending-box-text">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-                  <path d="M7 4h10M7 20h10M7.5 4c0 4 3 5.5 4.5 6.5C10.5 11.5 7.5 13 7.5 20M16.5 4c0 4-3 5.5-4.5 6.5 1.5 1 4.5 2.5 4.5 9.5"
-                        stroke="#d99a00" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
                 부모님 확인을 기다리는 중이에요
               </span>
               <button class="pending-box-link" @click="goVerify(q, true)">인증 보기</button>
@@ -199,10 +194,6 @@
             <!-- 반려됨(거절 이력 있음): 사유 + 재시도 -->
             <div v-else class="rejected-box">
               <div class="rejected-box-header">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none">
-                  <path d="M12 9v4.5M12 16.2v.1" stroke="#e5484d" stroke-width="1.8" stroke-linecap="round"/>
-                  <circle cx="12" cy="12" r="8.5" stroke="#e5484d" stroke-width="1.6"/>
-                </svg>
                 반려됨 · 남은 기회 {{ q.remainingCount }}회
               </div>
               <p class="rejected-box-quote">"{{ q.lastRejectionReason }}"</p>
@@ -791,46 +782,10 @@ function onTabSelect(key) {
   font-size: 13px;
 }
 
-/* 리스트 하단 안내 카드 */
-.bottom-tip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-  margin-top: 4px;
-  padding: 26px 20px 24px;
-  border: 1.4px dashed #eceef1;
-  border-radius: 16px;
-}
-
-.bottom-tip-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #fff3d6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bottom-tip-title {
-  font-weight: 700;
-  font-size: 13px;
-  color: #4a4e55;
-}
-
-.bottom-tip-desc {
-  margin: 0;
-  font-size: 11.5px;
-  color: #8b9097;
-  line-height: 17px;
-}
-
 .quest-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .card-move-move {
@@ -851,11 +806,29 @@ function onTabSelect(key) {
   transition: border-color 0.3s ease;
 }
 
-.quest-row.liked {
+.quest-row.static { cursor: default; }
+
+/* 받을 수 있는 퀘스트 카드 — quest-row + quest-expand를 하나의 카드로 감싸서
+   펼쳤을 때 버튼 영역이 카드 위에 이어지는 느낌을 준다 */
+.quest-card {
+  background: #fff;
+  border: 1.3px solid transparent;
+  border-radius: 16px;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.quest-card.liked {
   border-color: #ffe08a;
 }
 
-.quest-row.static { cursor: default; }
+.quest-card .quest-row {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
 
 .quest-icon-wrap {
   position: relative;
@@ -1072,7 +1045,7 @@ function onTabSelect(key) {
 }
 
 .btn-retry {
-  background: #ffbc00;
+  background: #e5484d;
   color: #ffffff;
 }
 
@@ -1212,7 +1185,7 @@ function onTabSelect(key) {
   padding: 12px 0;
   border-radius: 12px;
   background: #ffbc00;
-  color: #ffffff;
+  color: #15171b;
   border: none;
   font-family: inherit;
   font-size: 14px;
@@ -1268,9 +1241,26 @@ function onTabSelect(key) {
 }
 
 /* 펼침 영역 */
-.quest-expand {
+/* 펼침/접힘을 높이 트랜지션 하나로 처리해서 글자와 카드가 동시에 움직이게 한다 */
+.quest-expand-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.22s ease, opacity 0.18s ease;
+}
+
+.quest-expand-wrap.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.quest-expand-wrap > .quest-expand {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.quest-expand-inner {
   padding: 0 16px 16px;
-  margin-top: -8px;
 }
 
 .quest-expand-content {
@@ -1329,15 +1319,20 @@ function onTabSelect(key) {
   border-radius: 10px;
   background: #f5f6f8;
   font-size: 13px;
-  color: #4a4e55;
+  font-weight: 600;
+  color: #1e2124;
   min-height: 44px;
   box-sizing: border-box;
 }
 
 .decline-reason-item.selected {
-  background: #fff1d6;
-  color: #15171b;
+  background: #fbe9e9;
+  color: #e5484d;
   font-weight: 700;
+}
+
+.decline-reason-item input[type="radio"] {
+  accent-color: #e5484d;
 }
 
 .decline-textarea {

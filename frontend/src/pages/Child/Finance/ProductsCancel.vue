@@ -814,7 +814,7 @@ onMounted(async () => {
   justify-content: center;
   padding: 20px 16px;
   text-align: center;
-  background: #fafbfc;
+  background: #ffffff;
 }
 
 .summary-label {
