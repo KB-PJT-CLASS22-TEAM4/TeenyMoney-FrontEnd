@@ -21,6 +21,9 @@ const STATUS_NORMALIZE = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   COMPLETED: 'COMPLETED',
+  MATURED: 'MATURED',
+  REPAID: 'REPAID',
+  FULLY_REPAID: 'REPAID',
   ACTIVE: 'ACTIVE',
   CANCELLED: 'CANCELLED',
   CANCELED: 'CANCELLED',
@@ -78,6 +81,41 @@ const COMPLETED_STATUSES = new Set([
   '승인',
   '거절',
 ])
+
+const HISTORY_COMPLETED_STATUSES = new Set([
+  'MATURED',
+  'COMPLETED',
+  'REPAID',
+  'FULLY_REPAID',
+  'PAID_OFF',
+  'MATURITY',
+])
+
+const HISTORY_COMPLETION_TYPES = new Set([
+  'MATURITY',
+  'MATURED',
+  'FULL_REPAYMENT',
+  'FULLY_REPAID',
+  'REPAID',
+  'PAID_OFF',
+])
+
+export function isHistoryCompletedProduct(item, status) {
+  const rawStatus = String(item?.status ?? status ?? '').toUpperCase()
+  const completionType = String(item?.completionType ?? '').toUpperCase()
+
+  if (
+    ['TERMINATED', 'CANCELLED', 'CANCELED', 'CLOSED', 'PENDING', 'REJECTED', 'ACTIVE'].includes(rawStatus)
+  ) {
+    return false
+  }
+
+  if (HISTORY_COMPLETED_STATUSES.has(rawStatus)) return true
+  if (HISTORY_COMPLETION_TYPES.has(completionType)) return true
+
+  const statusLabel = String(item?.statusLabel ?? '').replace(/\s/g, '')
+  return statusLabel.includes('만기') || statusLabel.includes('완납')
+}
 
 function toCategoryLabel(value) {
   if (!value) return '적금'
@@ -192,10 +230,16 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
         ?? item?.expiresAt
     ),
     requestedAt: item?.requestedAt ?? item?.createdAt ?? item?.appliedAt,
+    completedAt: item?.completedAt ?? item?.maturedAt ?? item?.repaidAt ?? null,
+    completionType: item?.completionType ?? '',
+    startDate: formatDate(item?.startDate ?? item?.startedAt),
+    principalAmount: item?.principalAmount ?? item?.amount ?? 0,
+    totalAmount: item?.totalAmount ?? item?.maturityAmount ?? accumulatedAmount,
     status,
     statusLabel: item?.statusLabel ?? status,
     isPending: PENDING_STATUSES.has(status) || PENDING_STATUSES.has(item?.statusLabel),
     isCompleted: COMPLETED_STATUSES.has(status),
+    isHistoryCompleted: isHistoryCompletedProduct(item, status),
   }
 }
 

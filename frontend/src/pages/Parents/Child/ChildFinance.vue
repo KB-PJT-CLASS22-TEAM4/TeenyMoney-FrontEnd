@@ -231,6 +231,55 @@
         </template>
 
         <section
+          v-if="filteredHistoryProducts.length"
+          class="completed-list"
+        >
+          <p class="group-title">
+            <span class="group-block">
+              <span class="group-block-label">만기·완납 이력</span>
+              <span class="count-badge">{{ filteredHistoryProducts.length }}</span>
+            </span>
+          </p>
+
+          <div
+            v-for="product in filteredHistoryProducts"
+            :key="`history-${product.enrollmentId}`"
+            class="product-card clickable"
+            role="button"
+            tabindex="0"
+            @click="goCompletionDetail(product)"
+            @keydown.enter="goCompletionDetail(product)"
+          >
+            <div class="product-head">
+              <div class="product-title-wrap">
+                <span
+                  class="origin-badge history"
+                  :class="isLoanProduct(product) ? 'repaid' : 'matured'"
+                >
+                  {{ isLoanProduct(product) ? '완납' : '만기' }}
+                </span>
+                <p class="product-title">{{ product.title }}</p>
+              </div>
+              <span class="product-rate">{{ product.rateText }}</span>
+            </div>
+
+            <p class="product-amount-label">
+              {{ isLoanProduct(product) ? '상환 총액' : '만기 수령액' }}
+              <strong>{{ formatHistoryAmount(product) }}</strong>
+            </p>
+
+            <div class="product-foot">
+              <span>
+                {{ product.periodMonths ? `${product.periodMonths}개월` : product.category }}
+              </span>
+              <span>
+                {{ product.completedAt ? `완료 ${formatHistoryDate(product.completedAt)}` : `만기 ${product.maturityDate}` }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section
           v-if="filteredCompletedApprovals.length"
           class="completed-list"
         >
@@ -303,7 +352,7 @@ import {
   fetchChildApprovalRequests,
   fetchChildCustomProducts,
 } from '@/utils/financialProductMapper'
-import { parseServerDate } from '@/utils/datetime'
+import { parseServerDate, formatKstDate } from '@/utils/datetime'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter()
@@ -316,6 +365,7 @@ const childId = computed(() => Number(route.params.childId))
 const childName = ref('자녀')
 const approvalRequests = ref([])
 const activeProducts = ref([])
+const completedHistoryProducts = ref([])
 const customProducts = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
@@ -366,6 +416,12 @@ const filteredActiveProducts = computed(() =>
   ))
 )
 
+const filteredHistoryProducts = computed(() =>
+  completedHistoryProducts.value.filter((item) => (
+    matchesCategory(item) && matchesSearch(item.title)
+  ))
+)
+
 const groupedActiveProducts = computed(() => {
   const groups = new Map()
 
@@ -406,6 +462,7 @@ const hasVisibleProducts = computed(() => {
     groupedActiveProducts.value.length
     || pendingApprovals.value.length
     || filteredCompletedApprovals.value.length
+    || filteredHistoryProducts.value.length
   )
   return Boolean(hasCreated || hasEnrolled)
 })
@@ -429,6 +486,19 @@ function toProductType(item) {
   if (raw.includes('LOAN') || raw.includes('대출')) return 'LOAN'
   if (raw.includes('DEPOSIT') || raw.includes('예금')) return 'DEPOSIT'
   return 'SAVING'
+}
+
+function isLoanProduct(item) {
+  return toProductType(item) === 'LOAN'
+}
+
+function formatHistoryAmount(product) {
+  const amount = Number(product.totalAmount || product.accumulatedAmount || 0)
+  return `${amount.toLocaleString()}원`
+}
+
+function formatHistoryDate(value) {
+  return formatKstDate(value, '-')
 }
 
 function mergeApprovalRequests(approvals, products) {
@@ -511,7 +581,13 @@ async function fetchProducts() {
 
     approvalRequests.value = mergeApprovalRequests(approvals, products)
     activeProducts.value = products.filter(
-      (item) => !item.isPending && item.status !== 'REJECTED',
+      (item) =>
+        !item.isPending
+        && item.status !== 'REJECTED'
+        && !item.isHistoryCompleted
+    )
+    completedHistoryProducts.value = products.filter(
+      (item) => item.isHistoryCompleted
     )
     customProducts.value = created
   } catch (error) {
@@ -519,6 +595,7 @@ async function fetchProducts() {
     errorMessage.value = error.message || '금융 상품을 불러오지 못했습니다.'
     approvalRequests.value = []
     activeProducts.value = []
+    completedHistoryProducts.value = []
     customProducts.value = []
   } finally {
     isLoading.value = false
@@ -528,6 +605,17 @@ async function fetchProducts() {
 function goApprovalDetail(item) {
   router.push({
     name: 'parents-finance-approval-detail',
+    params: {
+      childId: childId.value,
+      productType: toProductType(item),
+      enrollmentId: item.enrollmentId,
+    },
+  })
+}
+
+function goCompletionDetail(item) {
+  router.push({
+    name: 'parents-finance-completion-detail',
     params: {
       childId: childId.value,
       productType: toProductType(item),
@@ -1112,6 +1200,16 @@ onMounted(loadFinance)
 .origin-badge.enrolled {
   background: #fff6d9;
   color: #b45309;
+}
+
+.origin-badge.history.matured {
+  background: #e8f8ee;
+  color: #1f9d4b;
+}
+
+.origin-badge.history.repaid {
+  background: #eef4ff;
+  color: #2e7bf0;
 }
 
 .product-title {
