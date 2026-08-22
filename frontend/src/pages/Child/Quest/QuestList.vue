@@ -100,7 +100,10 @@
             <div class="quest-expand-wrap" :class="{ open: expandedId === q.id }">
               <div class="quest-expand" @click.stop>
                 <div class="quest-expand-inner">
+                <div v-if="q.content" class="quest-parent-note">
+                  <span class="quest-parent-label">부모님이 작성한 내용</span>
                   <p class="quest-expand-content">{{ q.content }}</p>
+                </div>
 
                   <div v-if="decliningId !== q.id" class="quest-actions">
                     <button class="btn btn-outline" @click="startDecline(q.id)">거절하기</button>
@@ -1263,11 +1266,25 @@ function onTabSelect(key) {
   padding: 0 16px 16px;
 }
 
-.quest-expand-content {
+.quest-parent-note {
   margin: 8px 0 14px;
+}
+
+.quest-parent-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #8a9099;
+}
+
+.quest-expand-content {
+  margin: 0;
   font-size: 13px;
   line-height: 19px;
   color: #4a4e55;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .quest-actions {
