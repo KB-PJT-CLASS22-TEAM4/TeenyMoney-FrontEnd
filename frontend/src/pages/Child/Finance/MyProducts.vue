@@ -119,6 +119,18 @@ function calcFixedSavingMaturity(monthlyAmount, termMonths, appliedRatePercent, 
   return monthlyAmount * termMonths + Math.floor(interest)
 }
 
+// 예금 예상 만기 수령액 (예치금 + 예상 이자, ProductsJoin.vue와 동일한 계산식)
+function calcDepositMaturity(principal, termMonths, appliedRatePercent, isCompound) {
+  if (!(principal > 0) || !(termMonths > 0)) return 0
+  const rate = (appliedRatePercent || 0) / 100
+  const interest = Math.floor(
+    isCompound
+      ? principal * (Math.pow(1 + rate / 12, termMonths) - 1)
+      : principal * rate * (termMonths / 12)
+  )
+  return principal + interest
+}
+
 // 날짜 파싱 유틸
 function parseDateParts(raw) {
   const date = parseServerDate(raw)
@@ -213,6 +225,52 @@ function getOrStoreOriginalLoanPrincipal(enrollmentId, currentAmount, explicitPr
   return 0
 }
 
+// 예금 신청 금액 캐시: 목록 API가 신청 금액 필드를 내려주지 않으므로
+// ProductsConfirm.vue에서 저장해둔 localStorage 값을 사용한다.
+function getOrStoreDepositAmount(enrollmentId, explicitAmount) {
+  const storageKey = enrollmentId ? `teeny_deposit_amount_${enrollmentId}` : null
+
+  if (explicitAmount && explicitAmount > 0) {
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, String(explicitAmount))
+      } catch (e) {}
+    }
+    return explicitAmount
+  }
+
+  if (storageKey) {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (raw && Number(raw) > 0) return Number(raw)
+    } catch (e) {}
+  }
+
+  return 0
+}
+
+// 중도해지일 캐시 조회: 목록 API가 중도해지 완료 시점을 내려주지 않으므로
+// ProductsCancel.vue에서 해지 처리 성공 시 저장해둔 localStorage 값을 사용한다.
+function getCachedTerminatedDate(enrollmentId) {
+  if (!enrollmentId) return null
+  try {
+    return localStorage.getItem(`teeny_terminated_date_${enrollmentId}`)
+  } catch (e) {
+    return null
+  }
+}
+
+// 대출 상환 완료일 캐시 조회: 조기상환으로 완제된 경우, 원래 만기일 대신
+// ProductsCancel.vue에서 저장해둔 실제 완제일을 사용한다.
+function getCachedRepaidDate(enrollmentId) {
+  if (!enrollmentId) return null
+  try {
+    return localStorage.getItem(`teeny_repaid_date_${enrollmentId}`)
+  } catch (e) {
+    return null
+  }
+}
+
 // API 데이터 매핑
 function mapEnrolledProduct(p) {
   const isLoan = p.productType === 'LOAN'
@@ -234,6 +292,23 @@ function mapEnrolledProduct(p) {
 
   const maxLimit = p.maximumAmount ?? p.productMaximumAmount ?? null
   const enrollmentId = p.enrollmentId ?? p.id ?? p.loanEnrollmentId ?? p.savingEnrollmentId ?? p.depositEnrollmentId
+
+  // 예금: 목록 조회 API가 신청 금액을 내려주지 않아, 가입 신청(ProductsConfirm.vue)에서
+  // localStorage에 캐시해둔 값을 사용한다. 백엔드가 필드를 내려주면 그 값을 우선 사용.
+  const explicitDepositAmount = p.principalAmount ?? p.depositAmount ?? p.amount ?? p.appliedAmount ?? p.requestedAmount ?? null
+  const depositPrincipal = isDeposit
+    ? getOrStoreDepositAmount(enrollmentId, explicitDepositAmount)
+    : 0
+
+  // 중도해지 완료: 백엔드가 해지 시점을 내려주지 않아, 해지 실행(ProductsCancel.vue) 시
+  // localStorage에 캐시해둔 날짜를 만기일 대신 보여준다.
+  const isEarlyTerminated = p.status === 'TERMINATED' || p.status === 'CLOSED'
+  const terminatedDate = isEarlyTerminated ? getCachedTerminatedDate(enrollmentId) : null
+
+  // 대출 상환 완료: 조기상환으로 완제된 경우 원래 만기일이 아니라 실제 완제일을 보여준다.
+  // 캐시가 없으면(정상 스케줄대로 완납) 기존 만기일이 실제 완제일과 같으므로 그대로 사용.
+  const isLoanRepaid = isLoan && p.status === 'REPAID'
+  const repaidDate = isLoanRepaid ? getCachedRepaidDate(enrollmentId) : null
 
   // 1. 대출 총 원금 (대출 신청할 때 넣은 최초 원금)
   // 대출의 경우 p.amount, p.principalAmount, p.loanAmount, p.requestedAmount 등 실제 신청 원금 우선
@@ -305,18 +380,13 @@ function mapEnrolledProduct(p) {
 
   let pendingSummary = ''
   if (isSaving) {
-    const savingsLabel = savingsTypeMap[p.savingsType] ?? p.savingsType ?? ''
-    const interestLabel = interestTypeMap[p.interestCalculationType] ?? p.interestCalculationType ?? ''
-    const typeText = [savingsLabel, interestLabel].filter(Boolean).join(' · ')
-    pendingSummary = `${typeText} | ${p.termMonths ?? '-'}개월 | 연 ${p.appliedRate ?? '-'}%`
+    const interestLabel = interestTypeMap[p.interestCalculationType] ?? p.interestCalculationType ?? '-'
+    pendingSummary = `${interestLabel} | ${p.termMonths ?? '-'}개월 | 연 ${p.appliedRate ?? '-'}%`
   } else if (isDeposit) {
     const interestLabel = interestTypeMap[p.interestCalculationType] ?? p.interestCalculationType ?? '-'
     pendingSummary = `${interestLabel} | ${p.termMonths ?? '-'}개월 | 연 ${p.appliedRate ?? '-'}%`
   } else if (isLoan) {
-    const principalStr = totalLoanPrincipal > 0 ? `신청 ${totalLoanPrincipal.toLocaleString()}원` : ''
-    const termStr = p.termMonths ? `${p.termMonths}개월` : ''
-    const rateStr = p.appliedRate ? `연 ${p.appliedRate}%` : ''
-    pendingSummary = [principalStr, termStr, rateStr].filter(Boolean).join(' | ')
+    pendingSummary = `${p.termMonths ?? '-'}개월 | 연 ${p.appliedRate ?? '-'}%`
   } else {
     pendingSummary = `${p.termMonths ?? '-'}개월 | 연 ${p.appliedRate ?? '-'}%`
   }
@@ -331,17 +401,22 @@ function mapEnrolledProduct(p) {
   const fixedSavingMaturity = isFixedSaving
     ? calcFixedSavingMaturity(monthlyAmount, p.termMonths, p.appliedRate, p.interestCalculationType === 'COMPOUND')
     : 0
+  const depositMaturity = isDeposit
+    ? calcDepositMaturity(depositPrincipal, p.termMonths, p.appliedRate, p.interestCalculationType === 'COMPOUND')
+    : 0
 
   const limitLabel = isFixedSaving
     ? '예상 만기 수령액'
-    : isFreeSaving ? '총 목표액' : isLoan ? '신청 대출금' : isDeposit ? '예치한도' : '납입한도'
+    : isFreeSaving ? '총 목표액' : isLoan ? '신청 대출금' : isDeposit ? '예치금' : '납입한도'
   const limitText = isFixedSaving
     ? (fixedSavingMaturity > 0 ? `${fixedSavingMaturity.toLocaleString()}원` : '-')
     : isFreeSaving
       ? (freeGoalAmount > 0 ? `${freeGoalAmount.toLocaleString()}원` : '-')
       : isLoan
         ? (totalLoanPrincipal > 0 ? `${totalLoanPrincipal.toLocaleString()}원` : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-'))
-        : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-')
+        : isDeposit
+          ? (depositPrincipal > 0 ? `${depositPrincipal.toLocaleString()}원` : '-')
+          : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-')
 
   const transferDay = p.paymentDay ?? p.transferDay ?? p.autoTransferDay ?? parseDateParts(p.startDate)?.d
 
@@ -377,9 +452,15 @@ function mapEnrolledProduct(p) {
     pendingSummary,
     isLoan,
     productId: p.productId,
-    hasDateRange: !isPending,
+    hasDateRange: isEarlyTerminated
+      ? Boolean(p.startDate) && Boolean(terminatedDate)
+      : !isPending && Boolean(p.startDate) && Boolean(p.maturityDate),
     startDate: formatDateCompact(p.startDate),
-    maturityDate: formatDateCompact(p.maturityDate),
+    maturityDate: isEarlyTerminated
+      ? formatDateCompact(terminatedDate)
+      : (isLoanRepaid && repaidDate)
+        ? formatDateCompact(repaidDate)
+        : formatDateCompact(p.maturityDate),
     hasProgress: !isPending && isSaving && !isFreeSaving,
     progressPercent,
     progressLabel: `납입 ${paidCount}/${totalCount}회 · ${progressPercent}%`,
@@ -389,9 +470,13 @@ function mapEnrolledProduct(p) {
     monthlyAmountText,
     limitLabel,
     limitText,
-    // 대출: 신청 대출금 아래에 앞으로 갚을 돈을 별도로 표시
-    remainingLabel: isLoan ? '앞으로 갚을 돈' : '',
-    remainingText: isLoan ? `${remainingLoanAmount.toLocaleString()}원` : '',
+    // 대출: 신청 대출금 아래에 앞으로 갚을 돈을, 예금: 예치금 아래에 예상 만기 수령액을 별도로 표시
+    remainingLabel: isLoan ? '앞으로 갚을 돈' : isDeposit ? '예상 만기 수령액' : '',
+    remainingText: isLoan
+      ? `${remainingLoanAmount.toLocaleString()}원`
+      : isDeposit
+        ? (depositMaturity > 0 ? `${depositMaturity.toLocaleString()}원` : '')
+        : '',
     isFixedSaving,
     productType: p.productType,
     savingsType: p.savingsType || '',
@@ -749,7 +834,7 @@ function onScroll() {
                 {{ product.originLabel }}
               </span>
             </div>
-            <span class="pending-badge">승인 대기</span>
+            <span class="pending-badge">{{ product.displayTypeLabel }} · 승인 대기</span>
           </div>
           <p class="pending-summary">{{ product.pendingSummary }}</p>
           <div v-if="product.monthlyAmountText || product.limitText" class="spec-grid pending">
@@ -764,10 +849,6 @@ function onScroll() {
             <div v-if="product.remainingText" class="spec-item">
               <span class="spec-label">{{ product.remainingLabel }}</span>
               <span class="spec-val">{{ product.remainingText }}</span>
-            </div>
-            <div v-if="(product.isFixedSaving || product.isFreeSaving) && product.termMonths > 0" class="spec-item">
-              <span class="spec-label">가입기간</span>
-              <span class="spec-val">{{ product.termMonths }}개월</span>
             </div>
           </div>
           <div class="pending-bottom-row">
@@ -794,11 +875,12 @@ function onScroll() {
                 {{ product.originLabel }}
               </span>
             </div>
+            <span class="type-status-badge" :class="product.statusColor">
+              {{ product.displayTypeLabel }} · {{ product.status }}
+            </span>
           </div>
 
-          <p class="status-line">
-            {{ product.displayTypeLabel }} · <span class="status-text" :class="product.statusColor">{{ product.status }}</span>
-          </p>
+          <p v-if="product.pendingSummary" class="pending-summary">{{ product.pendingSummary }}</p>
 
           <p v-if="product.hasDateRange" class="date-range">{{ product.startDate }} ~ {{ product.maturityDate }}</p>
 
@@ -815,10 +897,6 @@ function onScroll() {
             <div v-if="product.remainingText" class="spec-item">
               <span class="spec-label">{{ product.remainingLabel }}</span>
               <span class="spec-val">{{ product.remainingText }}</span>
-            </div>
-            <div v-if="(product.isFixedSaving || product.isFreeSaving) && product.termMonths > 0" class="spec-item">
-              <span class="spec-label">가입기간</span>
-              <span class="spec-val">{{ product.termMonths }}개월</span>
             </div>
           </div>
 
@@ -1118,7 +1196,7 @@ function onScroll() {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 20px 20px;
+  padding: 16px 20px 90px;
   background: #f8fafc;
 }
 .scroll::-webkit-scrollbar { width: 3px; }
@@ -1476,6 +1554,22 @@ function onScroll() {
   white-space: nowrap;
 }
 
+.type-status-badge {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef1f4;
+  color: #6b7077;
+  font-weight: 700;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.type-status-badge.green  { color: #b5810a; background: #fff8e6; }
+.type-status-badge.blue   { color: #4d8ad6; background: #eef4fc; }
+.type-status-badge.red    { color: #e0554f; background: #fdeceb; }
+.type-status-badge.orange { color: #f57c00; background: #fff3e0; }
+.type-status-badge.gray   { color: #8b9097; background: #f3f4f6; }
+
 .pending-summary {
   margin: 6px 0 0;
   font-weight: 500;
@@ -1523,7 +1617,7 @@ function onScroll() {
 }
 
 .date-range {
-  margin: 0 0 10px;
+  margin: 8px 0 10px;
   font-weight: 500;
   font-size: 12px;
   color: #8b9097;

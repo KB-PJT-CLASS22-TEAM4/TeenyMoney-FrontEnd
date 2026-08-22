@@ -46,7 +46,7 @@ defineProps({
   padding: 16px;
   box-sizing: border-box;
   background: #ffffff;
-  border: 1.3px solid #ffe08a;
+  border: 1px solid #eaedf1;
   border-radius: 16px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   scroll-snap-align: start;

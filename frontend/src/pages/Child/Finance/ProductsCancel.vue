@@ -138,6 +138,15 @@ async function handleTerminationSubmit() {
   try {
     const res = await terminateEnrollment(authStore.accessToken, productTypePath.value, product.id)
     finalResult.value = res?.data ?? res
+
+    try {
+      const today = new Date()
+      const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      localStorage.setItem(`teeny_terminated_date_${product.id}`, iso)
+    } catch (e) {
+      console.warn('중도해지일 로컬 저장 실패:', e)
+    }
+
     showSuccessModal.value = true
   } catch (e) {
     console.error('중도해지 실행 실패:', e)
@@ -224,6 +233,19 @@ async function handleRepaySubmit() {
       idempotencyKey: generateIdempotencyKey(),
     })
     repayFinalResult.value = res?.data ?? res
+
+    // 이 조기상환으로 대출이 완전히 상환됐다면, 백엔드가 실제 상환 완료일을 내려주지 않으므로
+    // 지금 이 시점을 완료일로 캐싱해서 나중에 원래 만기일 대신 보여준다.
+    if (repayWillBeFullyPaid.value) {
+      try {
+        const today = new Date()
+        const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+        localStorage.setItem(`teeny_repaid_date_${product.id}`, iso)
+      } catch (e) {
+        console.warn('상환 완료일 로컬 저장 실패:', e)
+      }
+    }
+
     showRepaySuccessModal.value = true
   } catch (e) {
     console.error('조기상환 실행 실패:', e)
