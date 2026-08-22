@@ -95,22 +95,11 @@ async function loadQuote() {
   }
 }
 
-// 경과율 구간별 적용 이율 비율 (약정금리 대비 비율)
-function getTerminationTierRate(progress) {
-  const p = Number(progress ?? 0)
-  if (p < 25) return 10
-  if (p < 50) return 30
-  if (p < 75) return 60
-  if (p < 100) return 80
-  return 100
-}
-
 const progressPercent = computed(() => quote.value?.progressPercent ?? 0)
 
-// 항상 명세 규칙(25% 미만 -> 10%, 25~49% -> 30%, 50~74% -> 60%, 75%이상 -> 80%)에 따라 산출
-const appliedRatePercent = computed(() => {
-  return getTerminationTierRate(progressPercent.value)
-})
+// 백엔드가 실제로 적용한 중도해지 이율(약정금리 대비 비율). 프론트에서 구간표로 다시
+// 추정하면 실제 이자/최종지급액 계산과 어긋날 수 있어, 응답값을 그대로 사용한다.
+const appliedRatePercent = computed(() => quote.value?.appliedEarlyTerminationRate ?? 0)
 
 const totalRefund = computed(() => quote.value?.finalAmount ?? 0)
 const principalAmount = computed(() => quote.value?.principalAmount ?? 0)
@@ -139,12 +128,23 @@ async function handleTerminationSubmit() {
     const res = await terminateEnrollment(authStore.accessToken, productTypePath.value, product.id)
     finalResult.value = res?.data ?? res
 
+    // 백엔드에 중도해지 이력 조회 API가 없어, 나중에 상세 페이지에서 보여줄 수 있도록
+    // 해지 시점 요약(원금/이자/최종지급액/적용금리/티니점수 영향)과 날짜를 로컬에 저장해둔다.
     try {
       const today = new Date()
       const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       localStorage.setItem(`teeny_terminated_date_${product.id}`, iso)
+      localStorage.setItem(`teeny_termination_result_${product.id}`, JSON.stringify({
+        principalAmount: finalResult.value?.principalAmount ?? principalAmount.value,
+        interestAmount: finalResult.value?.interestAmount ?? interestAmount.value,
+        finalAmount: finalResult.value?.finalAmount ?? totalRefund.value,
+        appliedEarlyTerminationRate: finalResult.value?.appliedEarlyTerminationRate ?? appliedRatePercent.value,
+        progressPercent: finalResult.value?.progressPercent ?? progressPercent.value,
+        scoreChange: finalResult.value?.scoreChange ?? -scorePenalty.value,
+        terminatedDate: iso,
+      }))
     } catch (e) {
-      console.warn('중도해지일 로컬 저장 실패:', e)
+      console.warn('중도해지 상세 로컬 저장 실패:', e)
     }
 
     showSuccessModal.value = true
@@ -234,15 +234,23 @@ async function handleRepaySubmit() {
     })
     repayFinalResult.value = res?.data ?? res
 
-    // 이 조기상환으로 대출이 완전히 상환됐다면, 백엔드가 실제 상환 완료일을 내려주지 않으므로
-    // 지금 이 시점을 완료일로 캐싱해서 나중에 원래 만기일 대신 보여준다.
+    // 이 조기상환으로 대출이 완전히 상환됐다면, 백엔드가 실제 상환 완료일/상세 내역을
+    // 내려주는 조회 API가 없으므로 지금 이 시점의 결과를 캐싱해서 나중에 상세 페이지에서 보여준다.
     if (repayWillBeFullyPaid.value) {
       try {
         const today = new Date()
         const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
         localStorage.setItem(`teeny_repaid_date_${product.id}`, iso)
+        localStorage.setItem(`teeny_repayment_result_${product.id}`, JSON.stringify({
+          requestedAmount: repayFinalResult.value?.requestedAmount ?? repayAmount.value,
+          paidPrincipalAmount: repayFinalResult.value?.paidPrincipalAmount ?? repayQuote.value?.paidPrincipalAmount ?? 0,
+          paidInterestAmount: repayFinalResult.value?.paidInterestAmount ?? repayQuote.value?.paidInterestAmount ?? 0,
+          remainingOverdueInterest: repayFinalResult.value?.remainingOverdueInterest ?? repayQuote.value?.remainingOverdueInterest ?? 0,
+          scoreChange: repayFinalResult.value?.scoreChange ?? repayScoreDelta.value,
+          repaidDate: iso,
+        }))
       } catch (e) {
-        console.warn('상환 완료일 로컬 저장 실패:', e)
+        console.warn('상환 완료 상세 로컬 저장 실패:', e)
       }
     }
 
@@ -463,7 +471,7 @@ onMounted(async () => {
             </div>
             <div class="detail-row">
               <span class="d-label">중도해지 적용 이율</span>
-              <span class="d-value blue">약정금리의 {{ appliedRatePercent }}%</span>
+              <span class="d-value blue">연 {{ appliedRatePercent }}%</span>
             </div>
             <div class="detail-row">
               <span class="d-label">받을 이자</span>
@@ -813,8 +821,8 @@ onMounted(async () => {
   margin-top: 8px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: #eef8ee;
-  color: #2e8540;
+  background: #eef4fc;
+  color: #3b74b8;
   font-weight: 700;
   font-size: 11.5px;
 }
@@ -967,7 +975,7 @@ onMounted(async () => {
 .up-badge {
   font-weight: 800;
   font-size: 13px;
-  color: #2e8540;
+  color: #3b74b8;
 }
 
 .flat-badge {

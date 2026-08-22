@@ -336,8 +336,6 @@ function mapEnrolledProduct(p) {
     }
   }
 
-  const freeGoalAmount = (monthlyAmount > 0 && p.termMonths > 0) ? (monthlyAmount * p.termMonths) : (maxLimit ?? monthlyAmount)
-
   // 2. 조기상환 후 남은 금액 (앞으로 갚을 돈) & 이미 상환한 금액 산출
   // 백엔드 currentAmount는 현재 남은 잔여 원금 (승인 대기 중이면 아직 대출 실행 전이므로 totalLoanPrincipal 기준)
   const remainingLoanAmount = (p.status === 'REPAID' || p.terminated)
@@ -405,14 +403,19 @@ function mapEnrolledProduct(p) {
   const depositMaturity = isDeposit
     ? calcDepositMaturity(depositPrincipal, p.termMonths, p.appliedRate, p.interestCalculationType === 'COMPOUND')
     : 0
+  // 자유적금은 승인 대기 중일 때만 "매달 한 달 목표금액만큼 넣는다면"을 가정한 예상 만기 수령액을 보여준다.
+  const freeSavingMaturity = isFreeSaving && isPending
+    ? calcFixedSavingMaturity(monthlyAmount, p.termMonths, p.appliedRate, p.interestCalculationType === 'COMPOUND')
+    : 0
 
+  // 자유적금 승인 대기 중에는 월 납입 카드에 이미 "한 달 목표금액"이 나오므로, 이 자리엔 예상 만기 수령액을 보여준다.
   const limitLabel = isFixedSaving
     ? '예상 만기 수령액'
-    : isFreeSaving ? '총 목표액' : isLoan ? '신청 대출금' : isDeposit ? '예치금' : '납입한도'
+    : isFreeSaving ? (isPending ? '예상 만기 수령액' : '한 달 목표금액') : isLoan ? '신청 대출금' : isDeposit ? '예치금' : '납입한도'
   const limitText = isFixedSaving
     ? (fixedSavingMaturity > 0 ? `${fixedSavingMaturity.toLocaleString()}원` : '-')
     : isFreeSaving
-      ? (freeGoalAmount > 0 ? `${freeGoalAmount.toLocaleString()}원` : '-')
+      ? (isPending ? (freeSavingMaturity > 0 ? `${freeSavingMaturity.toLocaleString()}원` : '-') : (monthlyAmount > 0 ? `${monthlyAmount.toLocaleString()}원` : '-'))
       : isLoan
         ? (totalLoanPrincipal > 0 ? `${totalLoanPrincipal.toLocaleString()}원` : (maxLimit ? `${maxLimit.toLocaleString()}원` : '-'))
         : isDeposit
@@ -442,6 +445,9 @@ function mapEnrolledProduct(p) {
   return {
     id: enrollmentId,
     category: typeMap[p.productType] ?? p.productType,
+    isEarlyTerminated,
+    isLoanRepaid,
+    isCancelled,
     displayTypeLabel,
     originType: origin.type,
     originLabel: origin.label,
@@ -582,7 +588,10 @@ const pendingProducts = computed(() => categoryFilteredProducts.value.filter((p)
 const activeProducts = computed(() => categoryFilteredProducts.value.filter((p) => !p.isPending && !p.isTerminated))
 
 // 완료(중도해지/만기 등)된 상품 — 진행 중 목록과는 별도로 모아서 보여줌
-const completedProducts = computed(() => categoryFilteredProducts.value.filter((p) => p.isTerminated))
+// 승인 대기 중 신청을 취소한 건(신청취소 완료)은 실제로 가입된 적 없는 건이라 목록에서 제외한다.
+const completedProducts = computed(() =>
+  categoryFilteredProducts.value.filter((p) => p.isTerminated && !p.isCancelled)
+)
 
 // 상태 필터에 따라 어느 그룹을 보여줄지 결정
 const showPendingGroup = computed(() => activeStatus.value === '전체' || activeStatus.value === '승인 대기 중')
@@ -666,6 +675,57 @@ function goToCancel(product) {
       totalPaymentCount: product.totalPaymentCount,
     },
   })
+}
+
+// 중도해지 완료 상품 상세 이동 (완료됨 목록에서 중도해지된 것만 클릭 가능)
+function goToTerminatedDetail(product) {
+  const parts = parseDateParts(product.startDateRaw)
+  const startDateIso = parts
+    ? `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(parts.d).padStart(2, '0')}`
+    : ''
+
+  router.push({
+    name: 'child-finance-terminated-detail',
+    query: {
+      id: product.id,
+      title: product.title,
+      category: product.category,
+      originLabel: product.originLabel,
+      productType: product.productType,
+      savingsType: product.savingsType,
+      interestCalculationType: product.interestCalculationType,
+      appliedRate: product.appliedRate,
+      termMonths: product.termMonths,
+      startDate: startDateIso,
+    },
+  })
+}
+
+// 대출 상환 완료 상품 상세 이동 (완료됨 목록에서 상환 완료된 대출만 클릭 가능)
+function goToRepaymentDetail(product) {
+  const parts = parseDateParts(product.startDateRaw)
+  const startDateIso = parts
+    ? `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(parts.d).padStart(2, '0')}`
+    : ''
+
+  router.push({
+    name: 'child-finance-repayment-detail',
+    query: {
+      id: product.id,
+      title: product.title,
+      originLabel: product.originLabel,
+      principal: product.principal,
+      appliedRate: product.appliedRate,
+      termMonths: product.termMonths,
+      startDate: startDateIso,
+    },
+  })
+}
+
+// 완료됨 카드 클릭 시 상태에 맞는 상세 페이지로 이동
+function goToCompletedDetail(product) {
+  if (product.isEarlyTerminated) goToTerminatedDetail(product)
+  else if (product.isLoanRepaid) goToRepaymentDetail(product)
 }
 
 // 자유적금 간편 이체 바텀시트
@@ -968,6 +1028,12 @@ function onScroll() {
           </p>
           <p v-if="product.hasDateRange" class="date-range">{{ product.startDate }} ~ {{ product.maturityDate }}</p>
           <p v-if="product.infoText" class="info-text">{{ product.infoText }}</p>
+
+          <div v-if="product.isEarlyTerminated || product.isLoanRepaid" class="card-footer end">
+            <button type="button" class="btn-cancel-link" @click="goToCompletedDetail(product)">
+              상세보기
+            </button>
+          </div>
         </div>
       </template>
     </div>
@@ -1539,8 +1605,8 @@ function onScroll() {
 }
 
 .card.completed {
-  opacity: 0.65;
-  background: #f7f8fa;
+  opacity: 0.85;
+  background: #ffffff;
 }
 
 .pending-top {
