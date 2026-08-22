@@ -653,7 +653,7 @@ function onTabSelect(key) {
   width: 100%;
   box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;  /* flex-start → stretch */
   border-bottom: 1.2px solid #f0f1f3;
   background: #ffffff;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
@@ -695,7 +695,7 @@ function onTabSelect(key) {
   position: absolute;
   left: 12px;
   right: 12px;
-  bottom: 1.7px;
+  bottom: 0;        /* 1.7px → 0 */
   height: 2.5px;
   background: #ffbc00;
   border-radius: 999px;

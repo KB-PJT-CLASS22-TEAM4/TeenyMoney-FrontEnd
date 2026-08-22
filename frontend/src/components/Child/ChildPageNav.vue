@@ -1,5 +1,5 @@
 <template>
-  <header class="child-page-nav">
+  <header class="child-page-nav" :class="{ transparent }">
     <button
       v-if="showBack"
       class="back-btn"
@@ -12,7 +12,9 @@
     <span v-else class="back-placeholder" aria-hidden="true"></span>
 
     <h1 class="nav-title">{{ title }}</h1>
-    <ChildNavActions />
+
+    <ChildNavActions v-if="showActions" />
+    <span v-else class="actions-placeholder" aria-hidden="true"></span>
   </header>
 </template>
 
@@ -29,6 +31,14 @@ defineProps({
   showBack: {
     type: Boolean,
     default: true,
+  },
+  showActions: {
+    type: Boolean,
+    default: true,
+  },
+  transparent: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -61,6 +71,11 @@ function handleBack() {
   border-bottom: 1px solid #eceef1;
 }
 
+.child-page-nav.transparent {
+  background: transparent;
+  border-bottom: none;
+}
+
 .back-btn {
   display: flex;
   width: 34px;
@@ -83,6 +98,13 @@ function handleBack() {
   width: 34px;
   height: 34px;
   flex-shrink: 0;
+}
+
+.actions-placeholder {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .nav-title {
