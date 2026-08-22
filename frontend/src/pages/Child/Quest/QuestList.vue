@@ -570,7 +570,13 @@ function goVerify(q, viewOnly = false) {
   })
 }
 
+// 머니 리포트의 습관 카드를 눌러 들어온 경우(from=report)는 브라우저 히스토리
+// 상태와 무관하게 무조건 리포트로 돌아가고, 그 외에는 기존처럼 브라우저 히스토리를 따라간다.
 function goBack() {
+  if (route.query.from === 'report') {
+    router.push({ name: 'child-report' })
+    return
+  }
   router.back()
 }
 

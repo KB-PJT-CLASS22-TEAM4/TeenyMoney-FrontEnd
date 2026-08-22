@@ -914,40 +914,40 @@ function onTabSelect(key) {
 
 .balance-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 14px;
   background: #ffffff;
-  border: 1px solid #eaedf1;
   border-radius: 20px;
   padding: 16px 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 .balance-label {
+  margin: 0 0 6px;
   font-size: 11.5px;
   font-weight: 700;
-  color: #57575e;
+  color: #71717a;
 }
 
 .balance-value-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  gap: 10px;
 }
 
 .balance-logo {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .balance-amount {
   margin: 0;
-  font-size: 21px;
+  font-size: 24px;
   font-weight: 900;
   color: #0f172a;
+  letter-spacing: -0.5px;
   white-space: nowrap;
 }
 
@@ -957,7 +957,8 @@ function onTabSelect(key) {
 }
 
 .btn-pill {
-  padding: 9px 15px;
+  flex: 1;
+  height: 40px;
   border-radius: 12px;
   border: none;
   font-size: 12.5px;
