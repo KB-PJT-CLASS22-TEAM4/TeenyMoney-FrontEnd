@@ -1,6 +1,6 @@
 <template>
   <div class="qr-code-screen">
-    <ChildPageNav title="QR 결제" :show-back="false" />
+    <ChildPageNav title="QR 결제" :show-back="false" :show-actions="false" transparent />
 
     <!-- QR 카드 -->
     <div class="card qr-card">
