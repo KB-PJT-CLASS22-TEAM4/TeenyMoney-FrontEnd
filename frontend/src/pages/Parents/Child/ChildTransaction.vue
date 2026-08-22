@@ -294,16 +294,8 @@
                 </p>
 
                 <p class="transaction-balance">
-
                   잔액
                   {{ Number(item.balanceAfter || 0).toLocaleString() }}원
-
-                  <img
-                    src="@/assets/icons/icon-chevron.svg"
-                    alt=""
-                    class="chevron-icon"
-                  />
-
                 </p>
 
               </div>
@@ -1260,11 +1252,6 @@ button {
   color: #8b9097;
 
   font-size: 10px;
-}
-
-.chevron-icon {
-  width: 14px;
-  height: 14px;
 }
 
 
