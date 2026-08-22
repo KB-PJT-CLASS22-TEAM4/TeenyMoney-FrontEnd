@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import familyHeroUrl from '@/assets/login/login-family.png';
-import walletLogoUrl from '@/assets/login/teenymoney-wallet-mark.png';
+import walletLogoUrl from '@/assets/logo.svg';
 import { useRouter } from 'vue-router';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import { login } from '@/api/auth';
@@ -489,7 +489,6 @@ onBeforeUnmount(() => {
         alt="함께 웃고 있는 티니머니 가족"
       />
 
-      <img class="brand" :src="walletLogoUrl" alt="티니머니" />
     </section>
 
     <section
@@ -517,8 +516,12 @@ onBeforeUnmount(() => {
 
       <div ref="bodyEl" class="sheet-body">
         <div class="heading">
-          <h1 class="welcome">티니머니</h1>
-          <p class="subtitle">부모와 아이가 함께 만들어 가는 작은 금융사회</p>
+          <img class="brand" :src="walletLogoUrl" alt="" />
+          <h1 class="welcome">티니머니에 오신 걸 환영해요</h1>
+          <p class="subtitle">
+            용돈을 충전하고 목표를 모아요.<br />
+            로그인하고 자녀와 함께 시작해 보세요.
+          </p>
         </div>
 
         <div class="form">
@@ -753,15 +756,14 @@ onBeforeUnmount(() => {
   opacity: 1;
 }
 
+/* 로고는 영상 위 오버레이가 아니라 시트 안 머리말에 있다. 흰 배경 위라
+   그림자가 필요 없다. */
 .brand {
-  position: absolute;
-  top: max(18px, env(safe-area-inset-top));
-  left: 20px;
-  width: 38px;
-  height: 38px;
+  /* logo.svg는 69×63 비율이다. 높이만 정하고 너비를 auto로 두어야 여백 없이
+     원래 비율로 그려진다. 정사각형으로 고정하면 위아래에 빈 띠가 생긴다. */
+  width: auto;
+  height: 56px;
   object-fit: contain;
-  /* 흰 배경을 걷어냈으므로 밝은 영상 프레임 위에서도 로고가 읽히도록 그림자를 준다. */
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
 }
 
 /* 시트. bottom에 붙여두고 translateY로 내려놓는다. 보이는 높이가 visible이고,
@@ -817,23 +819,25 @@ onBeforeUnmount(() => {
 .heading {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 9px;
+  align-items: center;
+  gap: 10px;
+  padding-top: 0;
+  text-align: center;
 }
 
 .welcome {
   margin: 0;
   font-weight: 800;
-  font-size: 25px;
-  line-height: 1.28;
-  letter-spacing: -1px;
+  font-size: 22px;
+  line-height: 1.3;
+  letter-spacing: -0.6px;
 }
 
 .subtitle {
   margin: 0;
   font-weight: 500;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: #8b9097;
 }
 
@@ -841,9 +845,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   /* 밑줄형은 박스형보다 경계가 약해서 필드 사이를 더 벌려야 구분이 된다. */
-  gap: 22px;
+  gap: 18px;
   width: 100%;
-  padding-top: 24px;
+  padding-top: 20px;
 }
 
 .field {
@@ -990,16 +994,16 @@ onBeforeUnmount(() => {
   border: 0;
   background: transparent;
   font-family: inherit;
-  font-weight: 500;
-  font-size: 12px;
+  font-weight: 600;
+  font-size: 12.5px;
   line-height: 15px;
   color: #8b9097;
   cursor: pointer;
 }
 
 .signup-link {
-  color: #b27e00;
   font-weight: 700;
+  color: #b27e00;
 }
 
 .sep {
