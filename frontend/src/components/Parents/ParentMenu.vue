@@ -207,6 +207,7 @@ const menuGroups = [
     title: '마이페이지',
     items: [
       { key: 'mypage', label: '마이페이지', path: '/parents/mypage', icon: 'person' },
+      { key: 'today-allow-limit', label: '오늘만 허용 요청 한도 설정', path: '/parents/mypage/today-allow-limit', icon: 'calendar' },
       { key: 'password', label: '결제 비밀번호', icon: 'lock', displayOnly: true },
       { key: 'logout', label: '로그아웃', action: 'logout', icon: 'logout' },
     ],
