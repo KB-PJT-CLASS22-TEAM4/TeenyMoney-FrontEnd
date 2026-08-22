@@ -56,49 +56,6 @@
         </div>
       </section>
 
-      <section class="guide-block">
-        <span class="eyebrow">등급 안내</span>
-
-        <div class="guide-list">
-          <div
-            v-for="gradeItem in gradesDesc"
-            :key="gradeItem.gradeId"
-            class="guide-row"
-            :class="{ current: gradeItem.label === scoreData.gradeName }"
-          >
-            <span
-              class="guide-dot"
-              :style="{ backgroundColor: gradeItem.color }"
-            ></span>
-            <div class="guide-text">
-              <div class="guide-title-row">
-                <b class="guide-label">{{ gradeItem.label }}</b>
-                <span class="guide-range faint">
-                  {{ gradeItem.min }}~{{
-                    gradeItem.max === scoreMax
-                      ? gradeItem.max.toLocaleString()
-                      : gradeItem.max
-                  }}점
-                </span>
-                <span
-                  v-if="gradeItem.label === scoreData.gradeName"
-                  class="current-badge"
-                  :style="{ backgroundColor: gradeItem.color }"
-                >
-                  현재
-                </span>
-              </div>
-              <span class="guide-headline">{{ gradeItem.headline }}</span>
-              <ul class="guide-perks">
-                <li v-for="(perk, index) in gradeItem.perks" :key="index">
-                  {{ perk }}
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="change-section">
         <span class="section-title">자녀의 등급 변화</span>
 
@@ -226,6 +183,49 @@
             >
               <span class="monthly-label">{{ formatYearMonthLabel(item.yearMonth) }}</span>
               <strong class="monthly-score">{{ item.teenyScore }}점</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-block">
+        <span class="eyebrow">등급 안내</span>
+
+        <div class="guide-list">
+          <div
+            v-for="gradeItem in gradesDesc"
+            :key="gradeItem.gradeId"
+            class="guide-row"
+            :class="{ current: gradeItem.label === scoreData.gradeName }"
+          >
+            <span
+              class="guide-dot"
+              :style="{ backgroundColor: gradeItem.color }"
+            ></span>
+            <div class="guide-text">
+              <div class="guide-title-row">
+                <b class="guide-label">{{ gradeItem.label }}</b>
+                <span class="guide-range faint">
+                  {{ gradeItem.min }}~{{
+                    gradeItem.max === scoreMax
+                      ? gradeItem.max.toLocaleString()
+                      : gradeItem.max
+                  }}점
+                </span>
+                <span
+                  v-if="gradeItem.label === scoreData.gradeName"
+                  class="current-badge"
+                  :style="{ backgroundColor: gradeItem.color }"
+                >
+                  현재
+                </span>
+              </div>
+              <span class="guide-headline">{{ gradeItem.headline }}</span>
+              <ul class="guide-perks">
+                <li v-for="(perk, index) in gradeItem.perks" :key="index">
+                  {{ perk }}
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -638,9 +638,10 @@ onMounted(loadTeenyScore)
 }
 
 .guide-row.current {
-  background: #fafcf8;
+  background: #fff8e5;
   border-radius: 14px;
   border-bottom: none;
+  margin-top: 8px;
   padding: 14px 10px;
 }
 
