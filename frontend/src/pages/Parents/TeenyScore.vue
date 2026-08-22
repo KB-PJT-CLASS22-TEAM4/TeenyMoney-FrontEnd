@@ -47,14 +47,6 @@
             <div class="grade-info-col">
               <div class="grade-header-row">
                 <span class="sub-label">현재 등급</span>
-                <button
-                  class="help-btn"
-                  type="button"
-                  aria-label="등급 안내"
-                  @click="showInfoModal = true"
-                >
-                  ?
-                </button>
               </div>
               <div class="grade-badge-row">
                 <span
@@ -73,7 +65,17 @@
       </section>
 
       <section class="change-section">
-        <span class="section-title">자녀의 등급 변화</span>
+        <div class="section-title-row">
+          <span class="section-title">자녀의 등급 변화</span>
+          <button
+            class="help-btn"
+            type="button"
+            aria-label="등급 안내"
+            @click="showInfoModal = true"
+          >
+            ?
+          </button>
+        </div>
 
         <div class="change-card">
           <div class="change-head">
@@ -501,7 +503,6 @@ onMounted(loadTeenyScore)
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
   background: #ffffff;
-
 }
 
 .back-btn,
@@ -651,10 +652,17 @@ onMounted(loadTeenyScore)
   line-height: 1.4;
 }
 
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
 .eyebrow,
 .section-title {
   display: block;
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 14px;
   font-weight: 800;
   color: #191b1e;
