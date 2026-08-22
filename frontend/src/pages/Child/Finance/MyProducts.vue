@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
   getMyEnrolledFinancialProducts,
@@ -17,6 +17,7 @@ import { getKstParts, parseServerDate } from '@/utils/datetime'
 import { formatRepaymentType } from '@/utils/financialProductMapper'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const activeTab = ref('나의 상품')
@@ -766,7 +767,13 @@ function handleSuccessConfirm() {
   closeDepositSheet()
 }
 
+// 머니 리포트의 습관 카드를 눌러 들어온 경우(from=report)는 브라우저 히스토리
+// 상태와 무관하게 무조건 리포트로 돌아가고, 그 외(홈/탭 등)에는 기존처럼 홈으로 간다.
 function goBack() {
+  if (route.query.from === 'report') {
+    router.push({ name: 'child-report' })
+    return
+  }
   router.push({ name: 'child-home' })
 }
 
