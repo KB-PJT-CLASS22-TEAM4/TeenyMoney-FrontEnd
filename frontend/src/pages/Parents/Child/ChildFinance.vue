@@ -8,6 +8,19 @@
       <ParentNavActions />
     </header>
 
+    <div class="tabs">
+      <button
+        v-for="category in categories"
+        :key="category"
+        class="tab"
+        :class="{ active: activeCategory === category }"
+        type="button"
+        @click="activeCategory = category"
+      >
+        {{ category }}
+      </button>
+    </div>
+
     <div class="scroll-area">
       <section class="child-info-card">
         <div class="child-info-left">
@@ -23,42 +36,27 @@
       <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
 
       <template v-else>
-        <div class="toolbar">
-          <div class="product-search-box">
-            <img
-              src="@/assets/icons/icon-search.svg"
-              alt=""
-              class="search-icon"
-            />
-            <input
-              v-model="searchKeyword"
-              type="text"
-              class="search-input"
-              placeholder="상품 검색"
-            />
-            <button
-              v-if="searchKeyword"
-              type="button"
-              class="search-clear-btn"
-              aria-label="검색어 지우기"
-              @click="searchKeyword = ''"
-            >
-              ×
-            </button>
-          </div>
-
-          <div class="filters">
-            <button
-              v-for="category in categories"
-              :key="category"
-              class="chip"
-              :class="{ active: activeCategory === category }"
-              type="button"
-              @click="activeCategory = category"
-            >
-              {{ category }}
-            </button>
-          </div>
+        <div class="product-search-box">
+          <img
+            src="@/assets/icons/icon-search.svg"
+            alt=""
+            class="search-icon"
+          />
+          <input
+            v-model="searchKeyword"
+            type="text"
+            class="search-input"
+            placeholder="상품 검색"
+          />
+          <button
+            v-if="searchKeyword"
+            type="button"
+            class="search-clear-btn"
+            aria-label="검색어 지우기"
+            @click="searchKeyword = ''"
+          >
+            ×
+          </button>
         </div>
 
         <section
@@ -937,6 +935,7 @@ onMounted(loadFinance)
   height: 46px;
   box-sizing: border-box;
   padding: 0 14px;
+  margin-bottom: 8px;
   border: 1px solid #eceef1;
   border-radius: 12px;
   background: #f6f7f8;
@@ -982,40 +981,33 @@ onMounted(loadFinance)
   cursor: pointer;
 }
 
-.toolbar {
+.tabs {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0 0 8px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f1f3;
 }
 
-.filters {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 12px;
-  background: #eceef1;
-}
-
-.chip {
+.tab {
   flex: 1;
-  height: 34px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0;
   border: none;
-  border-radius: 9px;
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: #6b7077;
-  font-size: 13px;
+  color: #8b9097;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  white-space: nowrap;
 }
 
-.chip.active {
-  background: #ffffff;
-  color: #191b1e;
-  font-weight: 800;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+.tab.active {
+  color: #ffbc00;
+  border-bottom-color: #ffbc00;
+  font-weight: 700;
 }
 
 .custom-meta {
