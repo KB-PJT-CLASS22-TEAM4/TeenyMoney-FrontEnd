@@ -73,6 +73,7 @@ import Charge from '@/pages/Parents/Charge/Charge.vue'
 import Charging from '@/pages/Parents/Charge/Charging.vue'
 import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
+import MonthlyLimit from '@/pages/Parents/TodayAllow/MonthlyLimit.vue'
 import Faq from '@/pages/Faq.vue'
 import Terms from '@/pages/Terms.vue'
 import TermsDetail from '@/pages/TermsDetail.vue'
@@ -296,6 +297,11 @@ const router = createRouter({
       path: '/parents/mypage/payment-password/done',
       name: 'parents-payment-password-done',
       component: PaymentPasswordSettingDone,
+    },
+    {
+      path: '/parents/mypage/today-allow-limit',
+      name: 'parents-today-allow-limit',
+      component: MonthlyLimit,
     },
     // 자녀 결제 비밀번호 설정
     {
