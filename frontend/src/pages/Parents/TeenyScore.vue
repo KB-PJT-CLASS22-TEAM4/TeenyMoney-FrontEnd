@@ -639,10 +639,8 @@ onMounted(loadTeenyScore)
 
 .guide-row.current {
   background: #fff8e5;
-  border-radius: 14px;
-  border-bottom: none;
-  margin-top: 8px;
-  padding: 14px 10px;
+  margin: 0 -18px;
+  padding: 14px 22px;
 }
 
 .guide-dot {
