@@ -23,7 +23,7 @@
       <div v-else-if="errorMessage" class="state-box error-text">{{ errorMessage }}</div>
 
       <template v-else>
-        <div class="product-search-wrap">
+        <div class="toolbar">
           <div class="product-search-box">
             <img
               src="@/assets/icons/icon-search.svg"
@@ -46,99 +46,28 @@
               ×
             </button>
           </div>
-        </div>
 
-        <div class="filters">
-          <button
-            v-for="category in categories"
-            :key="category"
-            class="chip"
-            :class="{ off: activeCategory !== category }"
-            type="button"
-            @click="activeCategory = category"
-          >
-            {{ category }}
-          </button>
-        </div>
-
-        <section
-          v-if="filteredCustomProducts.length"
-          class="custom-section"
-        >
-          <button
-            class="custom-toggle"
-            type="button"
-            :aria-expanded="customOpen"
-            @click="customOpen = !customOpen"
-          >
-            <span class="group-block">
-              <span class="group-block-label">등록한 상품</span>
-              <span class="count-badge">{{ filteredCustomProducts.length }}</span>
-            </span>
-            <img
-              src="@/assets/icons/icon-chevron.svg"
-              alt=""
-              class="custom-chevron"
-              :class="{ open: customOpen }"
-            />
-          </button>
-
-          <div
-            v-for="product in filteredCustomProducts"
-            v-show="customOpen"
-            :key="product.key"
-            class="product-card"
-          >
-            <div class="product-head">
-              <div class="product-title-wrap">
-                <span class="origin-badge created">등록</span>
-                <p class="product-title">{{ product.title }}</p>
-              </div>
-              <div class="product-head-actions">
-                <span class="product-rate">{{ product.rateText }}</span>
-                <button
-                  class="trash-btn"
-                  type="button"
-                  :disabled="deletingKey === product.key"
-                  :aria-label="`${product.title} 삭제`"
-                  @click="handleDeleteCustomProduct(product)"
-                >
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
-                    <path
-                      d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7h10Z"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    />
-                    <path
-                      d="M10 11v6M14 11v6"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <p class="custom-meta">
-              {{ product.category }}
-              <template v-if="product.limitText">
-                · {{ product.limitText }}
-              </template>
-            </p>
+          <div class="filters">
+            <button
+              v-for="category in categories"
+              :key="category"
+              class="chip"
+              :class="{ active: activeCategory === category }"
+              type="button"
+              @click="activeCategory = category"
+            >
+              {{ category }}
+            </button>
           </div>
-        </section>
+        </div>
 
         <section
           v-if="pendingApprovals.length"
-          class="pending-section"
+          class="list-section"
         >
-          <p class="pending-heading">
-            <span class="group-block">
-              <span class="group-block-label">처리 필요</span>
-              <span class="count-badge">{{ pendingApprovals.length }}</span>
-            </span>
+          <p class="section-head">
+            <span class="section-label">처리 필요</span>
+            <span class="section-count">{{ pendingApprovals.length }}</span>
           </p>
 
           <div
@@ -185,22 +114,23 @@
           </div>
         </section>
 
-        <template v-for="group in groupedActiveProducts" :key="group.label">
-          <p class="group-title">
-            <span class="group-block">
-              <span class="group-block-label">{{ group.label }}</span>
-              <span class="count-badge">{{ group.items.length }}</span>
-            </span>
+        <section
+          v-if="filteredActiveProducts.length"
+          class="list-section"
+        >
+          <p class="section-head">
+            <span class="section-label">이용 중</span>
+            <span class="section-count">{{ filteredActiveProducts.length }}</span>
           </p>
 
           <div
-            v-for="product in group.items"
+            v-for="product in filteredActiveProducts"
             :key="product.enrollmentId"
             class="product-card"
           >
             <div class="product-head">
               <div class="product-title-wrap">
-                <span class="origin-badge enrolled">가입</span>
+                <span class="origin-badge enrolled">{{ product.category }}</span>
                 <p class="product-title">{{ product.title }}</p>
               </div>
               <span class="product-rate">{{ product.rateText }}</span>
@@ -228,17 +158,70 @@
               <span>만기 {{ product.maturityDate }}</span>
             </div>
           </div>
-        </template>
+        </section>
 
         <section
-          v-if="filteredHistoryProducts.length"
-          class="completed-list"
+          v-if="filteredCustomProducts.length"
+          class="list-section"
         >
-          <p class="group-title">
-            <span class="group-block">
-              <span class="group-block-label">만기·완납 이력</span>
-              <span class="count-badge">{{ filteredHistoryProducts.length }}</span>
-            </span>
+          <p class="section-head">
+            <span class="section-label">등록한 상품</span>
+            <span class="section-count">{{ filteredCustomProducts.length }}</span>
+          </p>
+
+          <div
+            v-for="product in filteredCustomProducts"
+            :key="product.key"
+            class="product-card"
+          >
+            <div class="product-head">
+              <div class="product-title-wrap">
+                <span class="origin-badge created">등록</span>
+                <p class="product-title">{{ product.title }}</p>
+              </div>
+              <div class="product-head-actions">
+                <span class="product-rate">{{ product.rateText }}</span>
+                <button
+                  class="trash-btn"
+                  type="button"
+                  :disabled="deletingKey === product.key"
+                  :aria-label="`${product.title} 삭제`"
+                  @click="handleDeleteCustomProduct(product)"
+                >
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7h10Z"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                    <path
+                      d="M10 11v6M14 11v6"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <p class="custom-meta">
+              {{ product.category }}
+              <template v-if="product.limitText">
+                · {{ product.limitText }}
+              </template>
+            </p>
+          </div>
+        </section>
+
+        <section
+          v-if="pastItemsCount"
+          class="list-section"
+        >
+          <p class="section-head">
+            <span class="section-label">지난 내역</span>
+            <span class="section-count">{{ pastItemsCount }}</span>
           </p>
 
           <div
@@ -277,18 +260,6 @@
               </span>
             </div>
           </div>
-        </section>
-
-        <section
-          v-if="filteredCompletedApprovals.length"
-          class="completed-list"
-        >
-          <p class="group-title">
-            <span class="group-block">
-              <span class="group-block-label">처리 완료</span>
-              <span class="count-badge">{{ filteredCompletedApprovals.length }}</span>
-            </span>
-          </p>
 
           <div
             v-for="item in filteredCompletedApprovals"
@@ -372,7 +343,6 @@ const errorMessage = ref('')
 const deletingKey = ref('')
 const processingKey = ref('')
 const searchKeyword = ref('')
-const customOpen = ref(false)
 const activeCategory = ref('전체')
 
 const categories = ['전체', '적금', '예금', '대출']
@@ -422,50 +392,22 @@ const filteredHistoryProducts = computed(() =>
   ))
 )
 
-const groupedActiveProducts = computed(() => {
-  const groups = new Map()
-
-  filteredActiveProducts.value.forEach((item) => {
-    const label =
-      item.category === '예금'
-        ? '정기예금'
-        : item.category
-
-    if (!groups.has(label)) {
-      groups.set(label, [])
-    }
-
-    groups.get(label).push(item)
-  })
-
-  return Array.from(groups.entries()).map(([label, items]) => ({
-    label,
-    items,
-  }))
-})
-
 const filteredCustomProducts = computed(() =>
   customProducts.value.filter((item) => (
     matchesCategory(item) && matchesSearch(item.title)
   ))
 )
 
-watch(searchKeyword, (value) => {
-  if (value.trim() && filteredCustomProducts.value.length) {
-    customOpen.value = true
-  }
-})
+const pastItemsCount = computed(() =>
+  filteredHistoryProducts.value.length + filteredCompletedApprovals.value.length
+)
 
-const hasVisibleProducts = computed(() => {
-  const hasCreated = filteredCustomProducts.value.length
-  const hasEnrolled = (
-    groupedActiveProducts.value.length
-    || pendingApprovals.value.length
-    || filteredCompletedApprovals.value.length
-    || filteredHistoryProducts.value.length
-  )
-  return Boolean(hasCreated || hasEnrolled)
-})
+const hasVisibleProducts = computed(() => (
+  filteredCustomProducts.value.length
+  || filteredActiveProducts.value.length
+  || pendingApprovals.value.length
+  || pastItemsCount.value
+))
 
 const emptyCategoryMessage = computed(() => {
   if (searchKeyword.value.trim()) {
@@ -723,7 +665,6 @@ async function loadFinance() {
 watch(childId, (id, prev) => {
   if (!Number.isFinite(id) || id === prev) return
   searchKeyword.value = ''
-  customOpen.value = false
   activeCategory.value = '전체'
   childName.value = '자녀'
   loadFinance()
@@ -799,46 +740,31 @@ onMounted(loadFinance)
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
-.pending-section {
-  margin-bottom: 18px;
+.list-section {
+  margin-top: 8px;
 }
 
-.pending-heading {
+.list-section + .list-section {
+  margin-top: 20px;
+}
+
+.section-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  gap: 6px;
   margin: 0 0 10px;
 }
 
-.count-badge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #ffbc00;
-  color: #191b1e;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7077;
 }
 
-.group-block {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px 6px 12px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.group-block-label {
-  font-size: 14px;
-  font-weight: 800;
-  color: #191b1e;
-  line-height: 1.2;
+.section-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b0b4ba;
 }
 
 .child-info-left {
@@ -1056,69 +982,40 @@ onMounted(loadFinance)
   cursor: pointer;
 }
 
-.product-search-wrap {
-  margin: 0 0 12px;
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 8px;
 }
 
 .filters {
   display: flex;
-  gap: 8px;
-  min-width: 0;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  margin: 0 0 16px;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #eceef1;
 }
 
 .chip {
-  padding: 7px 16px;
+  flex: 1;
+  height: 34px;
+  padding: 0;
   border: none;
-  border-radius: 999px;
-  background: #ffbc00;
-  color: #15171b;
+  border-radius: 9px;
+  background: transparent;
+  color: #6b7077;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.chip.off {
+.chip.active {
   background: #ffffff;
-  border: 1.3px solid #e7e9ec;
-  color: #4a4e55;
-  font-weight: 600;
-}
-
-.custom-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 10px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.custom-chevron {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  transform: rotate(0deg);
-  transition: transform 0.2s ease;
-}
-
-.custom-chevron.open {
-  transform: rotate(90deg);
-}
-
-.group-title {
-  display: flex;
-  align-items: center;
-  margin: 0 0 10px;
-}
-
-.custom-section {
-  margin-bottom: 18px;
+  color: #191b1e;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .custom-meta {
