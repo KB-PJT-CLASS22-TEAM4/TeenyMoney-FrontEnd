@@ -372,11 +372,19 @@ const handleSubmit = async () => {
         paymentDay: isFreeSaving ? 1 : selectedPaymentDay,
       })
     } else if (isDeposit) {
-      await createDepositEnrollment(authStore.accessToken, {
+      const result = await createDepositEnrollment(authStore.accessToken, {
         productId,
         amount,
         termMonths: period,
       })
+
+      if (result?.enrollmentId) {
+        try {
+          localStorage.setItem(`teeny_deposit_amount_${result.enrollmentId}`, String(amount))
+        } catch (e) {
+          console.warn('예치금 로컬 저장 실패:', e)
+        }
+      }
     } else if (isLoan) {
       const result = await createLoanEnrollment(authStore.accessToken, {
         productId,
