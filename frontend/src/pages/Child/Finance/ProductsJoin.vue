@@ -78,12 +78,8 @@
               <span class="toggle-title">자동이체</span>
               <span class="toggle-desc">매월 정해진 날짜에 같은 금액을 자동 납입해요</span>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="savingsForm.autoTransfer">
-              <span class="slider"></span>
-            </label>
           </div>
-          <div v-if="savingsForm.autoTransfer">
+          <div>
             <div class="setting-row border-top">
               <span class="setting-label">출금계좌</span>
               <span class="setting-value">티니머니 지갑</span>
@@ -118,7 +114,7 @@
         </section>
 
         <section class="section">
-          <label class="input-label">첫 저축액 (최소 1만원)</label>
+          <label class="input-label">한 달 목표금액 (최소 1만원)</label>
           <div class="amount-input-wrap" :class="{ hasValue: savingsForm.amount > 0, error: Boolean(savingsAmountError) }">
             <input
               type="text"
@@ -162,8 +158,17 @@
 
         <section class="section free-info-section">
           <div class="free-info-box">
-            <p class="free-info-title">자유롭게 저축해요</p>
-            <p class="free-info-desc">정해진 날짜 없이, 원할 때 원하는 만큼 저축할 수 있어요</p>
+            <div class="free-info-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                <circle cx="12" cy="12" r="8.5" stroke="#b8901f" stroke-width="1.8"/>
+                <path d="M12 11v5" stroke="#b8901f" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="8" r="1" fill="#b8901f"/>
+              </svg>
+            </div>
+            <div class="free-info-text">
+              <p class="free-info-title">저축한 만큼 티니점수가 달라져요</p>
+              <p class="free-info-desc">매달 한 달 목표금액을 채운 비율에 따라 받는 티니점수가 달라져요</p>
+            </div>
           </div>
           <div class="score-guide">
             <p class="score-guide-title">이번 달 목표금액을 채운 만큼 티니점수를 받아요</p>
@@ -388,40 +393,13 @@
             <button type="button" class="sheet-close-btn" @click="closeDayPicker" aria-label="닫기">✕</button>
           </div>
 
-          <div class="cal-month-header">
-            <span class="cal-month-text">{{ calYear }}년 {{ calMonth }}월</span>
-            <span class="cal-selected-badge">매월 {{ selectedTempDay }}일 선택</span>
-          </div>
-
-          <div class="cal-weekdays">
-            <span
-              v-for="(w, idx) in weekDays"
-              :key="w"
-              class="cal-weekday"
-              :class="{ sunday: idx === 0, saturday: idx === 6 }"
-            >
-              {{ w }}
-            </span>
-          </div>
-
           <div class="cal-days-grid">
-            <div
-              v-for="blank in startDayOfWeek"
-              :key="'blank-' + blank"
-              class="cal-day-cell empty"
-            ></div>
-
             <button
-              v-for="d in daysInMonth"
+              v-for="d in 28"
               :key="d"
               type="button"
               class="cal-day-cell"
-              :class="{
-                active: selectedTempDay === d,
-                today: d === todayDay,
-                sunday: (startDayOfWeek + d - 1) % 7 === 0,
-                saturday: (startDayOfWeek + d - 1) % 7 === 6,
-              }"
+              :class="{ active: selectedTempDay === d, today: d === todayDay }"
               @click="selectDay(d)"
             >
               <span class="day-num">{{ d }}</span>
@@ -535,20 +513,6 @@ const loanForm     = reactive({ amount: 0, period: 0, autoTransfer: true, transf
 const showDayPickerSheet = ref(false)
 const dayPickerTarget = ref('savings') // 'savings' | 'loan'
 const selectedTempDay = ref(Math.min(todayDay, 28))
-
-const calYear = ref(new Date().getFullYear())
-const calMonth = ref(new Date().getMonth() + 1)
-const weekDays = ['일', '월', '화', '수', '목', '금', '토']
-
-// 이번 달의 시작 요일 (0: 일요일, ..., 6: 토요일)
-const startDayOfWeek = computed(() => {
-  return new Date(calYear.value, calMonth.value - 1, 1).getDay()
-})
-
-// 이번 달의 총 일수
-const daysInMonth = computed(() => {
-  return new Date(calYear.value, calMonth.value, 0).getDate()
-})
 
 function openDayPicker(target) {
   dayPickerTarget.value = target
@@ -831,10 +795,14 @@ const handleSubmit = () => {
 .scroll.scrolling::-webkit-scrollbar-thumb { background: #d8dbdf; }
 
 .section {
-  padding: 16px 0;
-  border-bottom: 1.3px solid #f0f1f3;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #eef1f4;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
 }
-.product-info { padding-top: 0; }
 
 .product-name {
   font-weight: 800;
@@ -1021,7 +989,6 @@ const handleSubmit = () => {
   font-weight: 700;
 }
 
-.auto-transfer-section { border-bottom: none; }
 .auto-transfer-header {
   display: flex;
   justify-content: space-between;
@@ -1031,26 +998,42 @@ const handleSubmit = () => {
 .toggle-title { font-weight: 700; font-size: 14px; color: #15171b; }
 .toggle-desc  { display: block; font-weight: 500; font-size: 11.5px; color: #8b9097; margin-top: 2px; }
 
-.free-info-section { border-bottom: none; }
 
 .free-info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   background: #fff9e8;
-  border: 1.3px solid #ffe9b3;
-  border-radius: 12px;
+  border: 1px solid #ffe9b3;
+  border-radius: 14px;
   padding: 12px 14px;
   margin-bottom: 12px;
+  box-sizing: border-box;
+}
+.free-info-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+.free-info-text {
+  min-width: 0;
 }
 .free-info-title {
   margin: 0 0 3px;
   font-weight: 800;
   font-size: 13.5px;
   color: #15171b;
+  word-break: keep-all;
 }
 .free-info-desc {
   margin: 0;
   font-weight: 500;
   font-size: 12px;
+  line-height: 1.4;
   color: #8b7a45;
+  word-break: keep-all;
 }
 
 .score-guide {
@@ -1137,8 +1120,10 @@ input:checked + .slider:before { transform: translateX(17px); }
 .maturity-box {
   box-sizing: border-box;
   padding: 14px 16px;
-  background: #f7f8fa;
+  background: #ffffff;
+  border: 1px solid #eef1f4;
   border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1309,56 +1294,15 @@ input:checked + .slider:before { transform: translateX(17px); }
 }
 
 /* 달력 상단 헤더 */
-.cal-month-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8fafc;
-  padding: 8px 12px;
-  border-radius: 10px;
-  margin-bottom: 12px;
-}
-
-.cal-month-text {
-  font-weight: 800;
-  font-size: 14px;
-  color: #1e293b;
-}
-
-.cal-selected-badge {
-  font-weight: 700;
-  font-size: 12px;
-  color: #b45309;
-  background: #fffdf0;
-  border: 1px solid #fed7aa;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
 
 /* 요일 헤더 */
-.cal-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-.cal-weekday {
-  font-size: 12px;
-  font-weight: 700;
-  color: #4d596b;
-  padding: 4px 0;
-}
-
-.cal-weekday.sunday { color: #ef4444; }
-.cal-weekday.saturday { color: #3b82f6; }
-
 /* 날짜 그리드 */
 .cal-days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
   margin-bottom: 14px;
+  margin-top: 4px;
 }
 
 .cal-day-cell {
@@ -1379,14 +1323,7 @@ input:checked + .slider:before { transform: translateX(17px); }
   transition: all 0.15s ease;
 }
 
-.cal-day-cell.empty {
-  cursor: default;
-}
-
-.cal-day-cell.sunday { color: #ef4444; }
-.cal-day-cell.saturday { color: #3b82f6; }
-
-.cal-day-cell:not(.empty):hover {
+.cal-day-cell:hover {
   background: #f1f5f9;
 }
 

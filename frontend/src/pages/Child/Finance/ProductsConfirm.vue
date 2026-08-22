@@ -85,7 +85,7 @@
           </template>
           <template v-else>
             <template v-if="isSavings && isFreeSaving">
-              (매월 입력한 첫 저축액만큼 입금 시)<br>
+              (매월 한 달 목표금액만큼 입금 시)<br>
             </template>
             원금 {{ confirmData.principal.toLocaleString() }}원 + 이자 {{ confirmData.interest.toLocaleString() }}원
             <template v-if="confirmData.score > 0">
@@ -97,7 +97,7 @@
 
       <!-- 4. 약관 및 필수 동의 체크박스 리스트 -->
       <section class="terms-section">
-        <div class="check-item border-top" @click="agreeConfirm = !agreeConfirm">
+        <div class="check-item" @click="agreeConfirm = !agreeConfirm">
           <div class="check-circle" :class="{ checked: agreeConfirm }">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M20 6L9 17l-5-5" stroke="#15171b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -121,22 +121,22 @@
           </span>
         </div>
       </section>
-    </div>
 
-    <!-- 하단 고정 가입/신청 완료 버튼 -->
-    <footer class="footer">
-      <div class="submit-wrapper">
-        <button
-          type="button"
-          class="submit-btn"
-          :class="{ active: isAllAgreed && !isSubmitting }"
-          :disabled="!isAllAgreed || isSubmitting"
-          @click="handleSubmit"
-        >
-          {{ isSubmitting ? '처리 중...' : (isLoan ? '대출 신청 완료' : '가입 완료') }}
-        </button>
+      <!-- 가입/신청 완료 버튼 (스크롤에 포함) -->
+      <div class="footer">
+        <div class="submit-wrapper">
+          <button
+            type="button"
+            class="submit-btn"
+            :class="{ active: isAllAgreed && !isSubmitting }"
+            :disabled="!isAllAgreed || isSubmitting"
+            @click="handleSubmit"
+          >
+            {{ isSubmitting ? '처리 중...' : (isLoan ? '대출 신청 완료' : '가입 완료') }}
+          </button>
+        </div>
       </div>
-    </footer>
+    </div>
 
     <!-- 가입/신청 완료 모달 -->
     <Transition name="modal-fade">
@@ -297,7 +297,7 @@ const categoryHeaderLabel = computed(() => {
 const amountLabel = computed(() => {
   if (isLoan) return '대출 신청금액'
   if (isDeposit) return '예치 금액'
-  return isFreeSaving ? '첫 저축액 (첫 입금)' : '월 약정 납입금액'
+  return isFreeSaving ? '한 달 목표금액' : '월 약정 납입금액'
 })
 
 // 상품 종류 설명 분기
@@ -476,11 +476,17 @@ const closeModalAndNavigate = () => {
 
 /* 1. 가입 상품 헤더 */
 .product-header {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 0 10px;
+  padding: 20px 16px;
   text-align: center;
+  background: #ffffff;
+  border: 1px solid #eef1f4;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 12px;
 }
 
 .sub-title {
@@ -508,8 +514,13 @@ const closeModalAndNavigate = () => {
 
 /* 2. 상세 내역 */
 .detail-section {
-  padding: 16px 0;
-  border-bottom: 1.3px solid #f0f1f3;
+  box-sizing: border-box;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #eef1f4;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  margin-bottom: 12px;
 }
 
 .section-label {
@@ -600,10 +611,13 @@ const closeModalAndNavigate = () => {
 
 /* 3. 만기 예상 수령액 박스 */
 .maturity-summary-box {
-  background: #f7f8fa;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #eef1f4;
   border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   padding: 14px 16px;
-  margin: 16px 0;
+  margin-bottom: 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -638,8 +652,14 @@ const closeModalAndNavigate = () => {
 
 /* 4. 약관 체크박스 */
 .terms-section {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #eef1f4;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  padding: 4px 16px;
 }
 
 .check-item {
@@ -686,9 +706,7 @@ const closeModalAndNavigate = () => {
 .footer {
   box-sizing: border-box;
   width: 100%;
-  flex: none;
-  padding: 8px 20px 16px;
-  background: #ffffff;
+  padding: 20px 0 8px;
 }
 
 .submit-wrapper {

@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
 
 .reject-label { font-weight: 700; font-size: 13px; color: #e5484d; }
 .reject-reason { margin: 0; font-size: 12.5px; color: #8a5a5a; line-height: 18px; }
-.reject-remaining { font-size: 11.5px; font-weight: 700; color: #d99a00; }
+.reject-remaining { font-size: 11.5px; font-weight: 700; color: #e5484d; }
 
 .card-label {
   display: block;
