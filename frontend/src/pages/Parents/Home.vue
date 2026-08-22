@@ -343,7 +343,7 @@ button {
 .hero-section {
   position: relative;
   overflow: hidden;
-  padding: 0 18px 28px;
+  padding: 0 0 28px;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
   border-bottom-left-radius: 28px;
   border-bottom-right-radius: 28px;
@@ -355,6 +355,7 @@ button {
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
+  padding: 0 18px;
 }
 
 .hero-text {
@@ -389,7 +390,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 0 -18px 14px;
+  margin-bottom: 14px;
 }
 
 .brand {

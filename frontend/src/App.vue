@@ -197,7 +197,7 @@ body {
   justify-content: space-between !important;
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
-  width: 100% !important;
+  width: auto !important;
   height: 64px !important;
   min-height: 64px !important;
   max-height: 64px !important;

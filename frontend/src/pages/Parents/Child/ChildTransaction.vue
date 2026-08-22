@@ -20,34 +20,59 @@
 
       <!-- 지갑 카드 -->
       <div class="wallet-card">
+        <div class="wallet">
+          <img
+            src="@/assets/logo.svg"
+            alt="티니머니 로고"
+            class="wallet-logo"
+          />
 
-        <img
-          src="@/assets/logo.svg"
-          alt="티니머니 로고"
-          class="wallet-logo"
-        />
+          <div class="wallet-info">
+            <p class="wallet-label">
+              {{ childName ? `${childName}님의 티니머니` : '자녀 티니머니' }}
+            </p>
 
-        <div class="wallet-info">
+            <p
+              v-if="isWalletLoading"
+              class="wallet-amount wallet-loading"
+            >
+              조회 중...
+            </p>
 
-          <p class="wallet-label">
-            {{ childName ? `${childName}님의 티니머니` : '자녀 티니머니' }}
-          </p>
+            <p
+              v-else
+              class="wallet-amount"
+            >
+              {{ walletBalance.toLocaleString() }}원
+            </p>
+          </div>
 
-          <p
-            v-if="isWalletLoading"
-            class="wallet-amount wallet-loading"
-          >
-            조회 중...
-          </p>
-
-          <p
-            v-else
-            class="wallet-amount"
-          >
-            {{ walletBalance.toLocaleString() }}원
-          </p>
-
+          <img
+            src="@/assets/mascot/teeny-wink.png"
+            class="wallet-mascot"
+            alt=""
+          />
         </div>
+
+        <button
+          class="report-row"
+          type="button"
+          @click="goReport"
+        >
+          <div class="report-row-left">
+            <span class="report-row-title">소비 리포트 확인하기</span>
+            <span class="report-row-sub">티니가 이번 달 금융 생활을 분석해 드려요</span>
+          </div>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+            <path
+              d="M9 6l6 6-6 6"
+              stroke="#8b9097"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
       </div>
 
 
@@ -708,6 +733,13 @@ function goBack() {
   })
 }
 
+function goReport() {
+  router.push({
+    name: 'parents-child-report',
+    params: { childId: childId.value },
+  })
+}
+
 async function fetchChildName() {
   try {
     const res = await getChildren(authStore.accessToken)
@@ -842,13 +874,7 @@ button {
 ========================= */
 
 .wallet-card {
-  display: flex;
-
-  align-items: center;
-
-  gap: 14px;
-
-  padding: 18px;
+  overflow: hidden;
 
   border-radius: 16px;
 
@@ -859,11 +885,36 @@ button {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
+.wallet {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  padding: 18px;
+}
+
 .wallet-logo {
   width: 48px;
   height: 48px;
 
   object-fit: contain;
+}
+
+.wallet-mascot {
+  position: absolute;
+  right: 30px;
+  top: 100%;
+  z-index: 1;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  object-fit: contain;
+  transform: translateY(-80%);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .wallet-info {
@@ -872,6 +923,47 @@ button {
   flex-direction: column;
 
   gap: 4px;
+}
+
+.report-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  border-top: 1px solid #eef1f4;
+  background: transparent;
+  cursor: pointer;
+}
+
+.report-row:hover {
+  background: #fafbfc;
+}
+
+.report-row:active {
+  background: #f1f5f9;
+}
+
+.report-row-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  text-align: left;
+}
+
+.report-row-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #191b1e;
+}
+
+.report-row-sub {
+  font-weight: 500;
+  font-size: 11px;
+  color: #6b7077;
 }
 
 .wallet-label {
