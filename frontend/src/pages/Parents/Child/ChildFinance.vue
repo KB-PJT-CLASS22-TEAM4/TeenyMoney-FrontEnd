@@ -8,11 +8,11 @@
       <ParentNavActions />
     </header>
 
-    <div class="tabs">
+    <div class="category-tabs">
       <button
         v-for="category in categories"
         :key="category"
-        class="tab"
+        class="category-tab"
         :class="{ active: activeCategory === category }"
         type="button"
         @click="activeCategory = category"
@@ -722,6 +722,42 @@ onMounted(loadFinance)
   color: #191b1e;
 }
 
+.category-tabs {
+  display: flex;
+  flex-shrink: 0;
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.category-tab {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #8b9097;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.category-tab.active {
+  color: #ffbc00;
+  border-bottom-color: #ffbc00;
+  font-weight: 700;
+}
+
 .scroll-area {
   flex: 1;
   padding: 16px;
@@ -979,35 +1015,6 @@ onMounted(loadFinance)
   font-size: 18px;
   line-height: 1;
   cursor: pointer;
-}
-
-.tabs {
-  display: flex;
-  flex-shrink: 0;
-  background: #ffffff;
-  border-bottom: 1px solid #f0f1f3;
-}
-
-.tab {
-  flex: 1;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: #8b9097;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.tab.active {
-  color: #ffbc00;
-  border-bottom-color: #ffbc00;
-  font-weight: 700;
 }
 
 .custom-meta {
