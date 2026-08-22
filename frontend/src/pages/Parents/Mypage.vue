@@ -211,6 +211,26 @@
         </div>
       </section>
 
+      <!-- 자녀 설정 -->
+      <section class="section-block">
+        <h2 class="section-title">자녀 설정</h2>
+
+        <div class="menu-card">
+          <button
+            type="button"
+            class="menu-button"
+            @click="goToTodayAllowLimit"
+          >
+            <span class="menu-label">오늘만 허용 요청 한도 설정</span>
+            <img
+              src="@/assets/icons/icon-chevron.svg"
+              alt=""
+              class="chevron-icon"
+            />
+          </button>
+        </div>
+      </section>
+
       <!-- 고객지원 -->
       <section class="section-block">
         <h2 class="section-title">고객지원</h2>
@@ -613,6 +633,10 @@ async function disconnectChild(child) {
 
 function goToLogin() {
   authStore.openLoginModal('서비스를 이용하려면 로그인해 주세요.')
+}
+
+function goToTodayAllowLimit() {
+  router.push({ name: 'parents-today-allow-limit' })
 }
 
 function goToFaq() {

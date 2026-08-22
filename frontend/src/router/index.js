@@ -74,6 +74,7 @@ import Charge from '@/pages/Parents/Charge/Charge.vue'
 import Charging from '@/pages/Parents/Charge/Charging.vue'
 import ChargeComplete from '@/pages/Parents/Charge/ChargeComplete.vue'
 import Mypage from '@/pages/Parents/Mypage.vue'
+import MonthlyLimit from '@/pages/Parents/TodayAllow/MonthlyLimit.vue'
 import Faq from '@/pages/Faq.vue'
 import Terms from '@/pages/Terms.vue'
 import TermsDetail from '@/pages/TermsDetail.vue'
@@ -95,6 +96,7 @@ import MoneyReport from '@/pages/Parents/Child/MoneyReport.vue'
 import ChildFinance from '@/pages/Parents/Child/ChildFinance.vue'
 import FinanceProductCreate from '@/pages/Parents/Child/FinanceProductCreate.vue'
 import FinanceApprovalDetail from '@/pages/Parents/Child/FinanceApprovalDetail.vue'
+import FinanceCompletionDetail from '@/pages/Parents/Child/FinanceCompletionDetail.vue'
 import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
 import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
@@ -303,6 +305,11 @@ const router = createRouter({
       name: 'parents-payment-password-done',
       component: PaymentPasswordSettingDone,
     },
+    {
+      path: '/parents/mypage/today-allow-limit',
+      name: 'parents-today-allow-limit',
+      component: MonthlyLimit,
+    },
     // 자녀 결제 비밀번호 설정
     {
       path: '/child/passwordsetting',
@@ -492,6 +499,11 @@ const router = createRouter({
     path: '/parents/children/:childId/finance/approval/:productType/:enrollmentId',
     name: 'parents-finance-approval-detail',
     component: FinanceApprovalDetail,
+  },
+  {
+    path: '/parents/children/:childId/finance/completion/:productType/:enrollmentId',
+    name: 'parents-finance-completion-detail',
+    component: FinanceCompletionDetail,
   },
   { 
     path: '/parents/children/:childId/teeny-score', 

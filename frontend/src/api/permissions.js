@@ -203,6 +203,76 @@ export async function updatePermission(accessToken, permissionId, reason) {
   return result
 }
 
+function monthlyLimitUrl(childId) {
+  return `${API_BASE_URL}/api/v1/permissions/children/${childId}/monthly-limit`
+}
+
+async function parseMonthlyLimitResponse(response, fallbackMessage) {
+  let result
+
+  try {
+    result = await response.json()
+  } catch {
+    throw new Error('서버 응답을 읽을 수 없습니다.')
+  }
+
+  if (!response.ok || result.success === false) {
+    throw new Error(result.message || fallbackMessage)
+  }
+
+  return result.data ?? result
+}
+
+// 자녀의 오늘만 허용 월간 한도 조회
+export async function getChildMonthlyLimit(accessToken, childId) {
+  ensureAccessToken(accessToken)
+
+  if (!childId) {
+    throw new Error('자녀 정보가 없습니다.')
+  }
+
+  const response = await fetch(monthlyLimitUrl(childId), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+
+  return parseMonthlyLimitResponse(
+    response,
+    '오늘만 허용 한도를 불러오지 못했습니다.'
+  )
+}
+
+// 자녀의 오늘만 허용 월간 한도 설정
+export async function updateChildMonthlyLimit(
+  accessToken,
+  childId,
+  monthlyAllowedDays
+) {
+  ensureAccessToken(accessToken)
+
+  if (!childId) {
+    throw new Error('자녀 정보가 없습니다.')
+  }
+
+  const response = await fetch(monthlyLimitUrl(childId), {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ monthlyAllowedDays }),
+  })
+
+  return parseMonthlyLimitResponse(
+    response,
+    '오늘만 허용 한도를 저장하지 못했습니다.'
+  )
+}
+
 // 오늘만 허용 요청 취소
 export async function cancelPermission(accessToken, permissionId) {
   ensureAccessToken(accessToken)
