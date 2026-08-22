@@ -60,7 +60,7 @@
           @click="goReport"
         >
           <div class="report-row-left">
-            <span class="report-row-title">소비 리포트 확인하기</span>
+            <span class="report-row-title">머니 리포트 확인하기</span>
             <span class="report-row-sub">티니가 이번 달 금융 생활을 분석해 드려요</span>
           </div>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">

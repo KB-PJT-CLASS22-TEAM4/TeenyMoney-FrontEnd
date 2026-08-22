@@ -112,7 +112,7 @@ const menuGroups = [
       { key: 'home', label: '홈', path: '/child/home', icon: 'home' },
       { key: 'tx', label: '거래내역', path: '/child/transaction', icon: 'list' },
       { key: 'qr', label: 'QR결제', path: '/child/payment/scan', icon: 'qr' },
-      { key: 'report', label: '소비 리포트', path: '/child/report', icon: 'chart' },
+      { key: 'report', label: '머니 리포트', path: '/child/report', icon: 'chart' },
     ],
   },
   {

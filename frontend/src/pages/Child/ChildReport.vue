@@ -518,7 +518,7 @@ async function loadReport(month) {
     spend.value = mapSpending(data.spending)
     score.value = mapTeenyScore(data.teenyScore)
   } catch (e) {
-    console.error('소비 리포트 조회 실패:', e)
+    console.error('머니 리포트 조회 실패:', e)
     if (month) selectedMonth.value = month
     loadErrorType.value = e.status === 400 ? 'empty' : 'error'
     loadError.value =
@@ -708,7 +708,7 @@ function goToProductPage(page) {
                 stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <span class="nav-title">소비 리포트</span>
+      <span class="nav-title">머니 리포트</span>
       <ChildNavActions class="nav-right" />
     </div>
 
