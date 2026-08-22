@@ -911,18 +911,13 @@ function onScroll() {
 
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 
-  height: 34px;
-
-  margin-bottom: 16px;
+  margin: 0 -18px 16px;
 }
 
 
 .back-btn {
-  position: absolute;
-  left: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
