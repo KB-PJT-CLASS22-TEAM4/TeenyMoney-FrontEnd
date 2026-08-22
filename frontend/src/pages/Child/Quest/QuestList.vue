@@ -1,16 +1,6 @@
 <template>
   <div class="quest-screen">
-    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
-    <div class="nav">
-      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">퀘스트</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav title="퀘스트" @back="goBack" />
 
     <!-- 탭 스위처 — 상단 네비와 이어지는 흰 영역 -->
     <div class="tab-switcher">
@@ -312,7 +302,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 import { useSseStore } from '@/stores/sse'

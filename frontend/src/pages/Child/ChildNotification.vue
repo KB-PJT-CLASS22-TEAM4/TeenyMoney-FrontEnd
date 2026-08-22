@@ -1,23 +1,6 @@
 <template>
   <div class="page">
-    <header class="nav">
-      <button
-        class="back-btn"
-        type="button"
-        aria-label="뒤로 가기"
-        @click="goBack"
-      >
-        <img
-          src="@/assets/icons/icon-back.svg"
-          alt=""
-          class="back-icon"
-        />
-      </button>
-
-      <h1 class="nav-title">알림</h1>
-
-      <ChildNavActions />
-    </header>
+    <ChildPageNav title="알림" @back="goBack" />
 
     <div class="scroll">
       <div class="mark-read-wrap">
@@ -86,7 +69,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import {
   formatKstClock12,
   formatKstMonthDayLabel,

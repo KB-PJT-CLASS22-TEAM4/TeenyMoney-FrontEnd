@@ -1,15 +1,6 @@
 <template>
   <div class="product-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">{{ pageTitle }}</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav :title="pageTitle" @back="goBack" />
 
     <!-- 스크롤 영역 -->
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
@@ -161,7 +152,7 @@
 import { ref, computed, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { formatRepaymentType } from '@/utils/financialProductMapper'
 
 const router = useRouter();

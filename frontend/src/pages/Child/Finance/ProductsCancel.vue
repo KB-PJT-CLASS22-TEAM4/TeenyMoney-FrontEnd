@@ -11,7 +11,7 @@ import {
 } from '@/api/finance'
 import { getFinanceTerm } from '@/constants/financeTerms'
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import FinanceTermModal from '@/components/Child/FinanceTermModal.vue'
 
 const router = useRouter()
@@ -256,16 +256,7 @@ onMounted(async () => {
 
 <template>
   <div class="product-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <button class="icon-btn" @click="goToMyProducts" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">{{ isLoan ? '조기상환' : '중도해지' }}</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav :title="isLoan ? '조기상환' : '중도해지'" @back="goToMyProducts" />
 
     <!-- 스크롤 영역 -->
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">

@@ -1,15 +1,6 @@
 <template>
   <div class="score-view">
-    <!-- 상단 네비바 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
-    <header class="nav">
-      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">티니점수</h1>
-      <ChildNavActions />
-    </header>
+    <ChildPageNav title="티니점수" @back="goBack" />
 
     <div class="scroll-area">
 
@@ -276,7 +267,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import {
   getTeenyScore,
   getTeenyScoreGrades,

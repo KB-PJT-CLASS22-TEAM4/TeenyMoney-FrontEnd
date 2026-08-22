@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport, getMoneyAnalysis } from '@/api/report'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
@@ -700,17 +700,7 @@ function goToProductPage(page) {
 
 <template>
   <div class="report-screen">
-    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다, 제목은 가운데 정렬 -->
-    <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#16181c" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <span class="nav-title">머니 리포트</span>
-      <ChildNavActions class="nav-right" />
-    </div>
+    <ChildPageNav title="머니 리포트" @back="goBack" />
 
     <div class="scroll">
 
