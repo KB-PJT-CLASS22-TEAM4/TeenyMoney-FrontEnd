@@ -8,7 +8,7 @@
                 stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <h1 class="nav-title">티니 점수 등급</h1>
+      <h1 class="nav-title">티니 등급</h1>
       <ChildNavActions />
     </div>
 

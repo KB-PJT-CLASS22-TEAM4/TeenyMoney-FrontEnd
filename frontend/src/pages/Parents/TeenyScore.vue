@@ -24,7 +24,7 @@
             <button
               class="help-btn"
               type="button"
-              aria-label="티니점수 안내"
+              aria-label="등급 안내"
               @click="showInfoModal = true"
             >
               ?
@@ -187,11 +187,17 @@
           </div>
         </div>
       </section>
+    </div>
 
-      <section class="guide-block">
-        <span class="eyebrow">등급 안내</span>
+    <div
+      v-if="showInfoModal"
+      class="info-overlay"
+      @click.self="showInfoModal = false"
+    >
+      <div class="info-popup" role="dialog" aria-modal="true" aria-labelledby="info-popup-title">
+        <p id="info-popup-title" class="info-title">등급 안내</p>
 
-        <div class="guide-list">
+        <div class="info-guide-list">
           <div
             v-for="gradeItem in gradesDesc"
             :key="gradeItem.gradeId"
@@ -229,26 +235,7 @@
             </div>
           </div>
         </div>
-      </section>
-    </div>
 
-    <div
-      v-if="showInfoModal"
-      class="info-overlay"
-      @click.self="showInfoModal = false"
-    >
-      <div class="info-popup" role="dialog" aria-modal="true" aria-labelledby="info-popup-title">
-        <p id="info-popup-title" class="info-title">티니점수란?</p>
-        <p class="info-text">
-          자녀의 약속 이행도, 유해 상점 준수 여부, 저축·퀘스트 참여 등
-          금융 생활 습관을 종합해 만든 신뢰도 지표예요.
-          점수가 올라갈수록 더 많은 금융 활동을 스스로 할 수 있어요.
-        </p>
-        <ul class="info-list">
-          <li>퀘스트 완료, 저축 목표 달성 등 좋은 습관은 점수를 올려요.</li>
-          <li>유해 업종 이용 시도 등은 점수 하락 요인이 될 수 있어요.</li>
-          <li>부모님과 함께 등급 변화를 확인하며 습관을 응원해 주세요.</li>
-        </ul>
         <button
           class="info-close-btn"
           type="button"
@@ -612,24 +599,11 @@ onMounted(loadTeenyScore)
   color: #191b1e;
 }
 
-.guide-block {
-  display: flex;
-  flex-direction: column;
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.guide-list {
-  margin-top: 4px;
-}
-
 .guide-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 4px;
+  padding: 12px 0;
   border-bottom: 1px solid #f0f1f3;
 }
 
@@ -639,8 +613,10 @@ onMounted(loadTeenyScore)
 
 .guide-row.current {
   background: #fff8e5;
-  margin: 0 -18px;
-  padding: 14px 22px;
+  margin: 0 -8px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border-bottom: none;
 }
 
 .guide-dot {
@@ -867,45 +843,40 @@ onMounted(loadTeenyScore)
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 24px;
+  padding: 0 20px;
   background: rgba(0, 0, 0, 0.35);
 }
 
 .info-popup {
   width: 100%;
-  max-width: 300px;
-  padding: 22px 20px 18px;
+  max-width: 320px;
+  max-height: min(76dvh, 620px);
+  padding: 20px 16px 16px;
   border-radius: 18px;
-  background: #ffbc00;
+  background: #ffffff;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .info-title {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 15px;
   font-weight: 700;
   color: #191b1e;
 }
 
-.info-text {
+.info-guide-list {
+  flex: 1;
+  overflow-y: auto;
   margin: 0 0 12px;
-  font-size: 13px;
-  color: #191b1e;
-  line-height: 1.6;
+  padding: 0 4px;
+  scrollbar-width: none;
 }
 
-.info-list {
-  margin: 0 0 16px;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.info-list li {
-  font-size: 12px;
-  line-height: 1.5;
-  color: #191b1e;
+.info-guide-list::-webkit-scrollbar {
+  display: none;
 }
 
 .info-close-btn {
@@ -913,7 +884,7 @@ onMounted(loadTeenyScore)
   height: 44px;
   border: none;
   border-radius: 12px;
-  background: #ffffff;
+  background: #ffbc00;
   color: #191b1e;
   font-size: 14px;
   font-weight: 700;
