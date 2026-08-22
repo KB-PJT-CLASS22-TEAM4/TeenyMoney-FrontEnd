@@ -4,7 +4,7 @@
       <button class="back-btn" type="button" @click="router.back()">
         <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
       </button>
-      <h1 class="nav-title">티니 점수</h1>
+      <h1 class="nav-title">티니점수</h1>
       <ParentNavActions />
     </header>
 
@@ -18,89 +18,64 @@
 
     <div v-else class="content">
       <section class="score-summary">
-        <div class="trust-header">
-          <div class="trust-header-left">
-            <span class="trust-label">신뢰도 등급</span>
-            <button
-              class="help-btn"
-              type="button"
-              aria-label="티니점수 안내"
-              @click="showInfoModal = true"
-            >
-              ?
-            </button>
-          </div>
-          <span
-            class="trust-badge"
-            :style="{
-              backgroundColor: scoreData.gradeColor + '18',
-              color: scoreData.gradeColor,
-            }"
-          >
-            {{ scoreData.gradeName }}
-          </span>
-        </div>
+        <div class="hero-card">
+          <div class="hero-top-row">
+            <div class="donut-wrap">
+              <svg width="130" height="130" viewBox="0 0 130 130">
+                <circle cx="65" cy="65" r="52" fill="none" stroke="#f1f5f9" stroke-width="12"/>
+                <circle
+                  class="donut-fill"
+                  cx="65"
+                  cy="65"
+                  r="52"
+                  fill="none"
+                  :stroke="scoreData.gradeColor"
+                  stroke-width="12"
+                  :stroke-dasharray="donutCircumference"
+                  :stroke-dashoffset="donutOffset"
+                  stroke-linecap="round"
+                  transform="rotate(-90 65 65)"
+                />
+              </svg>
+              <div class="donut-center">
+                <span class="donut-label">티니점수</span>
+                <b class="donut-score">{{ scoreData.teenyScore }}</b>
+                <span class="donut-max">/ {{ scoreMax }}</span>
+              </div>
+            </div>
 
-        <div class="score-card">
-          <p class="score-value">
-            점수 : <strong>{{ scoreData.teenyScore }}점</strong>
-          </p>
-          <p
-            class="score-diff"
-            :class="{ down: scoreData.diff < 0 }"
-          >
-            <span class="trend-icon">📈</span>
-            지난달보다 {{ scoreData.diff >= 0 ? '+' : '' }}{{ scoreData.diff }}점
-            {{ scoreData.diff >= 0 ? '올랐어요!' : '내렸어요!' }}
-          </p>
-        </div>
-      </section>
-
-      <section class="guide-block">
-        <span class="eyebrow">등급 안내</span>
-
-        <div class="guide-list">
-          <div
-            v-for="gradeItem in gradesDesc"
-            :key="gradeItem.gradeId"
-            class="guide-row"
-            :class="{ current: gradeItem.label === scoreData.gradeName }"
-          >
-            <span
-              class="guide-dot"
-              :style="{ backgroundColor: gradeItem.color }"
-            ></span>
-            <div class="guide-text">
-              <div class="guide-title-row">
-                <b class="guide-label">{{ gradeItem.label }}</b>
-                <span class="guide-range faint">
-                  {{ gradeItem.min }}~{{
-                    gradeItem.max === scoreMax
-                      ? gradeItem.max.toLocaleString()
-                      : gradeItem.max
-                  }}점
-                </span>
+            <div class="grade-info-col">
+              <div class="grade-header-row">
+                <span class="sub-label">현재 등급</span>
+              </div>
+              <div class="grade-badge-row">
                 <span
-                  v-if="gradeItem.label === scoreData.gradeName"
-                  class="current-badge"
-                  :style="{ backgroundColor: gradeItem.color }"
+                  class="badge-gold-text"
+                  :style="{ color: scoreData.gradeColor }"
                 >
-                  현재
+                  {{ scoreData.gradeName }}
                 </span>
               </div>
-              <span class="guide-headline">{{ gradeItem.headline }}</span>
-              <ul class="guide-perks">
-                <li v-for="(perk, index) in gradeItem.perks" :key="index">
-                  {{ perk }}
-                </li>
-              </ul>
+              <p class="grade-status-desc">
+                지금 아주 훌륭하게<br />신용 점수를 모으고 있어요!
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       <section class="change-section">
-        <span class="section-title">자녀의 등급 변화</span>
+        <div class="section-title-row">
+          <span class="section-title">자녀의 등급 변화</span>
+          <button
+            class="help-btn"
+            type="button"
+            aria-label="등급 안내"
+            @click="showInfoModal = true"
+          >
+            ?
+          </button>
+        </div>
 
         <div class="change-card">
           <div class="change-head">
@@ -238,17 +213,47 @@
       @click.self="showInfoModal = false"
     >
       <div class="info-popup" role="dialog" aria-modal="true" aria-labelledby="info-popup-title">
-        <p id="info-popup-title" class="info-title">티니점수란?</p>
-        <p class="info-text">
-          자녀의 약속 이행도, 유해 상점 준수 여부, 저축·퀘스트 참여 등
-          금융 생활 습관을 종합해 만든 신뢰도 지표예요.
-          점수가 올라갈수록 더 많은 금융 활동을 스스로 할 수 있어요.
-        </p>
-        <ul class="info-list">
-          <li>퀘스트 완료, 저축 목표 달성 등 좋은 습관은 점수를 올려요.</li>
-          <li>유해 업종 이용 시도 등은 점수 하락 요인이 될 수 있어요.</li>
-          <li>부모님과 함께 등급 변화를 확인하며 습관을 응원해 주세요.</li>
-        </ul>
+        <p id="info-popup-title" class="info-title">등급 안내</p>
+
+        <div class="info-guide-list">
+          <div
+            v-for="gradeItem in gradesDesc"
+            :key="gradeItem.gradeId"
+            class="guide-row"
+            :class="{ current: gradeItem.label === scoreData.gradeName }"
+          >
+            <span
+              class="guide-dot"
+              :style="{ backgroundColor: gradeItem.color }"
+            ></span>
+            <div class="guide-text">
+              <div class="guide-title-row">
+                <b class="guide-label">{{ gradeItem.label }}</b>
+                <span class="guide-range faint">
+                  {{ gradeItem.min }}~{{
+                    gradeItem.max === scoreMax
+                      ? gradeItem.max.toLocaleString()
+                      : gradeItem.max
+                  }}점
+                </span>
+                <span
+                  v-if="gradeItem.label === scoreData.gradeName"
+                  class="current-badge"
+                  :style="{ backgroundColor: gradeItem.color }"
+                >
+                  현재
+                </span>
+              </div>
+              <span class="guide-headline">{{ gradeItem.headline }}</span>
+              <ul class="guide-perks">
+                <li v-for="(perk, index) in gradeItem.perks" :key="index">
+                  {{ perk }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <button
           class="info-close-btn"
           type="button"
@@ -304,11 +309,27 @@ const monthlyHistory = ref([])
 const prevMonthScore = ref(0)
 const showInfoModal = ref(false)
 
+const scoreMin = computed(
+  () => gradesAsc.value[0]?.min ?? 0
+)
+
 const scoreMax = computed(
   () => gradesAsc.value[gradesAsc.value.length - 1]?.max ?? 1000
 )
 
 const gradesDesc = computed(() => [...gradesAsc.value].reverse())
+
+const donutCircumference = 2 * Math.PI * 52
+
+const donutOffset = computed(() => {
+  const total = scoreMax.value - scoreMin.value
+  if (total <= 0) return donutCircumference
+  const ratio = Math.min(
+    1,
+    Math.max(0, (scoreData.value.teenyScore - scoreMin.value) / total)
+  )
+  return donutCircumference * (1 - ratio)
+})
 
 const monthlyHistoryDesc = computed(() =>
   [...monthlyHistory.value].sort((a, b) =>
@@ -449,8 +470,8 @@ async function loadTeenyScore() {
         })
     }
   } catch (error) {
-    console.error('티니 점수 불러오기 실패:', error)
-    errorMessage.value = '티니 점수를 불러오지 못했습니다.'
+    console.error('티니 등급 불러오기 실패:', error)
+    errorMessage.value = '티니 등급 불러오지 못했습니다.'
   } finally {
     isLoading.value = false
   }
@@ -482,7 +503,6 @@ onMounted(loadTeenyScore)
   padding: 18px 20px;
   border-bottom: 1px solid #f0f1f3;
   background: #ffffff;
-
 }
 
 .back-btn,
@@ -526,29 +546,90 @@ onMounted(loadTeenyScore)
 .score-summary {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-.trust-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.hero-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 18px 16px 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
 }
 
-.trust-header-left {
+.hero-top-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+}
+
+.donut-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+}
+
+.donut-fill {
+  transition: stroke-dashoffset 0.4s ease-out;
+}
+
+.donut-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.donut-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #727e8e;
+}
+
+.donut-score {
+  font-size: 32px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.donut-max {
+  font-size: 10px;
+  font-weight: 700;
+  color: #727e8e;
+  margin-top: 2px;
+}
+
+.grade-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.grade-header-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sub-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #727e8e;
 }
 
 .help-btn {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 1.5px solid #d0d3d8;
   background: transparent;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #8b9097;
   cursor: pointer;
@@ -556,80 +637,42 @@ onMounted(loadTeenyScore)
   padding: 0;
 }
 
-.trust-label {
-  font-size: 16px;
-  font-weight: 700;
-  color: #191b1e;
+.badge-gold-text {
+  font-size: 22px;
+  font-weight: 900;
+  color: #eab308;
+  letter-spacing: 0.5px;
 }
 
-.trust-badge {
-  padding: 4px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
+.grade-status-desc {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.4;
 }
 
-.score-card {
-  background-color: #ffffff;
-  border-radius: 20px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.score-value {
-  margin: 0;
-  font-size: 18px;
-  color: #191b1e;
-}
-
-.score-value strong {
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.score-diff {
-  margin: 0;
-  font-size: 13px;
-  color: #22c55e;
+.section-title-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.score-diff.down {
-  color: #ef4444;
+  gap: 6px;
+  margin: 0 0 12px;
 }
 
 .eyebrow,
 .section-title {
   display: block;
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 14px;
   font-weight: 800;
   color: #191b1e;
-}
-
-.guide-block {
-  display: flex;
-  flex-direction: column;
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-}
-
-.guide-list {
-  margin-top: 4px;
 }
 
 .guide-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 4px;
+  padding: 12px 0;
   border-bottom: 1px solid #f0f1f3;
 }
 
@@ -638,10 +681,11 @@ onMounted(loadTeenyScore)
 }
 
 .guide-row.current {
-  background: #fafcf8;
-  border-radius: 14px;
+  background: #fff8e5;
+  margin: 0 -8px;
+  padding: 12px 8px;
+  border-radius: 12px;
   border-bottom: none;
-  padding: 14px 10px;
 }
 
 .guide-dot {
@@ -773,17 +817,20 @@ onMounted(loadTeenyScore)
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
 
 .compare-label {
   font-size: 12px;
   color: #8b9097;
+  text-align: center;
 }
 
 .compare-value {
   font-size: 18px;
   color: #191b1e;
+  text-align: center;
 }
 
 .compare-value.muted {
@@ -868,45 +915,40 @@ onMounted(loadTeenyScore)
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 24px;
+  padding: 0 20px;
   background: rgba(0, 0, 0, 0.35);
 }
 
 .info-popup {
   width: 100%;
-  max-width: 300px;
-  padding: 22px 20px 18px;
+  max-width: 320px;
+  max-height: min(76dvh, 620px);
+  padding: 20px 16px 16px;
   border-radius: 18px;
-  background: #ffbc00;
+  background: #ffffff;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .info-title {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 15px;
   font-weight: 700;
   color: #191b1e;
 }
 
-.info-text {
+.info-guide-list {
+  flex: 1;
+  overflow-y: auto;
   margin: 0 0 12px;
-  font-size: 13px;
-  color: #191b1e;
-  line-height: 1.6;
+  padding: 0 4px;
+  scrollbar-width: none;
 }
 
-.info-list {
-  margin: 0 0 16px;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.info-list li {
-  font-size: 12px;
-  line-height: 1.5;
-  color: #191b1e;
+.info-guide-list::-webkit-scrollbar {
+  display: none;
 }
 
 .info-close-btn {
@@ -914,7 +956,7 @@ onMounted(loadTeenyScore)
   height: 44px;
   border: none;
   border-radius: 12px;
-  background: #ffffff;
+  background: #ffbc00;
   color: #191b1e;
   font-size: 14px;
   font-weight: 700;

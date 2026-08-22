@@ -7,7 +7,7 @@ import { getTeenyScore } from '@/api/teenyScore'
 import { getFinanceTerm } from '@/constants/financeTerms'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import FinanceTermModal from '@/components/Child/FinanceTermModal.vue'
 
 const router = useRouter()
@@ -659,16 +659,7 @@ function goToApply(product) {
 
 <template>
   <div class="product-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">금융 상품</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav title="금융 상품" @back="goBack" />
 
     <!-- 탭 스위처 — 상단 네비와 이어지도록 흰 배경으로 화면 좌우 끝까지 꽉 차게 -->
     <div class="tab-switcher">

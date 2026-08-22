@@ -185,4 +185,85 @@ body {
   flex: 0 0 auto;
   margin-left: auto;
 }
+
+/* 부모 상단 바: 모든 페이지에서 위치·크기 고정 */
+.app-root.is-parent-route .nav,
+.app-root.is-parent-route .top-nav {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding: 0 20px 4px !important;
+  margin-top: 0 !important;
+}
+
+.app-root.is-parent-route .nav {
+  background: #ffffff;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.app-root.is-parent-route .nav-title,
+.app-root.is-parent-route .nav h1,
+.app-root.is-parent-route .top-nav .nav-title,
+.app-root.is-parent-route .top-nav h1 {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  z-index: 1;
+  margin: 0 !important;
+  width: max-content !important;
+  max-width: calc(100% - 148px);
+  flex: none !important;
+  overflow: hidden;
+  color: #191b1e;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  line-height: 1.2;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translate(-50%, -50%) !important;
+}
+
+.app-root.is-parent-route .nav .back-btn,
+.app-root.is-parent-route .nav .close-btn,
+.app-root.is-parent-route .nav .icon-btn,
+.app-root.is-parent-route .top-nav .back-btn,
+.app-root.is-parent-route .top-nav .icon-btn {
+  position: relative !important;
+  z-index: 2;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  flex: 0 0 34px !important;
+}
+
+.app-root.is-parent-route .nav .back-icon,
+.app-root.is-parent-route .nav > .back-icon,
+.app-root.is-parent-route .nav .back-btn img,
+.app-root.is-parent-route .nav .icon-btn img,
+.app-root.is-parent-route .top-nav .back-icon,
+.app-root.is-parent-route .top-nav .back-btn img {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.app-root.is-parent-route .parent-nav-actions,
+.app-root.is-parent-route .nav-actions {
+  position: relative !important;
+  z-index: 2;
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+}
 </style>

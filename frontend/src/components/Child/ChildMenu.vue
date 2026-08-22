@@ -56,7 +56,7 @@
                 class="menu-item"
                 :class="{ active: isActive(item) }"
                 type="button"
-                @click="go(item.path)"
+                @click="handleItem(item)"
               >
                 <MenuIcon :name="item.icon" />
                 <span class="item-label">
@@ -68,6 +68,15 @@
         </aside>
       </div>
     </div>
+    <ConfirmModal
+      :show="showLogoutModal"
+      title="로그아웃할까요?"
+      confirm-text="로그아웃"
+      description="로그아웃 하시겠습니까?"
+      cancel-text="취소"
+      @confirm="confirmLogout"
+      @cancel="cancelLogout"
+    />
   </Teleport>
 </template>
 
@@ -76,8 +85,10 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyInfo } from '@/api/member'
+import { logout as logoutApi } from '@/api/auth'
 import { useChildMenu } from '@/composables/useChildMenu'
 import MenuIcon from '@/components/MenuIcon.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import {
   CHILD_PROFILE_IMAGE,
   resolveProfileImageUrl,
@@ -101,7 +112,7 @@ const menuGroups = [
       { key: 'home', label: '홈', path: '/child/home', icon: 'home' },
       { key: 'tx', label: '거래내역', path: '/child/transaction', icon: 'list' },
       { key: 'qr', label: 'QR결제', path: '/child/payment/scan', icon: 'qr' },
-      { key: 'report', label: '소비 리포트', path: '/child/report', icon: 'chart' },
+      { key: 'report', label: '머니 리포트', path: '/child/report', icon: 'chart' },
     ],
   },
   {
@@ -125,6 +136,7 @@ const menuGroups = [
       { key: 'mypage', label: '마이페이지', path: '/child/mypage', icon: 'person' },
       { key: 'notification', label: '알림', path: '/child/notification', icon: 'bell' },
       { key: 'password', label: '결제 비밀번호', path: '/child/passwordsetting', icon: 'lock' },
+      { key: 'logout', label: '로그아웃', action: 'logout', icon: 'logout' },
     ],
   },
 ]
@@ -150,6 +162,10 @@ onUnmounted(() => {
 })
 
 function isActive(item) {
+  if (!item.path) {
+    return false
+  }
+
   if (item.path === '/child/home') {
     return route.path === item.path
   }
@@ -176,9 +192,42 @@ function isActive(item) {
   return route.path === item.path || route.path.startsWith(`${item.path}/`)
 }
 
+function handleItem(item) {
+  if (item.action === 'logout') {
+    handleLogout()
+    return
+  }
+
+  go(item.path)
+}
+
 function go(path) {
   closeMenu()
   router.push(path)
+}
+
+const showLogoutModal = ref(false)
+
+function handleLogout() {
+  closeMenu()
+  showLogoutModal.value = true
+}
+
+function cancelLogout() {
+  showLogoutModal.value = false
+}
+
+async function confirmLogout() {
+  showLogoutModal.value = false
+
+  try {
+    await logoutApi(authStore.accessToken)
+  } catch (error) {
+    console.error('로그아웃 요청 실패:', error)
+  } finally {
+    authStore.clearUser()
+    router.replace('/login')
+  }
 }
 
 async function fetchProfile() {

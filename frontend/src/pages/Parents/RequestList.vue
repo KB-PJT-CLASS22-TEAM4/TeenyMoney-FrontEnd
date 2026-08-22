@@ -68,14 +68,6 @@
 
         <div class="request-actions">
           <button
-            class="request-btn view"
-            type="button"
-            :disabled="processingKey === item.key"
-            @click.stop="openRequestDetail(item)"
-          >
-            상세보기
-          </button>
-          <button
             class="request-btn ghost"
             type="button"
             :disabled="processingKey === item.key"
@@ -92,6 +84,15 @@
             {{ processingKey === item.key ? '처리 중...' : '승인' }}
           </button>
         </div>
+
+        <button
+          class="detail-link"
+          type="button"
+          :disabled="processingKey === item.key"
+          @click.stop="openRequestDetail(item)"
+        >
+          상세보기
+        </button>
       </article>
     </div>
 
@@ -299,6 +300,24 @@ onActivated(() => {
   gap: 8px;
 }
 
+.detail-link {
+  margin: 2px 0 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #8b9097;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.detail-link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .request-btn {
   flex: 1;
   height: 40px;
@@ -312,12 +331,6 @@ onActivated(() => {
 .request-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.request-btn.view {
-  background: #ffffff;
-  border: 1px solid #eceef1;
-  color: #191b1e;
 }
 
 .request-btn.ghost {

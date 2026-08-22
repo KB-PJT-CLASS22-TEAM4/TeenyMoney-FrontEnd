@@ -1,10 +1,6 @@
 <template>
   <div class="qr-code-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <h1 class="nav-title">QR 결제</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav title="QR 결제" :show-back="false" />
 
     <!-- QR 카드 -->
     <div class="card qr-card">
@@ -70,7 +66,7 @@ import { useRouter } from 'vue-router'
 import QrcodeVue from 'qrcode.vue'
 import { getMyWallet } from '@/api/wallet'
 import { useAuthStore } from '@/stores/auth'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

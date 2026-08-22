@@ -286,7 +286,7 @@
           <!-- 본인 확인 번호 -->
           <div class="form-group">
             <label class="form-label">
-              본인 확인 번호
+              생년월일(6자리)
             </label>
 
             <input
@@ -296,7 +296,7 @@
               type="password"
               class="form-input"
               inputmode="numeric"
-              placeholder="본인 확인 번호"
+              placeholder="YYMMDD"
             />
           </div>
 

@@ -217,7 +217,7 @@
       <!-- 최근 이용내역 -->
       <section class="history">
         <div class="history-head" @click="goPayment" style="cursor: pointer;">
-          <span class="history-title">최근 이용내역</span>
+          <span class="history-title">최근 거래내역</span>
           <img
             src="@/assets/icons/icon-chevron.svg"
             alt=""
@@ -238,7 +238,7 @@
           </div>
         </template>
         <div v-else class="tx-empty">
-          최근 이용 내역이 없습니다.
+          최근 거래 내역이 없습니다.
         </div>
       </section>
     </div>
