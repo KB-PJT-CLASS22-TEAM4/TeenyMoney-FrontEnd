@@ -89,24 +89,127 @@
         <div class="card weekly-diff-card">
           <div class="card-head-sm">
             <span class="title">지난달 대비 점수 변동</span>
-            <span class="blue-pill" :class="{ minus: monthlyDiff < 0 }">
+            <span class="change-pill" :class="{ down: monthlyDiff < 0 }">
               {{ monthlyDiff >= 0 ? '▲ +' : '▼ ' }}{{ monthlyDiff }}점
             </span>
           </div>
 
           <p class="diff-sub-text">
-            지난달({{ prevMonthScore }}점)보다 <strong class="hl-text">{{ Math.abs(monthlyDiff) }}점 {{ monthlyDiff >= 0 ? '상승' : '하락' }}</strong>했어요!
+            지난달({{ prevMonthScore }}점)보다
+            <strong>{{ Math.abs(monthlyDiff) }}점 {{ monthlyDiff >= 0 ? '상승' : '하락' }}</strong>
+            했어요.
           </p>
 
-          <div class="diff-compare-box">
+          <div class="compare-row">
             <div class="compare-item">
               <span class="comp-label">지난달</span>
               <b class="comp-val gray">{{ prevMonthScore }}점</b>
             </div>
-            <div class="diff-arrow">→</div>
+            <span class="diff-arrow">→</span>
             <div class="compare-item">
               <span class="comp-label">이번 달</span>
               <b class="comp-val main">{{ score }}점</b>
+            </div>
+          </div>
+
+          <div v-if="monthlyHistory.length" class="chart-wrap">
+            <svg
+              class="chart-svg"
+              viewBox="0 0 300 148"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <defs>
+                <linearGradient id="childChartGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffbc00" stop-opacity="0.32" />
+                  <stop offset="70%" stop-color="#ffbc00" stop-opacity="0.06" />
+                  <stop offset="100%" stop-color="#ffbc00" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+
+              <g stroke="#eceef1" stroke-width="1" stroke-dasharray="3 5">
+                <line
+                  v-for="(y, index) in chartGridYs"
+                  :key="index"
+                  :x1="28"
+                  :x2="272"
+                  :y1="y"
+                  :y2="y"
+                />
+              </g>
+
+              <path
+                v-if="chartAreaPath"
+                class="chart-area"
+                :d="chartAreaPath"
+                fill="url(#childChartGradient)"
+              />
+              <path
+                v-if="chartPath"
+                class="chart-line"
+                :d="chartPath"
+                fill="none"
+                stroke="#ffbc00"
+                stroke-width="2.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                pathLength="1"
+              />
+
+              <g
+                v-for="(point, index) in chartPoints"
+                :key="index"
+                class="chart-point"
+                :style="{ animationDelay: `${0.28 + index * 0.06}s` }"
+              >
+                <circle
+                  v-if="point.isLast"
+                  :cx="point.x"
+                  :cy="point.y"
+                  r="9"
+                  fill="#ffbc00"
+                  fill-opacity="0.16"
+                />
+                <circle
+                  :cx="point.x"
+                  :cy="point.y"
+                  :r="point.isLast ? 5.5 : 4.5"
+                  fill="#ffffff"
+                  stroke="#ffbc00"
+                  :stroke-width="point.isLast ? 2.6 : 2"
+                />
+                <text
+                  :x="point.x"
+                  :y="point.y - 12"
+                  text-anchor="middle"
+                  fill="#191b1e"
+                  font-size="11"
+                  font-weight="700"
+                >
+                  {{ point.score }}점
+                </text>
+                <text
+                  :x="point.x"
+                  :y="140"
+                  text-anchor="middle"
+                  fill="#8b9097"
+                  font-size="11"
+                  font-weight="600"
+                >
+                  {{ point.label }}
+                </text>
+              </g>
+            </svg>
+          </div>
+
+          <div v-if="monthlyHistory.length" class="monthly-list">
+            <div
+              v-for="item in monthlyHistoryDesc"
+              :key="item.yearMonth"
+              class="monthly-item"
+            >
+              <span class="monthly-label">{{ formatYearMonthLabel(item.yearMonth) }}</span>
+              <strong class="monthly-score">{{ item.teenyScore }}점</strong>
             </div>
           </div>
         </div>
@@ -185,6 +288,7 @@ import { storeToRefs } from 'pinia'
 import {
   currentKstYearMonth,
   formatKstRelativeDay,
+  getKstParts,
   parseServerDate,
 } from '@/utils/datetime'
 
@@ -211,6 +315,7 @@ const overallMinScore = ref(0)
 const overallMaxScore = ref(1000)
 
 const prevMonthScore = ref(0)
+const monthlyHistory = ref([])
 const monthlyDiff = computed(() => score.value - prevMonthScore.value)
 
 const bonusRate = ref(0)
@@ -255,7 +360,10 @@ async function loadScoreData() {
     const now = new Date()
     const currentYearMonth = currentKstYearMonth(now)
 
-    const monthlyList = monthlyRes.data
+    const monthlyList = [...(monthlyRes.data ?? [])]
+      .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth))
+    monthlyHistory.value = monthlyList
+
     const pastMonths = monthlyList
       .filter((m) => m.yearMonth < currentYearMonth)
       .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth))
@@ -347,6 +455,82 @@ function onCarouselScroll() {
 }
 
 const summaryActivities = computed(() => activities.value.slice(0, 3))
+
+const monthlyHistoryDesc = computed(() =>
+  [...monthlyHistory.value].sort((a, b) =>
+    b.yearMonth.localeCompare(a.yearMonth)
+  )
+)
+
+function formatYearMonthLabel(yearMonth) {
+  if (!yearMonth) return ''
+  const [year, month] = yearMonth.split('-')
+  return `${year}년 ${Number(month)}월`
+}
+
+const CHART_WIDTH = 300
+const CHART_PAD_X = 28
+const CHART_PAD_TOP = 26
+const CHART_PAD_BOTTOM = 36
+const CHART_PLOT_BOTTOM = 148 - CHART_PAD_BOTTOM
+
+const chartGridYs = [CHART_PAD_TOP, (CHART_PAD_TOP + CHART_PLOT_BOTTOM) / 2, CHART_PLOT_BOTTOM]
+
+const chartPoints = computed(() => {
+  const data = monthlyHistory.value
+  if (!data.length) return []
+
+  const scores = data.map((item) => item.teenyScore)
+  const maxScoreVal = Math.max(...scores)
+  const minScoreVal = Math.min(...scores)
+  const range = maxScoreVal - minScoreVal || 1
+  const yMin = minScoreVal - range * 0.22
+  const yMax = maxScoreVal + range * 0.22
+  const yRange = yMax - yMin || 1
+  const innerWidth = CHART_WIDTH - CHART_PAD_X * 2
+  const innerHeight = CHART_PLOT_BOTTOM - CHART_PAD_TOP
+  const step = data.length > 1 ? innerWidth / (data.length - 1) : 0
+  const currentYear = `${getKstParts().year}년 `
+
+  return data.map((item, index) => {
+    const x = CHART_PAD_X + (data.length > 1 ? index * step : innerWidth / 2)
+    const y =
+      CHART_PAD_TOP +
+      innerHeight -
+      ((item.teenyScore - yMin) / yRange) * innerHeight
+
+    return {
+      x,
+      y,
+      score: item.teenyScore,
+      label: formatYearMonthLabel(item.yearMonth).replace(currentYear, ''),
+      isLast: index === data.length - 1,
+    }
+  })
+})
+
+const chartPath = computed(() => {
+  const points = chartPoints.value
+  if (!points.length) return ''
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
+
+  return points.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`
+
+    const prev = points[index - 1]
+    const dx = (point.x - prev.x) / 2
+    return `${path} C ${prev.x + dx} ${prev.y}, ${point.x - dx} ${point.y}, ${point.x} ${point.y}`
+  }, '')
+})
+
+const chartAreaPath = computed(() => {
+  const points = chartPoints.value
+  if (!points.length || !chartPath.value) return ''
+
+  const firstX = points[0].x
+  const lastX = points[points.length - 1].x
+  return `${chartPath.value} L ${lastX} ${CHART_PLOT_BOTTOM} L ${firstX} ${CHART_PLOT_BOTTOM} Z`
+})
 
 function goBack() { router.push({ name: 'child-home' }) }
 function goGradeDetail() { router.push({ name: 'child-score-grade' }) }
@@ -604,66 +788,131 @@ function onTabSelect(key) {
   color: #0f172a;
 }
 
-.blue-pill {
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 6px;
+.change-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8f8ee;
+  color: #22c55e;
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.blue-pill.minus {
-  background: #fef2f2;
+.change-pill.down {
+  background: #ffe5e5;
   color: #ef4444;
 }
 
 .diff-sub-text {
-  margin: 2px 0 12px;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #4d596b;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #8b9097;
+  line-height: 1.5;
 }
 
-.hl-text {
-  color: #2563eb;
-  font-weight: 800;
+.diff-sub-text strong {
+  color: #191b1e;
 }
 
-.diff-compare-box {
+.compare-row {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .compare-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .comp-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #727e8e;
+  font-size: 12px;
+  color: #8b9097;
+  text-align: center;
 }
 
 .comp-val {
-  font-size: 16px;
-  font-weight: 900;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
 }
 
-.comp-val.gray { color: #4d596b; }
-.comp-val.main { color: #0f172a; }
+.comp-val.gray { color: #8b9097; }
+.comp-val.main { color: #191b1e; }
 
 .diff-arrow {
-  font-size: 16px;
-  font-weight: 800;
-  color: #cbd5e1;
+  color: #d0d3d8;
+  font-size: 18px;
+}
+
+.chart-wrap {
+  margin-bottom: 16px;
+  padding: 10px 2px 4px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #eef0f3;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-draw 0.6s ease-out forwards;
+}
+
+.chart-area {
+  opacity: 0;
+  animation: chart-fade 0.4s ease-out 0.18s forwards;
+}
+
+.chart-point {
+  opacity: 0;
+  animation: chart-fade 0.3s ease-out forwards;
+}
+
+@keyframes chart-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chart-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+.monthly-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.monthly-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #eef0f3;
+}
+
+.monthly-label {
+  font-size: 13px;
+  color: #8b9097;
+}
+
+.monthly-score {
+  font-size: 14px;
+  color: #191b1e;
 }
 
 .benefit-slide-header {
