@@ -350,11 +350,11 @@ function mapEnrolledProduct(p) {
     : isSaving && !isFreeSaving
       ? '월 납입금액'
       : isFreeSaving
-        ? (isPending ? '첫 저축액' : '현재 모은 금액')
+        ? (isPending ? '한 달 목표금액' : '현재 모은 금액')
         : ''
   let monthlyAmountText = ''
   if (isFreeSaving) {
-    // 승인 대기 중에는 아직 저축이 시작되지 않아 "현재 모은 금액" 대신 신청 시 입력한 첫 저축액을 보여준다.
+    // 승인 대기 중에는 아직 저축이 시작되지 않아 "현재 모은 금액" 대신 신청 시 입력한 한 달 목표금액을 보여준다.
     monthlyAmountText = isPending
       ? (monthlyAmount > 0 ? `${monthlyAmount.toLocaleString()}원` : '')
       : `${currentTotal.toLocaleString()}원`

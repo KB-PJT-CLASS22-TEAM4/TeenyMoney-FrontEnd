@@ -199,7 +199,13 @@
 
         <template v-if="finances.length > 0">
           <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
-            <FinanceCard v-for="f in finances" :key="f.id" v-bind="f" />
+            <FinanceCard
+              v-for="f in finances"
+              :key="f.id"
+              v-bind="f"
+              style="cursor: pointer;"
+              @click="goFinance"
+            />
           </div>
 
           <div class="indicator" v-if="finances.length > 1">

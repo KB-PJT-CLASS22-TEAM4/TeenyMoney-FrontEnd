@@ -454,7 +454,10 @@ button {
 }
 
 .page {
+  box-sizing: border-box;
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
@@ -496,7 +499,7 @@ button {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 16px 20px 20px;
+  padding: 16px 20px 90px;
 }
 
 .scroll::-webkit-scrollbar {
