@@ -1,15 +1,6 @@
 <template>
   <div class="history-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <button class="back-btn" @click="goBack">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">거래내역</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav title="거래내역" @back="goBack" />
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
       <!-- 1. 지갑 잔액 + 소비 리포트 카드 -->
@@ -111,7 +102,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getMyWallet, getMyTransactions } from '@/api/wallet'
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { formatKstDate, formatKstTime } from '@/utils/datetime'
 
 const router = useRouter()

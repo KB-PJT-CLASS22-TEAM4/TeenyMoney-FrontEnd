@@ -1,23 +1,6 @@
 <template>
   <div class="page">
-    <header class="nav">
-      <button
-        class="back-btn"
-        type="button"
-        aria-label="뒤로 가기"
-        @click="goBack"
-      >
-        <img
-          src="@/assets/icons/icon-back.svg"
-          alt=""
-          class="back-icon"
-        />
-      </button>
-
-      <h1 class="nav-title">알림</h1>
-
-      <ChildNavActions />
-    </header>
+    <ChildPageNav title="알림" @back="goBack" />
 
     <div class="scroll">
       <div class="mark-read-wrap">
@@ -54,7 +37,7 @@
             class="noti-item"
             @click="readOne(n)"
           >
-            <div class="icon-circle">
+            <div class="icon-circle" :style="{ background: n.iconBg }">
               <span v-html="n.icon"></span>
             </div>
             <div class="noti-text">
@@ -86,13 +69,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import {
   formatKstClock12,
   formatKstMonthDayLabel,
   isSameKstDay,
   parseServerDate,
 } from '@/utils/datetime'
+import { getNotificationIcon } from '@/utils/notificationIcons'
 import {
   getMyNotifications,
   markNotificationRead,
@@ -105,35 +89,6 @@ const notificationStore = useNotificationStore()
 
 function goBack() {
   router.back()
-}
-
-// ==== 알림 종류(referenceType)별 아이콘 ====
-// ⚠️ PAYMENT 외 나머지 referenceType 값은 백엔드 enum 확정되면 재확인 필요
-const ICONS = {
-  PAYMENT: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#8b9097" stroke-width="1.6"/><path d="M3 10h18" stroke="#8b9097" stroke-width="1.6"/></svg>`,
-  QUEST: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#8b9097" stroke-width="1.6"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#8b9097" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  FINANCE: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="#8b9097" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#8b9097" stroke-width="1.6"/></svg>`,
-  ALLOWANCE: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="3" y="8" width="18" height="13" rx="2" stroke="#8b9097" stroke-width="1.6"/><path d="M3 12h18M12 8v13" stroke="#8b9097" stroke-width="1.6"/><path d="M12 8s-1-4-4-4-2 4 4 4zM12 8s1-4 4-4 2 4-4 4z" stroke="#8b9097" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
-  FAMILY: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="9" cy="9" r="3" stroke="#8b9097" stroke-width="1.6"/><circle cx="16" cy="14" r="3" stroke="#8b9097" stroke-width="1.6"/><path d="M11 11l3 1.5" stroke="#8b9097" stroke-width="1.6"/></svg>`,
-  DEFAULT: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#8b9097" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="#8b9097" stroke-width="1.6" stroke-linecap="round"/></svg>`,
-}
-
-function getIcon(referenceType) {
-  const type = String(referenceType || '').toUpperCase()
-  if (
-    type === 'FINANCE' ||
-    type === 'FINANCIAL_PRODUCT' ||
-    type === 'FINANCIAL_PRODUCTS' ||
-    type === 'ENROLLMENT' ||
-    type === 'PRODUCT_ENROLLMENT' ||
-    type === 'SAVING' ||
-    type === 'SAVINGS' ||
-    type === 'DEPOSIT' ||
-    type === 'LOAN'
-  ) {
-    return ICONS.FINANCE
-  }
-  return ICONS[type] || ICONS.DEFAULT
 }
 
 function isTodayAllowNotification(n) {
@@ -244,6 +199,7 @@ const loadError = ref(false)
 
 function mapNotification(n) {
   const createdDate = parseCreatedAt(n.createdAt)
+  const visual = getNotificationIcon(n)
   return {
     id: n.id,
     title: n.title,
@@ -251,7 +207,8 @@ function mapNotification(n) {
     read: n.isRead,
     referenceType: n.referenceType,
     referenceId: n.referenceId,
-    icon: getIcon(n.referenceType),
+    icon: visual.svg,
+    iconBg: visual.bg,
     createdDate,
     dateLabel: createdDate ? formatDateLabel(createdDate) : '',
     time: createdDate ? formatTime(createdDate) : '',

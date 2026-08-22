@@ -1,14 +1,6 @@
 <template>
   <div class="product-screen">
-    <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">{{ pageTitle }}</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav :title="pageTitle" @back="goBack" />
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
 
@@ -81,7 +73,7 @@
           </div>
           <div>
             <div class="setting-row border-top">
-              <span class="setting-label">출금계좌</span>
+              <span class="setting-label">출금지갑</span>
               <span class="setting-value">티니머니 지갑</span>
             </div>
             <div class="setting-row border-top">
@@ -242,7 +234,7 @@
 
         <section class="section">
           <div class="setting-row">
-            <span class="setting-label">출금계좌</span>
+            <span class="setting-label">출금지갑</span>
             <span class="setting-value">티니머니 지갑</span>
           </div>
           <p class="account-note">예치 금액이 위 계좌에서 한 번에 돈이 나가요</p>
@@ -321,7 +313,7 @@
           </div>
           <div v-if="loanForm.autoTransfer">
             <div class="setting-row border-top">
-              <span class="setting-label">출금계좌</span>
+              <span class="setting-label">출금지갑</span>
               <span class="setting-value">티니머니 지갑</span>
             </div>
             <div class="setting-row border-top">
@@ -436,7 +428,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getFinanceTerm } from '@/constants/financeTerms'
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import FinanceTermModal from '@/components/Child/FinanceTermModal.vue'
 
 const router = useRouter()

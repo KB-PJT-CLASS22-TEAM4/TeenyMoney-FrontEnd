@@ -1,16 +1,6 @@
 <template>
   <div class="quest-screen">
-    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
-    <div class="nav">
-      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">퀘스트</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav title="퀘스트" @back="goBack" />
 
     <!-- 탭 스위처 — 상단 네비와 이어지는 흰 영역 -->
     <div class="tab-switcher">
@@ -100,7 +90,10 @@
             <div class="quest-expand-wrap" :class="{ open: expandedId === q.id }">
               <div class="quest-expand" @click.stop>
                 <div class="quest-expand-inner">
+                <div v-if="q.content" class="quest-parent-note">
+                  <span class="quest-parent-label">부모님이 작성한 내용</span>
                   <p class="quest-expand-content">{{ q.content }}</p>
+                </div>
 
                   <div v-if="decliningId !== q.id" class="quest-actions">
                     <button class="btn btn-outline" @click="startDecline(q.id)">거절하기</button>
@@ -309,7 +302,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 import { useSseStore } from '@/stores/sse'
@@ -1263,11 +1256,25 @@ function onTabSelect(key) {
   padding: 0 16px 16px;
 }
 
-.quest-expand-content {
+.quest-parent-note {
   margin: 8px 0 14px;
+}
+
+.quest-parent-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #8a9099;
+}
+
+.quest-expand-content {
+  margin: 0;
   font-size: 13px;
   line-height: 19px;
   color: #4a4e55;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .quest-actions {
