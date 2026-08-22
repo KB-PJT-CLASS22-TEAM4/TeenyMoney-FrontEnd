@@ -461,7 +461,6 @@ button {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding-bottom: 88px;
   color: #191b1e;
   background: #f8fafc;
 }
@@ -499,7 +498,7 @@ button {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 16px 20px 90px;
+  padding: 16px 20px;
 }
 
 .scroll::-webkit-scrollbar {

@@ -136,7 +136,7 @@
 
       <section class="history">
         <div class="history-head">
-          <span class="history-title">최근 이용내역</span>
+          <span class="history-title">최근 거래내역</span>
 
           <button
             type="button"

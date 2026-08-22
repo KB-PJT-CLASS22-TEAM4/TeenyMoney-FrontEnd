@@ -379,7 +379,7 @@
 
       <section class="history">
         <div class="history-head">
-          <span class="history-title">최근 이용내역</span>
+          <span class="history-title">최근 거래내역</span>
 
           <button
             type="button"
@@ -451,7 +451,7 @@
           v-else
           class="transaction-state"
         >
-          최근 이용내역이 없습니다.
+          최근 거래내역이 없습니다.
         </div>
       </section>
 
