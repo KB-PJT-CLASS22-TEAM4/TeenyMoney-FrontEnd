@@ -304,3 +304,36 @@ export async function rejectFinancialEnrollment(
     enrollmentId
   )
 }
+
+function toCompletionProductPath(productType) {
+  const raw = String(productType || '').toUpperCase()
+  if (raw.includes('LOAN') || raw.includes('대출')) return 'loan'
+  if (raw.includes('DEPOSIT') || raw.includes('예금')) return 'deposit'
+  return 'saving'
+}
+
+// 부모의 자녀 만기 예금·적금 및 완납 대출 이력 상세
+export async function getChildFinancialProductCompletionDetail(
+  accessToken,
+  childId,
+  productType,
+  enrollmentId
+) {
+  ensureAccessToken(accessToken)
+  if (!childId) throw new Error('자녀 정보가 필요합니다.')
+  if (enrollmentId == null || enrollmentId === '') {
+    throw new Error('가입 정보가 필요합니다.')
+  }
+
+  const type = toCompletionProductPath(productType)
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/financial-products/children/${childId}/${type}/${enrollmentId}/completion-detail`,
+    {
+      method: 'GET',
+      headers: authHeaders(accessToken),
+    }
+  )
+
+  return parseResponse(response)
+}

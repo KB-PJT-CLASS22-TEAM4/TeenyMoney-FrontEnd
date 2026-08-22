@@ -95,6 +95,7 @@ import MoneyReport from '@/pages/Parents/Child/MoneyReport.vue'
 import ChildFinance from '@/pages/Parents/Child/ChildFinance.vue'
 import FinanceProductCreate from '@/pages/Parents/Child/FinanceProductCreate.vue'
 import FinanceApprovalDetail from '@/pages/Parents/Child/FinanceApprovalDetail.vue'
+import FinanceCompletionDetail from '@/pages/Parents/Child/FinanceCompletionDetail.vue'
 import TeenyScoring from '@/pages/Parents/TeenyScore.vue'
 import QuestLists from '@/pages/Parents/Quest/QuestList.vue'
 import QuestCreate from '@/pages/Parents/Quest/QuestCreate.vue'
@@ -492,6 +493,11 @@ const router = createRouter({
     path: '/parents/children/:childId/finance/approval/:productType/:enrollmentId',
     name: 'parents-finance-approval-detail',
     component: FinanceApprovalDetail,
+  },
+  {
+    path: '/parents/children/:childId/finance/completion/:productType/:enrollmentId',
+    name: 'parents-finance-completion-detail',
+    component: FinanceCompletionDetail,
   },
   { 
     path: '/parents/children/:childId/teeny-score', 
