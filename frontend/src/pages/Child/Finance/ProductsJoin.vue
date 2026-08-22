@@ -81,7 +81,7 @@
           </div>
           <div>
             <div class="setting-row border-top">
-              <span class="setting-label">출금계좌</span>
+              <span class="setting-label">출금지갑</span>
               <span class="setting-value">티니머니 지갑</span>
             </div>
             <div class="setting-row border-top">
@@ -242,7 +242,7 @@
 
         <section class="section">
           <div class="setting-row">
-            <span class="setting-label">출금계좌</span>
+            <span class="setting-label">출금지갑</span>
             <span class="setting-value">티니머니 지갑</span>
           </div>
           <p class="account-note">예치 금액이 위 계좌에서 한 번에 돈이 나가요</p>
@@ -321,7 +321,7 @@
           </div>
           <div v-if="loanForm.autoTransfer">
             <div class="setting-row border-top">
-              <span class="setting-label">출금계좌</span>
+              <span class="setting-label">출금지갑</span>
               <span class="setting-value">티니머니 지갑</span>
             </div>
             <div class="setting-row border-top">
