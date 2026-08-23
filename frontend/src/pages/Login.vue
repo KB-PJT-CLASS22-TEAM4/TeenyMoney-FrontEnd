@@ -812,7 +812,7 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 4px 24px max(28px, env(safe-area-inset-bottom));
+  padding: 4px 24px max(28px, var(--safe-area-bottom));
   overscroll-behavior: contain;
 }
 
@@ -1067,7 +1067,7 @@ onBeforeUnmount(() => {
 .toast {
   position: absolute;
   left: 50%;
-  bottom: max(26px, env(safe-area-inset-bottom));
+  bottom: max(26px, var(--safe-area-bottom));
   z-index: 3;
   max-width: calc(100% - 24px);
   margin: 0;
