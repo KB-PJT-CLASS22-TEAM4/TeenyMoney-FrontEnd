@@ -111,14 +111,15 @@
     <!-- 하단 고정 가입/신청 완료 버튼 -->
     <footer class="footer">
       <div class="submit-wrapper">
-        <button 
-          type="button" 
-          class="submit-btn" 
-          :class="{ active: isAllAgreed }"
-          :disabled="!isAllAgreed"
+        <p v-if="submitError" class="submit-error">{{ submitError }}</p>
+        <button
+          type="button"
+          class="submit-btn"
+          :class="{ active: isAllAgreed && !isSubmitting }"
+          :disabled="!isAllAgreed || isSubmitting"
           @click="openModal"
         >
-          {{ isLoan ? '대출 신청 완료' : '가입 완료' }}
+          {{ isSubmitting ? '처리 중...' : (isLoan ? '대출 신청 완료' : '가입 완료') }}
         </button>
       </div>
     </footer>
@@ -154,9 +155,12 @@ import { useRouter, useRoute } from 'vue-router';
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { formatRepaymentType } from '@/utils/financialProductMapper'
+import { useAuthStore } from '@/stores/auth'
+import { createSavingEnrollment, createDepositEnrollment, createLoanEnrollment } from '@/api/finance'
 
 const router = useRouter();
 const route = useRoute();
+const authStore = useAuthStore();
 
 const isScrolling = ref(false);
 let scrollTimer = null;
@@ -181,6 +185,7 @@ function calcMaturityDate(periodMonths) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
+const productId = route.query.productId
 const amount    = Number(route.query.amount)    || 0
 const period    = Number(route.query.period)    || 0
 const total     = Number(route.query.total)     || 0
@@ -264,22 +269,25 @@ const isAllAgreed = computed(() =>
 )
 
 const showSuccessModal = ref(false);
+const isSubmitting = ref(false);
+const submitError = ref('');
 
 const goBack = () => { router.back(); };
 
 // "가입 완료"를 눌렀을 때 실제로 가입 신청 API를 호출한다.
-const handleSubmit = async () => {
+const openModal = async () => {
   if (!isAllAgreed.value || isSubmitting.value) return;
 
   isSubmitting.value = true;
+  submitError.value = '';
   try {
     if (isSavings) {
       await createSavingEnrollment(authStore.accessToken, {
         productId,
         monthlyAmount: amount,
         termMonths: period,
-        autoTransfer: isFreeSaving ? false : rawAutoTransfer,
-        paymentDay: isFreeSaving ? 1 : selectedPaymentDay,
+        autoTransfer: isFreeSaving ? false : confirmData.autoTransfer,
+        paymentDay: isFreeSaving ? 1 : confirmData.transferDay,
       })
     } else if (isDeposit) {
       const result = await createDepositEnrollment(authStore.accessToken, {
@@ -300,8 +308,8 @@ const handleSubmit = async () => {
         productId,
         principalAmount: amount,
         termMonths: period,
-        autoTransfer: rawAutoTransfer,
-        paymentDay: selectedPaymentDay,
+        autoTransfer: confirmData.autoTransfer,
+        paymentDay: confirmData.transferDay,
       })
 
       if (result?.enrollmentId) {
@@ -316,7 +324,7 @@ const handleSubmit = async () => {
     showSuccessModal.value = true;
   } catch (e) {
     console.error('금융상품 신청 실패:', e.message);
-    showErrorModal(e.message || '신청에 실패했어요. 다시 시도해 주세요.');
+    submitError.value = e.message || '신청에 실패했어요. 다시 시도해 주세요.';
   } finally {
     isSubmitting.value = false;
   }
@@ -580,6 +588,14 @@ const closeModalAndNavigate = () => {
 
 .submit-wrapper {
   width: 100%;
+}
+
+.submit-error {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0554f;
+  padding: 0 4px;
 }
 
 .submit-btn {
