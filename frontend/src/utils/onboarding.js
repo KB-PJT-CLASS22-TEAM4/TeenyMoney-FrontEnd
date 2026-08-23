@@ -147,7 +147,7 @@ const FEATURE_ONBOARDING_SLIDES = {
         screen: 'child-quest',
         screenAlt: '자녀 계정의 실제 완료한 퀘스트 화면',
         screenSize: ONBOARDING_SCREEN_SIZE,
-        focus: { top: 13, left: 4, width: 92, height: 40 },
+        focus: { top: 15, left: 2, width: 95, height: 40 },
         title: '완료한 퀘스트',
         caption: '메달이 있는 퀘스트를 완료하면 티니점수가 올라가요.',
       },
