@@ -1,0 +1,80 @@
+<style>
+  .concept-grid { display:grid; grid-template-columns:repeat(3,minmax(250px,1fr)); gap:18px; margin-top:22px; }
+  .concept { border:2px solid #e7e9ee; border-radius:22px; padding:14px; cursor:pointer; transition:.2s; background:#fff; }
+  .concept:hover { transform:translateY(-3px); box-shadow:0 14px 34px rgba(25,27,30,.1); }
+  .concept.selected { border-color:#ffbc00; box-shadow:0 0 0 4px rgba(255,188,0,.14); }
+  .concept-title { display:flex; align-items:center; gap:9px; margin-bottom:12px; }
+  .badge { width:28px; height:28px; display:grid; place-items:center; border-radius:9px; background:#191b1e; color:#fff; font-weight:800; }
+  .phone { width:228px; min-height:440px; margin:auto; border:7px solid #22252a; border-radius:31px; background:#fafafa; padding:20px 14px 16px; box-sizing:border-box; box-shadow:0 10px 26px rgba(0,0,0,.12); font-family:Arial,sans-serif; }
+  .phone h4 { margin:0; color:#17191c; font-size:15px; }
+  .sub { color:#808791; font-size:9px; margin:4px 0 12px; }
+  .hero { border-radius:18px; padding:15px; margin:8px 0 10px; }
+  .yellow { background:linear-gradient(135deg,#fff8d5,#fff1aa); }
+  .blue { background:linear-gradient(135deg,#eef6ff,#dceeff); }
+  .purple { background:linear-gradient(135deg,#f5efff,#e9dcff); }
+  .hero-row { display:flex; align-items:center; gap:10px; }
+  .mascot { font-size:34px; filter:drop-shadow(0 4px 4px rgba(0,0,0,.08)); }
+  .score { font-size:22px; font-weight:900; color:#181b20; }
+  .tiny { font-size:8px; color:#656c76; line-height:1.45; }
+  .good { color:#218a4a; font-weight:800; }
+  .card-mini { background:#fff; border:1px solid #edf0f3; border-radius:14px; padding:11px; margin:8px 0; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .bar { height:7px; background:#eef0f4; border-radius:10px; margin-top:7px; overflow:hidden; }
+  .fill { height:100%; border-radius:10px; background:#ffbc00; }
+  .chips { display:flex; gap:5px; margin-top:8px; flex-wrap:wrap; }
+  .chip { font-size:8px; background:#f2f4f7; border-radius:99px; padding:5px 7px; color:#525963; }
+  .chart { height:72px; display:flex; gap:9px; align-items:flex-end; justify-content:center; border-bottom:1px solid #e4e7eb; margin-top:8px; }
+  .chart span { width:23px; border-radius:7px 7px 0 0; background:#dfe3e9; }
+  .chart span:last-child { background:#ffbc00; }
+  .mission { display:flex; align-items:center; gap:9px; background:#fff; border-radius:13px; padding:10px; margin-top:8px; }
+  .mission-icon { width:31px; height:31px; display:grid; place-items:center; border-radius:10px; background:#fff3c4; }
+  .concept-copy { padding:13px 4px 2px; }
+  .concept-copy h3 { margin:0 0 5px; font-size:17px; }
+  .concept-copy p { margin:0; color:#6d7480; font-size:13px; line-height:1.5; }
+  .recommend { display:inline-block; margin-top:9px; padding:4px 8px; border-radius:99px; background:#fff1b8; color:#815d00; font-size:11px; font-weight:800; }
+  @media(max-width:900px){.concept-grid{grid-template-columns:1fr}.phone{width:240px}}
+</style>
+
+<h2>머니 리포트, 어떤 흐름이 가장 잘 맞을까요?</h2>
+<p class="subtitle">세 안 모두 7~12세와 13~18세가 같은 데이터를 쓰고, 문구와 표현 강도만 달라집니다. 화면을 눌러 선택해 주세요.</p>
+
+<div class="concept-grid">
+  <div class="concept" data-choice="a" onclick="toggleSelect(this)">
+    <div class="concept-title"><span class="badge">A</span><strong>코치형 리포트</strong></div>
+    <div class="phone">
+      <h4>7월 3주차 리포트</h4><p class="sub">이번 주 나의 소비 습관</p>
+      <div class="hero yellow">
+        <div class="hero-row"><span class="mascot">🛡️</span><div><div class="tiny">좋은 습관으로</div><div class="score">850점 유지!</div></div></div>
+        <p class="tiny"><span class="good">계획한 금액 안에서 써서</span><br>티니점수를 잘 지켰어요.</p>
+      </div>
+      <div class="card-mini"><div class="row"><b style="font-size:11px">이번 주 잘한 습관</b><span>✨</span></div><div class="chips"><span class="chip">충동구매 0회</span><span class="chip">예산 안 지킴</span></div></div>
+      <div class="card-mini"><div class="row"><b style="font-size:11px">머니는 54,900원</b><span class="good" style="font-size:9px">-10%</span></div><div class="bar"><div class="fill" style="width:72%"></div></div><p class="tiny">지난주보다 6,100원 덜 썼어요.</p></div>
+      <div class="mission"><span class="mission-icon">🎯</span><div><b style="font-size:10px">다음 주 한 가지 약속</b><div class="tiny">간식비 15,000원 안에서 쓰기</div></div></div>
+    </div>
+    <div class="concept-copy"><h3>행동 → 점수 → 다음 행동</h3><p>아이에게 먼저 “무엇을 잘했는지” 알려주고, 통계는 근거로 내려 배치합니다.</p><span class="recommend">추천</span></div>
+  </div>
+
+  <div class="concept" data-choice="b" onclick="toggleSelect(this)">
+    <div class="concept-title"><span class="badge">B</span><strong>대시보드형 개선</strong></div>
+    <div class="phone">
+      <h4>7월 3주차 머니리포트</h4><p class="sub">총 54,900원을 썼어요</p>
+      <div class="card-mini"><div class="row"><b style="font-size:11px">주간 머니 비교</b><span class="good" style="font-size:9px">6,100원 절약</span></div><div class="chart"><span style="height:62px"></span><span style="height:52px"></span></div><div class="row tiny"><span>지난주</span><span>이번 주</span></div></div>
+      <div class="hero blue"><div class="row"><div><div class="tiny">티니점수</div><div class="score">850점</div></div><span class="mascot">📊</span></div><p class="tiny">예산을 지켜 점수 하락 없이 유지했어요.</p></div>
+      <div class="card-mini"><b style="font-size:11px">카테고리별 머니</b><div class="chips"><span class="chip">식비 38%</span><span class="chip">교통 26%</span><span class="chip">쇼핑 21%</span></div></div>
+      <div class="card-mini"><b style="font-size:11px">한 줄 분석</b><p class="tiny">식비 비중이 가장 높지만 지난주보다 12% 줄었어요.</p></div>
+    </div>
+    <div class="concept-copy"><h3>현재 화면의 자연스러운 확장</h3><p>기존 차트를 유지해 개발량이 적지만, 감정적인 첫인상은 A보다 약합니다.</p></div>
+  </div>
+
+  <div class="concept" data-choice="c" onclick="toggleSelect(this)">
+    <div class="concept-title"><span class="badge">C</span><strong>미션·게임형</strong></div>
+    <div class="phone">
+      <h4>이번 주 머니 탐험</h4><p class="sub">티니와 함께 습관 배지를 모아봐요</p>
+      <div class="hero purple"><div class="hero-row"><span class="mascot">🐣</span><div><div class="tiny">이번 주 획득</div><div class="score">배지 2개</div></div></div><div class="chips"><span class="chip">🛡️ 예산 수호자</span><span class="chip">⏳ 하루 참기</span></div></div>
+      <div class="card-mini"><div class="row"><b style="font-size:11px">점수 방어 게이지</b><b style="font-size:11px">850</b></div><div class="bar"><div class="fill" style="width:85%; background:#8168d8"></div></div><p class="tiny">충동구매를 참아 점수를 지켰어요!</p></div>
+      <div class="mission"><span class="mission-icon">🥤</span><div><b style="font-size:10px">다음 미션</b><div class="tiny">편의점 방문을 2번 이하로</div></div></div>
+      <div class="mission"><span class="mission-icon">⭐</span><div><b style="font-size:10px">성공 보상</b><div class="tiny">새로운 머니 배지 공개</div></div></div>
+    </div>
+    <div class="concept-copy"><h3>재미와 재방문 중심</h3><p>저연령에게 강하지만, 13~18세에게 유치하게 느껴질 위험과 운영할 미션이 늘어납니다.</p></div>
+  </div>
+</div>
