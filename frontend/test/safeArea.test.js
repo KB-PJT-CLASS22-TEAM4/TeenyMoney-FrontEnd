@@ -88,3 +88,32 @@ test('하단 내비게이션 배경은 홈 인디케이터까지 확장한다', 
     /\.tabbar-anchor\s*\{[^}]*height:\s*calc\(70px \+ var\(--safe-area-bottom\)\)/s,
   )
 })
+
+test('QR 카메라는 전체 배경을 채우고 조작부는 Safe Area 안쪽에 있다', () => {
+  const qr = source('src/pages/Child/Payment/QRscan.vue')
+
+  assert.match(
+    qr,
+    /\.qr-scan\s*\{[^}]*padding:\s*calc\(48px \+ var\(--safe-area-top\)\) 20px calc\(36px \+ var\(--safe-area-bottom\)\)/s,
+  )
+  assert.match(qr, /\.camera-layer\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0/s)
+  assert.match(qr, /box-shadow:\s*0 0 0 100vmax/)
+})
+
+test('퀘스트 촬영 버튼은 홈 인디케이터 위에 있다', () => {
+  const quest = source('src/pages/Child/Quest/QuestDetail.vue')
+
+  assert.match(
+    quest,
+    /\.camera-controls\s*\{[^}]*bottom:\s*calc\(28px \+ var\(--safe-area-bottom\)\)/s,
+  )
+})
+
+test('로그인과 온보딩의 기존 정보·조작 요소 Safe Area 보호를 유지한다', () => {
+  const login = source('src/pages/Login.vue')
+  const onboarding = source('src/pages/Onboarding.vue')
+
+  assert.match(login, /env\(safe-area-inset-bottom\)/)
+  assert.match(onboarding, /env\(safe-area-inset-top\)/)
+  assert.match(onboarding, /env\(safe-area-inset-bottom\)/)
+})

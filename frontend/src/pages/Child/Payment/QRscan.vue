@@ -1,5 +1,12 @@
 <template>
   <div class="qr-scan">
+    <QrcodeStream
+      class="camera camera-layer"
+      @detect="onDetect"
+      @error="onError"
+      @camera-on="onCameraOn"
+    />
+
     <!-- 안내 문구 (줄바꿈 없이 1줄) + 스캔 프레임 -->
     <main class="scan-stage">
       <div class="guide-box">
@@ -8,14 +15,8 @@
       </div>
 
       <div class="scan-frame">
-        <!-- 카메라 박스 -->
+        <!-- 전체 카메라 위의 밝은 스캔 영역 -->
         <div class="scan-box">
-          <QrcodeStream
-            @detect="onDetect"
-            @error="onError"
-            @camera-on="onCameraOn"
-            class="camera"
-          />
           <span class="scan-line"></span>
         </div>
 
@@ -171,7 +172,7 @@ function onError(err) {
   max-width: 430px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: 48px 20px 36px;
+  padding: calc(48px + var(--safe-area-top)) 20px calc(36px + var(--safe-area-bottom));
   background: #111418;
   overflow: hidden;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
@@ -180,6 +181,7 @@ function onError(err) {
 /* 안내 문구 + 스캔 영역 (문구를 위로 올려 여백 확보) */
 .scan-stage {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -191,6 +193,8 @@ function onError(err) {
 }
 
 .guide-box {
+  position: relative;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -218,6 +222,7 @@ function onError(err) {
 
 .scan-frame {
   position: relative;
+  z-index: 2;
   width: 290px;
   height: 290px;
   flex-shrink: 0;
@@ -226,21 +231,25 @@ function onError(err) {
 .scan-box {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 32px;
   overflow: hidden;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 0 0 100vmax rgba(17, 20, 24, 0.58),
+    0 12px 36px rgba(0, 0, 0, 0.5);
 }
 
 /* 카메라 */
-.camera {
+.camera-layer {
   position: absolute;
   inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
-.camera :deep(video) {
+.camera-layer :deep(video) {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -282,6 +291,8 @@ function onError(err) {
 
 /* 하단 액션 그룹 (닫기 버튼 중앙 배치) */
 .bottom-action-group {
+  position: relative;
+  z-index: 2;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -317,6 +328,8 @@ function onError(err) {
 
 /* QR코드 보여주기 — 카메라 스캔 화면 아래 작은 밑줄 텍스트 링크 */
 .show-qr-link {
+  position: relative;
+  z-index: 3;
   margin-top: -28px;
   border: none;
   background: none;
