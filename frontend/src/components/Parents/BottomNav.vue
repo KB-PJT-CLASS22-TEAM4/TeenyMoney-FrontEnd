@@ -156,9 +156,9 @@ onBeforeUnmount(() => {
   align-items: stretch;
   width: 100%;
   max-width: 430px;
-  height: calc(70px + var(--safe-area-bottom));
+  height: 70px;
   margin: 0 auto;
-  padding: 10px 0 calc(20px + var(--safe-area-bottom));
+  padding: 10px 0 20px;
   border-top: 1px solid #f0f1f3;
   background-color: #ffffff;
   box-sizing: border-box;

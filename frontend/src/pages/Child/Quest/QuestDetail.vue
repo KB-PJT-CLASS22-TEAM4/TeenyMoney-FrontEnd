@@ -715,7 +715,7 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(28px + var(--safe-area-bottom));
+  bottom: 28px;
   display: flex;
   align-items: center;
   justify-content: center;

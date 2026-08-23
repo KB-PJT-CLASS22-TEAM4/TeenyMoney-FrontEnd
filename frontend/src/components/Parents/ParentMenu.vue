@@ -459,7 +459,7 @@ async function handleLogout() {
 
 .close-btn {
   position: absolute;
-  top: calc(6px + var(--safe-area-top));
+  top: 6px;
   right: 8px;
   z-index: 1;
   width: 32px;
@@ -477,7 +477,7 @@ async function handleLogout() {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: calc(18px + var(--safe-area-top)) 0 calc(24px + var(--safe-area-bottom));
+  padding: 18px 0 24px;
 }
 
 .profile-row {

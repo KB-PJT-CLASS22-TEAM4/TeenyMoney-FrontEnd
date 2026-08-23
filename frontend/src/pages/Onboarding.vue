@@ -357,7 +357,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   min-height: 0;
-  padding-top: max(24px, env(safe-area-inset-top));
+  padding-top: calc(24px + var(--safe-area-top));
   overflow: hidden;
   background: var(--page-bg);
 }
@@ -442,7 +442,10 @@ onBeforeUnmount(() => {
 
 .scene {
   position: absolute;
-  inset: 0;
+  top: var(--safe-area-top);
+  right: 0;
+  bottom: 0;
+  left: 0;
   overflow: hidden;
   background: var(--page-bg);
   transition: filter 0.32s ease;
@@ -642,7 +645,7 @@ onBeforeUnmount(() => {
 .footer {
   position: absolute;
   right: 18px;
-  bottom: max(16px, env(safe-area-inset-bottom));
+  bottom: max(16px, var(--safe-area-bottom));
   left: 18px;
   z-index: 4;
   display: flex;
