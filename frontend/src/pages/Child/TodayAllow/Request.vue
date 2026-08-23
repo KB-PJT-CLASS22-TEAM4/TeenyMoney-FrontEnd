@@ -1,16 +1,6 @@
 <template>
   <div class="allow-screen">
-    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
-    <nav class="nav">
-      <button class="back-btn" aria-label="뒤로" @click="goBack">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171B" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <h1 class="nav-title">오늘만 허용 요청</h1>
-      <ChildNavActions />
-    </nav>
+    <ChildPageNav title="오늘만 허용 요청" @back="goBack" />
 
     <!-- 본문 (스크롤) -->
     <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
@@ -159,13 +149,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const allowStore = useAllowRequestStore()
 
@@ -271,7 +262,13 @@ function onScroll() {
   scrollTimer = setTimeout(() => (scrolling.value = false), 600)
 }
 
+// 머니 리포트의 습관 카드를 눌러 들어온 경우(from=report)는 브라우저 히스토리
+// 상태와 무관하게 무조건 리포트로 돌아가고, 그 외(홈/탭 등)에는 기존처럼 홈으로 간다.
 function goBack() {
+  if (route.query.from === 'report') {
+    router.push({ name: 'child-report' })
+    return
+  }
   router.push({ name: 'child-home' })
 }
 

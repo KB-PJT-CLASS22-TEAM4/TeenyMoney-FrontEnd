@@ -54,7 +54,7 @@
             class="noti-item"
             @click="readOne(n)"
           >
-            <div class="icon-circle">
+            <div class="icon-circle" :style="{ background: n.iconBg }">
               <span v-html="n.icon"></span>
             </div>
             <div class="noti-text">
@@ -103,36 +103,11 @@ import {
   isSameKstDay,
   parseServerDate,
 } from '@/utils/datetime'
+import { getNotificationIcon } from '@/utils/notificationIcons'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
-
-const ICONS = {
-  PAYMENT: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#8b9097" stroke-width="1.6"/><path d="M3 10h18" stroke="#8b9097" stroke-width="1.6"/></svg>`,
-  QUEST: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#8b9097" stroke-width="1.6"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke="#8b9097" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
-  FINANCE: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="#8b9097" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#8b9097" stroke-width="1.6"/></svg>`,
-  ALLOWANCE: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><rect x="3" y="8" width="18" height="13" rx="2" stroke="#8b9097" stroke-width="1.6"/><path d="M3 12h18M12 8v13" stroke="#8b9097" stroke-width="1.6"/><path d="M12 8s-1-4-4-4-2 4 4 4zM12 8s1-4 4-4 2 4-4 4z" stroke="#8b9097" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
-  FAMILY: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="9" cy="9" r="3" stroke="#8b9097" stroke-width="1.6"/><circle cx="16" cy="14" r="3" stroke="#8b9097" stroke-width="1.6"/><path d="M11 11l3 1.5" stroke="#8b9097" stroke-width="1.6"/></svg>`,
-  DEFAULT: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none"><path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6z" stroke="#8b9097" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="#8b9097" stroke-width="1.6" stroke-linecap="round"/></svg>`,
-}
-
-function getIcon(referenceType) {
-  const type = String(referenceType || '').toUpperCase()
-  if (
-    type === 'FINANCE' ||
-    type === 'FINANCIAL_PRODUCT' ||
-    type === 'FINANCIAL_PRODUCTS' ||
-    type === 'ENROLLMENT' ||
-    type === 'PRODUCT_ENROLLMENT' ||
-    type === 'SAVING' ||
-    type === 'DEPOSIT' ||
-    type === 'LOAN'
-  ) {
-    return ICONS.FINANCE
-  }
-  return ICONS[type] || ICONS.DEFAULT
-}
 
 function isTodayAllowNotification(n) {
   const type = String(n.referenceType || '').toUpperCase()
@@ -506,6 +481,7 @@ const loadError = ref(false)
 
 function mapNotification(n) {
   const createdDate = parseCreatedAt(n.createdAt)
+  const visual = getNotificationIcon(n)
   return {
     id: n.id,
     title: n.title,
@@ -516,7 +492,8 @@ function mapNotification(n) {
     childId: n.childId ?? n.child?.childId ?? n.child?.id ?? null,
     enrollmentId: n.enrollmentId ?? null,
     productType: n.productType ?? n.referenceSubType ?? null,
-    icon: getIcon(n.referenceType),
+    icon: visual.svg,
+    iconBg: visual.bg,
     createdDate,
     dateLabel: createdDate ? formatDateLabel(createdDate) : '',
     time: createdDate ? formatTime(createdDate) : '',

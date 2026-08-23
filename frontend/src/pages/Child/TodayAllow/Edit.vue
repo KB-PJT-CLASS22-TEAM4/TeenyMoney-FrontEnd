@@ -1,16 +1,6 @@
 <template>
   <div class="allow-screen">
-    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
-    <nav class="nav">
-      <button class="back-btn" aria-label="뒤로" @click="goBack">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171B" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-      <h1 class="nav-title">오늘만 허용 수정하기</h1>
-      <ChildNavActions />
-    </nav>
+    <ChildPageNav title="오늘만 허용 수정하기" @back="goBack" />
 
     <main class="scroll" :class="{ scrolling }" @scroll="onScroll">
 
@@ -81,7 +71,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAllowRequestStore } from '@/stores/allowRequest'
 import { getCategoryPolicyGroups } from '@/api/categoryPolicy'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 
 const router = useRouter()
 const route = useRoute()
