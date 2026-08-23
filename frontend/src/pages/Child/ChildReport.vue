@@ -477,7 +477,8 @@ async function loadReport(month) {
 
     summary.value = mapSummary(data.summary)
     // 적금·예금 만기/중도해지 인사이트가 여러 건이면 한 카드로 합쳐서 보여준다.
-    const rawInsights = data.insights || []
+    // 매핑에 없는 코드는 더미/플레이스홀더 카드로 보이지 않게 제외한다.
+    const rawInsights = (data.insights || []).filter((insight) => INSIGHT_META[insight.insightCode])
     const maturedInsights = rawInsights.filter((i) => MATURED_INSIGHT_CODES.includes(i.insightCode))
     const firstMaturedIndex = rawInsights.findIndex((i) => MATURED_INSIGHT_CODES.includes(i.insightCode))
     habits.value = rawInsights

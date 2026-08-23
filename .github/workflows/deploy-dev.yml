@@ -46,10 +46,12 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_LOGIN_VIDEO_BASE: ${{ vars.VITE_LOGIN_VIDEO_BASE }}
         run: |
           set -Eeuo pipefail
 
           test -n "$VITE_API_BASE_URL"
+          test -n "$VITE_LOGIN_VIDEO_BASE"  
           npm ci
           npm run build
 
