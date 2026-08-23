@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '@/pages/Login.vue';
 import Signup from '@/pages/Signup.vue';
+import Onboarding from '@/pages/Onboarding.vue';
 // 자녀 연동 코드 입력 페이지
 import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
 // 자녀 연동 코드 보호자 확인 페이지
@@ -127,6 +128,11 @@ const router = createRouter({
       name: 'signup',
       component: Signup,
       meta: { public: true },
+    },
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: Onboarding,
     },
     // 자녀 연동 코드 입력 페이지
     {
