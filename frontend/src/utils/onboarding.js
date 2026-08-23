@@ -38,7 +38,7 @@ const ONBOARDING_CONFIG = {
       screen: 'child-link',
       screenAlt: '자녀 계정의 실제 부모님 연동 코드 입력 화면',
       screenSize: ONBOARDING_SCREEN_SIZE,
-      focus: { top: 31, left: 14, width: 72, height: 7 },
+      focus: { top: 28, left: 9, width: 81, height: 11 },
       title: '부모님 연동 코드 입력',
       caption: '부모님 앱에서 발급한 6자리 코드를 입력해요.',
     },
