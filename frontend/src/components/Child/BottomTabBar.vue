@@ -111,7 +111,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .tabbar-anchor {
   flex-shrink: 0;
-  height: 70px;
+  height: calc(70px + var(--safe-area-bottom));
   transition: height 0.2s ease;
 }
 
@@ -130,9 +130,9 @@ onBeforeUnmount(() => {
   align-items: stretch;
   width: 100%;
   max-width: 430px;
-  height: 70px;
+  height: calc(70px + var(--safe-area-bottom));
   margin: 0 auto;
-  padding: 10px 0 20px;
+  padding: 10px 0 calc(20px + var(--safe-area-bottom));
   box-sizing: border-box;
   background: #ffffff;
   border-top: 1px solid #f0f1f3;

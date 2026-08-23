@@ -65,3 +65,26 @@ test('부모·자녀 사이드 메뉴의 조작 요소는 Safe Area 안쪽에 �
     )
   }
 })
+
+test('하단 내비게이션 배경은 홈 인디케이터까지 확장한다', () => {
+  for (const path of [
+    'src/components/Parents/BottomNav.vue',
+    'src/components/Child/BottomTabBar.vue',
+  ]) {
+    const nav = source(path)
+
+    assert.match(
+      nav,
+      /height:\s*calc\(70px \+ var\(--safe-area-bottom\)\)/,
+    )
+    assert.match(
+      nav,
+      /padding:\s*10px 0 calc\(20px \+ var\(--safe-area-bottom\)\)/,
+    )
+  }
+
+  assert.match(
+    source('src/components/Child/BottomTabBar.vue'),
+    /\.tabbar-anchor\s*\{[^}]*height:\s*calc\(70px \+ var\(--safe-area-bottom\)\)/s,
+  )
+})
