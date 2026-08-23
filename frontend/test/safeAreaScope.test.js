@@ -8,15 +8,12 @@ function source(path) {
   return readFileSync(new URL(path, frontendRoot), 'utf8')
 }
 
-test('일반 화면은 헤더 배경만 Safe Area까지 확장한다', () => {
+test('일반 화면은 Safe Area 변경 전 App 레이아웃을 유지한다', () => {
   const app = source('src/App.vue')
 
-  assert.match(app, /height:\s*calc\(64px \+ var\(--safe-area-top\)\)/)
-  assert.match(
-    app,
-    /padding:\s*var\(--safe-area-top\) 20px 4px\s*!important/,
-  )
-  assert.match(app, /top:\s*calc\(var\(--safe-area-top\) \+ 32px\)/)
+  assert.doesNotMatch(app, /--safe-area-/)
+  assert.match(app, /height:\s*64px/)
+  assert.match(app, /padding:\s*0 20px 4px\s*!important/)
 })
 
 test('사이드 메뉴·카메라·하단 메뉴에는 Safe Area 확장을 적용하지 않는다', () => {

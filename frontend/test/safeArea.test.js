@@ -8,13 +8,13 @@ function source(path) {
   return readFileSync(new URL(path, frontendRoot), 'utf8')
 }
 
-test('iOS PWA는 배경을 상태바 뒤까지 확장한다', () => {
+test('iOS PWA의 일반 화면은 기존 상태바 영역을 유지한다', () => {
   const index = source('index.html')
 
   assert.match(index, /viewport-fit=cover/)
   assert.match(
     index,
-    /apple-mobile-web-app-status-bar-style[^>]+content="black-translucent"/,
+    /apple-mobile-web-app-status-bar-style[^>]+content="default"/,
   )
 })
 
