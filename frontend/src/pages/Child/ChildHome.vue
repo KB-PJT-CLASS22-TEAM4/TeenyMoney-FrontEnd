@@ -153,7 +153,6 @@
         <div class="schedule-head">
           <div class="schedule-head-left">
             <span class="schedule-title">다가오는 일정</span>
-            <span class="schedule-count">{{ upcomingSchedules.length }}</span>
           </div>
         </div>
 
@@ -194,11 +193,11 @@
       <section class="finance">
         <div class="finance-head" @click="goFinance" style="cursor: pointer;">
           <span class="finance-title">내 금융</span>
-          <span class="finance-all">전체보기 ›</span>
+          <span class="finance-all">전체보기</span>
         </div>
 
         <template v-if="finances.length > 0">
-          <div class="finance-scroll" ref="scrollRef" @scroll="onScroll">
+          <div class="finance-scroll">
             <FinanceCard
               v-for="f in finances"
               :key="f.id"
@@ -206,15 +205,6 @@
               style="cursor: pointer;"
               @click="goFinance"
             />
-          </div>
-
-          <div class="indicator" v-if="finances.length > 1">
-            <span
-              v-for="(f, i) in finances"
-              :key="f.id"
-              class="dot"
-              :class="{ active: i === activeCard }"
-            ></span>
           </div>
         </template>
 
@@ -286,17 +276,6 @@ const authStore  = useAuthStore()
 const allowStore = useAllowRequestStore()
 
 const teenyScoreMascot = new URL('@/assets/mascot/teeny-run.png', import.meta.url).href
-
-const activeCard = ref(0)
-const scrollRef  = ref(null)
-
-function onScroll() {
-  const el = scrollRef.value
-  if (!el || finances.value.length === 0) return
-  const maxScroll = el.scrollWidth - el.clientWidth
-  const ratio = maxScroll > 0 ? el.scrollLeft / maxScroll : 0
-  activeCard.value = Math.round(ratio * (finances.value.length - 1))
-}
 
 function goPayment()      { router.push({ name: 'child-transaction' }) }
 function goScore()        { router.push({ name: 'child-score' }) }
@@ -523,7 +502,7 @@ function mapToScheduleItem(p) {
     badgeTheme = 'red' // 🔴 대출: 빨간색
   } else if (isSaving) {
     title = isFreeSaving ? `${p.productName} 입금` : `${p.productName} 납입`
-    desc = `${amountStr} 넣을 예정이에요`
+    desc = isFreeSaving ? '이번 달 목표금액을 채워보세요' : `${amountStr} 넣을 예정이에요`
     typeLabel = isFreeSaving ? '자유적금' : '정액적금'
     badgeTheme = 'yellow' // 🟡 적금: 노란색
   } else if (isDeposit) {
@@ -733,6 +712,8 @@ function onTabSelect(key) {
   flex: 1;
   overflow-y: auto;
   scrollbar-width: none;
+  padding-bottom: 90px;
+  box-sizing: border-box;
 }
 .scroll-area::-webkit-scrollbar { display: none; }
 
@@ -933,40 +914,40 @@ function onTabSelect(key) {
 
 .balance-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 14px;
   background: #ffffff;
-  border: 1px solid #eaedf1;
   border-radius: 20px;
   padding: 16px 18px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
 }
 
 .balance-label {
+  margin: 0 0 6px;
   font-size: 11.5px;
   font-weight: 700;
-  color: #57575e;
+  color: #71717a;
 }
 
 .balance-value-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 2px;
+  gap: 10px;
 }
 
 .balance-logo {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .balance-amount {
   margin: 0;
-  font-size: 21px;
+  font-size: 24px;
   font-weight: 900;
   color: #0f172a;
+  letter-spacing: -0.5px;
   white-space: nowrap;
 }
 
@@ -976,7 +957,8 @@ function onTabSelect(key) {
 }
 
 .btn-pill {
-  padding: 9px 15px;
+  flex: 1;
+  height: 40px;
   border-radius: 12px;
   border: none;
   font-size: 12.5px;
@@ -1217,15 +1199,6 @@ function onTabSelect(key) {
   color: #0f172a;
 }
 
-.schedule-count {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: #ffbc00;
-  background: #fff8e5;
-  padding: 1px 6px;
-  border-radius: 999px;
-}
-
 .schedule-box {
   background: #ffffff;
   border: 1px solid #eaedf1;
@@ -1373,19 +1346,15 @@ function onTabSelect(key) {
 
 /* 내 금융 */
 .finance {
-  margin: 12px 18px 0;
-  background: #ffffff;
-  border: 1px solid #eaedf1;
-  border-radius: 20px;
-  padding: 16px 0 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  padding: 20px 0 0;
 }
 
 .finance-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 20px;
+  margin-bottom: 10px;
 }
 
 .finance-title {
@@ -1402,17 +1371,20 @@ function onTabSelect(key) {
 
 .finance-scroll {
   display: flex;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 2px 18px 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  scroll-snap-type: x mandatory;
-  scroll-padding-left: 16px;
 }
 .finance-scroll::-webkit-scrollbar { display: none; }
 
 .finance-empty {
-  padding: 24px 16px 16px;
+  margin: 0 20px;
+  padding: 24px 16px;
+  background: #ffffff;
+  border: 1px solid #eaedf1;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -1431,26 +1403,6 @@ function onTabSelect(key) {
   font-size: 12px;
   font-weight: 700;
   color: #ffbc00;
-}
-
-.indicator {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  background: #e2e8f0;
-  border-radius: 3px;
-  transition: all 0.2s;
-}
-
-.dot.active {
-  width: 16px;
-  background: #0f172a;
 }
 
 /* 최근 이용내역 */

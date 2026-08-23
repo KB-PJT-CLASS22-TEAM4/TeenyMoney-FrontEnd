@@ -570,7 +570,13 @@ function goVerify(q, viewOnly = false) {
   })
 }
 
+// 머니 리포트의 습관 카드를 눌러 들어온 경우(from=report)는 브라우저 히스토리
+// 상태와 무관하게 무조건 리포트로 돌아가고, 그 외에는 기존처럼 브라우저 히스토리를 따라간다.
 function goBack() {
+  if (route.query.from === 'report') {
+    router.push({ name: 'child-report' })
+    return
+  }
   router.back()
 }
 
@@ -647,7 +653,7 @@ function onTabSelect(key) {
   width: 100%;
   box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;  /* flex-start → stretch */
   border-bottom: 1.2px solid #f0f1f3;
   background: #ffffff;
   font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
@@ -689,7 +695,7 @@ function onTabSelect(key) {
   position: absolute;
   left: 12px;
   right: 12px;
-  bottom: 1.7px;
+  bottom: 0;        /* 1.7px → 0 */
   height: 2.5px;
   background: #ffbc00;
   border-radius: 999px;

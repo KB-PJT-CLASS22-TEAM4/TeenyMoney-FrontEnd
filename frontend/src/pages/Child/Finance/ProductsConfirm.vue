@@ -267,9 +267,59 @@ const showSuccessModal = ref(false);
 
 const goBack = () => { router.back(); };
 
-const openModal = () => {
-  if (!isAllAgreed.value) return;
-  showSuccessModal.value = true;
+// "가입 완료"를 눌렀을 때 실제로 가입 신청 API를 호출한다.
+const handleSubmit = async () => {
+  if (!isAllAgreed.value || isSubmitting.value) return;
+
+  isSubmitting.value = true;
+  try {
+    if (isSavings) {
+      await createSavingEnrollment(authStore.accessToken, {
+        productId,
+        monthlyAmount: amount,
+        termMonths: period,
+        autoTransfer: isFreeSaving ? false : rawAutoTransfer,
+        paymentDay: isFreeSaving ? 1 : selectedPaymentDay,
+      })
+    } else if (isDeposit) {
+      const result = await createDepositEnrollment(authStore.accessToken, {
+        productId,
+        amount,
+        termMonths: period,
+      })
+
+      if (result?.enrollmentId) {
+        try {
+          localStorage.setItem(`teeny_deposit_amount_${result.enrollmentId}`, String(amount))
+        } catch (e) {
+          console.warn('예치금 로컬 저장 실패:', e)
+        }
+      }
+    } else if (isLoan) {
+      const result = await createLoanEnrollment(authStore.accessToken, {
+        productId,
+        principalAmount: amount,
+        termMonths: period,
+        autoTransfer: rawAutoTransfer,
+        paymentDay: selectedPaymentDay,
+      })
+
+      if (result?.enrollmentId) {
+        try {
+          localStorage.setItem(`teeny_loan_principal_${result.enrollmentId}`, String(amount))
+        } catch (e) {
+          console.warn('대출 원금 로컬 저장 실패:', e)
+        }
+      }
+    }
+
+    showSuccessModal.value = true;
+  } catch (e) {
+    console.error('금융상품 신청 실패:', e.message);
+    showErrorModal(e.message || '신청에 실패했어요. 다시 시도해 주세요.');
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 const closeModalAndNavigate = () => {

@@ -993,7 +993,7 @@ function goToApply(product) {
   flex: 1;
   overflow-y: auto;
   overflow-anchor: none;
-  padding: 16px 20px 20px;
+  padding: 16px 20px 90px;
   background: #f8fafc;
 }
 .scroll::-webkit-scrollbar {

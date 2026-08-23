@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '@/pages/Login.vue';
 import Signup from '@/pages/Signup.vue';
+import Onboarding from '@/pages/Onboarding.vue';
 // 자녀 연동 코드 입력 페이지
 import LinkCodeInput from '@/pages/Child/LinkCodeInput.vue';
 // 자녀 연동 코드 보호자 확인 페이지
@@ -51,6 +52,10 @@ import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 // 자녀 금융상품 중도해지
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
+// 자녀 중도해지 완료 상품 상세
+import ProductTerminatedDetail from '@/pages/Child/Finance/ProductTerminatedDetail.vue';
+// 자녀 대출 상환 완료 상품 상세
+import LoanRepaymentDetail from '@/pages/Child/Finance/LoanRepaymentDetail.vue';
 // QR스캔
 import QrScan from '@/pages/Child/Payment/QRscan.vue';
 // 자녀 티니점수
@@ -123,6 +128,11 @@ const router = createRouter({
       name: 'signup',
       component: Signup,
       meta: { public: true },
+    },
+    {
+      path: '/onboarding',
+      name: 'onboarding',
+      component: Onboarding,
     },
     // 자녀 연동 코드 입력 페이지
     {
@@ -380,6 +390,18 @@ const router = createRouter({
     path: '/child/finance/cancel',
     name: 'product-cancel',
     component: ProductsCancel,
+  },
+  // 자녀 중도해지 완료 상품 상세
+  {
+    path: '/child/finance/terminated-detail',
+    name: 'child-finance-terminated-detail',
+    component: ProductTerminatedDetail,
+  },
+  // 자녀 대출 상환 완료 상품 상세
+  {
+    path: '/child/finance/repayment-detail',
+    name: 'child-finance-repayment-detail',
+    component: LoanRepaymentDetail,
   },
   // 자녀 티니점수
   {

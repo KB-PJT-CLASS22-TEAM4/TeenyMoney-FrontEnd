@@ -5,7 +5,7 @@ import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getChildMoneyReport, getMoneyAnalysis } from '@/api/report'
 import { getMyEnrolledFinancialProducts } from '@/api/finance'
-import { getKstParts, parseServerDate, startOfKstDay, todayKstDate } from '@/utils/datetime'
+import { getKstParts, parseServerDate, todayKstDate } from '@/utils/datetime'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -18,6 +18,20 @@ function goBack() {
 
 function goToScore() {
   router.push({ name: 'child-score' })
+}
+
+// 습관 카드를 눌러 다른 화면으로 이동할 때 from=report를 함께 넘긴다.
+// 목적지 화면은 이 값이 있으면 뒤로가기를 눌렀을 때 히스토리 상태와 무관하게
+// 무조건 이 리포트 화면으로 돌아오도록 처리한다(뒤로가기가 화면 두 개를
+// 왕복하는 것처럼 보이는 문제를 히스토리에 의존하지 않고 확실하게 막기 위함).
+function goToInsightRoute(h) {
+  const target = h.route || h.deepLink
+  if (!target) return
+  if (typeof target === 'string') {
+    router.push({ path: target, query: { from: 'report' } })
+    return
+  }
+  router.push({ ...target, query: { ...(target.query || {}), from: 'report' } })
 }
 
 const isLoading = ref(true)
@@ -37,10 +51,6 @@ const spend = ref({
   topCategory: '',
 })
 const score = ref({ change: 0, up: 0, down: 0, reasons: [] })
-
-// 금융상품 진행 상태 / 다가오는 금융 일정
-const products = ref([])
-const schedules = ref([])
 
 function won(n) {
   return (n ?? 0).toLocaleString('ko-KR') + '원'
@@ -105,13 +115,15 @@ const INSIGHT_META = {
   SAVING_PAYMENT: { dot: '#4caf82', title: '저축' },
   LOAN_REPAYMENT: { dot: '#e5484d', title: '대출 상환' },
   SAVING_MATURED: { dot: '#3aa7a0', title: '적금·예금 만기' },
+  DEPOSIT_MATURED: { dot: '#3aa7a0', title: '적금·예금 만기' },
 }
 
 const INSIGHT_ROUTE = {
   SPENDING_TOP_CATEGORY: { name: 'child-transaction' },
   PERMISSION_STATUS_SUMMARY: { name: 'child-todayallow-request' },
-  QUEST_COMPLETED: { name: 'child-quest-list' },
+  QUEST_COMPLETED: { name: 'child-quest-list', query: { tab: 'ongoing' } },
   SAVING_PAYMENT: { name: 'child-finance-myproducts' },
+  DEPOSIT_MATURED: { name: 'child-finance-myproducts' },
   LOAN_REPAYMENT: { name: 'child-finance-myproducts' },
   SAVING_MATURED: { name: 'child-finance-myproducts' },
 }
@@ -167,11 +179,33 @@ function mapInsight(insight, data) {
   }
 
   if (insight.insightCode === 'QUEST_COMPLETED') {
+    const completedCount = m.completedCount ?? 0
+
+    // 완료한 퀘스트가 없으면 "0개 완료 / 0원"이라는 텅 빈 문구 대신
+    // 진행 중/실패 등 실제로 있었던 활동을 보여준다.
+    if (completedCount === 0) {
+      const inProgress = m.inProgressCount ?? 0
+      const failed = m.failedCount ?? 0
+      const expired = m.expiredCount ?? 0
+      const declined = m.declinedCount ?? 0
+      const parts = []
+      if (inProgress) parts.push(`진행 중인 퀘스트가 ${inProgress}개`)
+      if (failed) parts.push(`실패한 퀘스트가 ${failed}개`)
+      if (expired) parts.push(`기간이 만료된 퀘스트가 ${expired}개`)
+      if (declined) parts.push(`거절한 퀘스트가 ${declined}개`)
+
+      const desc = parts.length
+        ? ['이번 달엔 아직 완료한 퀘스트가 없어요.', `${parts.join(', ')} 있어요.`]
+        : ['이번 달엔 아직 시작한 퀘스트가 없어요.']
+
+      return { ...base, desc }
+    }
+
     const questScoreReason = (teenyScoreData?.topReasons || []).find(
       (r) => r.eventCode === 'QUEST_COMPLETED'
     )
 
-    const desc = [`퀘스트 ${m.completedCount ?? 0}개를 인증 완료했어요.`]
+    const desc = [`퀘스트 ${completedCount}개를 인증 완료했어요.`]
     if (questScoreReason) {
       desc.push(`티니점수 ${questScoreReason.amount >= 0 ? '+' : ''}${questScoreReason.amount}점을 올렸어요.`)
     }
@@ -229,16 +263,49 @@ function mapInsight(insight, data) {
     return { ...base, desc }
   }
 
-  if (insight.insightCode === 'SAVING_MATURED') {
-    const amount = m.maturedAmount ?? m.currentAmount ?? m.amount
-    const productName = m.productName ? `${m.productName} ` : ''
-    const desc = amount != null
-      ? [noWrap(`가입했던 ${productName}적금·예금이 만기돼서 ${won(amount)}을 받았어요.`)]
-      : ['가입했던 적금·예금이 만기됐어요.']
-    return { ...base, desc }
+  return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
+}
+
+const MATURED_INSIGHT_CODES = ['SAVING_MATURED', 'DEPOSIT_MATURED']
+
+// 적금·예금 만기/중도해지 한 건에 대한 설명 한 줄
+function mapMaturedLine(metrics) {
+  const m = metrics || {}
+  const productName = m.productName ? `${m.productName} ` : ''
+  // metrics.status가 TERMINATED면 만기가 아니라 중도해지된 것이므로 문구를 구분한다.
+  const verb = m.status === 'TERMINATED' ? '중도해지됐어요' : '만기됐어요'
+  const amount = m.maturedAmount ?? m.currentAmount ?? m.amount
+  return amount > 0
+    ? `${productName}적금·예금이 ${verb}. ${won(amount)}을 받았어요.`
+    : `${productName}적금·예금이 ${verb}.`
+}
+
+// 이번 달 종료된 적금·예금이 여러 건이면 하나의 습관 카드로 합쳐서 보여준다.
+function mapMaturedGroup(insightList) {
+  if (!insightList.length) return null
+  const meta = INSIGHT_META.SAVING_MATURED
+  const base = {
+    dot: meta.dot,
+    title: meta.title,
+    route: INSIGHT_ROUTE.SAVING_MATURED,
   }
 
-  return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
+  if (insightList.length === 1) {
+    return {
+      ...base,
+      deepLink: insightList[0].deepLink,
+      desc: [noWrap(`가입했던 ${mapMaturedLine(insightList[0].metrics)}`)],
+    }
+  }
+
+  return {
+    ...base,
+    deepLink: null,
+    desc: [
+      `이번 달에 적금·예금 ${insightList.length}건이 종료됐어요.`,
+      ...insightList.map((i) => noWrap(`· ${mapMaturedLine(i.metrics)}`)),
+    ],
+  }
 }
 
 function mapWeeklyTrend(weeklyTrend) {
@@ -331,111 +398,6 @@ function normalizeProductType(rawType) {
   return t
 }
 
-const PRODUCT_TYPE_LABEL = { DEPOSIT: '예금', SAVING: '적금', LOAN: '대출' }
-
-function mapProduct(p) {
-  const productType = normalizeProductType(p.productType)
-  const isDeposit = productType === 'DEPOSIT'
-  const isSaving = productType === 'SAVING'
-  const isLoan = productType === 'LOAN'
-  const type = PRODUCT_TYPE_LABEL[productType] || p.productType
-
-  const tag = p.financialCompanyName || type
-  const tagClass = 'institution'
-
-  const endRaw = p.maturityDate || addMonthsToDate(p.startDate, p.termMonths)
-  const endLabel = formatDateDot(endRaw)
-  const period = `${formatDateDot(p.startDate)} ~ ${endLabel}`
-
-  let progress = null
-  let desc = ''
-
-  if (isDeposit) {
-    desc = `지금 ${won(p.currentAmount)}이 들어 있고 ${endLabel} 만기가 돼요.`
-  } else if (isSaving) {
-    const total = p.totalPaymentCount ?? 0
-    const done = p.paidCount ?? 0
-    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'yellow' }
-    const next = calcNextDueDate(p.startDate, done)
-    desc = next ? `다음 납입일은 ${formatDateDot(next)}이에요.` : '다음 납입 일정을 확인해보세요.'
-  } else if (isLoan) {
-    const total = p.totalPaymentCount ?? 0
-    const done = p.paidCount ?? 0
-    progress = { done, total, percent: total ? Math.round((done / total) * 100) : 0, colorClass: 'blue' }
-    desc = `앞으로 갚을 돈은 ${won(p.currentAmount ?? 0)}이에요.`
-  }
-
-  return {
-    name: p.productName,
-    tag,
-    tagClass,
-    type,
-    status: isLoan ? '상환 진행 중' : '유지 중',
-    statusClass: isLoan ? 'blue' : '',
-    period,
-    progress,
-    desc,
-  }
-}
-
-const SCHEDULE_THEME = { LOAN: 'red', SAVING: 'yellow', DEPOSIT: 'green' }
-
-function mapSchedule(p) {
-  const productType = normalizeProductType(p.productType)
-  const isDeposit = productType === 'DEPOSIT'
-  const isSaving = productType === 'SAVING'
-  const isLoan = productType === 'LOAN'
-  const isFreeSaving = isSaving && p.savingsType === 'FREE'
-
-  let targetDate = null
-  if (isDeposit) {
-    const parts = parseDateParts(p.maturityDate)
-    targetDate = parts ? new Date(parts.y, parts.m - 1, parts.d) : null
-  } else {
-    targetDate = calcNextDueDate(p.startDate, p.paidCount)
-  }
-  if (!targetDate) return null
-
-  const todayOnly = startOfKstDay(new Date())
-  const target = startOfKstDay(targetDate)
-  const diffDays = Math.round((target.getTime() - todayOnly.getTime()) / 86400000)
-  if (diffDays < 0) return null
-
-  const dday = diffDays === 0 ? 'D-Day' : `D-${diffDays}`
-  const { month, day } = getKstParts(targetDate)
-  const date = `${month}/${day}`
-  const amount = p.monthlyAmount || p.currentAmount || 0
-
-  let title = ''
-  let desc = ''
-  let tagLabel = ''
-
-  if (isLoan) {
-    title = `${p.productName} 상환`
-    desc = `${won(amount)} 낼 예정이에요`
-    tagLabel = '대출'
-  } else if (isSaving) {
-    title = isFreeSaving ? `${p.productName} 입금` : `${p.productName} 납입`
-    desc = `${won(amount)} 넣을 예정이에요`
-    tagLabel = isFreeSaving ? '자유적금' : '정액적금'
-  } else if (isDeposit) {
-    title = `${p.productName} 만기`
-    desc = `${won(p.currentAmount)} 받을 예정이에요`
-    tagLabel = '예금'
-  }
-
-  return {
-    dday,
-    date,
-    title,
-    desc,
-    type: productType.toLowerCase(),
-    theme: SCHEDULE_THEME[productType] || 'yellow',
-    tagLabel,
-    diffDays,
-  }
-}
-
 const selectedMonth = ref('')
 const showMonthPicker = ref(false)
 
@@ -514,7 +476,18 @@ async function loadReport(month) {
     selectedMonth.value = mappedPeriod.yearMonth
 
     summary.value = mapSummary(data.summary)
-    habits.value = (data.insights || []).map((insight) => mapInsight(insight, data)).filter(Boolean)
+    // 적금·예금 만기/중도해지 인사이트가 여러 건이면 한 카드로 합쳐서 보여준다.
+    const rawInsights = data.insights || []
+    const maturedInsights = rawInsights.filter((i) => MATURED_INSIGHT_CODES.includes(i.insightCode))
+    const firstMaturedIndex = rawInsights.findIndex((i) => MATURED_INSIGHT_CODES.includes(i.insightCode))
+    habits.value = rawInsights
+      .map((insight, idx) => {
+        if (MATURED_INSIGHT_CODES.includes(insight.insightCode)) {
+          return idx === firstMaturedIndex ? mapMaturedGroup(maturedInsights) : null
+        }
+        return mapInsight(insight, data)
+      })
+      .filter(Boolean)
     spend.value = mapSpending(data.spending)
     score.value = mapTeenyScore(data.teenyScore)
   } catch (e) {
@@ -585,22 +558,6 @@ function selectMonth(yearMonth) {
   loadReport(yearMonth)
 }
 
-// monthOptions[0]이 최신 달이라 인덱스가 커질수록 과거로 간다.
-const selectedMonthIndex = computed(() => monthOptions.value.indexOf(selectedMonth.value))
-const canGoPrevMonth = computed(() => {
-  const idx = selectedMonthIndex.value
-  return idx >= 0 && idx < monthOptions.value.length - 1
-})
-const canGoNextMonth = computed(() => selectedMonthIndex.value > 0)
-
-// delta: -1 = 이전(과거) 달, +1 = 다음(최신 쪽) 달
-function goAdjacentMonth(delta) {
-  const idx = selectedMonthIndex.value
-  if (idx < 0) return
-  const targetIdx = idx - delta
-  if (targetIdx < 0 || targetIdx >= monthOptions.value.length) return
-  selectMonth(monthOptions.value[targetIdx])
-}
 
 onMounted(async () => {
   await loadReport()
@@ -610,12 +567,6 @@ onMounted(async () => {
     const enrolled = Array.isArray(enrolledResult) ? enrolledResult : enrolledResult?.data ?? []
     const active = enrolled.filter((p) => p.status !== 'PENDING')
     activeProducts.value = active
-
-    products.value = active.map(mapProduct)
-    schedules.value = active
-      .map(mapSchedule)
-      .filter(Boolean)
-      .sort((a, b) => a.diffDays - b.diffDays)
   } catch (e) {
     console.error('금융상품 목록 조회 실패:', e)
   }
@@ -660,92 +611,36 @@ function toggleAllCategories() {
   showAllCategories.value = !showAllCategories.value
 }
 
-const SCHEDULE_PREVIEW_COUNT = 3
-const showAllSchedules = ref(false)
-const visibleSchedules = computed(() =>
-  showAllSchedules.value
-    ? schedules.value
-    : schedules.value.slice(0, SCHEDULE_PREVIEW_COUNT)
-)
-const hiddenScheduleCount = computed(() =>
-  Math.max(0, schedules.value.length - SCHEDULE_PREVIEW_COUNT)
-)
-function toggleAllSchedules() {
-  showAllSchedules.value = !showAllSchedules.value
-}
-
-// 금융상품 진행 상태 — 3개씩 페이지네이션
-const PRODUCT_PAGE_SIZE = 3
-const productPage = ref(1)
-const totalProductPages = computed(() =>
-  Math.max(1, Math.ceil(products.value.length / PRODUCT_PAGE_SIZE))
-)
-const visibleProducts = computed(() => {
-  const start = (productPage.value - 1) * PRODUCT_PAGE_SIZE
-  return products.value.slice(start, start + PRODUCT_PAGE_SIZE)
-})
-const productPageNumbers = computed(() =>
-  Array.from({ length: totalProductPages.value }, (_, i) => i + 1)
-)
-function goProductPage(delta) {
-  productPage.value = Math.min(
-    totalProductPages.value,
-    Math.max(1, productPage.value + delta)
-  )
-}
-function goToProductPage(page) {
-  productPage.value = page
-}
 </script>
 
 <template>
   <div class="report-screen">
     <ChildPageNav title="머니 리포트" @back="goBack" />
 
-    <div class="scroll">
-
-      <!-- 월 이동 네비게이션 — 데이터가 없는 달을 선택해 에러가 떠도 여기서 다른 달로 빠져나갈 수 있어야 한다 -->
-      <div class="month-nav">
-        <button
-          type="button"
-          class="month-nav-arrow"
-          :disabled="!canGoPrevMonth"
-          @click="goAdjacentMonth(-1)"
-          aria-label="이전 달"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+    <!-- 월 이동 네비게이션 — 상단 네비와 이어지도록 흰 배경으로 화면 좌우 끝까지 꽉 차게 -->
+    <div class="month-nav">
+      <div class="month-picker">
+        <button type="button" class="month-nav-label" @click="toggleMonthPicker">
+          {{ formatMonthLabelFull(selectedMonth) }}
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-
-        <div class="month-picker">
-          <button type="button" class="month-nav-label" @click="toggleMonthPicker">
-            {{ formatMonthLabelFull(selectedMonth) }}
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
-                 stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        <div class="month-dropdown" v-if="showMonthPicker">
+          <button
+            v-for="ym in monthOptions"
+            :key="ym"
+            type="button"
+            class="month-option"
+            :class="{ active: ym === selectedMonth }"
+            @click="selectMonth(ym)"
+          >
+            {{ formatMonthLabelFull(ym) }}
           </button>
-          <div class="month-dropdown" v-if="showMonthPicker">
-            <button
-              v-for="ym in monthOptions"
-              :key="ym"
-              type="button"
-              class="month-option"
-              :class="{ active: ym === selectedMonth }"
-              @click="selectMonth(ym)"
-            >
-              {{ formatMonthLabelFull(ym) }}
-            </button>
-          </div>
         </div>
-
-        <button
-          type="button"
-          class="month-nav-arrow"
-          :disabled="!canGoNextMonth"
-          @click="goAdjacentMonth(1)"
-          aria-label="다음 달"
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
       </div>
+    </div>
+
+    <div class="scroll">
 
       <!-- 로딩/에러 상태 -->
       <div v-if="isLoading" class="state-msg">리포트를 불러오는 중이에요...</div>
@@ -835,49 +730,50 @@ function goToProductPage(page) {
       <!-- 이번 달 금융 습관 -->
       <section v-if="habits.length > 0">
         <h2 class="sec-heading">이번 달 금융 습관</h2>
-        <div class="habit-card" v-for="h in habits" :key="h.title">
-          <div class="habit-head">
-            <div class="habit-title">
-              <span class="habit-dot" :style="{ background: h.dot }"></span>
-              {{ h.type === 'savingRepayment' ? '저축·상환' : h.title }}
-            </div>
-          </div>
-
-          <!-- 저축·상환: 가입 상품 데이터로 회차 체크 배지 표시 -->
-          <template v-if="h.type === 'savingRepayment' && savingRepaymentDetail">
-            <div class="habit-desc">
-              <span v-for="(line, i) in savingRepaymentDetail.desc" :key="i">{{ line }}<br v-if="i < savingRepaymentDetail.desc.length - 1" /></span>
-            </div>
-            <div class="round-row" v-if="savingRepaymentDetail.rounds.length">
-              <div
-                v-for="r in savingRepaymentDetail.rounds"
-                :key="r.n"
-                class="round-badge"
-                :class="{ done: r.done }"
-              >
-                <span class="round-circle">
-                  <svg v-if="r.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <div class="insight-card">
+        <div class="insight-list">
+          <div class="habit-row" v-for="h in habits" :key="h.title">
+            <button
+              type="button"
+              class="insight-row"
+              @click="goToInsightRoute(h)"
+            >
+              <div>
+                <span class="insight-badge" :style="{ background: h.dot + '22', color: h.dot }">
+                  {{ h.type === 'savingRepayment' ? '저축·상환' : h.title }}
                 </span>
-                <span class="round-label">{{ r.label }}</span>
+
+                <!-- 저축·상환: 가입 상품 데이터로 회차 체크 배지 표시 -->
+                <template v-if="h.type === 'savingRepayment' && savingRepaymentDetail">
+                  <span v-for="(line, i) in savingRepaymentDetail.desc" :key="i">{{ line }}</span>
+                </template>
+
+                <!-- 일반 인사이트 (소비 / 오늘만 허용 / 퀘스트, 또는 저축 폴백 텍스트) -->
+                <template v-else>
+                  <span v-for="(line, i) in h.desc" :key="i">{{ line }}</span>
+                </template>
               </div>
-            </div>
-            <div v-if="savingRepaymentDetail.summaryLine" class="round-summary">{{ savingRepaymentDetail.summaryLine }}</div>
-          </template>
+              <span class="chev" v-if="h.route || h.deepLink">›</span>
+            </button>
 
-          <!-- 일반 인사이트 카드 (소비 / 오늘만 허용 / 퀘스트, 또는 저축 폴백 텍스트) -->
-          <div v-else class="habit-desc">
-            <span v-for="(line, i) in h.desc" :key="i">{{ line }}<br v-if="i < h.desc.length - 1" /></span>
+            <template v-if="h.type === 'savingRepayment' && savingRepaymentDetail">
+              <div class="round-row" v-if="savingRepaymentDetail.rounds.length">
+                <div
+                  v-for="r in savingRepaymentDetail.rounds"
+                  :key="r.n"
+                  class="round-badge"
+                  :class="{ done: r.done }"
+                >
+                  <span class="round-circle">
+                    <svg v-if="r.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </span>
+                  <span class="round-label">{{ r.label }}</span>
+                </div>
+              </div>
+              <div v-if="savingRepaymentDetail.summaryLine" class="round-summary">{{ savingRepaymentDetail.summaryLine }}</div>
+            </template>
           </div>
-
-          <button
-            v-if="h.route || h.deepLink"
-            type="button"
-            class="habit-link"
-            @click="router.push(h.route || h.deepLink)"
-          >
-            자세히 보기
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-          </button>
+        </div>
         </div>
       </section>
 
@@ -949,68 +845,9 @@ function goToProductPage(page) {
         </div>
       </section>
 
-      <!-- 금융상품 진행 상태 -->
-      <section>
-        <h2 class="sec-heading">금융상품 진행 상태</h2>
-        <div class="product-card" v-for="p in visibleProducts" :key="p.name">
-          <div class="product-head">
-            <span class="product-name">{{ p.name }}</span>
-            <span class="tag" :class="p.tagClass">{{ p.tag }}</span>
-          </div>
-          <div class="product-sub">{{ p.type }} · <span class="status" :class="p.statusClass">{{ p.status }}</span></div>
-          <div class="product-period">{{ p.period }}</div>
-          <template v-if="p.progress">
-            <div class="progress-track">
-              <div class="progress-fill" :class="p.progress.colorClass" :style="{ width: p.progress.percent + '%' }"></div>
-            </div>
-            <div class="progress-label">
-              {{ p.type === '대출' ? '상환' : '납입' }} {{ p.progress.done }}/{{ p.progress.total }}회 · {{ p.progress.percent }}%
-            </div>
-          </template>
-          <div class="product-desc">{{ p.desc }}</div>
-          <div class="product-link">
-            상품 자세히 보기
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-          </div>
-        </div>
-
-        <div class="pagination-row" v-if="totalProductPages > 1">
-          <button
-            type="button"
-            class="page-nav-btn"
-            :disabled="productPage === 1"
-            @click="goProductPage(-1)"
-            aria-label="이전 페이지"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-          </button>
-          <div class="page-number-row">
-            <button
-              v-for="n in productPageNumbers"
-              :key="n"
-              type="button"
-              class="page-number-btn"
-              :class="{ active: n === productPage }"
-              @click="goToProductPage(n)"
-            >
-              {{ n }}
-            </button>
-          </div>
-          <button
-            type="button"
-            class="page-nav-btn"
-            :disabled="productPage === totalProductPages"
-            @click="goProductPage(1)"
-            aria-label="다음 페이지"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-          </button>
-        </div>
-      </section>
-
       <!-- 이달의 티니점수 변화 -->
       <section>
-        <h2 class="sec-heading">이달의 티니점수 변화</h2>
+        <h2 class="sec-heading">티니점수 변화</h2>
         <div class="score-card">
           <div class="score-head">
             <div class="score-head-left">
@@ -1038,43 +875,6 @@ function goToProductPage(page) {
         </div>
       </section>
 
-      <!-- 다가오는 금융 일정 -->
-      <section>
-        <div class="sec-head-row">
-          <h2 class="sec-heading">다가오는 금융 일정</h2>
-          <span class="sec-count">{{ schedules.length }}</span>
-        </div>
-        <div class="schedule-box" v-if="schedules.length > 0">
-          <div
-            class="schedule-row"
-            :class="{ 'border-top': i > 0 }"
-            v-for="(s, i) in visibleSchedules"
-            :key="s.title"
-          >
-            <div class="schedule-date-tile" :class="`tile--${s.theme}`">
-              <span class="tile-dday">{{ s.dday }}</span>
-              <span class="tile-date">{{ s.date }}</span>
-            </div>
-            <div class="schedule-detail">
-              <div class="schedule-detail-top">
-                <span class="schedule-name">{{ s.title }}</span>
-                <span class="schedule-type-badge" :class="`badge-text--${s.theme}`">{{ s.tagLabel }}</span>
-              </div>
-              <p class="schedule-desc">{{ s.desc }}</p>
-            </div>
-          </div>
-        </div>
-        <div v-else class="schedule-empty">
-          <p class="empty-text">예정된 금융 일정이 없어요</p>
-        </div>
-        <button
-          class="btn-outline schedule-more-btn"
-          v-if="schedules.length > SCHEDULE_PREVIEW_COUNT"
-          @click="toggleAllSchedules"
-        >
-          {{ showAllSchedules ? '접기' : `전체 보기 (일정 ${hiddenScheduleCount}개 더보기)` }}
-        </button>
-      </section>
       </template>
 
     </div>
@@ -1120,7 +920,7 @@ function goToProductPage(page) {
 .scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 0 18px 40px;
+  padding: 4px 18px 40px;
 }
 .scroll::-webkit-scrollbar { width: 4px; }
 .scroll::-webkit-scrollbar-thumb { background: #e2e4e8; border-radius: 999px; }
@@ -1202,35 +1002,21 @@ function goToProductPage(page) {
 
 /* 월 이동 네비게이션 (은행 앱 스타일: ‹ 2026년 8월 › ) */
 .month-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  margin-bottom: 8px;
-}
-.month-nav-arrow {
-  width: 32px;
-  height: 32px;
   flex-shrink: 0;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--ink);
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease;
+  justify-content: flex-start;
+  padding: 4px 18px 4px;
 }
-.month-nav-arrow:hover:not(:disabled) { background: #f2f3f5; }
-.month-nav-arrow:disabled { color: var(--ink-faint); cursor: not-allowed; opacity: 0.4; }
 
 .month-picker { position: relative; }
 .month-nav-label {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
+  padding: 6px 12px 6px 0;
   border: none;
   background: transparent;
   border-radius: 999px;
@@ -1247,8 +1033,7 @@ function goToProductPage(page) {
 .month-dropdown {
   position: absolute;
   top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   z-index: 10;
   min-width: 160px;
   max-height: 260px;
@@ -1304,8 +1089,8 @@ function goToProductPage(page) {
 }
 
 .coach-bubble-mascot {
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   flex-shrink: 0;
   margin-top: 4px;
@@ -1316,7 +1101,7 @@ function goToProductPage(page) {
   position: relative;
   flex: 1;
   min-width: 0;
-  background: #fff6dc;
+  background: #e8f3ff;
   border-radius: 18px;
   border-top-left-radius: 4px;
   padding: 14px 16px 16px;
@@ -1325,13 +1110,13 @@ function goToProductPage(page) {
 .coach-bubble-box::before {
   content: '';
   position: absolute;
-  top: 14px;
-  left: -7px;
+  top: 16px;
+  left: -9px;
   width: 0;
   height: 0;
   border-style: solid;
-  border-width: 0 9px 8px 0;
-  border-color: transparent #fff6dc transparent transparent;
+  border-width: 0 10px 10px 0;
+  border-color: transparent #e8f3ff transparent transparent;
 }
 
 .coach-bubble-name {
@@ -1339,14 +1124,14 @@ function goToProductPage(page) {
   margin-bottom: 8px;
   font-size: 11.5px;
   font-weight: 800;
-  color: #b98a00;
+  color: #2f6fb0;
 }
 
 .coach-bubble-text {
   margin: 0 0 10px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #3d2b00;
+  color: #1f3a52;
   line-height: 1.7;
   word-break: keep-all;
   overflow-wrap: break-word;
@@ -1356,7 +1141,7 @@ function goToProductPage(page) {
   margin: 0 0 12px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #3d2b00;
+  color: #1f3a52;
   line-height: 1.75;
   word-break: keep-all;
   overflow-wrap: break-word;
@@ -1368,14 +1153,14 @@ function goToProductPage(page) {
 
 .coach-start-btn {
   border: none;
-  background: var(--yellow);
-  color: #392b00;
+  background: var(--blue);
+  color: #ffffff;
   border-radius: 999px;
   padding: 8px 16px;
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(255,188,0,0.35);
+  box-shadow: 0 2px 6px rgba(74,144,217,0.35);
 }
 
 .coach-bubble-loading {
@@ -1388,7 +1173,7 @@ function goToProductPage(page) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #c99a2e;
+  background: #4a90d9;
   animation: coach-bounce 1.2s infinite;
 }
 .loading-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -1402,12 +1187,12 @@ function goToProductPage(page) {
 .loading-text {
   font-size: 12px;
   font-weight: 600;
-  color: #8a6a1e;
+  color: #4a72a3;
 }
 
 .coach-retry-btn {
-  border: 1px solid #c99a2e;
-  color: #8a6a1e;
+  border: 1px solid #4a90d9;
+  color: #2f6fb0;
   background: none;
   border-radius: 10px;
   padding: 6px 14px;
@@ -1454,45 +1239,75 @@ section { margin-bottom: 30px; }
 .stat-value.blue { color: var(--blue-tag-fg); }
 .stat-desc { font-size: 11.5px; color: var(--ink-faint); line-height: 1.4; }
 
-/* 금융 습관 카드 */
-.habit-card {
+/* 금융 습관 카드 — 부모 자녀 리포트의 인사이트 카드와 동일한 리스트형 디자인 */
+.insight-card {
   background: var(--card);
   border: 1px solid var(--card-border);
   box-shadow: var(--card-shadow);
   border-radius: var(--radius-md);
   padding: 16px;
-  margin-bottom: 10px;
 }
-.habit-head {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-.habit-title { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 14.5px; color: var(--ink); }
-.habit-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.habit-desc { font-size: 13.5px; color: #3d3f44; line-height: 1.7; word-break: keep-all; overflow-wrap: break-word; }
 
-.habit-link {
+.insight-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.habit-row {
+  border-top: 1px solid var(--line);
+}
+.habit-row:first-child {
+  border-top: none;
+}
+
+.insight-row {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 2px;
-  margin-top: 10px;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--ink-sub);
-  background: none;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 0;
   border: none;
-  padding: 0;
+  background: transparent;
+  text-align: left;
   font-family: inherit;
   cursor: pointer;
 }
+
+.insight-row > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.insight-row > div > span:not(.insight-badge) {
+  font-size: 13px;
+  color: #3d3f44;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.insight-badge {
+  align-self: flex-start;
+  margin-bottom: 2px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.chev { flex-shrink: 0; color: #cbd5e1; font-size: 18px; }
 
 /* 저축·상환 회차 배지 */
 .round-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin: 0 0 12px;
 }
 
 .round-badge {
@@ -1534,6 +1349,7 @@ section { margin-bottom: 30px; }
 .round-summary {
   margin-top: 12px;
   padding-top: 10px;
+  padding-bottom: 12px;
   border-top: 1px solid var(--line);
   font-size: 12px;
   font-weight: 600;
@@ -1625,97 +1441,6 @@ section { margin-bottom: 30px; }
 }
 .btn-outline:hover { background: #f8f9fa; border-color: #e2e4e8; }
 
-/* 금융상품 카드 */
-.product-card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  box-shadow: var(--card-shadow);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin-bottom: 10px;
-}
-.product-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
-.product-name { font-weight: 800; font-size: 15px; color: var(--ink); letter-spacing: -0.01em; }
-.tag {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-.tag.family { background: var(--green-tag-bg); color: var(--green-tag-fg); }
-.tag.institution { background: var(--blue-tag-bg); color: var(--blue-tag-fg); }
-.product-sub {
-  font-size: 13px;
-  color: var(--ink-sub);
-  margin-bottom: 2px;
-  font-weight: 500;
-}
-.product-sub .status { color: var(--yellow); font-weight: 700; }
-.product-sub .status.blue { color: var(--blue-tag-fg); }
-.product-period { font-size: 11.5px; color: var(--ink-faint); margin-bottom: 12px; font-variant-numeric: tabular-nums; }
-
-.progress-track {
-  width: 100%;
-  height: 7px;
-  background: #f0f1f3;
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-.progress-fill { height: 100%; border-radius: 999px; }
-.progress-fill.yellow { background: var(--yellow); }
-.progress-fill.blue { background: var(--blue); }
-.progress-label { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
-.product-desc { font-size: 13px; color: var(--ink-sub); margin-bottom: 10px; }
-.product-link { display: flex; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 700; color: var(--ink-sub); }
-
-.pagination-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 6px;
-}
-.page-nav-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1px solid var(--card-border);
-  background: var(--card);
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.page-nav-btn:hover:not(:disabled) { background: #f8f9fa; }
-.page-nav-btn:disabled { color: var(--ink-faint); cursor: not-allowed; opacity: 0.5; }
-.page-number-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.page-number-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--ink-sub);
-  font-size: 12.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-.page-number-btn:hover { background: #f8f9fa; }
-.page-number-btn.active {
-  background: var(--yellow);
-  color: #392b00;
-  font-weight: 800;
-}
-
 /* 티니점수 카드 */
 .score-card {
   background: var(--card);
@@ -1778,81 +1503,4 @@ section { margin-bottom: 30px; }
   cursor: pointer;
 }
 
-/* 다가오는 금융 일정 */
-.sec-head-row { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
-.sec-head-row .sec-heading { margin: 0; }
-.sec-count {
-  font-size: 11.5px;
-  font-weight: 800;
-  color: var(--yellow);
-  background: #fff8e5;
-  padding: 1px 6px;
-  border-radius: 999px;
-}
-
-.schedule-box {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  box-shadow: var(--card-shadow);
-  border-radius: var(--radius-lg);
-  padding: 4px 16px;
-}
-.schedule-row {
-  display: flex;
-  align-items: center;
-  padding: 12px 0;
-}
-.schedule-row.border-top { border-top: 1px solid var(--line); }
-
-.schedule-date-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-sm);
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-.tile-dday { font-size: 11.5px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
-.tile-date { font-size: 9.5px; font-weight: 700; line-height: 1; margin-top: 3px; font-variant-numeric: tabular-nums; }
-
-.tile--green { background: #eef8ee; color: #2e8540; }
-.tile--yellow { background: #fff8e5; color: #d97706; }
-.tile--red { background: #fff0f0; color: #e5484d; }
-
-.schedule-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.schedule-detail-top { display: flex; align-items: center; gap: 6px; }
-.schedule-name {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--ink);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.schedule-type-badge {
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-.badge-text--green { background: #eef8ee; color: #2e8540; }
-.badge-text--yellow { background: #fff8e5; color: #d97706; }
-.badge-text--red { background: #fff0f0; color: #e5484d; }
-.schedule-desc { margin: 0; font-size: 11.5px; font-weight: 600; color: var(--ink-sub); line-height: 1.2; }
-
-.schedule-empty {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
-  padding: 20px 16px;
-  text-align: center;
-}
-.schedule-empty .empty-text { margin: 0; font-size: 12.5px; font-weight: 700; color: var(--ink-faint); }
-.schedule-more-btn { margin-top: 10px; }
 </style>

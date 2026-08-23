@@ -1,11 +1,18 @@
 <script setup>
 import { ref, computed } from 'vue'
-import logoUrl from '@/assets/logo.svg'
+import familyHeroUrl from '@/assets/login/login-family.png'
+import walletLogoUrl from '@/assets/login/teenymoney-wallet.png'
+import wordmarkUrl from '@/assets/login/teenymoney-wordmark.png'
 import { useRouter } from 'vue-router'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { login } from '@/api/auth'
 import { useAuthStore } from '@/stores/auth'
 import { getMyParent } from '@/api/families'
+import {
+  ONBOARDING_PENDING_MEMBER_KEY,
+  shouldShowChildOnboarding,
+  shouldShowOnboarding,
+} from '@/utils/onboarding'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -36,16 +43,24 @@ async function handleLogin() {
     if (res.success) {
       authStore.setUser(res.data)
 
+      if (shouldShowOnboarding(
+        localStorage.getItem(ONBOARDING_PENDING_MEMBER_KEY),
+        res.data.memberId,
+      )) {
+        router.push({ name: 'onboarding' })
+        return
+      }
+
       if (res.data.role === 'CHILD') {
         try {
           const parentRes = await getMyParent(res.data.accessToken)
-          if (parentRes.data === null) {
-            router.push({ name: 'child-link' })
+          if (shouldShowChildOnboarding(parentRes.data)) {
+            router.push({ name: 'onboarding' })
           } else {
             router.push({ name: 'child-home' })
           }
         } catch {
-          router.push({ name: 'child-link' })
+          router.push({ name: 'onboarding' })
         }
       } else {
         router.push({ name: 'parents-home' })
@@ -75,21 +90,24 @@ function handleGoogleLogin() {
 </script>
  
 <template>
-        
-  <div class="login-screen">
-    <div class="scroll">
-      <div class="pad">
-        <img class="logo" :src="logoUrl" alt="티니머니" />
+  <main class="login-screen">
+    <section class="hero" aria-label="티니머니 가족">
+      <img class="hero-image" :src="familyHeroUrl" alt="함께 웃고 있는 티니머니 가족" />
+      <div class="brand" aria-label="티니머니">
+        <img class="brand-symbol" :src="walletLogoUrl" alt="" />
+        <span class="brand-wordmark">
+          <img :src="wordmarkUrl" alt="" />
+        </span>
+      </div>
+    </section>
 
-        <div class="heading">
-          <h1 class="welcome">티니머니에 오신 걸 환영해요</h1>
-          <p class="subtitle">
-            용돈을 충전하고 목표를 모아요.<br />
-            로그인하고 자녀와 함께 시작해 보세요.
-          </p>
-        </div>
- 
-        <div class="form">
+    <section class="login-sheet">
+      <div class="heading">
+        <h1 class="welcome">오늘도 우리 가족과 함께</h1>
+        <p class="subtitle">로그인하고 티니머니를 시작해 보세요.</p>
+      </div>
+
+      <div class="form">
           <div class="field">
             <label class="eyebrow" for="email">이메일</label>
             <div class="input-wrap">
@@ -103,9 +121,8 @@ function handleGoogleLogin() {
             </div>
           </div>
  
-           <div class="field">
+          <div class="field">
             <label class="eyebrow" for="password">비밀번호</label>
-            <!-- 경고 시 input-wrap 에 has-error 클래스가 붙어 빨간 박스로 바뀜 -->
             <div class="input-wrap" :class="{ 'has-error': showPasswordHint }">
               <input
                 id="password"
@@ -132,7 +149,6 @@ function handleGoogleLogin() {
                 </svg>
               </button>
             </div>
-            <!-- 8자 미만일 때만 경고 문구 (아이콘 + 빨간 글씨) -->
             <p v-if="showPasswordHint" class="hint">
               <span class="hint-icon">!</span>
               비밀번호는 8자 이상 입력해주세요
@@ -142,11 +158,11 @@ function handleGoogleLogin() {
           <button class="cta" type="button" :disabled="!canSubmit" @click="handleLogin">로그인</button>
  
           <div class="links">
-            <span class="link">아이디 찾기</span>
+            <button class="link" type="button">아이디 찾기</button>
             <span class="sep">|</span>
-            <span class="link">비밀번호 찾기</span>
+            <button class="link" type="button">비밀번호 찾기</button>
             <span class="sep">|</span>
-            <span class="link" @click="router.push('/signup')">회원가입</span>
+            <button class="link signup-link" type="button" @click="router.push('/signup')">회원가입</button>
           </div>
  
           <div class="divider">
@@ -156,7 +172,6 @@ function handleGoogleLogin() {
           </div>
  
           <button class="google-btn" type="button" @click="handleGoogleLogin">
-            <!-- 구글 로고: 파일 없이 SVG 인라인 (색상까지 표준 로고 그대로) -->
             <svg class="google-logo" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -165,10 +180,9 @@ function handleGoogleLogin() {
             </svg>
             <span class="google-text">Google로 로그인 하기</span>
           </button>
-        </div>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <ConfirmModal
     :show="showLoginErrorModal"
@@ -179,81 +193,128 @@ function handleGoogleLogin() {
     @confirm="closeLoginErrorModal"
     @cancel="closeLoginErrorModal"
   />
-    </template>
+ </template>
  
 <style scoped>
  
-.login-screen {
+.login-screen,
+.login-screen * {
   box-sizing: border-box;
-  width: 360px;
-  height: 730px;
-  margin: 0 auto;
-  background: #ffffff;
-  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  overflow: hidden;
-}
- 
-.scroll {
-  width: 100%;
-  height: 100%;
-  overflow-y: auto;
 }
 
-.pad {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 20px 0;
-  gap: 20px;
+.login-screen {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: #fff8e8;
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  color: #191b1e;
+  overflow-x: hidden;
 }
- 
-.logo {
-  width: 70px;
-  height: 63px;
-  object-fit: contain;   /* 비율 유지 */
-  flex: none;
+
+.hero {
+  position: relative;
+  height: clamp(250px, 38dvh, 330px);
+  overflow: hidden;
+  background: #fff1bd;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 57%;
+  display: block;
+}
+
+.brand {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  left: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 42px;
+  padding: 6px 11px 6px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 8px 24px rgba(111, 83, 11, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.brand-symbol {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+
+.brand-wordmark {
+  position: relative;
+  display: block;
+  width: 88px;
+  height: 24px;
+  overflow: hidden;
+}
+
+.brand-wordmark img {
+  position: absolute;
+  top: -38px;
+  left: -6px;
+  width: 100px;
+  max-width: none;
+  height: 100px;
+  object-fit: contain;
+}
+
+.login-sheet {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100dvh - 250px);
+  margin-top: -24px;
+  padding: 30px 24px max(28px, env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -10px 28px rgba(104, 75, 0, 0.08);
 }
  
 .heading {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 9px;
-  width: 318px;
-  padding-top: 2px;
 }
  
 .welcome {
   margin: 0;
   font-weight: 800;
-  font-size: 20.8px;
-  line-height: 25px;
-  letter-spacing: -0.66px;
-  color: #191b1e;
+  font-size: 25px;
+  line-height: 1.28;
+  letter-spacing: -1px;
 }
  
 .subtitle {
   margin: 0;
   font-weight: 500;
-  font-size: 13.3px;
+  font-size: 13px;
   line-height: 1.5;
-  text-align: center;
   color: #8b9097;
 }
  
 .form {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 20px;
-  width: 318px;
-  padding: 24px 0 20px;
+  gap: 16px;
+  width: 100%;
+  padding-top: 24px;
 }
  
 .field {
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 8px;
 }
  
 .eyebrow {
@@ -268,15 +329,23 @@ function handleGoogleLogin() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #eceef1;
+  min-height: 52px;
+  padding: 0 15px;
+  border: 1px solid #e7e9ed;
+  border-radius: 14px;
+  background: #fafbfc;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-/* 경고 상태: 밑줄 대신 빨간 네모 박스로 감싸기 */
+.input-wrap:focus-within {
+  border-color: #ffbc00;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 188, 0, 0.13);
+}
+
 .input-wrap.has-error {
-  padding: 12px 14px;
   border: 1px solid #e5484d;
-  border-radius: 8px;
+  box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.08);
 }
  
 .input-wrap input {
@@ -288,7 +357,7 @@ function handleGoogleLogin() {
   padding: 0;
   font-family: inherit;
   font-weight: 500;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.5;
   color: #191b1e;
   background: transparent;
@@ -321,7 +390,6 @@ function handleGoogleLogin() {
   color: #e5484d;
 }
  
-/* 동그란 ! 아이콘 */
 .hint-icon {
   display: inline-flex;
   align-items: center;
@@ -339,14 +407,15 @@ function handleGoogleLogin() {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 50px;
+  height: 54px;
+  margin-top: 2px;
   padding: 16px;
   background: #ffbc00;
   border: none;
-  border-radius: 3px;
+  border-radius: 14px;
   font-family: inherit;
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: 15px;
   letter-spacing: -0.145px;
   color: #191b1e;
   cursor: pointer;
@@ -367,16 +436,25 @@ function handleGoogleLogin() {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 14px;
-  padding-top: 4px;
+  gap: 11px;
+  padding-top: 2px;
 }
  
 .link {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
   font-weight: 500;
-  font-size: 12.7px;
+  font-size: 12px;
   line-height: 15px;
   color: #8b9097;
   cursor: pointer;
+}
+
+.signup-link {
+  color: #b27e00;
+  font-weight: 700;
 }
  
 .sep {
@@ -389,7 +467,7 @@ function handleGoogleLogin() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-top: 14px;
+  padding-top: 4px;
 }
  
 .divider .line {
@@ -410,11 +488,11 @@ function handleGoogleLogin() {
   justify-content: center;
   align-items: center;
   gap: 8px;
-  height: 51px;
+  height: 52px;
   padding: 16px;
   background: #ffffff;
   border: 1px solid #e9ecef;
-  border-radius: 8px;
+  border-radius: 14px;
   cursor: pointer;
 }
  
@@ -433,6 +511,20 @@ function handleGoogleLogin() {
   font-size: 14.4px;
   line-height: 17px;
   color: #191b1e;
+}
+
+@media (max-height: 700px) {
+  .hero {
+    height: 235px;
+  }
+
+  .login-sheet {
+    padding-top: 24px;
+  }
+
+  .welcome {
+    font-size: 23px;
+  }
 }
 </style>
  
