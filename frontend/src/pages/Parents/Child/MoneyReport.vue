@@ -33,23 +33,80 @@ const CATEGORY_COLORS = [
 
 const INSIGHT_TITLES = {
   SAVING_PAYMENT_PROGRESS: '적금 납입이 잘 되고 있어요',
+  SAVING_PAYMENT: '저축 현황',
   LOAN_REPAYMENT_PROGRESS: '대출 상환 현황',
+  LOAN_REPAYMENT: '대출 상환 현황',
   SPENDING_UP: '이번 달 소비가 늘었어요',
   SPENDING_DOWN: '이번 달 소비가 줄었어요',
+  SPENDING_TOP_CATEGORY: '이번 달 소비',
   WATCH_SPENDING: '눈여겨볼 소비가 있어요',
   TEENY_SCORE_CHANGE: '티니점수가 변동했어요',
+  PERMISSION_STATUS_SUMMARY: '오늘만 허용 요청',
+  QUEST_COMPLETED: '퀘스트 진행 현황',
+  SAVING_MATURED: '적금·예금 만기',
+  DEPOSIT_MATURED: '적금·예금 만기',
+}
+
+const KNOWN_INSIGHT_CODES = new Set(Object.keys(INSIGHT_TITLES))
+
+function insightCodeOf(insight) {
+  return String(insight?.insightCode || '').toUpperCase()
+}
+
+function hasPositive(...values) {
+  return values.some((value) => Number(value) > 0)
 }
 
 function insightKind(insight) {
-  const code = String(insight.insightCode || '').toUpperCase()
+  const code = insightCodeOf(insight)
   const metrics = insight.metrics || {}
 
+  if (code.includes('MATURE')) return 'matured'
+  if (code.includes('LOAN') || code.includes('REPAY')) return 'loan'
   if (code.includes('SPEND') || 'topCategoryName' in metrics) return 'spending'
-  if (code.includes('REQUEST') || code.includes('ALLOW') || 'requestCount' in metrics) return 'request'
+  if (code.includes('REQUEST') || code.includes('ALLOW') || code.includes('PERMISSION') || 'requestCount' in metrics) return 'request'
   if (code.includes('QUEST') || code.includes('MISSION') || 'rewardAmount' in metrics) return 'quest'
   if (code.includes('SAVING') || code.includes('DEPOSIT') || 'savingAmount' in metrics) return 'saving'
   if (code.includes('SCORE')) return 'score'
   return 'generic'
+}
+
+function isMeaningfulInsight(insight) {
+  const code = insightCodeOf(insight)
+  if (!KNOWN_INSIGHT_CODES.has(code)) return false
+
+  const metrics = insight.metrics || {}
+
+  if (code.includes('SPEND')) {
+    return hasPositive(metrics.totalAmount, metrics.paymentCount, metrics.amount, metrics.topCategoryAmount)
+  }
+  if (code.includes('PERMISSION') || code.includes('REQUEST') || code.includes('ALLOW')) {
+    return hasPositive(metrics.requestCount, metrics.approvedCount, metrics.rejectedCount, metrics.pendingCount, metrics.expiredCount)
+  }
+  if (code.includes('QUEST')) {
+    return hasPositive(metrics.completedCount, metrics.inProgressCount, metrics.failedCount, metrics.rewardAmount)
+  }
+  if (code === 'SAVING_MATURED' || code === 'DEPOSIT_MATURED') {
+    return Boolean(metrics.productName) || hasPositive(metrics.maturedAmount, metrics.currentAmount, metrics.amount)
+  }
+  if (code.includes('SAVING') || code.includes('DEPOSIT')) {
+    return hasPositive(
+      metrics.savingAmount,
+      metrics.amount,
+      metrics.savingProductCount,
+      metrics.savingPaymentCount,
+      metrics.depositAmount,
+      metrics.paidCount,
+      metrics.progressRate
+    )
+  }
+  if (code.includes('LOAN') || code.includes('REPAY')) {
+    return Boolean(metrics.productName) || hasPositive(metrics.repaidAmount, metrics.amount, metrics.paidCount)
+  }
+  if (code.includes('SCORE')) {
+    return metrics.netChange != null && Number(metrics.netChange) !== 0
+  }
+  return false
 }
 
 function won(n) {
@@ -106,10 +163,13 @@ const spending = computed(() => report.value?.spending ?? null)
 const watchSpending = computed(() => report.value?.watchSpending ?? null)
 const insights = computed(() => report.value?.insights ?? [])
 const insightCards = computed(() =>
-  insights.value.map((insight) => ({
-    insight,
-    ...formatInsight(insight),
-  }))
+  insights.value
+    .filter(isMeaningfulInsight)
+    .map((insight) => {
+      const formatted = formatInsight(insight)
+      return formatted ? { insight, ...formatted } : null
+    })
+    .filter(Boolean)
 )
 const teenyScore = computed(() => report.value?.teenyScore ?? null)
 
@@ -216,14 +276,39 @@ const summaryCards = computed(() => {
 function formatInsight(insight) {
   const metrics = insight.metrics || {}
   const kind = insightKind(insight)
-  const mappedTitle = INSIGHT_TITLES[insight.insightCode]
+  const code = insightCodeOf(insight)
+  const mappedTitle = INSIGHT_TITLES[code]
 
-  if (insight.insightCode === 'SAVING_PAYMENT_PROGRESS') {
+  if (code === 'SAVING_PAYMENT_PROGRESS') {
     return {
       kind: 'saving',
       badge: '저축',
       title: mappedTitle,
       desc: `${metrics.paidCount ?? 0}/${metrics.totalCount ?? 0}회 납입 · 진행률 ${metrics.progressRate ?? 0}%`,
+    }
+  }
+
+  if (kind === 'matured') {
+    const verb = metrics.status === 'TERMINATED' ? '중도해지됐어요' : '만기됐어요'
+    const amount = metrics.maturedAmount ?? metrics.currentAmount ?? metrics.amount
+    return {
+      kind,
+      badge: '만기',
+      title: metrics.productName ? `${metrics.productName} ${verb}` : mappedTitle,
+      desc: amount > 0 ? `${won(amount)}을 받았어요` : `적금·예금이 ${verb}`,
+    }
+  }
+
+  if (kind === 'loan') {
+    const amount = metrics.repaidAmount ?? metrics.amount
+    return {
+      kind,
+      badge: '대출',
+      title: metrics.productName ? `${metrics.productName} 상환` : mappedTitle,
+      desc: amount != null ? `상환 ${won(amount)}` : '이번 달 대출 상환이 있었어요',
+      extra: metrics.paidCount != null
+        ? `${metrics.paidCount}/${metrics.totalCount ?? metrics.paidCount}회 상환`
+        : '',
     }
   }
 
@@ -238,7 +323,7 @@ function formatInsight(insight) {
       badge: '소비',
       title: metrics.topCategoryName
         ? `${metrics.topCategoryName}에 가장 많이 썼어요`
-        : (mappedTitle || '이번 달 소비'),
+        : mappedTitle,
       desc: `총 ${won(metrics.totalAmount)} · ${metrics.paymentCount ?? 0}회 결제`,
       extra: metrics.topCategoryName
         ? `${metrics.topCategoryName} ${won(metrics.topCategoryAmount)} (${metrics.topCategoryRatio ?? 0}%)`
@@ -250,7 +335,7 @@ function formatInsight(insight) {
     return {
       kind,
       badge: '요청',
-      title: mappedTitle || '오늘만 허용 요청',
+      title: mappedTitle,
       desc: `요청 ${metrics.requestCount ?? 0}건 · 승인 ${metrics.approvedCount ?? 0}건 · 거절 ${metrics.rejectedCount ?? 0}건`,
       extra: (metrics.pendingCount || metrics.expiredCount)
         ? `대기 ${metrics.pendingCount ?? 0}건 · 만료 ${metrics.expiredCount ?? 0}건`
@@ -262,7 +347,7 @@ function formatInsight(insight) {
     return {
       kind,
       badge: '저축',
-      title: mappedTitle || '저축 현황',
+      title: mappedTitle,
       desc: `적금 ${won(metrics.savingAmount ?? metrics.amount)} · 상품 ${metrics.savingProductCount ?? 0}개`,
       extra: metrics.savingPaymentCount != null
         ? `납입 ${metrics.savingPaymentCount}회`
@@ -274,18 +359,23 @@ function formatInsight(insight) {
     return {
       kind,
       badge: '퀘스트',
-      title: mappedTitle || '퀘스트 진행 현황',
+      title: mappedTitle,
       desc: `완료 ${metrics.completedCount ?? 0}건 · 보상 ${won(metrics.rewardAmount)}`,
       extra: `진행 중 ${metrics.inProgressCount ?? 0}건 · 실패 ${metrics.failedCount ?? 0}건`,
     }
   }
 
-  return {
-    kind,
-    badge: '안내',
-    title: mappedTitle || '이번 달 인사이트',
-    desc: '눌러서 자세한 내용을 확인해 보세요',
+  if (kind === 'score') {
+    const delta = Number(metrics.netChange ?? metrics.amount ?? 0)
+    return {
+      kind,
+      badge: '점수',
+      title: mappedTitle,
+      desc: `${delta > 0 ? '+' : ''}${delta}점`,
+    }
   }
+
+  return null
 }
 
 function goInsight(insight) {
@@ -1206,6 +1296,8 @@ watch(childId, (id, prev) => {
 .badge-request  { background: #eff6ff; color: #2563eb; }
 .badge-saving   { background: #eef8ee; color: #2e8540; }
 .badge-quest    { background: #f5f3ff; color: #7c3aed; }
+.badge-loan     { background: #fff0f0; color: #e5484d; }
+.badge-matured  { background: #e6f7f6; color: #0f766e; }
 .badge-score,
 .badge-generic  { background: #f1f5f9; color: #475569; }
 
