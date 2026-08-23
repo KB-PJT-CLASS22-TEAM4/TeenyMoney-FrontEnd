@@ -1,15 +1,6 @@
 <template>
   <div class="product-screen">
-    <!-- 상단 네비 -->
-    <div class="nav">
-      <button class="icon-btn" @click="goBack" aria-label="뒤로">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
-          <path d="M15 5l-7 7 7 7" stroke="#15171b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">{{ pageTitle }}</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav :title="pageTitle" @back="goBack" />
 
     <!-- 스크롤 영역 -->
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
@@ -36,18 +27,12 @@
 
         <!-- 대출 상환 방식 표시 (대출일 때만) -->
         <div class="row border-top" v-if="isLoan">
-          <span class="row-label">
-            상환 방식
-            <button type="button" class="btn-help-inline" @click.stop="openTermModal(confirmData.repaymentTypeDesc)" aria-label="도움말 보기">?</button>
-          </span>
+          <span class="row-label">상환 방식</span>
           <span class="row-value">{{ confirmData.repaymentTypeDesc }}</span>
         </div>
 
         <div class="row border-top multiline">
-          <span class="row-label">
-            적용금리
-            <button type="button" class="btn-help-inline" @click.stop="openTermModal(interestType)" aria-label="도움말 보기">?</button>
-          </span>
+          <span class="row-label">적용금리</span>
           <div class="row-value-group">
             <span class="row-value highlight-blue">{{ confirmData.appliedRate }}</span>
             <span class="row-subtext">{{ confirmData.cancelPenaltyNote }}</span>
@@ -60,7 +45,7 @@
         </div>
 
         <div class="row border-top" v-if="confirmData.autoTransfer">
-          <span class="row-label">출금계좌</span>
+          <span class="row-label">출금 지갑</span>
           <span class="row-value">{{ confirmData.debitAccount }}</span>
         </div>
 
@@ -85,7 +70,7 @@
           </template>
           <template v-else>
             <template v-if="isSavings && isFreeSaving">
-              (매월 한 달 목표금액만큼 입금 시)<br>
+              (매월 입력한 첫 저축액만큼 입금 시)<br>
             </template>
             원금 {{ confirmData.principal.toLocaleString() }}원 + 이자 {{ confirmData.interest.toLocaleString() }}원
             <template v-if="confirmData.score > 0">
@@ -97,7 +82,7 @@
 
       <!-- 4. 약관 및 필수 동의 체크박스 리스트 -->
       <section class="terms-section">
-        <div class="check-item" @click="agreeConfirm = !agreeConfirm">
+        <div class="check-item border-top" @click="agreeConfirm = !agreeConfirm">
           <div class="check-circle" :class="{ checked: agreeConfirm }">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
               <path d="M20 6L9 17l-5-5" stroke="#15171b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -121,22 +106,22 @@
           </span>
         </div>
       </section>
-
-      <!-- 가입/신청 완료 버튼 (스크롤에 포함) -->
-      <div class="footer">
-        <div class="submit-wrapper">
-          <button
-            type="button"
-            class="submit-btn"
-            :class="{ active: isAllAgreed && !isSubmitting }"
-            :disabled="!isAllAgreed || isSubmitting"
-            @click="handleSubmit"
-          >
-            {{ isSubmitting ? '처리 중...' : (isLoan ? '대출 신청 완료' : '가입 완료') }}
-          </button>
-        </div>
-      </div>
     </div>
+
+    <!-- 하단 고정 가입/신청 완료 버튼 -->
+    <footer class="footer">
+      <div class="submit-wrapper">
+        <button 
+          type="button" 
+          class="submit-btn" 
+          :class="{ active: isAllAgreed }"
+          :disabled="!isAllAgreed"
+          @click="openModal"
+        >
+          {{ isLoan ? '대출 신청 완료' : '가입 완료' }}
+        </button>
+      </div>
+    </footer>
 
     <!-- 가입/신청 완료 모달 -->
     <Transition name="modal-fade">
@@ -158,65 +143,20 @@
       </div>
     </Transition>
 
-    <!-- 에러 / 알림 커스텀 모달 -->
-    <div v-if="errorModalVisible" class="error-backdrop" @click.self="closeErrorModal">
-      <div class="error-dialog">
-        <div class="error-icon-wrap">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 8v5M12 16.5h.01" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <h4 class="error-title">가입 신청 안내</h4>
-        <p class="error-desc">{{ errorMessage }}</p>
-        <button type="button" class="btn-error-confirm" @click="closeErrorModal">
-          확인
-        </button>
-      </div>
-    </div>
-
-    <!-- 금융 용어 사전 도움말 모달 -->
-    <FinanceTermModal
-      :show="showTermModal"
-      :term-data="activeTermData"
-      @close="closeTermModal"
-    />
-
     <!-- 확인/제출 단계라 말풍선 없이 캐릭터만 노출 -->
-    <Chatbot :hide-for-modal="showTermModal || showSuccessModal || errorModalVisible" hint-text="금융 계약 내용이 궁금하세요?" />
+    <Chatbot v-if="!showSuccessModal" hint-text="" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { getFinanceTerm } from '@/constants/financeTerms';
-import { useAuthStore } from '@/stores/auth'
-import { createSavingEnrollment, createLoanEnrollment, createDepositEnrollment } from '@/api/finance'
 import Chatbot from '@/components/Child/Chatbot.vue'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
-import FinanceTermModal from '@/components/Child/FinanceTermModal.vue';
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 import { formatRepaymentType } from '@/utils/financialProductMapper'
 
 const router = useRouter();
 const route = useRoute();
-const authStore = useAuthStore()
-
-// 어려운 금융 용어 설명 모달 상태
-const showTermModal = ref(false);
-const activeTermData = ref(null);
-
-function openTermModal(termName) {
-  const data = getFinanceTerm(termName);
-  if (data) {
-    activeTermData.value = data;
-    showTermModal.value = true;
-  }
-}
-
-function closeTermModal() {
-  showTermModal.value = false;
-  activeTermData.value = null;
-}
 
 const isScrolling = ref(false);
 let scrollTimer = null;
@@ -233,33 +173,19 @@ const isLoan      = rawCategory === '대출'
 
 const savingsType = route.query.savingsType || ''
 const isFreeSaving = savingsType === '자유적금'
-const interestType = route.query.interestType || '단리'
 
-// 만기일 계산 (사용자가 선택한 상환일/이체일 반영)
-function calcMaturityDate(periodMonths, customDay) {
+// 만기일 계산
+function calcMaturityDate(periodMonths) {
   const d = new Date()
-  const monthsToAdd = Number(periodMonths || 0)
-  const targetMonthIndex = d.getMonth() + monthsToAdd
-  const targetYear = d.getFullYear() + Math.floor(targetMonthIndex / 12)
-  const targetMonth = ((targetMonthIndex % 12) + 12) % 12
-
-  const preferredDay = Number(customDay) || d.getDate()
-  const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate()
-  const finalDay = Math.min(preferredDay, lastDayOfTargetMonth)
-
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${targetYear}.${pad(targetMonth + 1)}.${pad(finalDay)}`
+  d.setMonth(d.getMonth() + Number(periodMonths || 0))
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 }
 
-const productId = Number(route.query.productId)
 const amount    = Number(route.query.amount)    || 0
 const period    = Number(route.query.period)    || 0
 const total     = Number(route.query.total)     || 0
 const interest  = Number(route.query.interest)  || 0
 const principal = isSavings ? amount * period : amount
-
-// 실제 자동이체/상환일 선택값 (신청 화면에서 넘어온 값 그대로, 표시용 confirmData.autoTransfer와는 별개)
-const rawAutoTransfer = route.query.autoTransfer === 'true' || route.query.autoTransfer === true
 
 const repaymentTypeDesc = formatRepaymentType(route.query.repaymentType, '원리금균등상환')
 
@@ -297,7 +223,7 @@ const categoryHeaderLabel = computed(() => {
 const amountLabel = computed(() => {
   if (isLoan) return '대출 신청금액'
   if (isDeposit) return '예치 금액'
-  return isFreeSaving ? '한 달 목표금액' : '월 약정 납입금액'
+  return isFreeSaving ? '첫 저축액 (첫 입금)' : '월 약정 납입금액'
 })
 
 // 상품 종류 설명 분기
@@ -306,8 +232,6 @@ const productTypeDesc = computed(() => {
   if (isDeposit) return '정기예금 · 목표까지 안전하게 저축'
   return isFreeSaving ? '자유적립식 · 원할 때 자유롭게 저축' : '정액적립식 · 매월 정기 저축'
 })
-
-const selectedPaymentDay = Number(route.query.paymentDay) || 1
 
 const confirmData = reactive({
   title:            route.query.title || '금융 상품',
@@ -319,10 +243,10 @@ const confirmData = reactive({
   repaymentTypeDesc,
   appliedRate,
   cancelPenaltyNote,
-  autoTransfer:     route.query.autoTransfer === 'true' || route.query.autoTransfer === true || isLoan,
-  transferDay:      selectedPaymentDay,
+  autoTransfer:     route.query.autoTransfer === 'true' || route.query.autoTransfer === true,
+  transferDay:      route.query.paymentDay || 1,
   debitAccount:     '티니머니 지갑',
-  maturityDate:     calcMaturityDate(period, selectedPaymentDay),
+  maturityDate:     calcMaturityDate(period),
   principal,
   interest,
   score:            expectedScore.value,
@@ -340,20 +264,6 @@ const isAllAgreed = computed(() =>
 )
 
 const showSuccessModal = ref(false);
-const isSubmitting = ref(false);
-
-// 에러 모달 상태 관리
-const errorModalVisible = ref(false);
-const errorMessage = ref('');
-
-function showErrorModal(msg) {
-  errorMessage.value = msg || '신청에 실패했어요. 다시 시도해 주세요.';
-  errorModalVisible.value = true;
-}
-
-function closeErrorModal() {
-  errorModalVisible.value = false;
-}
 
 const goBack = () => { router.back(); };
 
@@ -372,11 +282,19 @@ const handleSubmit = async () => {
         paymentDay: isFreeSaving ? 1 : selectedPaymentDay,
       })
     } else if (isDeposit) {
-      await createDepositEnrollment(authStore.accessToken, {
+      const result = await createDepositEnrollment(authStore.accessToken, {
         productId,
         amount,
         termMonths: period,
       })
+
+      if (result?.enrollmentId) {
+        try {
+          localStorage.setItem(`teeny_deposit_amount_${result.enrollmentId}`, String(amount))
+        } catch (e) {
+          console.warn('예치금 로컬 저장 실패:', e)
+        }
+      }
     } else if (isLoan) {
       const result = await createLoanEnrollment(authStore.accessToken, {
         productId,
@@ -421,7 +339,7 @@ const closeModalAndNavigate = () => {
   height: 730px;
   margin: 0 auto;
   padding-top: 50px;
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid #eceef1;
   overflow: hidden;
 }
@@ -432,7 +350,6 @@ const closeModalAndNavigate = () => {
   align-items: center;
   gap: 12px;
   padding: 0 20px 10px;
-  background: #f8fafc;
   flex: none;
 }
 
@@ -457,7 +374,6 @@ const closeModalAndNavigate = () => {
   min-height: 0;
   overflow-y: auto;
   padding: 4px 20px 16px;
-  background: #f8fafc;
 }
 
 .scroll::-webkit-scrollbar {
@@ -476,24 +392,18 @@ const closeModalAndNavigate = () => {
 
 /* 1. 가입 상품 헤더 */
 .product-header {
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 16px;
+  padding: 16px 0 10px;
   text-align: center;
-  background: #ffffff;
-  border: 1px solid #eef1f4;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-  margin-bottom: 12px;
 }
 
 .sub-title {
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.3px;
-  color: #6a6f76;
+  color: #8a9099;
   margin-bottom: 6px;
 }
 
@@ -508,19 +418,14 @@ const closeModalAndNavigate = () => {
 .product-sub {
   font-weight: 500;
   font-size: 12px;
-  color: #8b9097;
+  color: #b9bec5;
   word-break: keep-all;
 }
 
 /* 2. 상세 내역 */
 .detail-section {
-  box-sizing: border-box;
-  padding: 16px;
-  background: #ffffff;
-  border: 1px solid #eef1f4;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-  margin-bottom: 12px;
+  padding: 16px 0;
+  border-bottom: 1.3px solid #f0f1f3;
 }
 
 .section-label {
@@ -528,7 +433,7 @@ const closeModalAndNavigate = () => {
   font-weight: 700;
   font-size: 12px;
   letter-spacing: 0.3px;
-  color: #6a6f76;
+  color: #8a9099;
   margin-bottom: 8px;
 }
 
@@ -548,38 +453,9 @@ const closeModalAndNavigate = () => {
 }
 
 .row-label {
-  font-size: 14px;
-  color: #4d596b;
   font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-}
-
-.btn-help-inline {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 15px;
-  height: 15px;
-  margin-left: 4px;
-  border-radius: 50%;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  color: #4d596b;
-  font-size: 10px;
-  font-weight: 800;
-  cursor: pointer;
-  vertical-align: middle;
-  padding: 0;
-  line-height: 1;
-  transition: all 0.15s ease;
-}
-
-.btn-help-inline:hover {
-  background: #ffbc00;
-  border-color: #ffbc00;
-  color: #15171b;
-  transform: scale(1.18);
+  font-size: 13.5px;
+  color: #8b9097;
 }
 
 .row-value {
@@ -603,7 +479,7 @@ const closeModalAndNavigate = () => {
 .row-subtext {
   font-weight: 500;
   font-size: 11px;
-  color: #6a6f76;
+  color: #8a9099;
   text-align: right;
   line-height: 1.35;
   word-break: keep-all;
@@ -611,13 +487,10 @@ const closeModalAndNavigate = () => {
 
 /* 3. 만기 예상 수령액 박스 */
 .maturity-summary-box {
-  box-sizing: border-box;
-  background: #ffffff;
-  border: 1px solid #eef1f4;
+  background: #f7f8fa;
   border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
   padding: 14px 16px;
-  margin-bottom: 12px;
+  margin: 16px 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -645,21 +518,15 @@ const closeModalAndNavigate = () => {
 .maturity-detail {
   font-weight: 500;
   font-size: 11px;
-  color: #6b7077;
+  color: #8b9097;
   line-height: 1.4;
   word-break: keep-all;
 }
 
 /* 4. 약관 체크박스 */
 .terms-section {
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border: 1px solid #eef1f4;
-  border-radius: 14px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-  padding: 4px 16px;
 }
 
 .check-item {
@@ -698,7 +565,7 @@ const closeModalAndNavigate = () => {
 }
 
 .required {
-  color: #6a6f76;
+  color: #8a9099;
   font-weight: 400;
 }
 
@@ -706,7 +573,9 @@ const closeModalAndNavigate = () => {
 .footer {
   box-sizing: border-box;
   width: 100%;
-  padding: 20px 0 8px;
+  flex: none;
+  padding: 8px 20px 16px;
+  background: #ffffff;
 }
 
 .submit-wrapper {
@@ -721,7 +590,7 @@ const closeModalAndNavigate = () => {
   border: none;
   font-weight: 700;
   font-size: 15px;
-  color: #787c81;
+  color: #9ca1a8;
   cursor: not-allowed;
   transition: all 0.2s ease;
 }
@@ -782,7 +651,7 @@ const closeModalAndNavigate = () => {
   font-weight: 500;
   font-size: 13px;
   line-height: 19px;
-  color: #525863;
+  color: #6b7280;
   margin-bottom: 20px;
   word-break: keep-all;
 }
@@ -818,75 +687,5 @@ const closeModalAndNavigate = () => {
 .modal-fade-enter-from,
 .modal-fade-leave-to {
   opacity: 0;
-}
-
-/* 에러/알림 모달 */
-.error-backdrop {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 120;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  box-sizing: border-box;
-}
-
-.error-dialog {
-  width: 100%;
-  max-width: 290px;
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 24px 20px 20px;
-  text-align: center;
-  box-sizing: border-box;
-}
-
-.error-icon-wrap {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  background: #ffbc00;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.error-title {
-  margin: 0 0 6px;
-  font-size: 16.5px;
-  font-weight: 800;
-  color: #15171b;
-}
-
-.error-desc {
-  margin: 0 0 18px;
-  font-size: 13px;
-  color: #525863;
-  line-height: 1.5;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-}
-
-.btn-error-confirm {
-  width: 100%;
-  padding: 12px 0;
-  border-radius: 12px;
-  background: #ffbc00;
-  color: #15171b;
-  border: none;
-  font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-.btn-error-confirm:active {
-  opacity: 0.85;
 }
 </style>

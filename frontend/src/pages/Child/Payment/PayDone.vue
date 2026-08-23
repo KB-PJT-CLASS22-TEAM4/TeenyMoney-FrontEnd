@@ -274,7 +274,6 @@ function goHistory() {
   padding-top: 16px;
   padding-bottom: 16px;
   margin-top: 2px;
-  border-top: 1px dashed #e2e8f0;
 }
 
 .balance-value {

@@ -52,11 +52,15 @@ import MyProducts from '@/pages/Child/Finance/MyProducts.vue'
 import ProductsJoin from '@/pages/Child/Finance/ProductsJoin.vue';
 // 자녀 금융상품 중도해지
 import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
+// 자녀 중도해지 완료 상품 상세
+import ProductTerminatedDetail from '@/pages/Child/Finance/ProductTerminatedDetail.vue';
+// 자녀 대출 상환 완료 상품 상세
+import LoanRepaymentDetail from '@/pages/Child/Finance/LoanRepaymentDetail.vue';
 // QR스캔
 import QrScan from '@/pages/Child/Payment/QRscan.vue';
 // 자녀 티니점수
 import TeenyScore from '@/pages/Child/TeenyScore.vue';
-// 자녀 티니점수 등급 상세
+// 자녀 티니 등급 상세
 import TeenyScoreGrade from '@/pages/Child/TeenyScoreGrade.vue';
 // 자녀 퀘스트 목록
 import QuestList from '@/pages/Child/Quest/QuestList.vue';
@@ -387,13 +391,25 @@ const router = createRouter({
     name: 'product-cancel',
     component: ProductsCancel,
   },
+  // 자녀 중도해지 완료 상품 상세
+  {
+    path: '/child/finance/terminated-detail',
+    name: 'child-finance-terminated-detail',
+    component: ProductTerminatedDetail,
+  },
+  // 자녀 대출 상환 완료 상품 상세
+  {
+    path: '/child/finance/repayment-detail',
+    name: 'child-finance-repayment-detail',
+    component: LoanRepaymentDetail,
+  },
   // 자녀 티니점수
   {
     path: '/child/score',
     name: 'child-score',
     component: TeenyScore,
   },
-  // 자녀 티니점수 등급 상세
+  // 자녀 티니 등급 상세
   {
     path: '/child/score/grade',
     name: 'child-score-grade',

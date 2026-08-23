@@ -69,6 +69,33 @@ function formatShortDate(dateStr) {
   return `${Number(parts[1])}.${Number(parts[2])}`
 }
 
+function parseMonthDay(dateStr) {
+  if (!dateStr) return null
+  const parts = String(dateStr).split('-')
+  if (parts.length < 3) return null
+  return { month: Number(parts[1]), day: Number(parts[2]) }
+}
+
+function formatWeekRange(startDate, endDate) {
+  const start = parseMonthDay(startDate)
+  const end = parseMonthDay(endDate)
+  if (!start || !end) return ''
+  if (start.month === end.month) return `${start.month}.${start.day}–${end.day}`
+  return `${start.month}.${start.day}–${end.month}.${end.day}`
+}
+
+function compactAmount(n) {
+  const value = Number(n || 0)
+  if (value === 0) return '0'
+  if (value >= 10000) {
+    const man = value / 10000
+    const label = Number.isInteger(man) ? String(man) : man.toFixed(1).replace(/\.0$/, '')
+    return `${label}만`
+  }
+  if (value >= 1000 && value % 1000 === 0) return `${value / 1000}천`
+  return value.toLocaleString('ko-KR')
+}
+
 function categoryColor(index) {
   return CATEGORY_COLORS[index % CATEGORY_COLORS.length]
 }
@@ -137,14 +164,25 @@ const maxWeekAmount = computed(() => {
   return Math.max(1, ...amounts, 0)
 })
 
-function weekBarHeight(week) {
-  if (week.amount == null) return '10px'
-  if (week.amount === 0) return '10px'
-  return `${Math.max(12, Math.round((week.amount / maxWeekAmount.value) * 110))}px`
-}
+const yAxisLabels = computed(() => {
+  const max = maxWeekAmount.value
+  if (max <= 1) return ['0']
+  const step = Math.ceil(max / 3 / 1000) * 1000
+  return [step * 3, step * 2, step, 0].map((value) => compactAmount(value))
+})
 
 function isUpcomingWeek(week) {
   return week.amount == null && week.paymentCount == null
+}
+
+function weekBarHeight(week) {
+  if (isUpcomingWeek(week) || week.amount === 0) return '4px'
+  const max = maxWeekAmount.value || 1
+  return `${Math.max(12, Math.round((week.amount / max) * 100))}%`
+}
+
+function hasWeekAmount(week) {
+  return !isUpcomingWeek(week) && Number(week.amount) > 0
 }
 
 const categories = computed(() => spending.value?.categories ?? [])
@@ -425,35 +463,56 @@ watch(childId, (id, prev) => {
       <section class="card">
         <div class="sec-head">
           <span class="sec-title">주간 소비 추이</span>
+          <span class="sec-sub-unit">단위: 원</span>
         </div>
-        <p class="sec-sub compact">월요일~일요일 기준 · 아직 오지 않은 주는 — 로 표시</p>
 
-        <div v-if="weeklyTrend.length" class="bars">
-          <div
-            v-for="week in weeklyTrend"
-            :key="week.weekNo"
-            class="bar-col"
-          >
-            <span
-              class="bar-val"
-              :class="{ upcoming: isUpcomingWeek(week) }"
-            >
-              {{ isUpcomingWeek(week) ? '—' : won(week.amount) }}
-            </span>
-            <div
-              class="bar"
-              :class="{
-                upcoming: isUpcomingWeek(week),
-                zero: week.amount === 0,
-              }"
-              :style="{ height: weekBarHeight(week) }"
-            ></div>
-            <span class="bar-label">{{ week.weekNo }}주차</span>
-            <span class="bar-date">
-              {{ formatShortDate(week.startDate) }}–{{ formatShortDate(week.endDate) }}
+        <div v-if="weeklyTrend.length" class="vchart">
+          <div class="vchart-scale" aria-hidden="true">
+            <span v-for="(label, i) in yAxisLabels" :key="i" class="y-label">
+              {{ label }}
             </span>
           </div>
+
+          <div class="vchart-main">
+            <div class="vchart-grid" aria-hidden="true">
+              <span v-for="(label, i) in yAxisLabels" :key="i" class="grid-line"></span>
+            </div>
+
+            <div
+              class="vchart-cols"
+              :style="{ gridTemplateColumns: `repeat(${weeklyTrend.length}, minmax(0, 1fr))` }"
+            >
+              <div
+                v-for="week in weeklyTrend"
+                :key="week.weekNo"
+                class="vcol"
+                :class="{
+                  active: hasWeekAmount(week),
+                  muted: !hasWeekAmount(week),
+                }"
+              >
+                <div
+                  class="vcol-track"
+                  :style="{ '--h': weekBarHeight(week) }"
+                >
+                  <span v-if="hasWeekAmount(week)" class="vcol-val">
+                    {{ compactAmount(week.amount) }}
+                  </span>
+                  <div
+                    class="vbar"
+                    :class="{
+                      upcoming: isUpcomingWeek(week),
+                      zero: week.amount === 0,
+                    }"
+                  ></div>
+                </div>
+                <span class="vcol-week">{{ week.weekNo }}주</span>
+                <span class="vcol-date">{{ formatWeekRange(week.startDate, week.endDate) }}</span>
+              </div>
+            </div>
+          </div>
         </div>
+
         <p v-else class="empty-text">아직 주간 소비가 없어요</p>
       </section>
 
@@ -631,11 +690,12 @@ watch(childId, (id, prev) => {
   position: relative;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  height: 730px;
+  width: 100%;
+  max-width: 360px;
+  min-height: 100dvh;
+  height: 100dvh;
   margin: 0 auto;
   background: #f8fafc;
-  border: 1px solid #eceef1;
   overflow: hidden;
 }
 
@@ -786,10 +846,6 @@ watch(childId, (id, prev) => {
   color: #64748b;
 }
 
-.sec-sub.compact {
-  margin-bottom: 16px;
-}
-
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -810,7 +866,6 @@ watch(childId, (id, prev) => {
 .watch-row span,
 .insight-row span:not(.insight-badge),
 .reason-row span,
-.bar-date,
 .month-status {
   color: #94a3b8;
   font-size: 11px;
@@ -850,17 +905,24 @@ watch(childId, (id, prev) => {
 .compare-box {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 12px;
   background: #f8fafc;
   border-radius: 14px;
-  padding: 12px;
+  padding: 14px 12px;
 }
 
 .compare-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 2px;
+}
+
+.compare-item b {
+  text-align: center;
 }
 
 .compare-item b.gray {
@@ -877,67 +939,157 @@ watch(childId, (id, prev) => {
   font-weight: 800;
 }
 
-.bars {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 6px;
-  min-height: 160px;
+.sec-sub-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
-.bar-col {
-  flex: 1;
+.vchart {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  column-gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.vchart-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 118px;
+  margin-top: 18px;
+}
+
+.y-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-align: right;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.vchart-main {
+  position: relative;
+  min-width: 0;
+  padding-top: 18px;
+}
+
+.vchart-grid {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 118px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.grid-line {
+  display: block;
+  height: 1px;
+  background: #eef1f5;
+}
+
+.vchart-cols {
+  display: grid;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.vcol {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  min-width: 0;
 }
 
-.bar-val {
-  font-size: 9.5px;
-  font-weight: 800;
-  color: #0f172a;
-  text-align: center;
-}
-
-.bar-val.upcoming {
-  color: #cbd5e1;
-}
-
-.bar {
+.vcol-track {
+  position: relative;
   width: 100%;
-  max-width: 36px;
-  border-radius: 10px;
+  height: 118px;
+}
+
+.vcol-val {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--h) + 4px);
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 800;
+  color: #191b1e;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.vbar {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 14px;
+  height: var(--h);
+  border-radius: 999px 999px 4px 4px;
   background: #facc15;
-  transform: scaleY(0);
+  transform: translateX(-50%) scaleY(0);
   transform-origin: bottom center;
-  animation: bar-grow 0.4s ease-out forwards;
+  animation: vbar-grow 0.4s ease-out forwards;
 }
 
-.bar-col:nth-child(1) .bar { animation-delay: 0.02s; }
-.bar-col:nth-child(2) .bar { animation-delay: 0.07s; }
-.bar-col:nth-child(3) .bar { animation-delay: 0.12s; }
-.bar-col:nth-child(4) .bar { animation-delay: 0.17s; }
-.bar-col:nth-child(5) .bar { animation-delay: 0.22s; }
-.bar-col:nth-child(6) .bar { animation-delay: 0.27s; }
+.vcol:nth-child(1) .vbar { animation-delay: 0.02s; }
+.vcol:nth-child(2) .vbar { animation-delay: 0.07s; }
+.vcol:nth-child(3) .vbar { animation-delay: 0.12s; }
+.vcol:nth-child(4) .vbar { animation-delay: 0.17s; }
+.vcol:nth-child(5) .vbar { animation-delay: 0.22s; }
+.vcol:nth-child(6) .vbar { animation-delay: 0.27s; }
 
-.bar.zero {
+.vbar.zero,
+.vbar.upcoming {
+  width: 14px;
+  height: 4px;
+  border-radius: 999px;
   background: #e2e8f0;
-}
-
-.bar.upcoming {
-  background: transparent;
-  border: 1.5px dashed #cbd5e1;
-  transform: none;
   animation: none;
+  transform: translateX(-50%);
 }
 
-.bar-label {
+.vcol-week {
+  margin-top: 8px;
   font-size: 11px;
   font-weight: 800;
-  color: #475569;
+  color: #94a3b8;
+  line-height: 1.2;
 }
 
+.vcol.active .vcol-week {
+  color: #191b1e;
+}
+
+.vcol-date {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #cbd5e1;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.vcol.active .vcol-date {
+  color: #94a3b8;
+}
+
+@keyframes vbar-grow {
+  to { transform: translateX(-50%) scaleY(1); }
+}
+
+/* ===== 도넛 차트 ===== */
 .donut-wrap {
   display: flex;
   justify-content: center;
@@ -948,16 +1100,8 @@ watch(childId, (id, prev) => {
   animation: donut-wipe 0.6s ease-out forwards;
 }
 
-@keyframes bar-grow {
-  to {
-    transform: scaleY(1);
-  }
-}
-
 @keyframes donut-wipe {
-  to {
-    stroke-dashoffset: 1;
-  }
+  to { stroke-dashoffset: 1; }
 }
 
 .donut-label {
@@ -1058,31 +1202,12 @@ watch(childId, (id, prev) => {
   line-height: 1.2;
 }
 
-.badge-spending {
-  background: #fff8e5;
-  color: #d97706;
-}
-
-.badge-request {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.badge-saving {
-  background: #eef8ee;
-  color: #2e8540;
-}
-
-.badge-quest {
-  background: #f5f3ff;
-  color: #7c3aed;
-}
-
+.badge-spending { background: #fff8e5; color: #d97706; }
+.badge-request  { background: #eff6ff; color: #2563eb; }
+.badge-saving   { background: #eef8ee; color: #2e8540; }
+.badge-quest    { background: #f5f3ff; color: #7c3aed; }
 .badge-score,
-.badge-generic {
-  background: #f1f5f9;
-  color: #475569;
-}
+.badge-generic  { background: #f1f5f9; color: #475569; }
 
 .chev {
   color: #cbd5e1;

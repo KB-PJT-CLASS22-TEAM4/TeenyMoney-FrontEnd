@@ -1,16 +1,6 @@
 <template>
   <div class="verify-screen">
-    <!-- 상단 네비 — 화면 좌우 끝까지 꽉 차게 스크롤 영역 밖으로 뺀다 -->
-    <div class="nav">
-      <button class="back-btn" @click="goBack" aria-label="뒤로가기">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M15 6l-6 6 6 6" stroke="#15171b" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <h1 class="nav-title">{{ isViewOnly ? '제출한 인증' : '퀘스트 인증하기' }}</h1>
-      <ChildNavActions />
-    </div>
+    <ChildPageNav :title="isViewOnly ? '제출한 인증' : '퀘스트 인증하기'" @back="goBack" />
 
     <div class="scroll">
 
@@ -175,7 +165,7 @@ import { getQuestDetail, submitQuestVerification } from '@/api/quest'
 import { getMyParent } from '@/api/families'
 import { PARENT_PROFILE_IMAGE, resolveProfileImageUrl } from '@/utils/profileImages'
 import { calcKstDDay, formatKstDateTime, getKstParts, parseServerDate } from '@/utils/datetime'
-import ChildNavActions from '@/components/Child/ChildNavActions.vue'
+import ChildPageNav from '@/components/Child/ChildPageNav.vue'
 
 const route = useRoute()
 const router = useRouter()

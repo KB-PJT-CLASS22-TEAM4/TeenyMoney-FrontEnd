@@ -306,6 +306,7 @@
 
         <!-- 가로 슬라이드 -->
         <div
+          v-if="financePreviewCards.length"
           ref="scrollRef"
           class="finance-scroll"
           @scroll="onScroll"
@@ -347,14 +348,14 @@
               </strong>
             </div>
           </div>
-
-          <div
-            v-if="!financePreviewCards.length"
-            class="finance-empty-card"
-          >
-            등록된 금융 상품이 없습니다
-          </div>
         </div>
+
+        <p
+          v-else
+          class="finance-empty-text"
+        >
+          등록된 금융 상품이 없습니다
+        </p>
 
 
         <!-- 슬라이드 인디케이터 -->
@@ -379,7 +380,7 @@
 
       <section class="history">
         <div class="history-head">
-          <span class="history-title">최근 이용내역</span>
+          <span class="history-title">최근 거래내역</span>
 
           <button
             type="button"
@@ -451,7 +452,7 @@
           v-else
           class="transaction-state"
         >
-          최근 이용내역이 없습니다.
+          최근 거래내역이 없습니다.
         </div>
       </section>
 
@@ -911,18 +912,13 @@ function onScroll() {
 
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
 
-  height: 34px;
-
-  margin-bottom: 16px;
+  margin: 0 -18px 16px;
 }
 
 
 .back-btn {
-  position: absolute;
-  left: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1739,17 +1735,13 @@ function onScroll() {
   scroll-snap-align: start;
 }
 
-.finance-empty-card {
-  flex: 0 0 244px;
-  min-height: 125px;
-  padding: 14px;
-  border: 1px dashed #e8edf3;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.finance-empty-text {
+  margin: 0;
+  padding: 36px 16px;
+  text-align: center;
   color: #8b9097;
   font-size: 13px;
+  font-weight: 500;
 }
 
 

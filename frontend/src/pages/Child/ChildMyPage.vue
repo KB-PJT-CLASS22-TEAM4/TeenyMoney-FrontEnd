@@ -2,7 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BottomTabBar from '@/components/Child/BottomTabBar.vue';
-import ChildNavActions from '@/components/Child/ChildNavActions.vue';
+import ChildPageNav from '@/components/Child/ChildPageNav.vue';
 import { getMyInfo, getLinkedParent, updateMyProfileImage } from '@/api/member';
 import { useAuthStore } from '@/stores/auth';
 import { logout as logoutApi } from '@/api/auth';
@@ -239,16 +239,7 @@ function onScroll() {
 
 <template>
   <div class="page">
-    <header class="nav">
-      <img
-        src="@/assets/icons/icon-back.svg"
-        alt=""
-        class="back-icon"
-        @click="goBack"
-      />
-      <h1 class="nav-title">마이페이지</h1>
-      <ChildNavActions />
-    </header>
+    <ChildPageNav title="마이페이지" @back="goBack" />
 
     <div class="scroll" :class="{ scrolling: isScrolling }" @scroll="onScroll">
       <main class="content">
@@ -461,7 +452,6 @@ button {
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding-bottom: 88px;
   color: #191b1e;
   background: #f8fafc;
 }
@@ -499,7 +489,7 @@ button {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 16px 20px 90px;
+  padding: 16px 20px;
 }
 
 .scroll::-webkit-scrollbar {
