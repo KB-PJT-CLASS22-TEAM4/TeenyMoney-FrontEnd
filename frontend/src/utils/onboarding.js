@@ -1,29 +1,49 @@
+const ONBOARDING_SCREEN_SIZE = { width: 288, height: 589 };
+
 const ONBOARDING_CONFIG = {
   PARENT: {
     role: 'PARENT',
     badge: '부모 계정',
     title: '자녀와 함께\n티니머니를 시작해요',
-    description: '초대 코드를 만들고 자녀 계정과 연결하면\n용돈과 소비 습관을 함께 관리할 수 있어요.',
+    description:
+      '초대 코드를 만들고 자녀 계정과 연결하면\n용돈과 소비 습관을 함께 관리할 수 있어요.',
     cardLabel: '첫 번째 할 일',
     cardTitle: '자녀 초대하기',
-    cardDescription: '6자리 코드를 자녀에게 알려주세요',
     primaryLabel: '초대 코드 만들기',
     primaryRoute: 'parents-link-code',
     skipRoute: 'parents-home',
+    preview: {
+      kind: 'link',
+      screen: 'parent-link',
+      screenAlt: '부모 계정의 실제 연동 코드 발급 화면',
+      screenSize: ONBOARDING_SCREEN_SIZE,
+      focus: { top: 9, left: 4, width: 92, height: 20 },
+      title: '자녀 기기에 입력할 코드',
+      caption: '실제 연동 코드는 발급 후 10분간 유효해요.',
+    },
   },
   CHILD: {
     role: 'CHILD',
     badge: '자녀 계정',
     title: '부모님과 연결하고\n용돈 생활을 시작해요',
-    description: '부모님에게 받은 초대 코드를 입력하면\n우리 가족의 티니머니가 연결돼요.',
+    description:
+      '부모님에게 받은 초대 코드를 입력하면\n우리 가족의 티니머니가 연결돼요.',
     cardLabel: '부모님께 확인해요',
     cardTitle: '초대 코드 입력하기',
-    cardDescription: '부모님이 만든 6자리 코드가 필요해요',
     primaryLabel: '초대 코드 입력하기',
     primaryRoute: 'child-link',
     skipRoute: 'child-home',
+    preview: {
+      kind: 'link',
+      screen: 'child-link',
+      screenAlt: '자녀 계정의 실제 부모님 연동 코드 입력 화면',
+      screenSize: ONBOARDING_SCREEN_SIZE,
+      focus: { top: 31, left: 14, width: 72, height: 7 },
+      title: '부모님 연동 코드 입력',
+      caption: '부모님 앱에서 발급한 6자리 코드를 입력해요.',
+    },
   },
-}
+};
 
 const FEATURE_ONBOARDING_SLIDES = {
   PARENT: [
@@ -33,7 +53,15 @@ const FEATURE_ONBOARDING_SLIDES = {
       description: '주고받은 용돈과 소비 내역을 함께 확인해요.',
       scene: 'allowance-card',
       sheetTitle: '필요할 때 바로 관리해요',
-      sheetDescription: '용돈을 보내고 자녀의 사용 내역을 함께 살펴보세요.',
+      preview: {
+        kind: 'wallet',
+        screen: 'parent-wallet',
+        screenAlt: '부모 계정의 실제 티니머니 홈 화면',
+        screenSize: ONBOARDING_SCREEN_SIZE,
+        focus: { top: 24, left: 4, width: 92, height: 16 },
+        title: '리포트주니어님의 티니머니 잔액',
+        caption: '자녀 상세 화면에서 잔액과 최근 거래를 함께 확인해요.',
+      },
     },
     {
       eyebrow: '02 · 금융상품',
@@ -41,7 +69,15 @@ const FEATURE_ONBOARDING_SLIDES = {
       description: '예·적금 상품을 만들고 자녀의 도전을 응원해요.',
       scene: 'piggy-bank',
       sheetTitle: '목표를 함께 정해요',
-      sheetDescription: '우리 가족에게 맞는 저축 상품과 목표를 만들어 보세요.',
+      preview: {
+        kind: 'finance',
+        screen: 'parent-finance',
+        screenAlt: '부모 계정의 실제 자녀 금융 상품 관리 화면',
+        screenSize: ONBOARDING_SCREEN_SIZE,
+        focus: { top: 33, left: 4, width: 92, height: 34 },
+        title: '리포트주니어님의 금융 상품',
+        caption: '자녀가 이용 중인 예금·적금·대출 상품을 한눈에 관리해요.',
+      },
     },
     {
       eyebrow: '03 · 퀘스트와 티니점수',
@@ -49,7 +85,22 @@ const FEATURE_ONBOARDING_SLIDES = {
       description: '퀘스트를 만들고 성장 과정을 함께 칭찬해요.',
       scene: 'goal-star',
       sheetTitle: '작은 성취도 놓치지 않아요',
-      sheetDescription: '퀘스트와 티니점수로 자녀의 성장을 응원해 주세요.',
+      preview: {
+        kind: 'quest',
+        screen: 'parent-quest',
+        screenAlt: '부모 계정의 실제 퀘스트 관리 화면',
+        screenSize: ONBOARDING_SCREEN_SIZE,
+        focus: { top: 14, left: 4, width: 92, height: 16 },
+        title: '퀘스트',
+        callout: {
+          top: 87,
+          left: 70,
+          width: 20,
+          height: 10,
+          title: '퀘스트 생성',
+        },
+        caption: '상태별 퀘스트를 확인하고 새로운 도전을 만들어요.',
+      },
     },
   ],
   CHILD: [
@@ -59,7 +110,15 @@ const FEATURE_ONBOARDING_SLIDES = {
       description: '받은 용돈과 사용 내역을 쉽고 빠르게 살펴봐요.',
       scene: 'phone-allowance',
       sheetTitle: '오늘 쓸 수 있는 돈이 보여요',
-      sheetDescription: '잔액과 최근 용돈 내역을 휴대폰에서 바로 확인해요.',
+      preview: {
+        kind: 'wallet',
+        screen: 'child-wallet',
+        screenAlt: '자녀 계정의 실제 티니머니 거래내역 화면',
+        screenSize: ONBOARDING_SCREEN_SIZE,
+        focus: { top: 8, left: 4, width: 92, height: 16 },
+        title: '티니머니',
+        caption: '실제 거래내역 화면에서 잔액과 입·출금 내역을 확인해요.',
+      },
     },
     {
       eyebrow: '02 · 금융상품',
@@ -67,7 +126,15 @@ const FEATURE_ONBOARDING_SLIDES = {
       description: '가족 금융상품에 가입해 저축을 직접 경험해요.',
       scene: 'piggy-bank',
       sheetTitle: '모을수록 목표에 가까워져요',
-      sheetDescription: '부모님이 만든 예·적금에 가입하고 목표를 달성해 보세요.',
+      preview: {
+        kind: 'finance',
+        screen: 'child-finance',
+        screenAlt: '자녀 계정의 실제 나의 금융 상품 화면',
+        screenSize: ONBOARDING_SCREEN_SIZE,
+        focus: { top: 21, left: 5, width: 90, height: 24 },
+        title: '나의 상품',
+        caption: '실제 나의 상품 화면처럼 상품 유형과 납입 현황을 확인해요.',
+      },
     },
     {
       eyebrow: '03 · 퀘스트와 티니점수',
@@ -75,37 +142,70 @@ const FEATURE_ONBOARDING_SLIDES = {
       description: '퀘스트를 완료하고 티니점수와 경험을 쌓아요.',
       scene: 'goal-star',
       sheetTitle: '오늘도 한 단계 성장했어요',
-      sheetDescription: '퀘스트에 도전하고 가족과 함께 성취를 축하해요.',
+      preview: {
+        kind: 'quest',
+        screen: 'child-quest',
+        screenAlt: '자녀 계정의 실제 완료한 퀘스트 화면',
+        screenSize: ONBOARDING_SCREEN_SIZE,
+        focus: { top: 13, left: 4, width: 92, height: 40 },
+        title: '완료한 퀘스트',
+        caption: '메달이 있는 퀘스트를 완료하면 티니점수가 올라가요.',
+      },
     },
   ],
+};
+
+export const ONBOARDING_PENDING_MEMBER_KEY = 'onboardingPendingMemberId';
+
+export function scheduleOnboardingPreview(open, schedule = setTimeout) {
+  return schedule(open, 1000);
 }
 
-export const ONBOARDING_PENDING_MEMBER_KEY = 'onboardingPendingMemberId'
+export function scheduleOnboardingPreviewSwap(swap, schedule = setTimeout) {
+  return schedule(swap, 400);
+}
+
+export function getOnboardingFocusRegions(preview) {
+  const { width: screenWidth, height: screenHeight } = preview.screenSize;
+  const regions = [
+    { ...preview.focus, title: preview.title, isCallout: false },
+    ...(preview.callout ? [{ ...preview.callout, isCallout: true }] : []),
+  ];
+
+  return regions.map((region) => ({
+    ...region,
+    maskX: (region.left * screenWidth) / 100 + 2,
+    maskY: (region.top * screenHeight) / 100 + 2,
+    maskWidth: (region.width * screenWidth) / 100 - 4,
+    maskHeight: (region.height * screenHeight) / 100 - 4,
+    maskRadius: region.isCallout ? 16 : 10,
+  }));
+}
 
 export function getFeatureOnboardingSlides(role) {
-  return FEATURE_ONBOARDING_SLIDES[role] || null
+  return FEATURE_ONBOARDING_SLIDES[role] || null;
 }
 
 export function getFeatureOnboardingSeenKey(memberId) {
-  return `featureOnboardingSeen:${memberId}`
+  return `featureOnboardingSeen:${memberId}`;
 }
 
 export function shouldShowFeatureOnboarding(completedValue) {
-  return completedValue !== 'true'
+  return completedValue !== 'true';
 }
 
 export function getOnboardingConfig(role) {
-  return ONBOARDING_CONFIG[role] || null
+  return ONBOARDING_CONFIG[role] || null;
 }
 
 export function shouldShowOnboarding(pendingMemberId, loggedInMemberId) {
   if (pendingMemberId == null || loggedInMemberId == null) {
-    return false
+    return false;
   }
 
-  return String(pendingMemberId) === String(loggedInMemberId)
+  return String(pendingMemberId) === String(loggedInMemberId);
 }
 
 export function shouldShowChildOnboarding(parent) {
-  return parent == null
+  return parent == null;
 }
