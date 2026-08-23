@@ -442,10 +442,7 @@ onBeforeUnmount(() => {
 
 .scene {
   position: absolute;
-  top: var(--safe-area-top);
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   overflow: hidden;
   background: var(--page-bg);
   transition: filter 0.32s ease;

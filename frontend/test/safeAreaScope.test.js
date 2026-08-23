@@ -40,16 +40,16 @@ test('로그인은 배경을 화면 끝까지 채우고 하단 내용만 보호�
   assert.doesNotMatch(login, /env\(safe-area-inset-/)
 })
 
-test('온보딩은 Safe Area에 단색 배경만 그리고 콘텐츠와 장면은 아래에 둔다', () => {
+test('온보딩은 장면 이미지를 Safe Area까지 확장하고 콘텐츠는 아래에 둔다', () => {
   const onboarding = source('src/pages/Onboarding.vue')
 
   assert.match(
     onboarding,
-    /\.visual-stage\s*\{[^}]*padding-top:\s*calc\(24px \+ var\(--safe-area-top\)\);[^}]*background:\s*var\(--page-bg\);/s,
+    /\.visual-stage\s*\{[^}]*padding-top:\s*calc\(24px \+ var\(--safe-area-top\)\)/s,
   )
   assert.match(
     onboarding,
-    /\.scene\s*\{[^}]*top:\s*var\(--safe-area-top\);[^}]*right:\s*0;[^}]*bottom:\s*0;[^}]*left:\s*0;/s,
+    /\.scene\s*\{[^}]*inset:\s*0;/s,
   )
   assert.match(onboarding, /bottom:\s*max\(16px, var\(--safe-area-bottom\)\)/)
   assert.doesNotMatch(onboarding, /env\(safe-area-inset-/)
