@@ -31,7 +31,6 @@
         </svg>
       </div>
       <p class="lock-text">새로운 결제 비밀번호 6자리를 입력해 주세요</p>
-      <p class="lock-sub">이 비밀번호는 자녀 결제에도 적용돼요</p>
 
       <div class="dots" :class="{ shake: isError }">
         <span
