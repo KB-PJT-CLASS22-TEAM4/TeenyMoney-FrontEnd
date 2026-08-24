@@ -8,7 +8,6 @@
         </svg>
       </div>
       <h2 class="done-title">결제 비밀번호 설정 완료</h2>
-      <p class="done-msg">이 비밀번호가 자녀 결제에도 적용돼요</p>
     </div>
 
     <div class="confirm-wrap">

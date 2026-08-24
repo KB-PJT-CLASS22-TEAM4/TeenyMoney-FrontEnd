@@ -317,89 +317,13 @@
       </section>
     </div>
 
-    <Teleport to="body">
-      <div
-        v-if="isChildModalOpen"
-        class="modal-overlay"
-        @click.self="closeChildModal"
-      >
-        <div class="bottom-sheet">
-          <div class="sheet-handle"></div>
-
-          <div class="sheet-header">
-            <div>
-              <h2 class="sheet-title">자녀 선택</h2>
-              <p class="sheet-description">
-                상품을 만들 자녀를 선택해주세요. 여러 명을 선택할 수 있어요.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              class="sheet-close-btn"
-              aria-label="닫기"
-              @click="closeChildModal"
-            >
-              ×
-            </button>
-          </div>
-
-          <div
-            v-if="children.length === 0"
-            class="modal-state"
-          >
-            연결된 자녀가 없습니다.
-          </div>
-
-          <div
-            v-else
-            class="modal-child-list"
-          >
-            <button
-              v-for="child in children"
-              :key="child.id"
-              type="button"
-              class="modal-child-item"
-              :class="{ selected: selectedChildIds.includes(child.id) }"
-              @click="toggleChild(child.id)"
-            >
-              <div class="modal-child-left">
-                <div class="modal-avatar">
-                  <img
-                    :src="CHILD_PROFILE_IMAGE"
-                    alt=""
-                    class="modal-avatar-img"
-                  />
-                </div>
-                <span class="modal-child-name">
-                  {{ child.name }}
-                </span>
-              </div>
-
-              <div
-                class="check-circle"
-                :class="{ checked: selectedChildIds.includes(child.id) }"
-              >
-                <span
-                  v-if="selectedChildIds.includes(child.id)"
-                  class="check-mark"
-                >
-                  ✓
-                </span>
-              </div>
-            </button>
-          </div>
-
-          <button
-            type="button"
-            class="modal-confirm-btn"
-            @click="closeChildModal"
-          >
-            선택 완료
-          </button>
-        </div>
-      </div>
-    </Teleport>
+    <ChildSelectModal
+      v-model:open="isChildModalOpen"
+      v-model:selected-ids="selectedChildIds"
+      :children="children"
+      description="상품을 만들 자녀를 선택해주세요. 여러 명을 선택할 수 있어요."
+      :error="childrenError"
+    />
 
     <AlertHost :modal="alertModal" />
   </div>
@@ -414,6 +338,7 @@ import { createFinancialProduct } from '@/api/financialProducts'
 import { getChildren } from '@/api/children'
 import { getTeenyScoreGrades } from '@/api/teenyScore'
 import AlertHost from '@/components/AlertHost.vue'
+import ChildSelectModal from '@/components/ChildSelectModal.vue'
 import SelectDropdown from '@/components/SelectDropdown.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
@@ -451,19 +376,6 @@ function getTargetChildIds() {
 
 function openChildModal() {
   isChildModalOpen.value = true
-}
-
-function closeChildModal() {
-  isChildModalOpen.value = false
-}
-
-function toggleChild(childId) {
-  if (selectedChildIds.value.includes(childId)) {
-    selectedChildIds.value = selectedChildIds.value.filter((id) => id !== childId)
-    return
-  }
-
-  selectedChildIds.value = [...selectedChildIds.value, childId]
 }
 
 function removeChild(childId) {
@@ -855,158 +767,6 @@ onMounted(async () => {
   margin: 0;
   font-size: 12px;
   color: #d14343;
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.38);
-}
-
-.bottom-sheet {
-  width: 360px;
-  max-height: 75vh;
-  padding: 10px 16px 24px;
-  border-radius: 22px 22px 0 0;
-  background: #ffffff;
-}
-
-.sheet-handle {
-  width: 38px;
-  height: 4px;
-  margin: 0 auto 18px;
-  border-radius: 20px;
-  background: #d9dce1;
-}
-
-.sheet-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.sheet-title {
-  margin: 0 0 5px;
-  color: #191b1e;
-  font-size: 19px;
-  font-weight: 800;
-}
-
-.sheet-description {
-  margin: 0;
-  color: #8b9097;
-  font-size: 12px;
-}
-
-.sheet-close-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #8b9097;
-  font-size: 27px;
-  font-weight: 300;
-  cursor: pointer;
-}
-
-.modal-child-list {
-  display: flex;
-  max-height: 310px;
-  flex-direction: column;
-  overflow-y: auto;
-  border-top: 1px solid #f0f1f3;
-}
-
-.modal-child-item {
-  display: flex;
-  width: 100%;
-  min-height: 74px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 4px;
-  border: none;
-  border-bottom: 1px solid #f0f1f3;
-  background: #ffffff;
-  cursor: pointer;
-}
-
-.modal-child-left {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-
-.modal-avatar {
-  width: 46px;
-  height: 46px;
-  overflow: hidden;
-  border: 2px solid transparent;
-  border-radius: 50%;
-}
-
-.modal-child-item.selected .modal-avatar {
-  border-color: #ffbc00;
-}
-
-.modal-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #f4f5f7;
-}
-
-.modal-child-name {
-  color: #191b1e;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.check-circle {
-  display: flex;
-  width: 22px;
-  height: 22px;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid #d7dae0;
-  border-radius: 50%;
-  background: #ffffff;
-}
-
-.check-circle.checked {
-  border-color: #ffbc00;
-  background: #ffbc00;
-}
-
-.check-mark {
-  color: #191b1e;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.modal-confirm-btn {
-  width: 100%;
-  height: 50px;
-  margin-top: 18px;
-  border: none;
-  border-radius: 11px;
-  color: #191b1e;
-  background: #ffbc00;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.modal-state {
-  padding: 45px 10px;
-  color: #8b9097;
-  font-size: 13px;
-  text-align: center;
 }
 
 .section {
