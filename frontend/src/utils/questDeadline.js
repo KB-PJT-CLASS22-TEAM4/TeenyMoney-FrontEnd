@@ -1,6 +1,42 @@
 import { getKstParts, parseServerDate } from '@/utils/datetime'
 
+export const QUEST_REVIEW_REQUEST_INVALID =
+  'QUEST_REVIEW_REQUEST_INVALID'
+
+export function isQuestReviewRequestInvalidError(error) {
+  return error?.code === QUEST_REVIEW_REQUEST_INVALID
+}
+
+export function isQuestDeadlinePassed(deadline) {
+  const parsed = parseServerDate(deadline)
+  if (!parsed) return false
+  return parsed.getTime() < Date.now()
+}
+
+export function buildRejectAfterDeadlineOptions(
+  deadline,
+  afterDeadlineAction,
+) {
+  if (!afterDeadlineAction) return {}
+
+  if (afterDeadlineAction === 'EXTEND') {
+    return {
+      afterDeadlineAction: 'EXTEND',
+      extendedDeadline: getExtendedDeadlineIso(deadline),
+    }
+  }
+
+  return {
+    afterDeadlineAction: 'FAIL',
+  }
+}
+
 export function isQuestDeadlineExpiredError(error) {
+  // 반려 요청 검증 실패(사유/기한 후 처리)는 기한 만료와 구분
+  if (isQuestReviewRequestInvalidError(error)) {
+    return false
+  }
+
   return error?.status === 400
 }
 
