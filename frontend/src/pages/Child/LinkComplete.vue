@@ -95,8 +95,10 @@ function goHome() {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 360px;
-  min-height: 730px;
+  width: 100%;
+  max-width: 360px;
+  height: 100dvh;
+  overflow: hidden;
   margin: 0 auto;
   padding: 0 0 20px;
   background: #f8fafc;
@@ -130,6 +132,9 @@ function goHome() {
 }
 
 .body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;

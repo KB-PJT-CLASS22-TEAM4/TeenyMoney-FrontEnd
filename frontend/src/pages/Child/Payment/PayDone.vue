@@ -6,7 +6,7 @@
         <span v-for="n in 6" :key="n" :class="`spark spark-${n}`"></span>
         <div class="icon-wrap">
           <svg viewBox="0 0 24 24" width="36" height="36" fill="none">
-            <path d="M5 12.5l4.5 4.5L19 7" stroke="#15171b" stroke-width="2.8"
+            <path d="M5 12.5l4.5 4.5L19 7" stroke="#ffffff" stroke-width="2.8"
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
@@ -139,7 +139,6 @@ function goHistory() {
   height: 68px;
   background: #ffbc00;
   border-radius: 50%;
-  box-shadow: 0 8px 20px rgba(255, 188, 0, 0.35);
   animation: pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   z-index: 1;
 }
@@ -301,7 +300,6 @@ function goHistory() {
   font-weight: 700;
   font-size: 15.5px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(255, 188, 0, 0.3);
   transition: background-color 0.15s ease, transform 0.08s ease;
 }
 

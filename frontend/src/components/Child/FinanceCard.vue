@@ -2,7 +2,6 @@
   <div class="finance-card">
     <div class="card-top">
       <span class="type-badge">{{ type }}</span>
-      <span class="rate-badge">{{ rate }}</span>
     </div>
 
     <p class="name">{{ name }}</p>
@@ -70,14 +69,6 @@ defineProps({
   color: #ffffff;
 }
 
-.rate-badge {
-  padding: 3px 9px;
-  border-radius: 7px;
-  font-weight: 700;
-  font-size: 11px;
-  background: #facc15;
-  color: #ffffff;
-}
 
 .name {
   margin: 0;
