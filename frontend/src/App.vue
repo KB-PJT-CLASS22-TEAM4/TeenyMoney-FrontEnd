@@ -94,6 +94,7 @@ body {
 .app-root.is-child-route > * {
   height: 100dvh !important;
   min-height: 100dvh !important;
+  padding-top: 0 !important;
   border: none !important;
 }
 
@@ -109,7 +110,6 @@ body {
   align-items: center !important;
   justify-content: space-between !important;
   width: 100%;
-  padding-top: var(--safe-area-top) !important;
   box-sizing: border-box;
 }
 
@@ -117,8 +117,8 @@ body {
 .app-root.is-child-route .nav,
 .app-root.is-child-route .page-title-row {
   flex-shrink: 0;
-  height: calc(64px + var(--safe-area-top));
-  padding: var(--safe-area-top) 20px 4px !important;
+  height: 64px;
+  padding: 0 20px 4px !important;
   background: #ffffff;
 }
 
@@ -126,7 +126,7 @@ body {
 .app-root.is-parent-route .top-nav:has(h1),
 .app-root.is-child-route .top-nav:has(.nav-title),
 .app-root.is-child-route .top-nav:has(h1) {
-  height: calc(64px + var(--safe-area-top));
+  height: 64px;
 }
 
 .app-root.is-parent-route .nav-title,
@@ -140,7 +140,7 @@ body {
 .app-root.is-child-route .top-nav h1 {
   position: absolute;
   left: 50%;
-  top: calc(var(--safe-area-top) + 32px);
+  top: 50%;
   z-index: 1;
   margin: 0;
   width: max-content !important;
@@ -198,10 +198,10 @@ body {
   flex-shrink: 0 !important;
   box-sizing: border-box !important;
   width: auto !important;
-  height: calc(64px + var(--safe-area-top)) !important;
-  min-height: calc(64px + var(--safe-area-top)) !important;
-  max-height: calc(64px + var(--safe-area-top)) !important;
-  padding: var(--safe-area-top) 20px 4px !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding: 0 20px 4px !important;
   margin-top: 0 !important;
 }
 
@@ -216,7 +216,7 @@ body {
 .app-root.is-parent-route .top-nav h1 {
   position: absolute !important;
   left: 50% !important;
-  top: calc(var(--safe-area-top) + 32px) !important;
+  top: 50% !important;
   z-index: 1;
   margin: 0 !important;
   width: max-content !important;
