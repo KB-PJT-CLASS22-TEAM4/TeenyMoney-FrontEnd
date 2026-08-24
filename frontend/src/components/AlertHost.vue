@@ -3,6 +3,7 @@
     :show="modal.state.alertVisible"
     :title="modal.state.alertTitle"
     :description="modal.state.alertMessage"
+    :variant="modal.state.alertVariant"
     hide-cancel
     confirm-text="확인"
     @confirm="modal.closeAlert()"
@@ -13,6 +14,7 @@
     :show="modal.state.confirmVisible"
     :title="modal.state.confirmTitle"
     :description="modal.state.confirmMessage"
+    :variant="modal.state.confirmVariant"
     confirm-text="확인"
     cancel-text="취소"
     @confirm="modal.resolveConfirm(true)"

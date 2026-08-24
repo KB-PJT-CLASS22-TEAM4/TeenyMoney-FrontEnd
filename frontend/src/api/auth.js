@@ -153,6 +153,7 @@ export async function reissue() {
   if (!isApiSuccess(res, result) || !accessToken) {
     const error = new Error(result?.message || '토큰 재발급에 실패했습니다.');
     error.status = res.status;
+    error.code = result?.code;
     throw error;
   }
 
