@@ -17,92 +17,85 @@
       <section class="heading-section">
         <span class="step-badge">가족 연결 확인</span>
         <h2 class="main-title">
-          연동할 부모님 정보를 <span class="highlight-text">확인해 주세요</span>
+          입력한 코드로 <span class="highlight-text">연동할까요?</span>
         </h2>
         <p class="sub-desc">
           연동 후 부모님과 함께 안전하게 용돈을 관리할 수 있어요
         </p>
       </section>
 
-      <!-- 보호자 프로필 카드 -->
+      <!-- 입력한 코드 카드 -->
       <section class="guardian-hero-card">
-        <div class="profile-header profile-header-centered">
-          <div class="avatar-box">
-            <img
-              v-if="guardian.profileImageUrl"
-              :src="guardian.profileImageUrl"
-              alt="부모님 프로필"
-              class="avatar-img"
-            />
-            <img
-              v-else
-              :src="PARENT_PROFILE_IMAGE"
-              alt="부모님 기본 프로필"
-              class="avatar-img default"
-            />
-          </div>
-
-          <div class="guardian-identity">
-            <div class="name-row">
-              <strong class="guardian-name">{{ guardian.name || '부모님' }}</strong>
-              <span class="relation-pill">{{ guardian.relation || '부모님' }}</span>
-            </div>
-          </div>
+        <div class="avatar-box">
+          <img :src="PARENT_PROFILE_IMAGE" alt="부모님 기본 프로필" class="avatar-img default" />
         </div>
+        <span class="guardian-name">{{ code }}</span>
       </section>
+
+      <p v-if="submitError" class="submit-error">{{ submitError }}</p>
 
       <!-- 안내 팁 박스 -->
       <section class="notice-box">
         <p class="notice-text">
-          가족 연동 해제 및 변경은 마이페이지 설정에서 언제든지 관리할 수 있습니다.
+          가족 연동 해제 및 변경은 부모님만 할 수 있어요.<br>
+          잘못 연동됐거나 변경이 필요하면 고객센터에 문의해 주세요.
         </p>
       </section>
     </main>
 
     <!-- 하단 고정 액션 버튼 -->
     <footer class="bottom-action-bar">
-      <button class="submit-button" type="button" @click="goToCompletePage">
-        이 부모님으로 연동하기
+      <button
+        class="submit-button"
+        type="button"
+        :disabled="isSubmitting"
+        @click="confirmLink"
+      >
+        {{ isSubmitting ? '연동 중...' : '이 코드로 연동하기' }}
       </button>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { getMyParent } from '@/api/families'
+import { ref } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { connectFamilyCode } from '@/api/families'
 import { useAuthStore } from '@/stores/auth'
-import { PARENT_PROFILE_IMAGE, pickProfileImageUrl, resolveProfileImageUrl } from '@/utils/profileImages'
+import { PARENT_PROFILE_IMAGE } from '@/utils/profileImages'
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
-const guardian = ref({ name: '', relation: '가족', profileImageUrl: '' });
+const code = route.query.code || ''
+const isSubmitting = ref(false)
+const submitError = ref('')
 
-// 페이지 진입 시 연동된 부모 정보 조회
-onMounted(async () => {
-  try {
-    const res = await getMyParent(authStore.accessToken)
-    if (res?.data) {
-      guardian.value.name = res.data.name || ''
-      guardian.value.relation = res.data.relation || '부모님'
-      guardian.value.profileImageUrl = resolveProfileImageUrl(
-        pickProfileImageUrl(res.data),
-        PARENT_PROFILE_IMAGE
-      )
-    }
-  } catch (e) {
-    console.error('부모 정보 조회 실패:', e.message)
-  }
-})
+// 코드 없이 직접 진입한 경우 코드 입력 화면으로 되돌린다.
+if (!code) {
+  router.replace({ name: 'child-link' })
+}
 
 function goBack() {
   router.back();
 }
 
-function goToCompletePage() {
-  router.push({ name: 'child-link-complete' })
+// "이 코드로 연동하기"를 눌러야 실제로 코드를 소비하고 가족 관계를 생성한다.
+async function confirmLink() {
+  if (!code || isSubmitting.value) return
+
+  isSubmitting.value = true
+  submitError.value = ''
+  try {
+    await connectFamilyCode(authStore.accessToken, code)
+    router.push({ name: 'child-link-complete' })
+  } catch (e) {
+    console.error('연동 실패:', e.message)
+    submitError.value = e.message || '코드가 일치하지 않아요. 다시 입력해 주세요.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -215,44 +208,31 @@ function goToCompletePage() {
   letter-spacing: -0.2px;
 }
 
-/* 보호자 프로필 히어로 카드 */
+/* 입력한 코드 카드 (연동 완료 화면 카드와 동일한 디자인) */
 .guardian-hero-card {
-  position: relative;
-  background: #ffffff;
-  border: 1px solid #edf2f7;
-  border-radius: 20px;
-  padding: 24px 20px;
-  margin-bottom: 16px;
-  overflow: hidden;
-}
-
-.profile-header {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 16px;
-}
-
-.profile-header-centered {
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.profile-header-centered .guardian-identity {
-  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid #e4e1e1;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
 }
 
 .avatar-box {
-  width: 72px;
-  height: 72px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: #ffffff;
+  background: #e5e7eb;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 0 2px #e2e8f0;
-  flex-shrink: 0;
+  flex: none;
 }
 
 .avatar-img {
@@ -262,37 +242,24 @@ function goToCompletePage() {
 }
 
 .avatar-img.default {
-  padding: 8px;
+  padding: 6px;
   box-sizing: border-box;
 }
 
-.guardian-identity {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .guardian-name {
-  font-size: 20px;
+  margin: 0;
+  font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.4px;
+  color: #15171b;
+  flex: 1;
 }
 
-.relation-pill {
-  font-size: 11.5px;
+.submit-error {
+  margin: 0 0 16px;
+  font-size: 12px;
   font-weight: 600;
-  color: #d97706;
-  background: #fef3c7;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: none;
+  color: #e0554f;
+  padding: 0 4px;
 }
 
 /* 안내 팁 박스 */
@@ -326,7 +293,7 @@ function goToCompletePage() {
   justify-content: center;
   width: 100%;
   border: none;
-  border-radius: 14px;
+  border-radius: 4px;
   background: #ffbc00;
   color: #191b1e;
   padding: 15px;
@@ -334,5 +301,11 @@ function goToCompletePage() {
   font-weight: 600;
   cursor: pointer;
   box-sizing: border-box;
+}
+
+.submit-button:disabled {
+  background: #f2f4f6;
+  color: #9ca1a8;
+  cursor: not-allowed;
 }
 </style>

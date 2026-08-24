@@ -39,7 +39,7 @@
 
     <!-- 확인 버튼 -->
     <div class="bottom-bar">
-      <button class="cta" @click="goHome">확인</button>
+      <button class="cta" type="button" @click="goHome">확인</button>
     </div>
   </div>
 </template>
@@ -98,16 +98,20 @@ function goHome() {
   width: 360px;
   min-height: 730px;
   margin: 0 auto;
-  padding: 80px 0 0;
+  padding: 0 0 20px;
   background: #f8fafc;
   border: 1px solid #eceef1;
 }
 
 .nav {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
     display: flex;
     align-items: center;
     gap: 20px;
     padding: 2px 16px 6px;
+    background: #f8fafc;
 }
 
 .back-btn {
@@ -130,7 +134,7 @@ function goHome() {
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 80px 20px 0;
+  padding: 40px 20px 0;
 }
 
 .character-wrap {
@@ -209,14 +213,13 @@ function goHome() {
 /* 연동된 부모님 카드 */
 .guardian-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 24px 20px;
-  background: #ffffff;
-  border: 1px solid #edf2f7;
-  border-radius: 20px;
+  padding: 14px 16px;
+  border: 1px solid #e4e1e1;
+  border-radius: 8px;
   box-sizing: border-box;
 }
 
@@ -224,13 +227,12 @@ function goHome() {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 72px;
-  height: 72px;
+  width: 40px;
+  height: 40px;
   background: #e5e7eb;
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: 0 0 0 2px #e2e8f0;
-  flex-shrink: 0;
+  flex: none;
 }
 
 .avatar-img {
@@ -246,25 +248,22 @@ function goHome() {
 .guardian-name {
   margin: 0;
   font-weight: 700;
-  font-size: 20px;
-  color: #0f172a;
-  letter-spacing: -0.4px;
+  font-size: 15px;
+  color: #15171b;
+  flex: 1;
 }
 
 .linked-badge {
-  font-size: 11.5px;
   font-weight: 600;
-  color: #d97706;
-  background: #fef3c7;
-  padding: 3px 8px;
-  border-radius: 6px;
+  font-size: 12.5px;
+  color: #ffbc00;
 }
 
 /* 확인 버튼 */
 .bottom-bar {
   width: 100%;
   margin-top: auto;
-  padding: 0 20px 20px;
+  padding: 0 20px;
   box-sizing: border-box;
 }
 
@@ -272,7 +271,7 @@ function goHome() {
   width: 100%;
   padding: 15px;
   border: none;
-  border-radius: 14px;
+  border-radius: 4px;
   background: #ffbc00;
   color: #191b1e;
   font-weight: 700;

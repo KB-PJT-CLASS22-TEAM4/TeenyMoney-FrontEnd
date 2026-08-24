@@ -25,7 +25,7 @@ const ONBOARDING_CONFIG = {
   CHILD: {
     role: 'CHILD',
     badge: '자녀 계정',
-    title: '부모님과 연결하고\n용돈 생활을 시작해요',
+    title: '부모님과 연결하고\n티니 머니를 시작해요',
     description:
       '부모님에게 받은 초대 코드를 입력하면\n우리 가족의 티니머니가 연결돼요.',
     cardLabel: '부모님께 확인해요',
@@ -48,9 +48,9 @@ const ONBOARDING_CONFIG = {
 const FEATURE_ONBOARDING_SLIDES = {
   PARENT: [
     {
-      eyebrow: '01 · 용돈 생활',
-      title: '용돈 흐름을\n한눈에 살펴봐요',
-      description: '주고받은 용돈과 소비 내역을 함께 확인해요.',
+      eyebrow: '01 · 용돈 관리',
+      title: '아이에게\n용돈을 지급해봐요',
+      description: '충전과 용돈 지급을 통해 아이에게 용돈을 주세요.',
       scene: 'allowance-card',
       sheetTitle: '필요할 때 바로 관리해요',
       preview: {
@@ -59,16 +59,16 @@ const FEATURE_ONBOARDING_SLIDES = {
         screenAlt: '부모 계정의 실제 티니머니 홈 화면',
         screenSize: ONBOARDING_SCREEN_SIZE,
         focus: { top: 24, left: 4, width: 92, height: 16 },
-        title: '리포트주니어님의 티니머니 잔액',
-        caption: '자녀 상세 화면에서 잔액과 최근 거래를 함께 확인해요.',
+        title: '부모님의 티니머니 잔액',
+        caption: '자녀 상세 화면에서 잔액과 최근 거래를 함께 확인 가능해요.',
       },
     },
     {
       eyebrow: '02 · 금융상품',
-      title: '우리 가족만의\n저축 목표를 만들어요',
-      description: '예·적금 상품을 만들고 자녀의 도전을 응원해요.',
+      title: '우리 아이의\n금융 목표를 함께 세워요',
+      description: '아이에게 맞는 금융 상품을 만들고 목표 달성을 응원해요.',
       scene: 'piggy-bank',
-      sheetTitle: '목표를 함께 정해요',
+      sheetTitle: '목표에 맞는 상품을 만들어요',
       preview: {
         kind: 'finance',
         screen: 'parent-finance',
@@ -76,13 +76,20 @@ const FEATURE_ONBOARDING_SLIDES = {
         screenSize: ONBOARDING_SCREEN_SIZE,
         focus: { top: 33, left: 4, width: 92, height: 34 },
         title: '리포트주니어님의 금융 상품',
-        caption: '자녀가 이용 중인 예금·적금·대출 상품을 한눈에 관리해요.',
+        callout: {
+          top: 86,
+          left: 70,
+          width: 22,
+          height: 11,
+          title: '금융 상품 생성',
+        },
+        caption: '자녀가 이용 중인 금융 상품을 한눈에 관리하고 생성해요.',
       },
     },
     {
       eyebrow: '03 · 퀘스트와 티니점수',
-      title: '좋은 금융 습관을\n재미있게 응원해요',
-      description: '퀘스트를 만들고 성장 과정을 함께 칭찬해요.',
+      title: '재미있는 퀘스트로\n아이의 도전을 응원해요',
+      description: '퀘스트를 만들고 완료 보상으로 용돈과 티니점수를 지급해요.',
       scene: 'goal-star',
       sheetTitle: '작은 성취도 놓치지 않아요',
       preview: {
@@ -94,9 +101,9 @@ const FEATURE_ONBOARDING_SLIDES = {
         title: '퀘스트',
         callout: {
           top: 87,
-          left: 72,
-          width: 20,
-          height: 10,
+          left: 71,
+          width: 22,
+          height: 11,
           title: '퀘스트 생성',
         },
         caption: '상태별 퀘스트를 확인하고 새로운 도전을 만들어요.',
@@ -138,8 +145,8 @@ const FEATURE_ONBOARDING_SLIDES = {
     },
     {
       eyebrow: '03 · 퀘스트와 티니점수',
-      title: '도전할수록\n금융 실력이 자라요',
-      description: '퀘스트를 완료하고 티니점수와 경험을 쌓아요.',
+      title: '재미있게\n퀘스트를 시작해요',
+      description: '퀘스트를 완료하고 티니점수와 용돈을 받아요.',
       scene: 'goal-star',
       sheetTitle: '오늘도 한 단계 성장했어요',
       preview: {

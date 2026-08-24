@@ -31,7 +31,9 @@
       </div>
     </div>
 
-    <button class="cta" type="button" @click="goToList">확인</button>
+    <div class="bottom-bar">
+      <button class="cta" type="button" @click="goToList">확인</button>
+    </div>
   </div>
 </template>
 
@@ -105,16 +107,22 @@ function goToList() {
   width: 360px;
   min-height: 730px;
   margin: 0 auto;
-  padding: 50px 0 20px;
+  padding: 0 0 20px;
   background: #f8fafc;
-  border: 1px solid #eceef1;
 }
 
-.nav {
+/* App.vue의 전역 .is-parent-route .nav 규칙(!important, 클래스 3개 결합)보다
+   상세도를 높여야 sticky 위치가 실제로 적용된다. */
+.nav.nav.nav.nav {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
   display: flex;
   align-items: center;
   gap: 20px;
   padding: 2px 16px 6px;
+  background: #ffffff;
+  border-bottom: none;
 }
 
 .back-btn {
@@ -216,9 +224,15 @@ function goToList() {
   color: #ffbc00;
 }
 
+.bottom-bar {
+  width: 100%;
+  margin-top: auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
 .cta {
-  width: 318px;
-  margin: auto auto 0;
+  width: 100%;
   padding: 15px;
   border: none;
   border-radius: 4px;
@@ -227,6 +241,7 @@ function goToList() {
   font-weight: 700;
   font-size: 14.5px;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .cta:active {

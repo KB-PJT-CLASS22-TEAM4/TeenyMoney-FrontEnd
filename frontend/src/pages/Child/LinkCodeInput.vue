@@ -14,7 +14,7 @@
     <!-- 아이콘 + 안내 -->
     <div class="lock-area">
       <div class="lock-icon">
-        <svg :class="{ shake: isError }" viewBox="0 0 24 24" width="34" height="34" fill="none">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none">
           <path d="M9 15l6-6" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
           <path d="M10.5 7.5l1-1a3.5 3.5 0 0 1 5 5l-1 1" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
           <path d="M13.5 16.5l-1 1a3.5 3.5 0 0 1-5-5l1-1" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
@@ -23,19 +23,16 @@
       <p class="lock-text">부모님 앱에서 발급한 6자리 코드를 입력해 주세요</p>
 
       <!-- 6자리 코드 박스 (입력한 숫자를 그대로 보여줌) -->
-      <div class="code-row" :class="{ shake: isError }">
+      <div class="code-row">
         <div
           v-for="n in CODE_LENGTH"
           :key="n"
           class="code-box"
-          :class="{ filled: code.length >= n, error: isError }"
+          :class="{ filled: code.length >= n }"
         >
           {{ code[n - 1] ?? '' }}
         </div>
       </div>
-
-      <!-- 에러 문구 -->
-      <p class="error-text" :class="{ show: isError }">{{ errorMsg }}</p>
     </div>
 
     <!-- 숫자 키패드 -->
@@ -58,26 +55,18 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { connectFamilyCode } from '@/api/families'
-import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter();
-const authStore = useAuthStore()
 
 const CODE_LENGTH = 6;
 const code = ref('');
-const isError = ref(false)
-const errorMsg = ref('');
-const submitting = ref(false)
 
 function press(num) {
-  if (code.value.length >= CODE_LENGTH || submitting.value) return
-  isError.value = false
+  if (code.value.length >= CODE_LENGTH) return
   code.value += num;
 }
 
 function remove() {
-  isError.value = false
   code.value = code.value.slice(0, -1);
 }
 
@@ -85,31 +74,13 @@ function goBack() {
   router.back()
 }
 
-// 6자리 다 채워지면 인증 실행
+// 6자리 다 채워지면 확인 페이지로 이동한다.
+// 실제 연동(코드 소비)은 확인 페이지에서 사용자가 버튼을 눌러야 실행된다.
 watch(code, (val) => {
-  if (val.length === CODE_LENGTH && !submitting.value) {
-    verifyCode();
+  if (val.length === CODE_LENGTH) {
+    router.push({ name: 'child-link-confirm', query: { code: val } })
   }
 })
-
-async function verifyCode() {
-  submitting.value = true
-  try {
-    const res = await connectFamilyCode(authStore.accessToken, code.value)
-    console.log('연동 성공:', res)
-    router.push({ name: 'child-link-confirm' })
-  } catch (e) {
-    console.log('연동 실패:', e.message)
-    errorMsg.value = e.message || '코드가 일치하지 않아요'
-    isError.value = true
-    setTimeout(() => {
-      code.value = ''
-      isError.value = false
-    }, 500)
-  } finally {
-    submitting.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -121,7 +92,7 @@ async function verifyCode() {
   width: 360px;
   min-height: 730px;
   margin: 0 auto;
-  padding: 40px 0 30px;
+  padding: 0 0 30px;
   background: #f8fafc;
 }
 
