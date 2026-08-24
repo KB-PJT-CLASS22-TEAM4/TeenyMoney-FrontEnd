@@ -228,8 +228,11 @@ async function handleReject() {
   } catch (error) {
     console.error('퀘스트 반려 실패:', error)
 
-    errorMessage.value =
+    const message =
       error.message || '퀘스트 반려에 실패했습니다.'
+
+    errorMessage.value = message
+    alertModal.showAlert(message)
   } finally {
     isSubmitting.value = false
   }

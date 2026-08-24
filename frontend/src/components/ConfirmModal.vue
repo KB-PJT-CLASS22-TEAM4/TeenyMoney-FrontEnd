@@ -56,7 +56,7 @@ function onCancel() {
   justify-content: center;
   padding: 0 32px;
   box-sizing: border-box;
-  z-index: 1000;
+  z-index: 10000;
 }
 
 /* 모달 카드 */

@@ -8,9 +8,11 @@ const API_BASE_URL = import.meta.env.DEV
 function createQuestApiError(
   message,
   status,
+  code,
 ) {
   const error = new Error(message)
   error.status = status
+  error.code = code
   return error
 }
 
@@ -566,6 +568,7 @@ export async function approveQuestVerification(
       result.message ||
       '퀘스트 인증 승인에 실패했습니다.',
       response.status,
+      result.code,
     )
   }
 
@@ -714,6 +717,7 @@ export async function rejectQuestVerification(questId, verificationId, reason, a
       result.message ||
       '퀘스트 인증 거절에 실패했습니다.',
       response.status,
+      result.code,
     )
   }
 

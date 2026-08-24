@@ -24,6 +24,7 @@ import {
   normalizeApprovalRequest,
 } from '@/utils/financialProductMapper'
 import { parseServerDate } from '@/utils/datetime'
+import { isQuestReviewRequestInvalidError } from '@/utils/questDeadline'
 
 export function useParentRequests() {
   const router = useRouter()
@@ -436,7 +437,12 @@ export function useParentRequests() {
       closeRejectModal()
     } catch (error) {
       console.error('퀘스트 거절 실패:', error)
-      alertModal.showAlert(error.message || '거절에 실패했습니다.')
+      alertModal.showAlert(
+        error.message ||
+        (isQuestReviewRequestInvalidError(error)
+          ? '반려 요청의 사유와 기한 후 처리 방법을 확인해 주세요.'
+          : '거절에 실패했습니다.')
+      )
     } finally {
       processingKey.value = ''
     }
