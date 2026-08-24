@@ -219,7 +219,9 @@ function confirm() {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 28px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f0f1f3;
 }
 
 .sheet-title {
@@ -258,8 +260,10 @@ function confirm() {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 0;
   margin-bottom: 20px;
+  padding-top: 0;
+  border-top: none;
 }
 
 .modal-child-item {
