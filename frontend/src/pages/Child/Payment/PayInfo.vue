@@ -469,18 +469,15 @@ function requestApproval() {
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(255, 188, 0, 0.35);
-  transition: all 0.15s ease-in-out;
+  transition: background 0.15s ease-in-out;
 }
 
 .cta:hover {
   background: #f5b300;
-  box-shadow: 0 6px 18px rgba(255, 188, 0, 0.45);
 }
 
 .cta:active {
   transform: scale(0.985);
-  box-shadow: 0 2px 8px rgba(255, 188, 0, 0.25);
 }
 
 .cta.disabled-cta {

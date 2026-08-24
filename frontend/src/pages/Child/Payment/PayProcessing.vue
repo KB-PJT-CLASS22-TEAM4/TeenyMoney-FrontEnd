@@ -2,7 +2,7 @@
   <div class="processing-screen">
     <div class="center">
       <!-- 캐릭터 -->
-      <img src="@/assets/mascot/teeny-run.png" class="character" alt="결제 진행중" />
+      <img src="@/assets/mascot/teeny-coin.png" class="character" alt="결제 진행중" />
 
       <!-- 안내 문구 -->
       <p class="guide-title">결제 정보를 확인하고 있어요</p>
@@ -65,17 +65,17 @@ onUnmounted(() => clearTimeout(timer))
   margin: auto 0;
 }
 
-/* 캐릭터 움직이기*/
+/* 캐릭터를 키우고 통통 튀는 애니메이션을 준다 */
 .character {
-  width: 150px;
-  height: 150px;
+  width: 190px;
+  height: 190px;
   object-fit: contain;
-  animation: run 0.7s ease-in-out infinite;
+  animation: coin-bounce 0.8s ease-in-out infinite;
 }
 
-@keyframes run {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50% { transform: translateY(-10px) rotate(2deg); }
+@keyframes coin-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
 }
 
 /* 안내 문구 */

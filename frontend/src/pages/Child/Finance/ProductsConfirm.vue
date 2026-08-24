@@ -49,6 +49,11 @@
           <span class="row-value">{{ confirmData.debitAccount }}</span>
         </div>
 
+        <div class="row border-top" v-if="isSavings && isFreeSaving">
+          <span class="row-label">납입일</span>
+          <span class="row-value">매월 {{ confirmData.transferDay }}일</span>
+        </div>
+
         <div class="row border-top">
           <span class="row-label">{{ isLoan ? '만기 상환일' : '만기일' }}</span>
           <span class="row-value">{{ confirmData.maturityDate }}</span>
@@ -287,7 +292,7 @@ const openModal = async () => {
         monthlyAmount: amount,
         termMonths: period,
         autoTransfer: isFreeSaving ? false : confirmData.autoTransfer,
-        paymentDay: isFreeSaving ? 1 : confirmData.transferDay,
+        paymentDay: confirmData.transferDay,
       })
     } else if (isDeposit) {
       const result = await createDepositEnrollment(authStore.accessToken, {

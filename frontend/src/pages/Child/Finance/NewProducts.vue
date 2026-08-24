@@ -408,6 +408,9 @@ onMounted(async () => {
   } catch (e) {
     console.error('금융상품 조회 실패:', e.message)
   }
+
+  await nextTick()
+  await precomputeProductListMinHeight()
 })
 
 // 필터 + 정렬 로직
@@ -458,15 +461,29 @@ const filteredProducts = computed(() => {
   return list
 })
 
-// 상품 카드 10개씩 페이지네이션
-const PRODUCT_PAGE_SIZE = 10
+// 상품 카드 페이지네이션 — 1~3페이지는 11개씩, 4페이지부터는 10개씩.
+function productPageSize(pageNum) {
+  return pageNum <= 3 ? 11 : 10
+}
+
 const productPage = ref(1)
-const totalProductPages = computed(() =>
-  Math.max(1, Math.ceil(filteredProducts.value.length / PRODUCT_PAGE_SIZE))
-)
+const totalProductPages = computed(() => {
+  const total = filteredProducts.value.length
+  let page = 1
+  let count = 0
+  while (count < total) {
+    count += productPageSize(page)
+    page += 1
+  }
+  return Math.max(1, page - 1)
+})
 const visibleProducts = computed(() => {
-  const start = (productPage.value - 1) * PRODUCT_PAGE_SIZE
-  return filteredProducts.value.slice(start, start + PRODUCT_PAGE_SIZE)
+  let start = 0
+  for (let p = 1; p < productPage.value; p += 1) {
+    start += productPageSize(p)
+  }
+  const size = productPageSize(productPage.value)
+  return filteredProducts.value.slice(start, start + size)
 })
 // 페이지 번호는 6개씩 묶어서 보여준다 — 6페이지에서 다음(>)을 누르면 7페이지로 넘어가면서
 // 번호 목록도 7~12로 넘어간다.
@@ -477,12 +494,42 @@ const productPageNumbers = computed(() => {
   return Array.from({ length: windowEnd - windowStart + 1 }, (_, i) => windowStart + i)
 })
 const scrollEl = ref(null)
+const productListEl = ref(null)
+// 페이지마다 상품 카드 내용(약관 상세 줄 수 등)이 달라 목록 높이가 들쭉날쭉하다.
+// 짧은 페이지로 가면 스크롤 가능 범위가 줄어 scrollTop이 클램프되며 튀고, 반대로
+// 아직 안 가본 더 긴 페이지로 처음 갈 때는 그 자리에서 목록이 갑자기 길어지며
+// 페이지네이션 위치가 아래로 밀린다. 그래서 실제로 페이지를 눌러보기 전에 모든
+// 페이지를 한 번씩 미리 돌며 가장 큰 높이를 재서 최소 높이로 고정해둔다.
+const productListMinHeight = ref(0)
+const isMeasuringPages = ref(false)
 
-// 카드 목록이 통째로 바뀌면서 스크롤 위치가 위로 튀는 걸 막는다.
+function growProductListMinHeight() {
+  const h = productListEl.value?.offsetHeight ?? 0
+  if (h > productListMinHeight.value) {
+    productListMinHeight.value = h
+  }
+}
+
+async function precomputeProductListMinHeight() {
+  const originalPage = productPage.value
+  const pages = totalProductPages.value
+
+  isMeasuringPages.value = true
+  for (let p = 1; p <= pages; p++) {
+    productPage.value = p
+    await nextTick()
+    growProductListMinHeight()
+  }
+  productPage.value = originalPage
+  await nextTick()
+  isMeasuringPages.value = false
+}
+
+// 페이지 버튼을 눌러도 지금 보고 있던 스크롤 위치 그대로 고정한다.
 // - 클릭한 버튼에 포커스가 남아있으면 모바일 브라우저가 그 버튼을 다시 화면에 보이도록
 //   스크롤을 옮기는 경우가 있어서 먼저 포커스를 뗀다.
-// - 리스트가 다시 그려진 직후 한 번, 그다음 프레임에 한 번 더 스크롤 위치를 되돌려서
-//   레이아웃이 뒤늦게 자리잡으며 생기는 스크롤 밀림까지 잡는다.
+// - 페이지를 바꾸기 전에 지금 높이를 최소 높이로 고정해서, 다음 페이지가 더 짧아도
+//   목록이 줄어들지 않게 한다.
 async function keepScrollPosition(change) {
   const el = scrollEl.value
   const top = el?.scrollTop ?? 0
@@ -491,13 +538,19 @@ async function keepScrollPosition(change) {
     document.activeElement.blur()
   }
 
+  growProductListMinHeight()
   change()
   await nextTick()
+  growProductListMinHeight()
   if (el) el.scrollTop = top
 
-  requestAnimationFrame(() => {
+  let frames = 0
+  const restore = () => {
     if (el) el.scrollTop = top
-  })
+    frames += 1
+    if (frames < 5) requestAnimationFrame(restore)
+  }
+  requestAnimationFrame(restore)
 }
 
 function goProductPage(delta) {
@@ -513,9 +566,13 @@ function goToProductPage(page) {
     productPage.value = page
   })
 }
-// 필터·정렬이 바뀌면 1페이지로 돌아간다 (찜 토글 같은 재정렬은 제외)
-watch([appliedCategory, appliedInterestType, appliedOrigin, appliedSort], () => {
+// 필터·정렬이 바뀌면 1페이지로 돌아간다 (찜 토글 같은 재정렬은 제외).
+// 필터링된 상품 구성 자체가 바뀌므로 페이지별 최소 높이도 다시 잰다.
+watch([appliedCategory, appliedInterestType, appliedOrigin, appliedSort], async () => {
   productPage.value = 1
+  productListMinHeight.value = 0
+  await nextTick()
+  await precomputeProductListMinHeight()
 })
 
 // 찜 토글
@@ -704,12 +761,23 @@ function goToApply(product) {
       </div>
 
       <!-- 상품 카드 리스트 -->
-      <div>
+      <div
+        ref="productListEl"
+        :style="{
+          minHeight: productListMinHeight ? productListMinHeight + 'px' : undefined,
+          visibility: isMeasuringPages ? 'hidden' : undefined,
+        }"
+      >
         <div
           v-for="product in visibleProducts"
           :key="product.id"
           class="card"
-          :class="{ liked: product.liked, disabled: !product.eligible && !product.locked, locked: product.locked }"
+          :class="{
+            liked: product.liked,
+            disabled: !product.eligible && !product.locked,
+            locked: product.locked,
+            'family-origin': product.originType === 'family',
+          }"
           @click="goToApply(product)"
           style="cursor: pointer;"
         >
@@ -787,7 +855,11 @@ function goToApply(product) {
         </div>
       </div>
 
-      <div class="pagination-row" v-if="totalProductPages > 1">
+      <div
+        class="pagination-row"
+        v-if="totalProductPages > 1"
+        :style="{ visibility: isMeasuringPages ? 'hidden' : undefined }"
+      >
         <button
           type="button"
           class="page-nav-btn"
@@ -1406,6 +1478,12 @@ function goToApply(product) {
 
 .card.disabled {
   opacity: 0.55;
+}
+
+/* 가족 상품 카드: 연노랑 테두리로 은행 상품과 구분 */
+.card.family-origin {
+  background: #ffffff;
+  border-color: #ffe58a;
 }
 
 .card.locked {
