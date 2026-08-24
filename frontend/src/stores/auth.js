@@ -4,6 +4,7 @@ import { requestFcmToken } from '@/firebase';
 import { updateFcmToken } from '@/api/notification';
 import { reissue as reissueApi } from '@/api/auth';
 import { resetDismissedHints } from '@/composables/useChatbotHintDismissed';
+import { isAccessTokenExpired } from '@/utils/authSession';
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref(localStorage.getItem('accessToken'));
@@ -19,6 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
   function setUser(data) {
     inflight = null;
     lastRefreshOkAt = Date.now();
+    refreshFailed = false;
 
     accessToken.value = data.accessToken;
     memberId.value = data.memberId;
@@ -38,6 +40,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function registerFcmToken() {
     try {
+      // 만료된 access로 바로 PATCH 하면 401 → reissue 연쇄만 난다.
+      if (isAccessTokenExpired(accessToken.value)) {
+        await refreshAccessToken();
+      }
+
       const fcmToken = await requestFcmToken();
       if (!fcmToken) return;
       await updateFcmToken(accessToken.value, fcmToken);
@@ -91,9 +98,17 @@ export const useAuthStore = defineStore('auth', () => {
   // 서버가 refresh를 회전시키므로 두 번째부터는 실패한다. 한 번만 보낸다.
   let inflight = null;
   let lastRefreshOkAt = 0;
+  let refreshFailed = false;
   const REFRESH_COALESCE_MS = 5000;
 
   async function refreshAccessToken() {
+    if (refreshFailed) {
+      const error = new Error('토큰 재발급에 실패했습니다.');
+      error.status = 401;
+      error.code = 'AUTH_TOKEN_INVALID';
+      throw error;
+    }
+
     if (inflight) {
       return inflight;
     }
@@ -113,7 +128,12 @@ export const useAuthStore = defineStore('auth', () => {
         accessToken.value = token;
         localStorage.setItem('accessToken', token);
         lastRefreshOkAt = Date.now();
+        refreshFailed = false;
         return token;
+      })
+      .catch((error) => {
+        refreshFailed = true;
+        throw error;
       })
       .finally(() => {
         inflight = null;
@@ -122,15 +142,27 @@ export const useAuthStore = defineStore('auth', () => {
     return inflight;
   }
 
+  // 재발급을 다시 시도하지 않고 세션만 정리한다.
+  // (interceptor가 reissue 실패 후 handleUnauthorized를 부르면 이중 재발급이 난다)
+  function forceLogout(
+    message = '로그인이 만료되었습니다.\n다시 로그인해 주세요.',
+  ) {
+    refreshFailed = true;
+    clearUser();
+    openLoginModal(message);
+  }
+
   async function handleUnauthorized(
     message = '로그인이 만료되었습니다.\n다시 로그인해 주세요.',
   ) {
     try {
       await refreshAccessToken();
     } catch (error) {
-      if (error?.status === 401) {
-        clearUser();
-        openLoginModal(message);
+      if (
+        error?.status === 401
+        || error?.code === 'AUTH_TOKEN_INVALID'
+      ) {
+        forceLogout(message);
       }
     }
   }
@@ -149,5 +181,6 @@ export const useAuthStore = defineStore('auth', () => {
     closeLoginModal,
     refreshAccessToken,
     handleUnauthorized,
+    forceLogout,
   };
 });

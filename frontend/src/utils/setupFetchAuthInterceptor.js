@@ -87,12 +87,12 @@ export function setupFetchAuthInterceptor() {
         retryInput,
         withAccessToken(nextInit, token, { __authRetried: true }),
       )
-    } catch (error) {
-      if (error?.status === 401) {
-        await authStore.handleUnauthorized(
-          '로그인이 만료되었습니다.\n다시 로그인해 주세요.',
-        )
-      }
+    } catch {
+      // refreshAccessToken이 이미 실패한 뒤이므로 handleUnauthorized로
+      // 재발급을 한 번 더 치지 않는다. (reissue 이중 호출 방지)
+      authStore.forceLogout(
+        '로그인이 만료되었습니다.\n다시 로그인해 주세요.',
+      )
       return response
     }
   }

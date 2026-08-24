@@ -330,7 +330,9 @@ async function saveLimit(child) {
     )
     applyLimitData(child, data)
     await alertModal.showAlert(
-      `${child.name}의 오늘만 허용 요청 한도를 ${child.draftLimit}회로 저장했어요.`
+      `${child.name}의 오늘만 허용 요청 한도를 ${child.draftLimit}회로 저장했어요.`,
+      '알림',
+      'success',
     )
   } catch (error) {
     console.error('오늘만 허용 한도 저장 실패:', error)
