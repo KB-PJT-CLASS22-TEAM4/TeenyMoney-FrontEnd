@@ -1,14 +1,28 @@
 <template>
   <div class="pay-pw-screen">
     <header class="nav">
-      <button class="icon-btn" type="button" aria-label="뒤로" @click="router.back()">
-        <img src="@/assets/icons/icon-back.svg" alt="" class="back-icon" />
+      <button
+        class="back-btn"
+        type="button"
+        aria-label="뒤로가기"
+        @click="router.back()"
+      >
+        <img
+          src="@/assets/icons/icon-back.svg"
+          alt=""
+          class="back-icon"
+        />
       </button>
-      <h1 class="nav-title">결제 비밀번호 설정</h1>
+
+      <h1 class="nav-title">
+        결제 비밀번호 설정
+      </h1>
+
       <ParentNavActions />
     </header>
 
-    <div class="lock-area">
+    <div class="content">
+      <div class="lock-area">
       <div class="lock-icon">
         <svg :class="{ shake: isError }" viewBox="0 0 24 24" width="40" height="40" fill="none">
           <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#ffffff" stroke-width="1.8"/>
@@ -17,7 +31,6 @@
         </svg>
       </div>
       <p class="lock-text">새로운 결제 비밀번호 6자리를 입력해 주세요</p>
-      <p class="lock-sub">이 비밀번호는 자녀 결제에도 적용돼요</p>
 
       <div class="dots" :class="{ shake: isError }">
         <span
@@ -29,9 +42,9 @@
       </div>
 
       <p class="error-text" :class="{ show: isError }">{{ errorMsg }}</p>
-    </div>
+      </div>
 
-    <div class="keypad">
+      <div class="keypad">
       <button
         v-for="k in ['1','2','3','4','5','6','7','8','9']"
         :key="k"
@@ -49,6 +62,7 @@
           <path d="M13 9l4 4M17 9l-4 4" stroke="#15171b" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </button>
+      </div>
     </div>
   </div>
 </template>
@@ -119,7 +133,6 @@ async function submitPin() {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
@@ -127,39 +140,54 @@ async function submitPin() {
 }
 
 .nav {
+  position: relative;
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
   width: 100%;
   height: 56px;
-  padding: 0 8px 0 4px;
+  padding: 0 20px;
   background: #ffffff;
-
+  border-bottom: 1px solid #eceef1;
 }
 
-.icon-btn {
+.back-btn {
   display: flex;
-  width: 40px;
-  height: 40px;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
 }
 
 .back-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .nav-title {
-  flex: 1;
+  position: absolute;
+  left: 50%;
   margin: 0;
   font-weight: 700;
   font-size: 17px;
   color: #191b1e;
-  text-align: center;
+  transform: translateX(-50%);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 40px 16px 8px;
+  box-sizing: border-box;
 }
 
 .lock-area {
@@ -167,12 +195,9 @@ async function submitPin() {
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
-  width: calc(100% - 32px);
-  margin-top: 24px;
-  padding: 32px 20px;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 20px 0;
 }
 
 .lock-icon {
@@ -258,12 +283,12 @@ async function submitPin() {
   align-items: center;
   width: 100%;
   max-width: 360px;
-  margin: auto 0 0;
-  padding: 16px 8px 24px;
+  margin-top: 24px;
+  padding: 12px 8px 4px;
   gap: 8px 0;
   box-sizing: border-box;
   background: #ffffff;
-  border-radius: 24px 24px 0 0;
+  border-radius: 24px;
 }
 
 .key {
