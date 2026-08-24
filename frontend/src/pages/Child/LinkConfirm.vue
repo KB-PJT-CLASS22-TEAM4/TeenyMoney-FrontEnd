@@ -107,7 +107,8 @@ async function confirmLink() {
   justify-content: space-between;
   width: 100%;
   max-width: 430px;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   margin: 0 auto;
   background: #f8fafc;
   color: #191b1e;
@@ -164,6 +165,8 @@ async function confirmLink() {
 /* 본문 영역 */
 .body-content {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   padding: 120px 20px 24px;
