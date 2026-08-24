@@ -148,20 +148,46 @@
           </div>
         </section>
 
-        <section class="section free-info-section">
-          <div class="free-info-box">
-            <div class="free-info-icon">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                <circle cx="12" cy="12" r="8.5" stroke="#b8901f" stroke-width="1.8"/>
-                <path d="M12 11v5" stroke="#b8901f" stroke-width="2" stroke-linecap="round"/>
-                <circle cx="12" cy="8" r="1" fill="#b8901f"/>
-              </svg>
-            </div>
-            <div class="free-info-text">
-              <p class="free-info-title">저축한 만큼 티니점수가 달라져요</p>
-              <p class="free-info-desc">매달 한 달 목표금액을 채운 비율에 따라 받는 티니점수가 달라져요</p>
+        <section class="section auto-transfer-section">
+          <div class="auto-transfer-header">
+            <div class="text-group">
+              <span class="toggle-title">납입일 지정</span>
+              <span class="toggle-desc">직접 입금할 때 기준이 될 날짜를 정해두면 알림으로 알려드려요</span>
             </div>
           </div>
+          <div>
+            <div class="setting-row border-top">
+              <span class="setting-label">납입일</span>
+              <button type="button" class="select-btn" @click="openDayPicker('freeSaving')">
+                <span>매월 {{ savingsForm.transferDay }}일</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B9BEC5" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="free-warning-box">
+            <div class="free-warning-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                <path d="M12 3.5l9.5 16.5H2.5L12 3.5z" stroke="#e0554f" stroke-width="1.8" stroke-linejoin="round"/>
+                <path d="M12 10v4.5" stroke="#e0554f" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="17.3" r="1" fill="#e0554f"/>
+              </svg>
+            </div>
+            <div class="free-warning-text">
+              <p class="free-warning-title">지정한 납입일에 못 넣으면?</p>
+              <p class="free-warning-desc">
+                지정한 납입일까지 돈을 넣지 않은 달은 티니점수를 받지 못해요.<br>
+                가입기간 중 돈을 넣은 달이 <strong>70% 미만</strong>이면 만기를 채우지
+                못하고 <strong>중도해지</strong>로 처리되며, 약정기간·경과율에 따라
+                티니점수가 감점돼요.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section free-info-section">
           <div class="score-guide">
             <p class="score-guide-title">이번 달 목표금액을 채운 만큼 티니점수를 받아요</p>
             <div class="score-guide-row"><span>0%</span><span>0점</span></div>
@@ -306,12 +332,8 @@
               <span class="toggle-title">자동상환</span>
               <span class="toggle-desc">매월 자동으로 갚아요</span>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="loanForm.autoTransfer">
-              <span class="slider"></span>
-            </label>
           </div>
-          <div v-if="loanForm.autoTransfer">
+          <div>
             <div class="setting-row border-top">
               <span class="setting-label">출금지갑</span>
               <span class="setting-value">티니머니 지갑</span>
@@ -381,7 +403,7 @@
         <div class="sheet day-picker-sheet" @click.stop>
           <div class="sheet-handle"></div>
           <div class="sheet-head">
-            <h3 class="sheet-title">{{ dayPickerTarget === 'loan' ? '매월 상환일 선택' : '매월 자동이체일 선택' }}</h3>
+            <h3 class="sheet-title">{{ dayPickerTitle }}</h3>
             <button type="button" class="sheet-close-btn" @click="closeDayPicker" aria-label="닫기">✕</button>
           </div>
 
@@ -401,7 +423,7 @@
 
           <div class="cal-footer-info">
             <p class="cal-notice-text">
-              매월 <strong>{{ selectedTempDay }}일</strong>에 자동으로 {{ dayPickerTarget === 'loan' ? '상환' : '이체' }}돼요
+              {{ dayPickerNoticeText }}
             </p>
           </div>
 
@@ -501,9 +523,9 @@ const savingsForm = reactive({ amount: 0, period: 0, autoTransfer: true, transfe
 const depositForm = reactive({ amount: 0, period: 0 })
 const loanForm     = reactive({ amount: 0, period: 0, autoTransfer: true, transferDay: Math.min(todayDay, 28) })
 
-// 이체일/상환일 달력 선택 바텀시트 상태
+// 이체일/상환일/납입일 달력 선택 바텀시트 상태
 const showDayPickerSheet = ref(false)
-const dayPickerTarget = ref('savings') // 'savings' | 'loan'
+const dayPickerTarget = ref('savings') // 'savings' | 'freeSaving' | 'loan'
 const selectedTempDay = ref(Math.min(todayDay, 28))
 
 function openDayPicker(target) {
@@ -511,6 +533,20 @@ function openDayPicker(target) {
   selectedTempDay.value = target === 'loan' ? loanForm.transferDay : savingsForm.transferDay
   showDayPickerSheet.value = true
 }
+
+const dayPickerTitle = computed(() => {
+  if (dayPickerTarget.value === 'loan') return '매월 상환일 선택'
+  if (dayPickerTarget.value === 'freeSaving') return '매월 납입일 선택'
+  return '매월 자동이체일 선택'
+})
+
+const dayPickerNoticeText = computed(() => {
+  if (dayPickerTarget.value === 'freeSaving') {
+    return `매월 ${selectedTempDay.value}일에 납입하도록 알려드려요`
+  }
+  const verb = dayPickerTarget.value === 'loan' ? '상환' : '이체'
+  return `매월 ${selectedTempDay.value}일에 자동으로 ${verb}돼요`
+})
 
 function closeDayPicker() {
   showDayPickerSheet.value = false
@@ -693,7 +729,7 @@ const handleSubmit = () => {
         interest: calculatedReturn.value.interest,
         rate: productRate.value,
         autoTransfer: isFreeSaving.value ? false : savingsForm.autoTransfer,
-        paymentDay: isFreeSaving.value ? 1 : savingsForm.transferDay,
+        paymentDay: savingsForm.transferDay,
         savingsType: savingsType.value,
         interestType: interestType.value || '단리',
       },
@@ -991,48 +1027,8 @@ const handleSubmit = () => {
 .toggle-desc  { display: block; font-weight: 500; font-size: 11.5px; color: #8b9097; margin-top: 2px; }
 
 
-.free-info-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: #fff9e8;
-  border: 1px solid #ffe9b3;
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  box-sizing: border-box;
-}
-.free-info-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
-}
-.free-info-text {
-  min-width: 0;
-}
-.free-info-title {
-  margin: 0 0 3px;
-  font-weight: 800;
-  font-size: 13.5px;
-  color: #15171b;
-  word-break: keep-all;
-}
-.free-info-desc {
-  margin: 0;
-  font-weight: 500;
-  font-size: 12px;
-  line-height: 1.4;
-  color: #8b7a45;
-  word-break: keep-all;
-}
-
 .score-guide {
-  background: #ffffff;
-  border: 1.3px solid #f0f1f3;
-  border-radius: 12px;
-  padding: 12px 14px;
+  padding: 0;
 }
 .score-guide-title {
   margin: 0 0 8px;
@@ -1051,6 +1047,47 @@ const handleSubmit = () => {
 .score-guide-row.highlight {
   color: #b8901f;
   font-weight: 800;
+}
+
+.free-warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fdf0ef;
+  border: 1px solid #f6cfcc;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-top: 12px;
+  box-sizing: border-box;
+}
+.free-warning-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+.free-warning-text {
+  min-width: 0;
+}
+.free-warning-title {
+  margin: 0 0 3px;
+  font-weight: 800;
+  font-size: 13.5px;
+  color: #e0554f;
+  word-break: keep-all;
+}
+.free-warning-desc {
+  margin: 0;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #a1453f;
+  word-break: keep-all;
+}
+.free-warning-desc strong {
+  font-weight: 800;
+  color: #e0554f;
 }
 
 .switch {
