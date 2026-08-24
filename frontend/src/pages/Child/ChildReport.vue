@@ -671,23 +671,20 @@ const amountCompare = computed(() => {
   const toPercent = (v) => (v > 0 ? Math.max(Math.round((v / max) * 100), 4) : 0)
 
   const delta = current - prev
-  let diffLabel
-  let diffValue = ''
+  let diffText
   if (prev === 0) {
-    diffLabel = delta === 0
+    diffText = delta === 0
       ? '저번 달 같은 기간과 지출이 없었어요'
-      : '저번 달 같은 기간엔 지출이 없었어요'
+      : `저번 달 같은 기간엔 지출이 없었어요 (${won(current)} 새로 씀)`
   } else {
     const percent = Math.round((delta / prev) * 100)
-    diffLabel = '같은 기간 대비'
-    diffValue = `${delta >= 0 ? '+' : ''}${won(delta)} (${percent >= 0 ? '+' : ''}${percent}%)`
+    diffText = `같은 기간 대비 ${delta >= 0 ? '+' : ''}${won(delta)} (${percent >= 0 ? '+' : ''}${percent}%)`
   }
 
   return {
     currentPercent: toPercent(current),
     prevPercent: toPercent(prev),
-    diffLabel,
-    diffValue,
+    diffText,
     isDecrease: delta < 0,
   }
 })
@@ -916,35 +913,31 @@ function toggleAllCategories() {
           <p class="spend-amount">{{ won(spend.amount) }}</p>
 
           <div class="amount-compare">
-            <img :src="amountCompare.isDecrease ? childMascot : rejectedMascot" alt="" class="amount-compare-watermark" />
+            <div class="amount-compare-intro">이번 달은 어땠나요?</div>
 
-            <div class="amount-compare-content">
-              <div class="amount-compare-intro">이번 달은 어땠나요?</div>
+            <div class="amount-compare-row">
+              <span class="amount-compare-label">이번 달</span>
+              <div class="amount-compare-track">
+                <div class="amount-compare-bar current" :style="{ width: amountCompare.currentPercent + '%' }"></div>
+              </div>
+              <span class="amount-compare-value">{{ won(spend.amount) }}</span>
+            </div>
+            <div class="amount-compare-row">
+              <span class="amount-compare-label">저번 달 같은 기간</span>
+              <div class="amount-compare-track">
+                <div class="amount-compare-bar prev" :style="{ width: amountCompare.prevPercent + '%' }"></div>
+              </div>
+              <span class="amount-compare-value">{{ won(spend.comparisonAmount) }}</span>
+            </div>
 
-              <div class="amount-compare-row">
-                <span class="amount-compare-label">이번 달</span>
-                <div class="amount-compare-track">
-                  <div class="amount-compare-bar current" :style="{ width: amountCompare.currentPercent + '%' }"></div>
-                </div>
-                <span class="amount-compare-value">{{ won(spend.amount) }}</span>
-              </div>
-              <div class="amount-compare-row">
-                <span class="amount-compare-label">저번 달 같은 기간</span>
-                <div class="amount-compare-track">
-                  <div class="amount-compare-bar prev" :style="{ width: amountCompare.prevPercent + '%' }"></div>
-                </div>
-                <span class="amount-compare-value">{{ won(spend.comparisonAmount) }}</span>
-              </div>
+            <div class="amount-compare-diff-badge" :class="{ decrease: amountCompare.isDecrease }">
+              <img :src="amountCompare.isDecrease ? childMascot : rejectedMascot" alt="" class="amount-compare-diff-mascot" />
+              <span class="amount-compare-diff-text">{{ amountCompare.diffText }}</span>
+            </div>
 
-              <div class="amount-compare-diff-badge" :class="{ decrease: amountCompare.isDecrease }">
-                <span class="amount-compare-diff-label">{{ amountCompare.diffLabel }}</span>
-                <span v-if="amountCompare.diffValue" class="amount-compare-diff-chip">{{ amountCompare.diffValue }}</span>
-              </div>
-
-              <div class="amount-compare-count">
-                <span class="amount-compare-count-text">저번 달 같은 기간 대비 결제 횟수 증감</span>
-                <span class="amount-compare-count-value" :class="{ decrease: spend.countDelta < 0 }">{{ spend.countDelta >= 0 ? '+' : '' }}{{ spend.countDelta }}회</span>
-              </div>
+            <div class="amount-compare-count">
+              <span class="amount-compare-count-text">저번 달 같은 기간 대비 결제 횟수 증감</span>
+              <span class="amount-compare-count-value" :class="{ decrease: spend.countDelta < 0 }">{{ spend.countDelta >= 0 ? '+' : '' }}{{ spend.countDelta }}회</span>
             </div>
           </div>
 
@@ -1591,28 +1584,6 @@ section { margin-bottom: 30px; }
   overflow: hidden;
 }
 
-/* 카드 오른쪽 위 영역에 캐릭터를 배경처럼 깔아둔다. 아래쪽 결제 횟수 줄이
-   불투명 배경으로 덮어주기 때문에, 실제로는 점선 위쪽에서만 보이게 된다. */
-.amount-compare-watermark {
-  position: absolute;
-  z-index: 0;
-  right: -14px;
-  top: -6px;
-  width: 42%;
-  max-width: 150px;
-  height: auto;
-  object-fit: contain;
-  opacity: 0.32;
-  filter: blur(1px);
-  pointer-events: none;
-  user-select: none;
-}
-
-.amount-compare-content {
-  position: relative;
-  z-index: 1;
-}
-
 .amount-compare-intro {
   margin: 0 0 16px;
   font-size: 12px;
@@ -1665,51 +1636,43 @@ section { margin-bottom: 30px; }
 }
 
 .amount-compare-diff-badge {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
   margin: 16px 0 0;
 }
 
-.amount-compare-diff-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #92650a;
+.amount-compare-diff-mascot {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
-.amount-compare-diff-chip {
-  font-size: 13.5px;
-  font-weight: 900;
+.amount-compare-diff-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 800;
   color: #6b4d0c;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
+.amount-compare-diff-badge.decrease .amount-compare-diff-text { color: #6b4d0c; }
 
 .amount-compare-count {
-  position: relative;
-  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
-  /* 위 카드 패딩(16px)까지 배경을 채워서 뒤에 깔린 워터마크를 점선 아래에서
-     완전히 가린다. */
-  margin: 16px -16px -16px;
-  padding: 12px 16px 16px;
-  background: #fff4d6;
+  margin: 16px 0 0;
+  padding-top: 12px;
   border-top: 1.5px dashed #ffd75e;
   font-size: 11.5px;
   font-weight: 700;
   color: #6b4d0c;
 }
 
-.amount-compare-count-text { position: relative; z-index: 1; flex: 1; min-width: 0; }
+.amount-compare-count-text { flex: 1; min-width: 0; }
 
 .amount-compare-count-value {
-  position: relative;
-  z-index: 1;
   margin-left: auto;
   font-size: 13px;
   font-weight: 900;
