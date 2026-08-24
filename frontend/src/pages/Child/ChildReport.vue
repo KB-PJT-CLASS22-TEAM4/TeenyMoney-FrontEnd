@@ -11,6 +11,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const coachMascot = new URL('@/assets/mascot/teeny-coach.png', import.meta.url).href
+const childMascot = new URL('@/assets/mascot/teeny-child.png', import.meta.url).href
+const rejectedMascot = new URL('@/assets/mascot/teeny-rejected.png', import.meta.url).href
 
 function goBack() {
   router.push({ name: 'child-transaction' })
@@ -38,14 +40,14 @@ const isLoading = ref(true)
 const loadError = ref(null)
 const loadErrorType = ref('error') // 'empty'(이 달 데이터 없음) | 'error'(조회 실패)
 
-const report = ref({ period: { label: '', status: '' }, compare: '', yearMonth: '' })
+const report = ref({ period: { label: '', status: '', isInProgress: true }, compare: '', yearMonth: '' })
 const summary = ref([])
 const habits = ref([])
 const spend = ref({
   label: '이번 달에 사용한 돈',
   amount: 0,
-  diffText: '',
-  compareText: '',
+  comparisonAmount: 0,
+  countDelta: 0,
   weeks: [],
   categories: [],
   topCategory: '',
@@ -64,7 +66,7 @@ function noWrap(text) {
 
 const ICON_STYLE = {
   wallet: { bg: '#f2f3f5', fg: '#6b7280' },
-  trending: { bg: '#e6f6ec', fg: '#2f9e5b' },
+  trending: { bg: '#eaf2fc', fg: '#2e72c7' },
   coin: { bg: '#eaf2fc', fg: '#2e72c7' },
   check: { bg: '#f2f3f5', fg: '#6b7280' },
 }
@@ -90,10 +92,12 @@ function formatPeriodLabel(startDate, endDate) {
 const PERIOD_STATUS_LABEL = { IN_PROGRESS: '진행 중', COMPLETED: '완료' }
 
 function mapPeriod(period) {
-  const compareSuffix = period.status === 'IN_PROGRESS' ? '(같은 일수 기준)' : '(전월 전체 기준)'
+  const isInProgress = period.status === 'IN_PROGRESS'
+  const compareSuffix = isInProgress ? '(같은 일수 기준)' : '(전월 전체 기준)'
   return {
     label: formatPeriodLabel(period.startDate, period.endDate),
     status: PERIOD_STATUS_LABEL[period.status] || period.status,
+    isInProgress,
     yearMonth: period.yearMonth,
     compare: `비교 기간 ${period.comparisonStartDate} ~ ${period.comparisonEndDate} ${compareSuffix}`,
   }
@@ -102,7 +106,7 @@ function mapPeriod(period) {
 function mapSummary(summaryData) {
   return [
     { icon: 'wallet', label: '사용한 돈', value: summaryData.spentAmount, colorClass: '', desc: `${summaryData.paymentCount}번 결제했어요.` },
-    { icon: 'trending', label: '모은 돈', value: summaryData.savedAmount, colorClass: 'green', desc: '예금과 적금에 넣었어요.' },
+    { icon: 'trending', label: '모은 돈', value: summaryData.savedAmount, colorClass: 'blue', desc: '예금과 적금에 넣었어요.' },
     { icon: 'coin', label: '직접 얻은 돈', value: summaryData.earnedAmount, colorClass: 'blue', desc: `${summaryData.earnedCount}번 받았어요.` },
     { icon: 'check', label: '갚은 돈', value: summaryData.repaidAmount, colorClass: '', desc: `대출을 ${summaryData.repaidCount}번 갚았어요.` },
   ]
@@ -112,7 +116,7 @@ const INSIGHT_META = {
   SPENDING_TOP_CATEGORY: { dot: '#f0b352', title: '소비' },
   PERMISSION_STATUS_SUMMARY: { dot: '#4a90d9', title: '오늘만 허용' },
   QUEST_COMPLETED: { dot: '#8b7dd8', title: '퀘스트' },
-  SAVING_PAYMENT: { dot: '#4caf82', title: '저축' },
+  SAVING_PAYMENT: { dot: '#2e72c7', title: '저축' },
   LOAN_REPAYMENT: { dot: '#e5484d', title: '대출 상환' },
   SAVING_MATURED: { dot: '#3aa7a0', title: '적금·예금 만기' },
   DEPOSIT_MATURED: { dot: '#3aa7a0', title: '적금·예금 만기' },
@@ -260,7 +264,8 @@ function mapInsight(insight, data) {
     const desc = amount != null
       ? [noWrap(`이번 달에 ${productName}대출을 갚아서 ${won(amount)}을 냈어요.`)]
       : ['이번 달에 대출 상환이 있었어요.']
-    return { ...base, desc }
+    // type: 'loanRepayment' → 템플릿에서 상환 진행률 빨간 막대가 있는 특수 카드로 렌더링.
+    return { ...base, desc, type: 'loanRepayment' }
   }
 
   return { ...base, desc: ['자세한 내용은 아래 링크에서 확인할 수 있어요.'] }
@@ -310,16 +315,17 @@ function mapMaturedGroup(insightList) {
 
 function mapWeeklyTrend(weeklyTrend) {
   const today = todayKstDate()
-  return (weeklyTrend || []).map((w) => ({
-    label: `${w.weekNo}주`,
-    amount: w.amount ?? 0,
-    display: w.amount == null ? '-' : won(w.amount),
-    active: w.startDate <= today && today <= w.endDate,
-    empty: w.amount == null,
-  }))
+  return (weeklyTrend || [])
+    .filter((w) => w.amount != null)
+    .map((w) => ({
+      label: `${w.weekNo}주`,
+      amount: w.amount,
+      display: won(w.amount),
+      active: w.startDate <= today && today <= w.endDate,
+    }))
 }
 
-const CATEGORY_COLORS = ['#f0b352', '#4a90d9', '#4caf82', '#8b7dd8', '#3aa7a0', '#e07a9e']
+const CATEGORY_COLORS = ['#f0b352', '#4a90d9', '#7fb3e8', '#8b7dd8', '#3aa7a0', '#e07a9e']
 
 function mapCategories(categories) {
   return [...(categories || [])]
@@ -335,13 +341,12 @@ function mapCategories(categories) {
 
 function mapSpending(spendingData) {
   const categories = mapCategories(spendingData.categories)
-  const amountDelta = spendingData.comparisonAmountDelta ?? 0
   const countDelta = spendingData.comparisonCountDelta ?? 0
   return {
     label: '이번 달에 사용한 돈',
     amount: spendingData.totalAmount,
-    diffText: `${amountDelta >= 0 ? '+' : ''}${won(amountDelta)} ${amountDelta >= 0 ? '증가' : '감소'}`,
-    compareText: `전월 같은 기간 ${won(spendingData.comparisonAmount)} · 횟수 ${countDelta >= 0 ? '+' : ''}${countDelta}회`,
+    comparisonAmount: spendingData.comparisonAmount,
+    countDelta,
     weeks: mapWeeklyTrend(spendingData.weeklyTrend),
     categories,
     topCategory: categories[0]?.name || '',
@@ -349,6 +354,10 @@ function mapSpending(spendingData) {
 }
 
 function mapTeenyScore(teenyScoreData) {
+  if (!teenyScoreData) {
+    return { change: 0, up: 0, down: 0, reasons: [] }
+  }
+
   return {
     change: teenyScoreData.netChange,
     up: teenyScoreData.increaseEventCount,
@@ -416,28 +425,40 @@ const monthOptions = ref(generateMonthOptions())
 
 const activeProducts = ref([])
 
-// "저축·상환" 카드용: 가입 상품 목록에서 정액적금 1개 + 대출 1개를 뽑아
+// 만기·중도해지·신청취소 등으로 이미 종료된 계약인지 판별.
+// activeProducts는 PENDING만 걸러낸 목록이라 종료된 계약도 섞여 있을 수 있다.
+function isEnrollmentEnded(p) {
+  return (
+    p.terminated === true ||
+    p.status === 'TERMINATED' ||
+    p.status === 'CLOSED' ||
+    p.status === 'CANCELLED' ||
+    p.status === 'CANCELED' ||
+    p.status === 'REPAID'
+  )
+}
+
+// "저축" 카드용: 가입 상품 목록에서 정액적금 1개를 뽑아
 // 회차 진행 상황(1회~N회 체크)과 합산 문장을 만든다.
 // 정액적금(FIXED)을 우선 사용 — 자유적금(FREE)은 회차 개념이 없어서 제외
+// 회차 체크 표시는 진행 중인 정액적금에서만 의미가 있으므로, 만기·중도해지·
+// 신청취소된 계약은 제외한다.
 const savingRepaymentDetail = computed(() => {
   const list = activeProducts.value || []
   const saving = list.find(
-    (p) => normalizeProductType(p.productType) === 'SAVING' && p.savingsType === 'FIXED' && p.totalPaymentCount
+    (p) =>
+      normalizeProductType(p.productType) === 'SAVING' &&
+      p.savingsType === 'FIXED' &&
+      p.totalPaymentCount &&
+      !isEnrollmentEnded(p)
   )
-  const loan = list.find((p) => normalizeProductType(p.productType) === 'LOAN' && p.totalPaymentCount)
 
-  if (!saving && !loan) return null
+  if (!saving) return null
 
   const parts = []
-  if (saving) {
-    const paid = saving.paidCount ?? 0
-    parts.push(`${saving.totalPaymentCount}번 중 ${paid}번의 적금 납입을 완료했어요.`)
-    parts.push(`지금까지 ${won(saving.currentAmount ?? 0)}을 모았${loan ? '고, ' : '어요.'}`)
-  }
-  if (loan) {
-    const loanPaid = loan.paidCount ?? 0
-    parts.push(`대출도 ${loan.totalPaymentCount}번 중 ${loanPaid}번 갚았어요.`)
-  }
+  const paid = saving.paidCount ?? 0
+  parts.push(`${saving.totalPaymentCount}번 중 ${paid}번의 적금 납입을 완료했어요.`)
+  parts.push(`지금까지 ${won(saving.currentAmount ?? 0)}을 모았어요.`)
 
   const rounds = saving
     ? Array.from({ length: saving.totalPaymentCount }, (_, i) => ({
@@ -456,7 +477,56 @@ const savingRepaymentDetail = computed(() => {
     )
   }
 
-  return { desc: [noWrap(parts.join(' '))], rounds, summaryLine }
+  return { desc: parts.map(noWrap), rounds, summaryLine }
+})
+
+// 대출 최초 원금을 구한다. 백엔드가 매번 원금을 내려주면 그 값을 쓰고, 조기상환
+// 등으로 원금 필드가 사라지면(currentAmount만 남은 잔액으로 내려오는 경우) 가입 시
+// ProductsConfirm.vue가 저장해둔 로컬 캐시로 보정한다. MyProducts.vue와 같은 방식.
+function getLoanOriginalPrincipal(loan) {
+  const explicit =
+    loan.principalAmount ??
+    loan.originalPrincipalAmount ??
+    loan.loanAmount ??
+    loan.amount ??
+    loan.requestedAmount ??
+    loan.appliedAmount ??
+    null
+  if (explicit && explicit > 0) return explicit
+
+  const enrollmentId = loan.enrollmentId ?? loan.id ?? loan.loanEnrollmentId
+  if (enrollmentId) {
+    try {
+      const cached = Number(localStorage.getItem(`teeny_loan_principal_${enrollmentId}`))
+      if (cached > 0) return cached
+    } catch {
+      // 로컬 저장소를 못 쓰는 환경이면 그냥 다음 폴백으로 넘어간다.
+    }
+  }
+
+  return loan.currentAmount ?? 0
+}
+
+// "대출 상환" 카드용: 가입 상품 목록에서 진행 중인 대출 1개를 뽑아
+// 상환 진행률(빨간 막대)과 요약 문장을 만든다.
+// paidCount(납입 회차)는 대출에서는 갱신되지 않는 경우가 있어 신뢰할 수 없다.
+// MyProducts.vue와 동일하게 원금 대비 상환 금액으로 진행률을 계산한다.
+const loanRepaymentDetail = computed(() => {
+  const list = activeProducts.value || []
+  const loan = list.find((p) => normalizeProductType(p.productType) === 'LOAN' && !isEnrollmentEnded(p))
+
+  if (!loan) return null
+
+  const totalPrincipal = getLoanOriginalPrincipal(loan)
+  const remaining = loan.currentAmount ?? 0
+  const repaid = Math.max(0, totalPrincipal - remaining)
+  const percent = totalPrincipal > 0 ? Math.min(100, Math.round((repaid / totalPrincipal) * 100)) : 0
+
+  const summaryLine = totalPrincipal > 0
+    ? noWrap(`총 ${won(totalPrincipal)} 중 ${won(repaid)} 상환 (남은 원금 ${won(remaining)})`)
+    : ''
+
+  return { percent, summaryLine }
 })
 
 async function loadReport(month) {
@@ -469,7 +539,7 @@ async function loadReport(month) {
 
     const mappedPeriod = mapPeriod(data.period)
     report.value = {
-      period: { label: mappedPeriod.label, status: mappedPeriod.status },
+      period: { label: mappedPeriod.label, status: mappedPeriod.status, isInProgress: mappedPeriod.isInProgress },
       compare: mappedPeriod.compare,
       yearMonth: mappedPeriod.yearMonth,
     }
@@ -534,9 +604,28 @@ async function loadAiAnalysis() {
   }
 }
 
-const aiAnalysisParagraphs = computed(() =>
-  aiAnalysisText.value.split('\n').map((s) => s.trim()).filter(Boolean)
-)
+// "1) ... 2) ... 3) ..." 처럼 번호를 매긴 항목은 번호 앞에서 줄바꿈해 보여준다.
+function withNumberedLineBreaks(text) {
+  return text.replace(/\s*(\d+\))/g, '\n$1').trim()
+}
+
+// 백엔드가 줄바꿈 없이 통짜 텍스트로 주는 경우가 많아, 줄바꿈이 있으면 그대로
+// 문단으로 쓰고 없으면 문장 단위로 잘라 두 문장씩 묶어 문단을 만든다.
+const SENTENCES_PER_PARAGRAPH = 2
+const aiAnalysisParagraphs = computed(() => {
+  const raw = aiAnalysisText.value.trim()
+  if (!raw) return []
+
+  const lines = raw.split('\n').map((s) => s.trim()).filter(Boolean)
+  if (lines.length > 1) return lines.map(withNumberedLineBreaks)
+
+  const sentences = raw.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
+  const paragraphs = []
+  for (let i = 0; i < sentences.length; i += SENTENCES_PER_PARAGRAPH) {
+    paragraphs.push(sentences.slice(i, i + SENTENCES_PER_PARAGRAPH).join(' '))
+  }
+  return paragraphs.map(withNumberedLineBreaks)
+})
 
 const ANALYSIS_PREVIEW_COUNT = 1
 const showFullAnalysis = ref(false)
@@ -573,10 +662,36 @@ onMounted(async () => {
   }
 })
 
+// 이번 달 지출 금액을 저번 달 같은 기간과 막대로 비교한다. 둘 중 큰 값을 100%로 두고
+// 나머지를 그 비율만큼 그린다.
+const amountCompare = computed(() => {
+  const current = spend.value.amount
+  const prev = spend.value.comparisonAmount
+  const max = Math.max(current, prev, 1)
+  const toPercent = (v) => (v > 0 ? Math.max(Math.round((v / max) * 100), 4) : 0)
+
+  const delta = current - prev
+  let diffText
+  if (prev === 0) {
+    diffText = delta === 0
+      ? '저번 달 같은 기간과 지출이 없었어요'
+      : `저번 달 같은 기간엔 지출이 없었어요 (${won(current)} 새로 씀)`
+  } else {
+    const percent = Math.round((delta / prev) * 100)
+    diffText = `같은 기간 대비 ${delta >= 0 ? '+' : ''}${won(delta)} (${percent >= 0 ? '+' : ''}${percent}%)`
+  }
+
+  return {
+    currentPercent: toPercent(current),
+    prevPercent: toPercent(prev),
+    diffText,
+    isDecrease: delta < 0,
+  }
+})
+
 const maxWeek = computed(() => Math.max(...spend.value.weeks.map((w) => w.amount), 1))
 function barHeight(week) {
-  if (week.empty) return '4px'
-  return Math.max(Math.round((week.amount / maxWeek.value) * 76), 6) + 'px'
+  return Math.max(Math.round((week.amount / maxWeek.value) * 104), 6) + 'px'
 }
 
 const CIRC = 2 * Math.PI * 44
@@ -618,30 +733,30 @@ function toggleAllCategories() {
   <div class="report-screen">
     <ChildPageNav title="머니 리포트" @back="goBack" />
 
-    <!-- 월 이동 네비게이션 — 상단 네비와 이어지도록 흰 배경으로 화면 좌우 끝까지 꽉 차게 -->
-    <div class="month-nav">
-      <div class="month-picker">
-        <button type="button" class="month-nav-label" @click="toggleMonthPicker">
-          {{ formatMonthLabelFull(selectedMonth) }}
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
-               stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div class="month-dropdown" v-if="showMonthPicker">
-          <button
-            v-for="ym in monthOptions"
-            :key="ym"
-            type="button"
-            class="month-option"
-            :class="{ active: ym === selectedMonth }"
-            @click="selectMonth(ym)"
-          >
-            {{ formatMonthLabelFull(ym) }}
+    <div class="scroll">
+
+      <!-- 월 이동 네비게이션 -->
+      <div class="month-nav">
+        <div class="month-picker">
+          <button type="button" class="month-nav-label" @click="toggleMonthPicker">
+            {{ formatMonthLabelFull(selectedMonth) }}
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
           </button>
+          <div class="month-dropdown" v-if="showMonthPicker">
+            <button
+              v-for="ym in monthOptions"
+              :key="ym"
+              type="button"
+              class="month-option"
+              :class="{ active: ym === selectedMonth }"
+              @click="selectMonth(ym)"
+            >
+              {{ formatMonthLabelFull(ym) }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="scroll">
 
       <!-- 로딩/에러 상태 -->
       <div v-if="isLoading" class="state-msg">리포트를 불러오는 중이에요...</div>
@@ -669,8 +784,8 @@ function toggleAllCategories() {
       </div>
       <p class="compare-line">{{ report.compare }}</p>
 
-      <!-- 티니코치 AI 금융 습관 분석 -->
-      <section>
+      <!-- 티니코치 AI 금융 습관 분석 — 진행 중인(이번) 달만 노출, 지난 달 리포트에서는 숨김 -->
+      <section v-if="report.period.isInProgress">
         <div class="coach-bubble-card">
           <img :src="coachMascot" alt="티니코치" class="coach-bubble-mascot" />
           <div class="coach-bubble-box">
@@ -682,10 +797,12 @@ function toggleAllCategories() {
             </div>
 
             <div v-else-if="aiAnalysisLoading" class="coach-bubble-loading">
-              <span class="loading-dot"></span>
-              <span class="loading-dot"></span>
-              <span class="loading-dot"></span>
-              <span class="loading-text">분석하고 있어요...</span>
+              <span class="loading-dots">
+                <span class="loading-dot"></span>
+                <span class="loading-dot"></span>
+                <span class="loading-dot"></span>
+              </span>
+              <span class="loading-text">분석하고 있어요! 최대 1분 정도 소요됩니다</span>
             </div>
 
             <div v-else-if="aiAnalysisError" class="coach-bubble-error">
@@ -741,10 +858,10 @@ function toggleAllCategories() {
             >
               <div>
                 <span class="insight-badge" :style="{ background: h.dot + '22', color: h.dot }">
-                  {{ h.type === 'savingRepayment' ? '저축·상환' : h.title }}
+                  {{ h.type === 'savingRepayment' ? '저축' : h.title }}
                 </span>
 
-                <!-- 저축·상환: 가입 상품 데이터로 회차 체크 배지 표시 -->
+                <!-- 저축: 가입 상품 데이터로 회차 체크 배지 표시 -->
                 <template v-if="h.type === 'savingRepayment' && savingRepaymentDetail">
                   <span v-for="(line, i) in savingRepaymentDetail.desc" :key="i">{{ line }}</span>
                 </template>
@@ -773,6 +890,16 @@ function toggleAllCategories() {
               </div>
               <div v-if="savingRepaymentDetail.summaryLine" class="round-summary">{{ savingRepaymentDetail.summaryLine }}</div>
             </template>
+
+            <template v-if="h.type === 'loanRepayment' && loanRepaymentDetail">
+              <div class="loan-progress-row">
+                <div class="loan-progress-track">
+                  <div class="loan-progress-fill" :style="{ width: loanRepaymentDetail.percent + '%' }"></div>
+                </div>
+                <span class="loan-progress-percent">{{ loanRepaymentDetail.percent }}%</span>
+              </div>
+              <div v-if="loanRepaymentDetail.summaryLine" class="round-summary">{{ loanRepaymentDetail.summaryLine }}</div>
+            </template>
           </div>
         </div>
         </div>
@@ -784,15 +911,42 @@ function toggleAllCategories() {
         <div class="spend-card">
           <p class="spend-label">{{ spend.label }}</p>
           <p class="spend-amount">{{ won(spend.amount) }}</p>
-          <span class="spend-diff">{{ spend.diffText }}</span>
-          <p class="spend-compare">{{ spend.compareText }}</p>
+
+          <div class="amount-compare">
+            <div class="amount-compare-intro">이번 달은 어땠나요?</div>
+
+            <div class="amount-compare-row">
+              <span class="amount-compare-label">이번 달</span>
+              <div class="amount-compare-track">
+                <div class="amount-compare-bar current" :style="{ width: amountCompare.currentPercent + '%' }"></div>
+              </div>
+              <span class="amount-compare-value">{{ won(spend.amount) }}</span>
+            </div>
+            <div class="amount-compare-row">
+              <span class="amount-compare-label">저번 달 같은 기간</span>
+              <div class="amount-compare-track">
+                <div class="amount-compare-bar prev" :style="{ width: amountCompare.prevPercent + '%' }"></div>
+              </div>
+              <span class="amount-compare-value">{{ won(spend.comparisonAmount) }}</span>
+            </div>
+
+            <div class="amount-compare-diff-badge" :class="{ decrease: amountCompare.isDecrease }">
+              <img :src="amountCompare.isDecrease ? childMascot : rejectedMascot" alt="" class="amount-compare-diff-mascot" />
+              <span class="amount-compare-diff-text">{{ amountCompare.diffText }}</span>
+            </div>
+
+            <div class="amount-compare-count">
+              <span class="amount-compare-count-text">저번 달 같은 기간 대비 결제 횟수 증감</span>
+              <span class="amount-compare-count-value" :class="{ decrease: spend.countDelta < 0 }">{{ spend.countDelta >= 0 ? '+' : '' }}{{ spend.countDelta }}회</span>
+            </div>
+          </div>
 
           <div class="bar-chart">
             <div class="bar-col" v-for="w in spend.weeks" :key="w.label">
               <span class="bar-amt">{{ w.display }}</span>
               <div
                 class="bar"
-                :class="{ active: w.active, empty: w.empty }"
+                :class="{ active: w.active }"
                 :style="{ height: barHeight(w) }"
               ></div>
               <span class="bar-week" :class="{ active: w.active }">{{ w.label }}</span>
@@ -808,7 +962,13 @@ function toggleAllCategories() {
           </div>
 
           <div class="donut-section">
-            <svg width="98" height="98" viewBox="0 0 120 120">
+            <svg width="128" height="128" viewBox="0 0 120 120">
+              <circle
+                cx="60" cy="60" r="44"
+                fill="none"
+                stroke="#eef1f4"
+                stroke-width="17"
+              />
               <circle
                 v-for="(seg, i) in donutSegments"
                 :key="i"
@@ -895,9 +1055,6 @@ function toggleAllCategories() {
   --orange-tag-bg: #fdf0dd;
   --orange-tag-fg: #b5793a;
   --blue: #4a90d9;
-  --green: #4caf82;
-  --green-tag-bg: #e6f6ec;
-  --green-tag-fg: #2f9e5b;
   --blue-tag-bg: #eaf2fc;
   --blue-tag-fg: #2e72c7;
   --line: #f1f5f9;
@@ -1003,13 +1160,12 @@ function toggleAllCategories() {
 
 /* 월 이동 네비게이션 (은행 앱 스타일: ‹ 2026년 8월 › ) */
 .month-nav {
-  flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 4px 18px 4px;
+  padding: 4px 0;
 }
 
 .month-picker { position: relative; }
@@ -1090,19 +1246,31 @@ function toggleAllCategories() {
 }
 
 .coach-bubble-mascot {
-  width: 56px;
-  height: 56px;
+  width: 68px;
+  height: 68px;
   object-fit: contain;
   flex-shrink: 0;
   margin-top: 4px;
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+  animation: coach-mascot-float 3s ease-in-out infinite;
+}
+
+@keyframes coach-mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-bubble-mascot {
+    animation: none;
+  }
 }
 
 .coach-bubble-box {
   position: relative;
   flex: 1;
   min-width: 0;
-  background: #e8f3ff;
+  background: #fff4d6;
   border-radius: 18px;
   border-top-left-radius: 4px;
   padding: 14px 16px 16px;
@@ -1112,12 +1280,12 @@ function toggleAllCategories() {
   content: '';
   position: absolute;
   top: 16px;
-  left: -9px;
+  left: -15px;
   width: 0;
   height: 0;
   border-style: solid;
-  border-width: 0 10px 10px 0;
-  border-color: transparent #e8f3ff transparent transparent;
+  border-width: 0 16px 16px 0;
+  border-color: transparent #fff4d6 transparent transparent;
 }
 
 .coach-bubble-name {
@@ -1125,14 +1293,14 @@ function toggleAllCategories() {
   margin-bottom: 8px;
   font-size: 11.5px;
   font-weight: 800;
-  color: #2f6fb0;
+  color: #93690a;
 }
 
 .coach-bubble-text {
   margin: 0 0 10px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #1f3a52;
+  color: #3a2c12;
   line-height: 1.7;
   word-break: keep-all;
   overflow-wrap: break-word;
@@ -1142,10 +1310,11 @@ function toggleAllCategories() {
   margin: 0 0 12px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #1f3a52;
+  color: #3a2c12;
   line-height: 1.75;
   word-break: keep-all;
   overflow-wrap: break-word;
+  white-space: pre-line;
 }
 
 .coach-bubble-para:last-of-type {
@@ -1154,17 +1323,24 @@ function toggleAllCategories() {
 
 .coach-start-btn {
   border: none;
-  background: var(--blue);
-  color: #ffffff;
+  background: #ffbc00;
+  color: #191b1e;
   border-radius: 999px;
   padding: 8px 16px;
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(74,144,217,0.35);
+  box-shadow: 0 2px 6px rgba(255,188,0,0.4);
 }
 
 .coach-bubble-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.coach-bubble-loading .loading-dots {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1174,7 +1350,7 @@ function toggleAllCategories() {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #4a90d9;
+  background: #e5a900;
   animation: coach-bounce 1.2s infinite;
 }
 .loading-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -1188,12 +1364,12 @@ function toggleAllCategories() {
 .loading-text {
   font-size: 12px;
   font-weight: 600;
-  color: #4a72a3;
+  color: #8a6d1f;
 }
 
 .coach-retry-btn {
-  border: 1px solid #4a90d9;
-  color: #2f6fb0;
+  border: 1px solid #e5a900;
+  color: #93690a;
   background: none;
   border-radius: 10px;
   padding: 6px 14px;
@@ -1236,7 +1412,6 @@ section { margin-bottom: 30px; }
 }
 .stat-label { font-size: 12.5px; color: var(--ink-sub); margin-bottom: 4px; font-weight: 600; }
 .stat-value { font-size: 19px; font-weight: 800; color: var(--ink); margin-bottom: 6px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.stat-value.green { color: var(--green-tag-fg); }
 .stat-value.blue { color: var(--blue-tag-fg); }
 .stat-desc { font-size: 11.5px; color: var(--ink-faint); line-height: 1.4; }
 
@@ -1303,7 +1478,7 @@ section { margin-bottom: 30px; }
 
 .chev { flex-shrink: 0; color: #cbd5e1; font-size: 18px; }
 
-/* 저축·상환 회차 배지 */
+/* 저축 회차 배지 */
 .round-row {
   display: flex;
   flex-wrap: wrap;
@@ -1332,9 +1507,9 @@ section { margin-bottom: 30px; }
 }
 
 .round-badge.done .round-circle {
-  background: var(--green-tag-bg);
-  border: 1.5px solid var(--green);
-  color: var(--green-tag-fg);
+  background: var(--blue-tag-bg);
+  border: 1.5px solid var(--blue);
+  color: var(--blue-tag-fg);
 }
 
 .round-label {
@@ -1344,7 +1519,7 @@ section { margin-bottom: 30px; }
 }
 
 .round-badge.done .round-label {
-  color: var(--green-tag-fg);
+  color: var(--blue-tag-fg);
 }
 
 .round-summary {
@@ -1357,6 +1532,37 @@ section { margin-bottom: 30px; }
   color: var(--ink-sub);
 }
 
+/* 대출 상환 진행률 막대 */
+.loan-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loan-progress-track {
+  flex: 1;
+  min-width: 0;
+  height: 10px;
+  background: #f2e6e6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.loan-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #e5484d;
+  transition: width 0.4s ease;
+}
+
+.loan-progress-percent {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #e5484d;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 소비 명세 카드 */
 .spend-card {
   background: var(--card);
@@ -1367,30 +1573,128 @@ section { margin-bottom: 30px; }
 }
 .spend-label { font-size: 13px; color: var(--ink-sub); margin: 0; font-weight: 600; }
 .spend-amount { font-size: 25px; font-weight: 900; color: var(--ink); margin: 2px 0 10px; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
-.spend-diff {
-  display: inline-block;
-  background: var(--yellow);
-  color: #ffffff;
+
+.amount-compare {
+  position: relative;
+  margin: 20px 0 24px;
+  padding: 20px 16px 16px;
+  background: #fff4d6;
+  border: 1.5px solid #ffd75e;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.amount-compare-intro {
+  margin: 0 0 16px;
   font-size: 12px;
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 999px;
-  margin-bottom: 8px;
+  color: #6b4d0c;
 }
-.spend-compare { margin: 4px 0 0; font-size: 12px; color: var(--ink-faint); margin-bottom: 20px; }
+
+.amount-compare-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.amount-compare-row:last-of-type { margin-bottom: 0; }
+
+.amount-compare-label {
+  flex: 0 0 108px;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 800;
+  color: #6b4d0c;
+}
+
+.amount-compare-track {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.amount-compare-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.amount-compare-bar.current { background: #ffbc00; }
+.amount-compare-bar.prev { background: #e0be86; }
+
+.amount-compare-value {
+  flex: 0 0 auto;
+  min-width: 62px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #6b4d0c;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.amount-compare-diff-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.amount-compare-diff-mascot {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.amount-compare-diff-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #6b4d0c;
+}
+.amount-compare-diff-badge.decrease .amount-compare-diff-text { color: #6b4d0c; }
+
+.amount-compare-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1.5px dashed #ffd75e;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6b4d0c;
+}
+
+.amount-compare-count-text { flex: 1; min-width: 0; }
+
+.amount-compare-count-value {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 900;
+  color: #6b4d0c;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.amount-compare-count-value.decrease { color: #6b4d0c; }
 
 .bar-chart {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  height: 92px;
+  height: 130px;
   margin-bottom: 6px;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 10px;
+  padding-top: 12px;
+  padding-bottom: 16px;
 }
 .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
 .bar { width: 100%; max-width: 34px; border-radius: 8px 8px 3px 3px; background: var(--yellow); transition: height 0.25s ease; }
-.bar.empty { background: transparent; border: 1.5px dashed #d7d9dd; }
 .bar-week { font-size: 11px; color: var(--ink-sub); font-weight: 600; text-align: center; }
 .bar-week.active { color: #a67300; font-weight: 800; }
 .bar-amt { font-size: 10px; color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; }

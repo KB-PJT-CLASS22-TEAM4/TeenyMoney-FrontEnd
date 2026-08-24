@@ -5,7 +5,7 @@
       <!-- 상단 히어로 영역 (일러스트 배경 + 인사말 + 캐릭터 + 통합 점수카드) -->
       <section class="hero-section">
         <!-- 상단 네비바 -->
-        <header class="top-nav">
+        <header class="home-top-nav">
           <div class="brand">
             <img src="@/assets/logo.svg" class="brand-logo" alt="티니머니" />
             <span class="brand-title">티니머니</span>
@@ -75,7 +75,7 @@
             </div>
           </div>
           <div class="action-btns">
-            <button class="btn-pill btn-yellow">송금</button>
+            <button class="btn-pill btn-yellow" @click="handleTransfer">송금</button>
             <button class="btn-pill btn-gray" @click="goPayment">거래내역</button>
           </div>
         </div>
@@ -247,6 +247,15 @@
     <BottomTabBar active="home" @select="onTabSelect" />
 
     <Chatbot />
+
+    <p
+      class="toast"
+      :class="{ 'is-on': toastOn }"
+      role="status"
+      aria-live="polite"
+    >
+      {{ toastText }}
+    </p>
   </div>
 </template>
 
@@ -281,6 +290,23 @@ function goPayment()      { router.push({ name: 'child-transaction' }) }
 function goScore()        { router.push({ name: 'child-score' }) }
 function goFinance()      { router.push({ name: 'child-finance-myproducts' }) }
 function goAllowRequest() { router.push({ name: 'child-todayallow-request' }) }
+
+const TOAST_MS = 2200
+const toastText = ref('')
+const toastOn = ref(false)
+let toastTimer = null
+
+function showToast(message) {
+  toastText.value = message
+  toastOn.value = true
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastOn.value = false }, TOAST_MS)
+}
+
+// 아직 구현되지 않은 기능이다. 버튼을 지우는 대신 짧게 알리고 사라지게 둔다.
+function handleTransfer() {
+  showToast('송금 기능은 다음 업데이트에 추가됩니다')
+}
 
 // 다가오는 일정 카드 클릭 시 — 퀘스트는 퀘스트 상세로, 금융상품은 나의 상품 목록으로 이동
 function goToScheduleItem(item) {
@@ -721,15 +747,18 @@ function onTabSelect(key) {
 .hero-section {
   position: relative;
   background: linear-gradient(180deg, #eef7ff 0%, #fffbe8 100%);
-  padding: 20px 18px 24px;
+  padding: 0 18px 24px;
   overflow: hidden;
 }
 
-.top-nav {
+.home-top-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  height: 56px;
+  margin: 0 -18px 14px;
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
 .brand {
@@ -1486,5 +1515,48 @@ function onTabSelect(key) {
 
 .child-home :deep(.tabbar) {
   margin-top: auto;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: max(96px, calc(var(--safe-area-bottom, 0px) + 88px));
+  z-index: 50;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(25, 27, 30, 0.92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 12.5px;
+  line-height: 1.4;
+  letter-spacing: -0.3px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  visibility: hidden;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    visibility 0s linear 0.25s;
+}
+
+.toast.is-on {
+  opacity: 1;
+  transform: translateX(-50%);
+  visibility: visible;
+  transition-delay: 0s, 0s, 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: none;
+  }
 }
 </style>
