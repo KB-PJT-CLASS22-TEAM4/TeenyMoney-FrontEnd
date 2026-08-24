@@ -97,7 +97,7 @@
             <p class="allowance-main">요청 목록 확인</p>
             <p class="allowance-sub">
               대기 중인 요청을<br />
-              바로 확인하고 처리해요
+              확인하고 처리해요
             </p>
           </div>
 

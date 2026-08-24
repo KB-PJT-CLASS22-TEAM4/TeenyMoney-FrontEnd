@@ -3,9 +3,9 @@
     <div class="pay-pw-screen">
       <header class="nav">
         <button
-          class="icon-btn"
+          class="back-btn"
           type="button"
-          aria-label="닫기"
+          aria-label="뒤로가기"
           :disabled="submitting"
           @click="emit('close')"
         >
@@ -15,47 +15,71 @@
             class="back-icon"
           />
         </button>
-        <h1 class="nav-title">결제 비밀번호</h1>
+
+        <h1 class="nav-title">
+          결제 비밀번호
+        </h1>
+
+        <ParentNavActions />
       </header>
 
-      <div class="lock-area">
-        <div class="lock-icon">
-          <svg viewBox="0 0 24 24" width="40" height="40" fill="none">
-            <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#ffffff" stroke-width="1.8"/>
-            <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffffff" stroke-width="1.8"/>
-            <circle cx="12" cy="15" r="1.3" fill="#ffffff"/>
-          </svg>
-        </div>
-        <p class="lock-text">결제 비밀번호를 입력해 주세요</p>
+      <div class="content">
+        <div class="lock-area">
+          <div class="lock-icon">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="none">
+              <rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#ffffff" stroke-width="1.8"/>
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#ffffff" stroke-width="1.8"/>
+              <circle cx="12" cy="15" r="1.3" fill="#ffffff"/>
+            </svg>
+          </div>
 
-        <div class="dots">
-          <span
-            v-for="n in 6"
-            :key="n"
-            class="dot"
-            :class="{ filled: pin.length >= n }"
-          ></span>
-        </div>
-      </div>
+          <p class="lock-text">
+            결제 비밀번호를 입력해 주세요
+          </p>
 
-      <div class="keypad">
-        <button
-          v-for="k in ['1','2','3','4','5','6','7','8','9']"
-          :key="k"
-          class="key"
-          type="button"
-          @click="press(k)"
-        >
-          {{ k }}
-        </button>
-        <span class="key empty"></span>
-        <button class="key" type="button" @click="press('0')">0</button>
-        <button class="key" type="button" aria-label="지우기" @click="remove">
-          <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
-            <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z" stroke="#15171b" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="M13 9l4 4M17 9l-4 4" stroke="#15171b" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
+          <div class="dots">
+            <span
+              v-for="n in 6"
+              :key="n"
+              class="dot"
+              :class="{ filled: pin.length >= n }"
+            ></span>
+          </div>
+        </div>
+
+        <div class="keypad">
+          <button
+            v-for="k in ['1','2','3','4','5','6','7','8','9']"
+            :key="k"
+            class="key"
+            type="button"
+            :disabled="submitting"
+            @click="press(k)"
+          >
+            {{ k }}
+          </button>
+          <span class="key empty"></span>
+          <button
+            class="key"
+            type="button"
+            :disabled="submitting"
+            @click="press('0')"
+          >
+            0
+          </button>
+          <button
+            class="key"
+            type="button"
+            aria-label="지우기"
+            :disabled="submitting"
+            @click="remove"
+          >
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none">
+              <path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7 6-7z" stroke="#15171b" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M13 9l4 4M17 9l-4 4" stroke="#15171b" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -63,6 +87,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 
 const props = defineProps({
   show: {
@@ -119,18 +144,17 @@ defineExpose({ reset })
   z-index: 900;
   display: flex;
   justify-content: center;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .pay-pw-screen {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
   width: 360px;
   min-height: 100dvh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f8fafc;
 }
 
 .nav {
@@ -138,51 +162,67 @@ defineExpose({ reset })
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
   width: 100%;
   height: 56px;
-  padding: 0 8px 0 4px;
+  padding: 0 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #eceef1;
 }
 
-.icon-btn {
+.back-btn {
   display: flex;
-  width: 40px;
-  height: 40px;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: none;
   background: transparent;
   cursor: pointer;
 }
 
-.icon-btn:disabled {
+.back-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
 .back-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .nav-title {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
   margin: 0;
   font-weight: 700;
   font-size: 17px;
   color: #191b1e;
-  text-align: center;
-  white-space: nowrap;
-  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 24px 16px 32px;
+  box-sizing: border-box;
+  gap: 36px;
 }
 
 .lock-area {
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
   width: 100%;
-  margin-top: 40px;
+  margin-top: 0;
+  padding: 0 20px;
 }
 
 .lock-icon {
@@ -230,11 +270,13 @@ defineExpose({ reset })
   justify-items: center;
   align-items: center;
   width: 100%;
-  max-width: 320px;
-  margin: 40px auto 0;
-  padding: 0;
+  max-width: 360px;
+  margin-top: 0;
+  padding: 12px 8px 4px;
   gap: 8px 0;
   box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 24px;
 }
 
 .key {
@@ -259,7 +301,12 @@ defineExpose({ reset })
   -webkit-appearance: none;
 }
 
-.key:active {
+.key:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.key:active:not(:disabled) {
   background: #f4f5f6;
 }
 

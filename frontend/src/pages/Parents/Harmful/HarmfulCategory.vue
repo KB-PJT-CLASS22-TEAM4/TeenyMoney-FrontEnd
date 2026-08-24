@@ -2249,7 +2249,6 @@ onUnmounted(() => {
 .btn {
   flex: 1;
   height: 40px;
-  border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
@@ -2257,11 +2256,13 @@ onUnmounted(() => {
 }
 
 .btn-primary {
+  border: none;
   background-color: #ffbc00;
   color: #191b1e;
 }
 
 .btn-secondary {
+  border: 1px solid #e0e2e6;
   background-color: #ffffff;
   color: #191b1e;
 }
