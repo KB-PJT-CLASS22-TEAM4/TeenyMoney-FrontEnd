@@ -185,9 +185,11 @@ async function submitPin() {
   flex: 1;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   width: 100%;
-  padding: 40px 16px 8px;
+  padding: 24px 16px 32px;
   box-sizing: border-box;
+  gap: 36px;
 }
 
 .lock-area {
@@ -196,8 +198,8 @@ async function submitPin() {
   align-items: center;
   box-sizing: border-box;
   width: 100%;
-  margin-top: 8px;
-  padding: 8px 20px 0;
+  margin-top: 0;
+  padding: 0 20px;
 }
 
 .lock-icon {
@@ -283,7 +285,7 @@ async function submitPin() {
   align-items: center;
   width: 100%;
   max-width: 360px;
-  margin-top: 24px;
+  margin-top: 0;
   padding: 12px 8px 4px;
   gap: 8px 0;
   box-sizing: border-box;
