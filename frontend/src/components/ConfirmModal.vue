@@ -1,8 +1,30 @@
 <template>
   <div v-if="show" class="overlay" @click.self="onCancel">
     <div class="modal">
-      <div class="modal-icon">
-        <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+      <div class="modal-icon" :class="`is-${variant}`">
+        <svg
+          v-if="variant === 'success'"
+          viewBox="0 0 24 24"
+          width="28"
+          height="28"
+          fill="none"
+        >
+          <circle cx="12" cy="12" r="9" stroke="#ffbc00" stroke-width="1.8"/>
+          <path
+            d="M8.2 12.2l2.4 2.4 5.2-5.2"
+            stroke="#ffbc00"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <svg
+          v-else
+          viewBox="0 0 24 24"
+          width="28"
+          height="28"
+          fill="none"
+        >
           <circle cx="12" cy="12" r="9" stroke="#ffbc00" stroke-width="1.8"/>
           <path d="M12 8v4.5M12 16v.5" stroke="#ffbc00" stroke-width="2.2" stroke-linecap="round"/>
         </svg>
@@ -33,6 +55,11 @@ defineProps({
   confirmText: { type: String, default: '확인' },
   cancelText: { type: String, default: '취소' },
   hideCancel: { type: Boolean, default: false },
+  variant: {
+    type: String,
+    default: 'alert',
+    validator: (value) => ['alert', 'success'].includes(value),
+  },
 })
 
 const emit = defineEmits(['confirm', 'cancel'])
@@ -56,7 +83,7 @@ function onCancel() {
   justify-content: center;
   padding: 0 32px;
   box-sizing: border-box;
-  z-index: 1000;
+  z-index: 10000;
 }
 
 /* 모달 카드 */

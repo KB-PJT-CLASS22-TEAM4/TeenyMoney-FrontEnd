@@ -440,6 +440,39 @@
           {{ rejectionReason.length }}/200
         </p>
 
+        <div
+          v-if="showAfterDeadlineOptions"
+          class="reject-after-deadline"
+        >
+          <p class="reject-after-deadline-label">
+            기한이 지났어요. 반려 후 처리 방법을 선택해주세요.
+          </p>
+          <div class="reject-after-deadline-options">
+            <button
+              type="button"
+              class="reject-after-deadline-btn"
+              :class="{
+                active: afterDeadlineAction === 'EXTEND',
+              }"
+              :disabled="processingQuestId !== null"
+              @click="afterDeadlineAction = 'EXTEND'"
+            >
+              기한 연장
+            </button>
+            <button
+              type="button"
+              class="reject-after-deadline-btn"
+              :class="{
+                active: afterDeadlineAction === 'FAIL',
+              }"
+              :disabled="processingQuestId !== null"
+              @click="afterDeadlineAction = 'FAIL'"
+            >
+              실패 처리
+            </button>
+          </div>
+        </div>
+
         <div class="reject-modal-actions">
 
           <button
@@ -458,7 +491,8 @@
             class="reject-confirm-btn"
             :disabled="
               !rejectionReason.trim() ||
-              processingQuestId !== null
+              processingQuestId !== null ||
+              (showAfterDeadlineOptions && !afterDeadlineAction)
             "
             @click="submitReject"
           >
@@ -519,7 +553,10 @@ import {
 } from '@/api/quest'
 
 import {
+  buildRejectAfterDeadlineOptions,
   isQuestDeadlineExpiredError,
+  isQuestDeadlinePassed,
+  isQuestReviewRequestInvalidError,
 } from '@/utils/questDeadline'
 import {
   formatKstClock12,
@@ -580,6 +617,20 @@ const rejectTargetQuest =
 
 const rejectionReason =
   ref('')
+
+const afterDeadlineAction =
+  ref('')
+
+const forceAfterDeadlineOptions =
+  ref(false)
+
+const isRejectPastDeadline = computed(() =>
+  isQuestDeadlinePassed(rejectTargetQuest.value?.deadline)
+)
+
+const showAfterDeadlineOptions = computed(() =>
+  isRejectPastDeadline.value || forceAfterDeadlineOptions.value
+)
 
 const isExtendModalOpen =
   ref(false)
@@ -1092,6 +1143,14 @@ function openRejectModal(
   rejectionReason.value =
     ''
 
+  forceAfterDeadlineOptions.value =
+    false
+
+  afterDeadlineAction.value =
+    isQuestDeadlinePassed(quest.deadline)
+      ? 'EXTEND'
+      : ''
+
   isRejectModalOpen.value =
     true
 }
@@ -1118,6 +1177,12 @@ function closeRejectModal() {
 
   rejectionReason.value =
     ''
+
+  afterDeadlineAction.value =
+    ''
+
+  forceAfterDeadlineOptions.value =
+    false
 }
 
 
@@ -1153,6 +1218,20 @@ async function submitReject() {
     return
   }
 
+  const needsAfterDeadlineAction =
+    isQuestDeadlinePassed(quest.deadline) ||
+    forceAfterDeadlineOptions.value
+
+  if (
+    needsAfterDeadlineAction &&
+    !afterDeadlineAction.value
+  ) {
+    alertModal.showAlert(
+      '기한 후 처리 방법을 선택해주세요.',
+    )
+    return
+  }
+
   processingQuestId.value =
     quest.questId
 
@@ -1182,7 +1261,13 @@ async function submitReject() {
       quest.questId,
       verificationId,
       reason,
-      authStore.accessToken
+      authStore.accessToken,
+      buildRejectAfterDeadlineOptions(
+        quest.deadline,
+        needsAfterDeadlineAction
+          ? afterDeadlineAction.value
+          : null,
+      ),
     )
 
     isRejectModalOpen.value =
@@ -1193,6 +1278,12 @@ async function submitReject() {
 
     rejectionReason.value =
       ''
+
+    afterDeadlineAction.value =
+      ''
+
+    forceAfterDeadlineOptions.value =
+      false
 
     alertModal.showAlert(
       '퀘스트 인증이 거절되었습니다.'
@@ -1206,6 +1297,22 @@ async function submitReject() {
       '거절 실패:',
       error
     )
+
+    if (
+      isQuestReviewRequestInvalidError(error)
+    ) {
+      forceAfterDeadlineOptions.value =
+        true
+      if (!afterDeadlineAction.value) {
+        afterDeadlineAction.value =
+          'EXTEND'
+      }
+      alertModal.showAlert(
+        error.message ||
+        '반려 요청의 사유와 기한 후 처리 방법을 확인해 주세요.',
+      )
+      return
+    }
 
     if (
       handleQuestDeadlineExpired(
@@ -2183,6 +2290,46 @@ watch(
   font-size: 11px;
 
   text-align: right;
+}
+
+.reject-after-deadline {
+  margin-top: 16px;
+}
+
+.reject-after-deadline-label {
+  margin: 0 0 10px;
+  color: #45484d;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.reject-after-deadline-options {
+  display: flex;
+  gap: 8px;
+}
+
+.reject-after-deadline-btn {
+  flex: 1;
+  height: 40px;
+  border: 1px solid #d9dce1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #555b63;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reject-after-deadline-btn.active {
+  border-color: #ffbc00;
+  background: #fff8e6;
+  color: #191b1e;
+}
+
+.reject-after-deadline-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .reject-modal-actions {
