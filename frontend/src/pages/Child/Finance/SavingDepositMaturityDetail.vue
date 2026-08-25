@@ -1,12 +1,12 @@
 <template>
   <div class="product-screen">
-    <ChildPageNav title="상환 완료 상세" @back="goBack" />
+    <ChildPageNav title="만기 완료 상세" @back="goBack" />
 
     <div class="scroll">
       <!-- 상품 헤더 카드 -->
       <section class="card product-card">
         <div class="title-row">
-          <span class="badge orange">대출</span>
+          <span class="badge" :class="badgeColor">{{ categoryLabel }}</span>
           <span class="prod-title">{{ detail?.productName || fallback.title }}</span>
         </div>
         <p class="prod-desc">{{ fallback.originLabel }}</p>
@@ -24,36 +24,36 @@
           <h3 class="card-section-title">상품 기본 정보</h3>
           <div class="detail-rows">
             <div class="detail-row">
-              <span class="d-label">대출 원금</span>
-              <span class="d-value">{{ (detail.principalAmount ?? 0).toLocaleString() }}원</span>
-            </div>
-            <div class="detail-row">
               <span class="d-label">약정금리</span>
               <span class="d-value">연 {{ detail.appliedRate }}%</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">대출기간</span>
+              <span class="d-label">가입기간</span>
               <span class="d-value">{{ detail.termMonths }}개월</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">대출 개시일</span>
+              <span class="d-label">가입일</span>
               <span class="d-value">{{ formatDateDot(detail.startDate) }}</span>
             </div>
             <div class="detail-row">
-              <span class="d-label">상환 완료일</span>
+              <span class="d-label">만기일</span>
+              <span class="d-value">{{ formatDateDot(detail.maturityDate) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="d-label">만기 처리일</span>
               <span class="d-value">{{ formatDateDot(detail.completedAt) }}</span>
             </div>
           </div>
         </section>
 
-        <!-- 상환 시점 요약 -->
+        <!-- 만기 시점 요약 -->
         <section class="card summary-card">
-          <span class="summary-label">완제 시 상환한 금액</span>
+          <span class="summary-label">만기로 받은 최종 금액</span>
           <h2 class="summary-amount">{{ (detail.totalAmount ?? 0).toLocaleString() }}원</h2>
         </section>
 
         <section class="card detail-card">
-          <h3 class="card-section-title">상환 내역</h3>
+          <h3 class="card-section-title">만기 내역</h3>
           <div class="detail-rows">
             <div class="detail-row">
               <span class="d-label">원금</span>
@@ -61,26 +61,26 @@
             </div>
             <div class="detail-row">
               <span class="d-label">이자</span>
-              <span class="d-value">{{ (detail.interestAmount ?? 0).toLocaleString() }}원</span>
+              <span class="d-value blue">{{ (detail.interestAmount ?? 0).toLocaleString() }}원</span>
             </div>
           </div>
 
           <div class="divider"></div>
 
           <div class="detail-row final-row">
-            <span class="final-label">완납 상태</span>
-            <span class="final-amount blue">대출 종료</span>
+            <span class="final-label">최종 지급액</span>
+            <span class="final-amount">{{ (detail.totalAmount ?? 0).toLocaleString() }}원</span>
           </div>
         </section>
 
         <!-- 회차별 이력 -->
-        <section v-if="repayments.length" class="card detail-card">
-          <h3 class="card-section-title">회차별 상환 내역</h3>
+        <section v-if="periods.length" class="card detail-card">
+          <h3 class="card-section-title">회차별 납입 내역</h3>
           <div class="period-rows">
-            <div class="period-row" v-for="r in repayments" :key="r.key">
-              <span class="period-no">{{ r.label }}</span>
-              <span class="period-date">{{ formatDateDot(r.date) }}</span>
-              <span class="period-amount">{{ r.amount.toLocaleString() }}원</span>
+            <div class="period-row" v-for="p in periods" :key="p.key">
+              <span class="period-no">{{ p.no }}회차</span>
+              <span class="period-date">{{ formatDateDot(p.date) }}</span>
+              <span class="period-amount">{{ p.amount.toLocaleString() }}원</span>
             </div>
           </div>
         </section>
@@ -106,40 +106,43 @@ const authStore = useAuthStore()
 
 const fallback = {
   id: route.query.id || '',
-  title: route.query.title || '대출 상품',
+  title: route.query.title || '상품',
+  category: route.query.category || '',
   originLabel: route.query.originLabel || '',
-  productTypePath: route.query.productTypePath || 'loan',
+  productTypePath: route.query.productTypePath || 'saving',
 }
 
 const detail = ref(null)
 const isLoading = ref(true)
 const loadError = ref('')
 
-const REPAYMENT_TYPE_LABEL = {
-  REGULAR: '정기상환',
-  INSTALLMENT: '정기상환',
-  EARLY: '조기상환',
-  EARLY_REPAYMENT: '조기상환',
-  PREPAYMENT: '조기상환',
-  OVERDUE: '연체상환',
-  OVERDUE_INTEREST: '연체상환',
-}
+const isDeposit = computed(() =>
+  (detail.value?.productType || '').toUpperCase() === 'DEPOSIT' || fallback.category === '예금'
+)
+const categoryLabel = computed(() => fallback.category || (isDeposit.value ? '예금' : '적금'))
+const badgeColor = computed(() => (isDeposit.value ? 'blue' : 'orange'))
 
-function repaymentLabel(r, index) {
-  if (r.installmentNo != null) return `${r.installmentNo}회차`
-  return REPAYMENT_TYPE_LABEL[r.repaymentType] || `상환 ${index + 1}`
-}
-
-const repayments = computed(() => {
-  if (!detail.value || !Array.isArray(detail.value.loanRepayments)) return []
-  return detail.value.loanRepayments
-    .filter((r) => r.status !== 'SCHEDULED')
-    .map((r, index) => ({
-      key: `loan-${r.installmentNo ?? r.processedAt ?? index}`,
-      label: repaymentLabel(r, index),
-      date: r.paidAt,
-      amount: (r.paidPrincipalAmount ?? 0) + (r.paidInterestAmount ?? 0),
+const periods = computed(() => {
+  if (!detail.value) return []
+  if (Array.isArray(detail.value.savingPayments)) {
+    return detail.value.savingPayments
+      .filter((p) => p.status !== 'SCHEDULED')
+      .map((p) => ({
+        key: `saving-${p.installmentNo}`,
+        no: p.installmentNo,
+        date: p.paidAt,
+        amount: p.paidAmount ?? 0,
+      }))
+  }
+  if (Array.isArray(detail.value.depositPeriods)) {
+    return detail.value.depositPeriods.map((p) => ({
+      key: `deposit-${p.monthNo}`,
+      no: p.monthNo,
+      date: p.periodEndDate,
+      amount: p.accumulatedAmount ?? 0,
     }))
+  }
+  return []
 })
 
 function formatDateDot(raw) {
@@ -164,7 +167,7 @@ onMounted(async () => {
       fallback.id
     )
   } catch (e) {
-    loadError.value = e.message || '상환 상세 내역을 불러오지 못했어요.'
+    loadError.value = e.message || '만기 상세 내역을 불러오지 못했어요.'
   } finally {
     isLoading.value = false
   }
@@ -237,6 +240,12 @@ function goBack() {
   font-size: 11px;
 }
 
+.badge.blue {
+  background: #eef4fc;
+  color: #3b74b8;
+  border: 1px solid #dce8f8;
+}
+
 .badge.orange {
   background: #fff3e0;
   color: #e65100;
@@ -287,6 +296,10 @@ function goBack() {
   color: #15171b;
 }
 
+.d-value.blue {
+  color: #4d8ad6;
+}
+
 .divider {
   height: 1px;
   background: #f0f2f4;
@@ -307,10 +320,6 @@ function goBack() {
   font-weight: 800;
   font-size: 16.5px;
   color: #15171b;
-}
-
-.final-amount.blue {
-  color: #3b74b8;
 }
 
 .summary-card {

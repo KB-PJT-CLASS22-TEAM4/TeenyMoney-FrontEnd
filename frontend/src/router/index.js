@@ -56,6 +56,8 @@ import ProductsCancel from '@/pages/Child/Finance/ProductsCancel.vue';
 import ProductTerminatedDetail from '@/pages/Child/Finance/ProductTerminatedDetail.vue';
 // 자녀 대출 상환 완료 상품 상세
 import LoanRepaymentDetail from '@/pages/Child/Finance/LoanRepaymentDetail.vue';
+// 자녀 예·적금 만기 완료 상품 상세
+import SavingDepositMaturityDetail from '@/pages/Child/Finance/SavingDepositMaturityDetail.vue';
 // 자녀 티니점수
 import TeenyScore from '@/pages/Child/TeenyScore.vue';
 // 자녀 티니 등급 상세
@@ -400,6 +402,12 @@ const router = createRouter({
     path: '/child/finance/repayment-detail',
     name: 'child-finance-repayment-detail',
     component: LoanRepaymentDetail,
+  },
+  // 자녀 예·적금 만기 완료 상품 상세
+  {
+    path: '/child/finance/maturity-detail',
+    name: 'child-finance-maturity-detail',
+    component: SavingDepositMaturityDetail,
   },
   // 자녀 티니점수
   {

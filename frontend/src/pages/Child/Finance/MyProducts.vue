@@ -301,10 +301,18 @@ function mapEnrolledProduct(p) {
     ? getOrStoreDepositAmount(enrollmentId, explicitDepositAmount)
     : 0
 
-  // 중도해지 완료: 백엔드가 해지 시점을 내려주지 않아, 해지 실행(ProductsCancel.vue) 시
-  // localStorage에 캐시해둔 날짜를 만기일 대신 보여준다.
-  const isEarlyTerminated = p.status === 'TERMINATED' || p.status === 'CLOSED'
-  const terminatedDate = isEarlyTerminated ? getCachedTerminatedDate(enrollmentId) : null
+  // 예·적금은 중도해지든 정상 만기든 백엔드가 같은 상태값(TERMINATED/CLOSED)을 내려준다.
+  // 실제로 중도해지를 실행했을 때만 ProductsCancel.vue가 로컬에 해지일을 캐시해두므로,
+  // 그 캐시가 없고 만기일이 이미 지났다면 정상 만기로 판단한다.
+  const isEndedByCancelStatus = p.status === 'TERMINATED' || p.status === 'CLOSED'
+  const cachedTerminatedDate = isEndedByCancelStatus ? getCachedTerminatedDate(enrollmentId) : null
+  const reachedMaturityDate = Boolean(p.maturityDate) && (() => {
+    const maturity = parseServerDate(p.maturityDate)
+    return maturity ? new Date() >= maturity : false
+  })()
+  const isMatured = isEndedByCancelStatus && !isLoan && !cachedTerminatedDate && reachedMaturityDate
+  const isEarlyTerminated = isEndedByCancelStatus && !isMatured
+  const terminatedDate = isEarlyTerminated ? cachedTerminatedDate : null
 
   // 대출 상환 완료: 조기상환으로 완제된 경우 원래 만기일이 아니라 실제 완제일을 보여준다.
   // 캐시가 없으면(정상 스케줄대로 완납) 기존 만기일이 실제 완제일과 같으므로 그대로 사용.
@@ -358,7 +366,9 @@ function mapEnrolledProduct(p) {
       ? '대출이 모두 상환 완료됐어요.'
       : isCancelled
         ? '신청 취소된 상품이에요.'
-        : '중도해지가 완료된 상품이에요.'
+        : isMatured
+          ? '만기가 완료된 상품이에요.'
+          : '중도해지가 완료된 상품이에요.'
   } else if (isPending) {
     infoText = '부모님의 승인을 기다리고 있어요.'
   } else if (isSaving) {
@@ -447,6 +457,7 @@ function mapEnrolledProduct(p) {
     category: typeMap[p.productType] ?? p.productType,
     isEarlyTerminated,
     isLoanRepaid,
+    isMatured,
     isCancelled,
     displayTypeLabel,
     originType: origin.type,
@@ -677,7 +688,31 @@ function goToCancel(product) {
   })
 }
 
+// 완료 상세 조회 API의 경로 세그먼트로 변환 (deposit | saving | loan)
+function toCompletionProductPath(productType) {
+  const raw = String(productType || '').toUpperCase()
+  if (raw.includes('LOAN')) return 'loan'
+  if (raw.includes('DEPOSIT')) return 'deposit'
+  return 'saving'
+}
+
+// 완료 상세 조회 API(만기/완납 전용)로 이동. 중도해지는 이 API를 지원하지 않는다.
+function goToCompletionDetailPage(routeName, product) {
+  router.push({
+    name: routeName,
+    query: {
+      id: product.id,
+      productTypePath: toCompletionProductPath(product.productType),
+      title: product.title,
+      category: product.category,
+      originLabel: product.originLabel,
+    },
+  })
+}
+
 // 중도해지 완료 상품 상세 이동 (완료됨 목록에서 중도해지된 것만 클릭 가능)
+// 중도해지는 완료 상세 조회 API가 지원하지 않아(409),
+// 해지 시점에 캐싱해둔 로컬 결과(teeny_termination_result_)를 그대로 사용한다.
 function goToTerminatedDetail(product) {
   const parts = parseDateParts(product.startDateRaw)
   const startDateIso = parts
@@ -703,29 +738,19 @@ function goToTerminatedDetail(product) {
 
 // 대출 상환 완료 상품 상세 이동 (완료됨 목록에서 상환 완료된 대출만 클릭 가능)
 function goToRepaymentDetail(product) {
-  const parts = parseDateParts(product.startDateRaw)
-  const startDateIso = parts
-    ? `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(parts.d).padStart(2, '0')}`
-    : ''
+  goToCompletionDetailPage('child-finance-repayment-detail', product)
+}
 
-  router.push({
-    name: 'child-finance-repayment-detail',
-    query: {
-      id: product.id,
-      title: product.title,
-      originLabel: product.originLabel,
-      principal: product.principal,
-      appliedRate: product.appliedRate,
-      termMonths: product.termMonths,
-      startDate: startDateIso,
-    },
-  })
+// 만기 완료 예·적금 상세 이동 (완료됨 목록에서 정상 만기된 예·적금만 클릭 가능)
+function goToMaturityDetail(product) {
+  goToCompletionDetailPage('child-finance-maturity-detail', product)
 }
 
 // 완료됨 카드 클릭 시 상태에 맞는 상세 페이지로 이동
 function goToCompletedDetail(product) {
   if (product.isEarlyTerminated) goToTerminatedDetail(product)
   else if (product.isLoanRepaid) goToRepaymentDetail(product)
+  else if (product.isMatured) goToMaturityDetail(product)
 }
 
 // 자유적금 간편 이체 바텀시트
@@ -1029,7 +1054,7 @@ function onScroll() {
           <p v-if="product.hasDateRange" class="date-range">{{ product.startDate }} ~ {{ product.maturityDate }}</p>
           <p v-if="product.infoText" class="info-text">{{ product.infoText }}</p>
 
-          <div v-if="product.isEarlyTerminated || product.isLoanRepaid" class="card-footer end">
+          <div v-if="product.isEarlyTerminated || product.isLoanRepaid || product.isMatured" class="card-footer end">
             <button type="button" class="btn-cancel-link" @click="goToCompletedDetail(product)">
               상세보기
             </button>
