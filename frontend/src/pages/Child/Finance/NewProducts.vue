@@ -268,12 +268,14 @@ function mapProduct(p) {
     isLoan ? '대출한도' : p.productType === 'DEPOSIT' ? '예치한도' : '납입한도'
   const limitValue = p.maximumAmount ? `${p.maximumAmount.toLocaleString()}원` : '-'
 
-  const scoreValue = isLoan
-    ? p.requiredGradeName
-      ? `${p.requiredGradeName} 등급 이상`
-      : '제한 없음'
-    : null
-  const scoreColor = isLoan ? gradeColorMap[p.requiredGradeName] ?? 'blue' : ''
+  const scoreValue = p.requiredGradeName
+    ? `${p.requiredGradeName} 등급 이상`
+    : isLoan
+      ? '제한 없음'
+      : null
+  const scoreColor = p.requiredGradeName
+    ? gradeColorMap[p.requiredGradeName] ?? 'blue'
+    : ''
 
   const details = [
     { label: '기간', value: periodValue, color: '' },
@@ -304,6 +306,9 @@ function mapProduct(p) {
       value: repDesc,
       color: '',
     })
+  }
+
+  if (scoreValue) {
     details.push({ label: '티니점수 조건', value: scoreValue, color: scoreColor })
   }
 
@@ -322,7 +327,7 @@ function mapProduct(p) {
     liked: false,
     eligible: p.eligible,
     ineligibleReason: p.ineligibleReason,
-    locked: isLoan && !p.eligible,
+    locked: isLoan ? !p.eligible : p.eligible === false,
     requiredGradeName: p.requiredGradeName,
     gradeColor: scoreColor,
     interestType: interestTypeMap[p.interestCalculationType] || (isLoan ? '단리' : ''),
@@ -676,7 +681,7 @@ function goToApply(product) {
     return
   }
 
-  if (!product.eligible) {
+  if (product.productType === 'LOAN' ? !product.eligible : product.eligible === false) {
     openIneligibleModal(
       product.requiredGradeName
         ? `${product.requiredGradeName} 등급 이상부터 가입할 수 있는 상품이에요!\n티니점수를 더 모아보세요.`
@@ -774,7 +779,7 @@ function goToApply(product) {
           class="card"
           :class="{
             liked: product.liked,
-            disabled: !product.eligible && !product.locked,
+            disabled: product.eligible === false && !product.locked,
             locked: product.locked,
             'family-origin': product.originType === 'family',
           }"
@@ -850,7 +855,9 @@ function goToApply(product) {
               <path d="M7.5 10.5V7.5a4.5 4.5 0 0 1 9 0v3" stroke="#8b9097" stroke-width="1.8" stroke-linecap="round"/>
               <circle cx="12" cy="15.5" r="1.5" fill="#8b9097"/>
             </svg>
-            <span class="lock-hint-text" :class="product.gradeColor">{{ product.requiredGradeName }} 등급이면 열려요</span>
+            <span class="lock-hint-text" :class="product.gradeColor">
+              {{ product.requiredGradeName ? `${product.requiredGradeName} 등급이면 열려요` : '티니점수를 모으면 열려요' }}
+            </span>
           </div>
         </div>
       </div>

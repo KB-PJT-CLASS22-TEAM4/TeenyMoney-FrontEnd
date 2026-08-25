@@ -37,6 +37,11 @@ const REPAYMENT_TYPE_LABELS = {
   EQUAL_PRINCIPAL: '원금 균등상환',
   BULLET: '만기일시상환',
   LUMP_SUM: '만기일시상환',
+  EARLY_REPAYMENT: '중도 상환',
+  EARLY_REPAID: '중도 상환',
+  EARLY: '중도 상환',
+  PREPAYMENT: '중도 상환',
+  PREPAY: '중도 상환',
 }
 
 const SAVINGS_TYPE_LABELS = {
@@ -89,6 +94,11 @@ const HISTORY_COMPLETED_STATUSES = new Set([
   'FULLY_REPAID',
   'PAID_OFF',
   'MATURITY',
+  'TERMINATED',
+  'CLOSED',
+  'EARLY_TERMINATED',
+  'EARLY_REPAID',
+  'EARLY_REPAYMENT',
 ])
 
 const HISTORY_COMPLETION_TYPES = new Set([
@@ -98,23 +108,99 @@ const HISTORY_COMPLETION_TYPES = new Set([
   'FULLY_REPAID',
   'REPAID',
   'PAID_OFF',
+  'EARLY_TERMINATION',
+  'EARLY_TERMINATED',
+  'TERMINATION',
+  'EARLY_REPAYMENT',
+  'EARLY_REPAID',
+  'PREPAYMENT',
 ])
+
+const HISTORY_EXCLUDED_STATUSES = new Set([
+  'CANCELLED',
+  'CANCELED',
+  'PENDING',
+  'REJECTED',
+])
+
+function compactLabel(value) {
+  return String(value ?? '').replace(/\s/g, '')
+}
+
+export function isEarlyTerminatedProduct(item) {
+  const status = String(item?.status ?? '').toUpperCase()
+  const completionType = String(item?.completionType ?? '').toUpperCase()
+  const statusLabel = compactLabel(item?.statusLabel)
+
+  return (
+    status === 'TERMINATED'
+    || status === 'CLOSED'
+    || status === 'EARLY_TERMINATED'
+    || completionType.includes('EARLY_TERMINAT')
+    || completionType === 'TERMINATION'
+    || statusLabel.includes('중도해지')
+  )
+}
+
+export function isEarlyRepaidProduct(item) {
+  const status = String(item?.status ?? '').toUpperCase()
+  const completionType = String(item?.completionType ?? '').toUpperCase()
+  const statusLabel = compactLabel(item?.statusLabel)
+
+  return (
+    status === 'EARLY_REPAID'
+    || status === 'EARLY_REPAYMENT'
+    || completionType.includes('EARLY_REPAY')
+    || completionType.includes('PREPAY')
+    || statusLabel.includes('중도상환')
+    || statusLabel.includes('조기상환')
+  )
+}
+
+export function isEarlyRepaymentInstallment(item) {
+  const status = String(item?.status ?? '').toUpperCase()
+  const type = String(
+    item?.repaymentType
+      ?? item?.paymentType
+      ?? item?.repaymentKind
+      ?? item?.repaymentMethod
+      ?? item?.type
+      ?? ''
+  ).toUpperCase()
+
+  return (
+    item?.isEarlyRepayment === true
+    || item?.earlyRepayment === true
+    || status.includes('EARLY')
+    || status.includes('PREPAY')
+    || type.includes('EARLY')
+    || type.includes('PREPAY')
+  )
+}
 
 export function isHistoryCompletedProduct(item, status) {
   const rawStatus = String(item?.status ?? status ?? '').toUpperCase()
   const completionType = String(item?.completionType ?? '').toUpperCase()
 
-  if (
-    ['TERMINATED', 'CANCELLED', 'CANCELED', 'CLOSED', 'PENDING', 'REJECTED', 'ACTIVE'].includes(rawStatus)
-  ) {
+  if (HISTORY_EXCLUDED_STATUSES.has(rawStatus)) {
     return false
   }
+
+  if (item?.terminated === true || item?.earlyTerminated === true) return true
+
+  if (rawStatus === 'ACTIVE') return false
 
   if (HISTORY_COMPLETED_STATUSES.has(rawStatus)) return true
   if (HISTORY_COMPLETION_TYPES.has(completionType)) return true
 
-  const statusLabel = String(item?.statusLabel ?? '').replace(/\s/g, '')
-  return statusLabel.includes('만기') || statusLabel.includes('완납')
+  const statusLabel = compactLabel(item?.statusLabel)
+  return (
+    statusLabel.includes('만기')
+    || statusLabel.includes('완납')
+    || statusLabel.includes('중도해지')
+    || statusLabel.includes('중도상환')
+    || statusLabel.includes('조기상환')
+  )
 }
 
 function toCategoryLabel(value) {
@@ -230,7 +316,7 @@ export function normalizeFinancialProduct(item, fallbackCategory = '적금') {
         ?? item?.expiresAt
     ),
     requestedAt: item?.requestedAt ?? item?.createdAt ?? item?.appliedAt,
-    completedAt: item?.completedAt ?? item?.maturedAt ?? item?.repaidAt ?? null,
+    completedAt: item?.completedAt ?? item?.maturedAt ?? item?.repaidAt ?? item?.terminatedAt ?? item?.terminatedDate ?? null,
     completionType: item?.completionType ?? '',
     startDate: formatDate(item?.startDate ?? item?.startedAt),
     principalAmount: item?.principalAmount ?? item?.amount ?? 0,

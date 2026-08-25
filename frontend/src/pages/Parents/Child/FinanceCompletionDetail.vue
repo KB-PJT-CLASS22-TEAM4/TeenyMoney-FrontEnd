@@ -54,7 +54,7 @@
           <p class="info-value">{{ formatAmount(detail.interestAmount) }}</p>
         </div>
         <div class="info-row">
-          <p class="info-label">{{ isLoan ? '상환 총액' : '만기 수령액' }}</p>
+          <p class="info-label">{{ totalAmountLabel }}</p>
           <p class="info-value strong">{{ formatAmount(detail.totalAmount) }}</p>
         </div>
         <div class="info-row">
@@ -64,7 +64,7 @@
           </p>
         </div>
         <div class="info-row">
-          <p class="info-label">{{ isLoan ? '완납일' : '만기일' }}</p>
+          <p class="info-label">{{ completionDateLabel }}</p>
           <p class="info-value">{{ formatDateTime(detail.completedAt) }}</p>
         </div>
       </section>
@@ -103,7 +103,9 @@
         >
           <div class="history-head">
             <strong>{{ item.installmentNo }}회차</strong>
-            <span class="row-badge">{{ paymentStatusLabel(item.status) }}</span>
+            <span class="row-badge" :class="paymentStatusClass(item.status)">
+              {{ paymentStatusLabel(item.status) }}
+            </span>
           </div>
           <div class="history-grid">
             <p><span>예정 금액</span><b>{{ formatAmount(item.scheduledAmount) }}</b></p>
@@ -125,8 +127,10 @@
           class="history-item"
         >
           <div class="history-head">
-            <strong>{{ item.installmentNo }}회차</strong>
-            <span class="row-badge">{{ paymentStatusLabel(item.status) }}</span>
+            <strong>{{ repaymentItemTitle(item) }}</strong>
+            <span class="row-badge" :class="repaymentItemBadgeClass(item)">
+              {{ repaymentItemStatus(item) }}
+            </span>
           </div>
           <div class="history-grid">
             <p><span>납기일</span><b>{{ formatDate(item.dueDate) }}</b></p>
@@ -135,7 +139,7 @@
             <p><span>이자</span><b>{{ formatAmount(item.interestAmount) }}</b></p>
             <p><span>납입 원금</span><b>{{ formatAmount(item.paidPrincipalAmount) }}</b></p>
             <p><span>납입 이자</span><b>{{ formatAmount(item.paidInterestAmount) }}</b></p>
-            <p v-if="formatRepaymentType(item.repaymentType)">
+            <p v-if="!isEarlyRepaymentInstallment(item) && formatRepaymentType(item.repaymentType)">
               <span>상환 방식</span>
               <b>{{ formatRepaymentType(item.repaymentType) }}</b>
             </p>
@@ -161,7 +165,12 @@ import { useRoute, useRouter } from 'vue-router'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getChildFinancialProductCompletionDetail } from '@/api/financialProducts'
-import { formatRepaymentType } from '@/utils/financialProductMapper'
+import {
+  formatRepaymentType,
+  isEarlyRepaidProduct,
+  isEarlyRepaymentInstallment,
+  isEarlyTerminatedProduct,
+} from '@/utils/financialProductMapper'
 import { formatKstDate, formatKstDateTime } from '@/utils/datetime'
 
 const router = useRouter()
@@ -193,7 +202,13 @@ const categoryLabel = computed(() => {
   return '적금'
 })
 
+const isTerminated = computed(() => isEarlyTerminatedProduct(detail.value))
+const isEarlyRepaid = computed(() => isEarlyRepaidProduct(detail.value))
+
 const completionLabel = computed(() => {
+  if (isTerminated.value) return '중도해지'
+  if (isEarlyRepaid.value) return '중도 상환'
+
   const type = String(detail.value?.completionType || '').toUpperCase()
   const status = String(detail.value?.status || '').toUpperCase()
 
@@ -206,7 +221,21 @@ const completionLabel = computed(() => {
   return isLoan.value ? '완납' : '만기'
 })
 
-const statusClass = computed(() => (isLoan.value ? 'repaid' : 'matured'))
+const statusClass = computed(() => {
+  if (isTerminated.value) return 'terminated'
+  if (isEarlyRepaid.value) return 'early-repaid'
+  return isLoan.value ? 'repaid' : 'matured'
+})
+
+const totalAmountLabel = computed(() => {
+  if (isTerminated.value) return '해지 수령액'
+  return isLoan.value ? '상환 총액' : '만기 수령액'
+})
+
+const completionDateLabel = computed(() => {
+  if (isTerminated.value) return '해지일'
+  return isLoan.value ? '완납일' : '만기일'
+})
 
 const depositPeriods = computed(() =>
   [...(detail.value?.depositPeriods || [])].sort(
@@ -257,8 +286,36 @@ function paymentStatusLabel(status) {
     LATE: '연체',
     SKIPPED: '미납',
     UNPAID: '미납',
+    MISSED: '미납',
+    EARLY_REPAYMENT: '중도 상환',
+    EARLY_REPAID: '중도 상환',
+    PREPAYMENT: '중도 상환',
+    PREPAID: '중도 상환',
   }
   return labels[raw] || status || '-'
+}
+
+function paymentStatusClass(status) {
+  const raw = String(status || '').toUpperCase()
+  if (['MISSED', 'SKIPPED', 'UNPAID'].includes(raw)) return 'missed'
+  if (['OVERDUE', 'LATE'].includes(raw)) return 'overdue'
+  if (raw.includes('EARLY') || raw.includes('PREPAY')) return 'early'
+  return ''
+}
+
+function repaymentItemTitle(item) {
+  if (isEarlyRepaymentInstallment(item)) return '중도 상환'
+  return item?.installmentNo != null ? `${item.installmentNo}회차` : '상환'
+}
+
+function repaymentItemStatus(item) {
+  if (isEarlyRepaymentInstallment(item)) return '중도 상환'
+  return paymentStatusLabel(item?.status)
+}
+
+function repaymentItemBadgeClass(item) {
+  if (isEarlyRepaymentInstallment(item)) return 'early'
+  return paymentStatusClass(item?.status)
 }
 
 function goToProductList() {
@@ -398,6 +455,16 @@ onMounted(fetchDetail)
   color: #2e7bf0;
 }
 
+.status-badge.terminated {
+  background: #ffe5e5;
+  color: #ff3b30;
+}
+
+.status-badge.early-repaid {
+  background: #fff6d9;
+  color: #b45309;
+}
+
 .info-row {
   display: flex;
   align-items: center;
@@ -483,6 +550,17 @@ onMounted(fetchDetail)
   border-radius: 999px;
   background: #ffffff;
   color: #5b6168;
+}
+
+.row-badge.missed,
+.row-badge.overdue {
+  background: #ffe5e5;
+  color: #ff3b30;
+}
+
+.row-badge.early {
+  background: #fff6d9;
+  color: #b45309;
 }
 
 .history-grid {
