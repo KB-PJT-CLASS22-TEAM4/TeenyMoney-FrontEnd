@@ -804,6 +804,7 @@ import AlertHost from '@/components/AlertHost.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import DeadlineCalendarModal from '@/components/DeadlineCalendarModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
+import { useServerEvents } from '@/composables/useServerEvents'
 
 import {
   ref,
@@ -1718,6 +1719,10 @@ function getVerificationStatusLabel(
 onMounted(() => {
   loadQuestDetail()
 })
+
+// 부모가 이 화면을 열어 둔 채로 자녀가 인증을 올리는 경우가 이 화면의 주된 상황이다.
+// 목록과 달리 여기서는 '검토 대기'로 바뀌는 순간이 바로 보여야 한다.
+useServerEvents(loadQuestDetail, ['QUEST'])
 </script>
 
 <style scoped>

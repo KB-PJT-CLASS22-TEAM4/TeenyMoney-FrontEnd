@@ -163,6 +163,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 import { getQuestDetail, submitQuestVerification } from '@/api/quest'
 import { getMyParent } from '@/api/families'
+import { useServerEvents } from '@/composables/useServerEvents'
 import { PARENT_PROFILE_IMAGE, resolveProfileImageUrl } from '@/utils/profileImages'
 import { calcKstDDay, formatKstDateTime, getKstParts, parseServerDate } from '@/utils/datetime'
 import ChildPageNav from '@/components/Child/ChildPageNav.vue'
@@ -203,7 +204,15 @@ function formatShortDate(value) {
   return `${pad(month)}.${pad(day)}`
 }
 
-async function loadQuest() {
+// prefillForm: 서버에 저장된 인증 내용을 입력 폼에 채울지 여부.
+//
+// 최초 진입에서는 채워야 한다(조회 전용이거나 재도전 전 이전 제출을 보여주는 화면).
+// 반대로 SSE 갱신에서는 절대 채우면 안 된다 - 자녀가 인증 글을 쓰는 중일 수 있고,
+// 그 순간 content를 서버 값으로 덮으면 작성 중이던 글이 사라진다.
+//
+// SSE 이벤트에는 대상 식별자가 없다(data가 항상 {}). 그래서 '다른' 퀘스트가 승인돼도
+// 이 화면이 다시 읽는다. 폼을 건드리지 않는 것이 유일하게 안전한 규칙이다.
+async function loadQuest({ prefillForm = true } = {}) {
   loadError.value = ''
   try {
     const result = await getQuestDetail(route.params.questId, authStore.accessToken)
@@ -228,7 +237,7 @@ async function loadQuest() {
 
     // 조회 전용(view=1)이거나 이전에 낸 인증이 있으면 그 내용을 채워서 보여줌
     // (반려된 뒤 재시도하는 화면에서는 사진을 다시 찍어야 하므로 사진은 채우지 않음)
-    if (d.latestVerification) {
+    if (prefillForm && d.latestVerification) {
       content.value = d.latestVerification.content ?? ''
       if (isViewOnly.value && d.latestVerification.imageUrl && !d.latestVerification.imageExpired) {
         photoPreview.value = d.latestVerification.imageUrl
@@ -259,6 +268,14 @@ onMounted(() => {
   loadQuest()
   loadParentProfile()
 })
+
+// 인증을 올린 자녀는 이 화면을 켜 둔 채 부모의 검토를 기다린다. 그동안 상태를 바꾸는 것은
+// 부모이지 자녀가 아니므로, 신호 없이는 '승인 대기'인 채로 멈춰 있다.
+// 부모 Quest/QuestDetail에 넣은 것과 같은 배선의 반대쪽이다.
+//
+// prefillForm: false 가 핵심이다. 작성 중인 인증 글을 덮지 않는다(loadQuest 주석 참고).
+// loadParentProfile은 부르지 않는다. 부모 이름과 프로필은 퀘스트 상태와 함께 바뀌지 않는다.
+useServerEvents(() => loadQuest({ prefillForm: false }), ['QUEST'])
 
 // 제출 시점 인증 일시 미리보기 (실제 저장 시각은 서버 응답 기준)
 const nowLabel = formatKstDateTime(new Date())

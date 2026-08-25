@@ -10,6 +10,7 @@ import {
   cancelPendingEnrollment,
 } from '@/api/finance'
 import { getMyWallet } from '@/api/wallet'
+import { useServerEvents } from '@/composables/useServerEvents'
 import BottomTabBar from '@/components/Child/BottomTabBar.vue'
 import Chatbot from '@/components/Child/Chatbot.vue'
 import ChildPageNav from '@/components/Child/ChildPageNav.vue'
@@ -589,6 +590,17 @@ async function loadProducts() {
 }
 
 onMounted(() => {
+  loadProducts()
+  fetchWalletBalance()
+})
+
+// 이 화면이 낡는 경로는 자녀가 직접 누른 것 말고도 여러 갈래다 - 적금 자동납입,
+// 대출 자동상환, 만기 정산, 부모의 가입 승인·거절이 전부 배치나 부모 쪽에서 일어난다.
+// 타입을 좁히지 않는 이유: 목록에 예금·적금·대출이 함께 있어 관련 이벤트가 9종을 넘고,
+// 상품 생애주기가 늘 때마다 여기를 같이 고쳐야 하는데 빠뜨리면 그 종류만 조용히 죽는다.
+//
+// 지갑 잔액도 같이 다시 읽는다. 화면 상단의 '내 지갑'이 납입·만기로 함께 움직인다.
+useServerEvents(() => {
   loadProducts()
   fetchWalletBalance()
 })

@@ -490,6 +490,7 @@ import { getChildWallet } from '@/api/wallet'
 import { getTeenyScore } from '@/api/teenyScore'
 import * as financialProductsApi from '@/api/financialProducts'
 import { fetchAllChildFinancialProducts } from '@/utils/financialProductMapper'
+import { useServerEvents } from '@/composables/useServerEvents'
 import { CHILD_DETAIL_MASCOT } from '@/utils/profileImages'
 import { formatKstDateTime } from '@/utils/datetime'
 
@@ -779,6 +780,10 @@ watch(childId, (id, prev) => {
 })
 
 onMounted(loadChildDetail)
+
+// 자녀 상세는 잔액·티니점수·금융상품을 한 화면에 모아 보여준다. 어느 하나만 바뀌어도
+// 낡으므로 타입을 좁히지 않는다. loadChildDetail이 네 조회를 Promise.all로 묶어 두었다.
+useServerEvents(loadChildDetail)
 const activeCard =
   ref(0)
 

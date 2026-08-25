@@ -147,6 +147,7 @@ import ParentBottomNav from '@/components/Parents/BottomNav.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import { useParentRequests } from '@/composables/useParentRequests'
+import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
 
@@ -171,6 +172,11 @@ onMounted(() => {
 onActivated(() => {
   fetchPendingRequests()
 })
+
+// 이 화면은 오늘만허용·퀘스트·예적금·대출 신청을 한데 모아 보여준다.
+// 타입을 좁히면 신청 종류가 늘 때마다 여기도 같이 고쳐야 하고, 빠뜨리면
+// 그 종류만 조용히 실시간에서 빠진다. 목록 재조회는 싸므로 전부 받는다.
+useServerEvents(fetchPendingRequests)
 </script>
 
 <style scoped>

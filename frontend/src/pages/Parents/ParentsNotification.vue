@@ -104,6 +104,7 @@ import {
   parseServerDate,
 } from '@/utils/datetime'
 import { getNotificationIcon } from '@/utils/notificationIcons'
+import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -535,6 +536,32 @@ async function loadMore() {
   }
 }
 
+// 새로 온 알림만 목록 앞에 얹는다.
+//
+// loadInitial()을 다시 부르면 안 된다. 그쪽은 notifications를 통째로 갈아치우고
+// nextCursor를 처음으로 되감아서, '더보기'로 내려가 있던 사용자가 1페이지로 튕긴다.
+// 스크롤 위치도 같이 날아간다.
+//
+// nextCursor는 건드리지 않는다. 커서 페이징은 (생성시각, id) 기준으로 "그보다 오래된 것"을
+// 가져오므로, 앞쪽에 새 항목을 얹어도 다음 loadMore()가 중복을 집어오지 않는다.
+async function prependNewNotifications() {
+  if (!authStore.accessToken) return
+
+  try {
+    const res = await getMyNotifications(authStore.accessToken)
+    const mapped = (res.data?.notifications || []).map(mapNotification)
+    const known = new Set(notifications.value.map((n) => n.id))
+    const fresh = mapped.filter((n) => !known.has(n.id))
+
+    if (fresh.length) {
+      notifications.value = [...fresh, ...notifications.value]
+    }
+  } catch (e) {
+    // 실시간 갱신 실패로 화면이 깨지면 안 된다. 다음 신호나 재진입에서 다시 맞춰진다.
+    console.error('알림 실시간 갱신 실패:', e.message)
+  }
+}
+
 const groupedList = computed(() => {
   const groups = {}
   const order = []
@@ -586,6 +613,14 @@ async function readOne(n) {
 onMounted(() => {
   loadInitial()
 })
+
+// 알림함은 모든 도메인의 알림을 다 받는 화면이라 타입을 좁히지 않는다.
+// SSE 이벤트 이름이 곧 알림의 reference_type 이므로, 좁히는 순간 그 목록이
+// NotificationReferenceType 과 따로 놀기 시작한다.
+//
+// loadInitial이 아니라 prependNewNotifications를 부른다. 이유는 그쪽 주석 참고 -
+// 목록을 통째로 다시 읽으면 '더보기'로 내려가 있던 사용자가 맨 위로 튕긴다.
+useServerEvents(prependNewNotifications)
 </script>
 
 <style scoped>
