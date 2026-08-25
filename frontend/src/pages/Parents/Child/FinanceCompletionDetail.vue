@@ -9,17 +9,37 @@
     </header>
 
     <div v-if="isLoading" class="state-box">이력을 불러오는 중입니다...</div>
-    <div v-else-if="errorMessage" class="state-box error-text">
-      {{ errorMessage }}
-      <button class="list-back-btn" type="button" @click="goToProductList">
-        목록으로 돌아가기
-      </button>
-    </div>
-    <div v-else-if="!detail" class="state-box">
-      완료 이력을 찾을 수 없습니다.
-      <button class="list-back-btn" type="button" @click="goToProductList">
-        목록으로 돌아가기
-      </button>
+    <div v-else-if="errorMessage || !detail" class="unavailable-screen">
+      <div class="unavailable-body">
+        <div class="unavailable-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="32" height="32" fill="none">
+            <rect x="12" y="8" width="24" height="32" rx="4" stroke="#9aa0a6" stroke-width="2" />
+            <path d="M18 18h12M18 24h8" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" />
+            <circle cx="31" cy="33" r="8" fill="#f4f5f7" stroke="#9aa0a6" stroke-width="2" />
+            <path d="M31 30v3.2l2.2 1.4" stroke="#9aa0a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h2 class="unavailable-title">상세 이력을 볼 수 없어요</h2>
+        <p class="unavailable-desc">
+          만기된 예·적금 또는 완납된 대출만<br />
+          상세 이력을 조회할 수 있습니다.
+        </p>
+        <div class="unavailable-panel">
+          <div class="unavailable-row">
+            <span>예금 · 적금</span>
+            <b>만기 후 조회</b>
+          </div>
+          <div class="unavailable-row">
+            <span>대출</span>
+            <b>완납 후 조회</b>
+          </div>
+        </div>
+      </div>
+      <div class="unavailable-footer">
+        <button class="list-back-btn" type="button" @click="goToProductList">
+          목록으로 돌아가기
+        </button>
+      </div>
     </div>
 
     <div v-else class="content">
@@ -367,6 +387,11 @@ onMounted(fetchDetail)
   padding-bottom: 24px;
 }
 
+.page:has(.unavailable-screen) {
+  padding-bottom: 0;
+  background: #ffffff;
+}
+
 .nav {
   display: flex;
   align-items: center;
@@ -595,24 +620,104 @@ onMounted(fetchDetail)
   font-size: 13px;
 }
 
-.error-text {
-  color: #ff3b30;
+.unavailable-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #ffffff;
+}
+
+.unavailable-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 28px 24px;
+  text-align: center;
+}
+
+.unavailable-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  background: #f4f5f7;
+}
+
+.unavailable-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #191b1e;
+  line-height: 1.4;
+}
+
+.unavailable-desc {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8b9097;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+.unavailable-panel {
+  width: 100%;
+  margin-top: 28px;
+  padding: 4px 16px;
+  border-radius: 14px;
+  background: #f7f8fa;
+}
+
+.unavailable-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid #eceef1;
+}
+
+.unavailable-row:last-child {
+  border-bottom: none;
+}
+
+.unavailable-row span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7077;
+}
+
+.unavailable-row b {
+  font-size: 13px;
+  font-weight: 700;
+  color: #191b1e;
+}
+
+.unavailable-footer {
+  padding: 12px 20px 24px;
+  background: #ffffff;
 }
 
 .list-back-btn {
   width: 100%;
-  height: 49px;
+  height: 52px;
   margin-top: 8px;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #ffbc00;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: #191b1e;
   cursor: pointer;
 }
 
-.state-box .list-back-btn {
-  margin-top: 16px;
+.unavailable-footer .list-back-btn {
+  margin-top: 0;
 }
 </style>
