@@ -167,7 +167,59 @@ frontend/src/pages/Child/Finance/MyProducts.vue
 frontend/src/pages/Child/Quest/QuestDetail.vue
 ```
 
-## 6. 남은 구멍 — 별도 이슈
+## 6. 배선하면서 밟은 함정 두 개
+
+`useServerEvents(load)`를 붙이는 것은 "이 화면을 아무 때나 다시 읽어도 된다"는 선언이다.
+그 전제가 성립하지 않는 화면이 둘 있었고, 처음 배선할 때 그대로 회귀를 만들었다.
+
+### 작성 중인 입력을 덮는 로더 — `Child/Quest/QuestDetail.vue`
+
+`loadQuest()`가 서버의 인증 내용을 폼에 채운다.
+
+```js
+content.value = d.latestVerification.content ?? ''   // 124행 <textarea v-model="content">
+```
+
+SSE 갱신이 이걸 그대로 타면 **자녀가 타이핑하던 인증 글이 서버 값으로 교체된다.**
+특히 위험한 것은 반려 후 재도전 화면이다. `latestVerification`(반려된 이전 제출)이 존재하고,
+자녀는 새 글을 쓰는 중이다.
+
+**SSE 이벤트에는 대상 식별자가 없다**는 점이 이를 키운다. `data`가 항상 `{}`라
+(SseController 문서) *다른* 퀘스트가 승인돼도 이 화면이 다시 읽는다.
+
+고친 방법은 로더에 `prefillForm` 인자를 두고, 최초 진입만 채우고 SSE 갱신은 폼을 건드리지
+않게 한 것이다. 서버 상태(진행 상태·남은 기회)는 그대로 갱신된다.
+
+```js
+async function loadQuest({ prefillForm = true } = {}) { ... }
+
+onMounted(() => { loadQuest() })                                  // 채운다
+useServerEvents(() => loadQuest({ prefillForm: false }), ['QUEST'])  // 안 채운다
+```
+
+### 페이지네이션을 되감는 로더 — `Parents/ParentsNotification.vue`
+
+`loadInitial()`은 목록을 통째로 갈아치우고 커서를 처음으로 되돌린다.
+
+```js
+notifications.value = (...).map(mapNotification)
+nextCursor.value = res.data?.nextCursor || null
+```
+
+'더보기'(74행)로 내려간 사용자가 알림을 하나 받으면 1페이지로 튕기고 스크롤도 날아간다.
+
+새 항목만 앞에 얹는 `prependNewNotifications()`로 바꿨다. `nextCursor`는 건드리지 않는다 —
+커서 페이징은 (생성시각, id)보다 오래된 것을 가져오므로, 앞쪽에 얹어도 다음 `loadMore()`가
+중복을 집어오지 않는다.
+
+### 교훈
+
+배선 전에 `load` 함수가 **사용자 입력이나 화면 위치를 건드리는지** 먼저 본다.
+남은 후보(`Child/ChildNotification.vue`, `Child/ChildTransaction.vue`,
+`Parents/Child/ChildFinance.vue`)에도 같은 점검이 필요하다.
+알림함 두 개는 구조가 같을 가능성이 높다.
+
+## 7. 남은 구멍 — 별도 이슈
 
 전수 대조 중 확인한 것. 이번 브랜치에서는 손대지 않았다.
 
