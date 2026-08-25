@@ -155,7 +155,9 @@ function formatDateDot(raw) {
   return `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}`
 }
 
-// 해지 시점에 캐싱해둔 상세 결과 (백엔드에 중도해지 이력 조회 API가 없어 로컬에서 불러온다)
+// 해지 시점에 캐싱해둔 상세 결과.
+// 완료 상세 조회 API(/completion-detail)는 정상 만기·완납 대출만 지원하고
+// 중도해지 건은 409로 거부하므로, 해지 실행 시점에 로컬에 저장해둔 결과를 사용한다.
 const result = (() => {
   if (!product.id) return null
   try {

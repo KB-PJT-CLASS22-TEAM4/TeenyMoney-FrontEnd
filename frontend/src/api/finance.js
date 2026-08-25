@@ -87,6 +87,52 @@ export async function getMyEnrolledFinancialProducts(accessToken) {
 }
 
 /**
+ * 자녀 본인의 완료 금융상품 상세 조회 (만기된 예·적금 또는 완납된 대출의
+ * 실제 정산 합계와 회차별 이력)
+ * @param {string} accessToken
+ * @param {string} productType - 'deposit' | 'saving' | 'loan' (소문자, 경로 세그먼트)
+ * @param {number|string} enrollmentId
+ * @returns {Promise<{
+ *   enrollmentId: number,
+ *   productName: string,
+ *   productType: string,
+ *   status: string,
+ *   completionType: string,
+ *   completedAt: string,
+ *   startDate: string,
+ *   maturityDate: string,
+ *   termMonths: number,
+ *   appliedRate: number,
+ *   principalAmount: number,
+ *   interestAmount: number,
+ *   totalAmount: number,
+ *   depositPeriods?: Array,
+ *   savingPayments?: Array,
+ *   loanRepayments?: Array,
+ * }>}
+ */
+export async function getMyFinancialProductCompletionDetail(accessToken, productType, enrollmentId) {
+  const res = await fetch(
+    `${BASE_URL}/financial-products/me/enrollments/${productType}/${enrollmentId}/completion-detail`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const body = await res.json();
+
+  if (!body.success) {
+    throw new Error(body.message || '완료 상품 상세 조회에 실패했습니다.');
+  }
+
+  return body.data;
+}
+
+/**
  * 적금 가입 요청
  * @param {string} accessToken
  * @param {{ productId: number, monthlyAmount: number, termMonths: number, autoTransfer: boolean, paymentDay: number }} payload
