@@ -235,9 +235,9 @@
               <div class="product-title-wrap">
                 <span
                   class="origin-badge history"
-                  :class="isLoanProduct(product) ? 'repaid' : 'matured'"
+                  :class="historyBadgeClass(product)"
                 >
-                  {{ isLoanProduct(product) ? '완납' : '만기' }}
+                  {{ historyBadgeLabel(product) }}
                 </span>
                 <p class="product-title">{{ product.title }}</p>
               </div>
@@ -245,7 +245,7 @@
             </div>
 
             <p class="product-amount-label">
-              {{ isLoanProduct(product) ? '상환 총액' : '만기 수령액' }}
+              {{ historyAmountLabel(product) }}
               <strong>{{ formatHistoryAmount(product) }}</strong>
             </p>
 
@@ -254,7 +254,9 @@
                 {{ product.periodMonths ? `${product.periodMonths}개월` : product.category }}
               </span>
               <span>
-                {{ product.completedAt ? `완료 ${formatHistoryDate(product.completedAt)}` : `만기 ${product.maturityDate}` }}
+                {{ product.completedAt
+                  ? `${isEarlyTerminatedProduct(product) ? '해지' : '완료'} ${formatHistoryDate(product.completedAt)}`
+                  : `만기 ${product.maturityDate}` }}
               </span>
             </div>
           </div>
@@ -320,6 +322,8 @@ import {
   fetchAllChildFinancialProducts,
   fetchChildApprovalRequests,
   fetchChildCustomProducts,
+  isEarlyRepaidProduct,
+  isEarlyTerminatedProduct,
 } from '@/utils/financialProductMapper'
 import { parseServerDate, formatKstDate } from '@/utils/datetime'
 import { CHILD_PROFILE_IMAGE } from '@/utils/profileImages'
@@ -430,6 +434,23 @@ function toProductType(item) {
 
 function isLoanProduct(item) {
   return toProductType(item) === 'LOAN'
+}
+
+function historyBadgeLabel(product) {
+  if (isEarlyTerminatedProduct(product)) return '중도해지'
+  if (isEarlyRepaidProduct(product)) return '중도 상환'
+  return isLoanProduct(product) ? '완납' : '만기'
+}
+
+function historyBadgeClass(product) {
+  if (isEarlyTerminatedProduct(product)) return 'terminated'
+  if (isEarlyRepaidProduct(product)) return 'early-repaid'
+  return isLoanProduct(product) ? 'repaid' : 'matured'
+}
+
+function historyAmountLabel(product) {
+  if (isEarlyTerminatedProduct(product)) return '해지 수령액'
+  return isLoanProduct(product) ? '상환 총액' : '만기 수령액'
 }
 
 function formatHistoryAmount(product) {
@@ -1106,6 +1127,16 @@ onMounted(loadFinance)
 .origin-badge.history.repaid {
   background: #eef4ff;
   color: #2e7bf0;
+}
+
+.origin-badge.history.terminated {
+  background: #ffe5e5;
+  color: #ff3b30;
+}
+
+.origin-badge.history.early-repaid {
+  background: #fff6d9;
+  color: #b45309;
 }
 
 .product-title {

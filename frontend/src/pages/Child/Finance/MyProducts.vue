@@ -86,10 +86,13 @@ const statusMap = {
   ACTIVE: null,
   TERMINATED: { label: '중도해지 완료', color: 'red' },
   CLOSED: { label: '중도해지 완료', color: 'red' },
+  EARLY_TERMINATED: { label: '중도해지 완료', color: 'red' },
   // 승인 대기 중 신청을 취소한 경우 (중도해지와는 다른 상태라 문구를 구분)
   CANCELLED: { label: '신청취소 완료', color: 'gray' },
   CANCELED: { label: '신청취소 완료', color: 'gray' },
   REPAID: { label: '상환 완료', color: 'green' },
+  EARLY_REPAID: { label: '중도 상환 완료', color: 'green' },
+  EARLY_REPAYMENT: { label: '중도 상환 완료', color: 'green' },
 }
 
 // 해지(중도해지/만기 등으로 종료)된 계약인지 판별
@@ -102,7 +105,10 @@ function isEnrollmentTerminated(p) {
     p.status === 'CANCELLED' ||
     p.status === 'CANCELED' ||
     p.status === 'CLOSED' ||
-    p.status === 'REPAID'
+    p.status === 'EARLY_TERMINATED' ||
+    p.status === 'REPAID' ||
+    p.status === 'EARLY_REPAID' ||
+    p.status === 'EARLY_REPAYMENT'
   )
 }
 
@@ -316,7 +322,8 @@ function mapEnrolledProduct(p) {
 
   // 대출 상환 완료: 조기상환으로 완제된 경우 원래 만기일이 아니라 실제 완제일을 보여준다.
   // 캐시가 없으면(정상 스케줄대로 완납) 기존 만기일이 실제 완제일과 같으므로 그대로 사용.
-  const isLoanRepaid = isLoan && p.status === 'REPAID'
+  const isLoanRepaid =
+    isLoan && (p.status === 'REPAID' || p.status === 'EARLY_REPAID' || p.status === 'EARLY_REPAYMENT')
   const repaidDate = isLoanRepaid ? getCachedRepaidDate(enrollmentId) : null
 
   // 1. 대출 총 원금 (대출 신청할 때 넣은 최초 원금)
@@ -362,8 +369,8 @@ function mapEnrolledProduct(p) {
 
   let infoText = ''
   if (isTerminated) {
-    infoText = p.status === 'REPAID'
-      ? '대출이 모두 상환 완료됐어요.'
+    infoText = p.status === 'REPAID' || p.status === 'EARLY_REPAID' || p.status === 'EARLY_REPAYMENT'
+      ? (p.status === 'REPAID' ? '대출이 모두 상환 완료됐어요.' : '중도 상환으로 대출이 종료됐어요.')
       : isCancelled
         ? '신청 취소된 상품이에요.'
         : isMatured
