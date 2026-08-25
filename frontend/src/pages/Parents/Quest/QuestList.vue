@@ -527,6 +527,7 @@ import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import AlertHost from '@/components/AlertHost.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
+import { useServerEvents } from '@/composables/useServerEvents'
 
 import {
   ref,
@@ -1553,6 +1554,11 @@ function getStatusClass(
 onMounted(() => {
   loadQuests()
 })
+
+// 자녀가 퀘스트를 수락·거절하거나 인증을 올리면 이 목록이 낡는다.
+// 자녀 QuestList와 같은 방식으로 QUEST만 골라 받는다 - 결제나 용돈 이벤트로
+// 목록을 다시 부를 이유가 없다.
+useServerEvents(loadQuests, ['QUEST'])
 
 watch(
   () => route.query.tab,

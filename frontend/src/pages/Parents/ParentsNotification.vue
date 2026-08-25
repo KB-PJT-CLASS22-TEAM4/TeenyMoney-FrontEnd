@@ -104,6 +104,7 @@ import {
   parseServerDate,
 } from '@/utils/datetime'
 import { getNotificationIcon } from '@/utils/notificationIcons'
+import { useServerEvents } from '@/composables/useServerEvents'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -586,6 +587,14 @@ async function readOne(n) {
 onMounted(() => {
   loadInitial()
 })
+
+// 알림함은 모든 도메인의 알림을 다 받는 화면이라 타입을 좁히지 않는다.
+// SSE 이벤트 이름이 곧 알림의 reference_type 이므로, 좁히는 순간 그 목록이
+// NotificationReferenceType 과 따로 놀기 시작한다.
+//
+// loadMore()가 아니라 loadInitial()을 부른다. 새 알림은 맨 위에 쌓이므로
+// 첫 페이지부터 다시 읽어야 하고, 그래야 커서도 새로 잡힌다.
+useServerEvents(loadInitial)
 </script>
 
 <style scoped>

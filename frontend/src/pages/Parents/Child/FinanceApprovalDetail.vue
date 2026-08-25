@@ -164,6 +164,7 @@ import AlertHost from '@/components/AlertHost.vue'
 import ParentNavActions from '@/components/Parents/ParentNavActions.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useAlertModal } from '@/composables/useAlertModal'
+import { useServerEvents } from '@/composables/useServerEvents'
 import {
   approveFinancialProductApprovalRequest,
   getFinancialProductApprovalRequestDetail,
@@ -356,6 +357,14 @@ onMounted(async () => {
 
   await fetchDetail()
 })
+
+// 승인 대기 중인 신청은 자녀가 취소할 수 있다. 부모가 이 화면을 열어 둔 채로 취소되면
+// 사라진 신청을 승인하려다 실패하므로, 상태 변화를 바로 반영한다.
+useServerEvents(fetchDetail, [
+  'DEPOSIT_ENROLLMENT',
+  'SAVING_ENROLLMENT',
+  'LOAN_ENROLLMENT',
+])
 </script>
 
 <style scoped>
