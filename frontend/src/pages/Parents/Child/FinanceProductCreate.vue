@@ -286,7 +286,7 @@
             />
           </label>
 
-          <div v-if="activeType === 'LOAN'" class="field">
+          <div class="field">
             <span class="field-label">가입 가능 최소 등급</span>
             <SelectDropdown
               v-model="form.requiredGradeId"
@@ -465,7 +465,6 @@ const sectionDesc = computed(() => {
 })
 
 const limitCardTitle = computed(() => {
-  if (activeType.value === 'DEPOSIT') return '가입 및 한도'
   if (activeType.value === 'LOAN') return '대출 한도 및 자격'
   return '가입 한도 및 자격'
 })
@@ -483,10 +482,9 @@ const maxAmountLabel = computed(() => {
 })
 
 const helperText = computed(() => {
-  if (activeType.value === 'LOAN') {
-    return 'ⓘ 선택한 등급 이상의 자녀만 이 대출에 가입할 수 있습니다.'
-  }
-  return 'ⓘ 자녀의 티니점수가 보통 등급 이상이어야 가입할 수 있습니다.'
+  const productLabel =
+    activeType.value === 'LOAN' ? '대출' : activeType.value === 'SAVING' ? '적금' : '예금'
+  return `ⓘ 선택한 등급 이상의 자녀만 이 ${productLabel}에 가입할 수 있습니다.`
 })
 
 function toFiniteNumber(value, fallback = 0) {
@@ -525,6 +523,7 @@ function buildPayload(targetChildId) {
       earlyTerminationRate: toFiniteNumber(form.earlyTerminationRate),
       minimumMonthlyAmount: minimumAmount,
       maximumMonthlyAmount: maximumAmount,
+      requiredGradeId: toFiniteNumber(form.requiredGradeId, 1),
       rates: buildTermRates(),
     }
   }
@@ -539,6 +538,7 @@ function buildPayload(targetChildId) {
       earlyTerminationRate: toFiniteNumber(form.earlyTerminationRate),
       minimumAmount,
       maximumAmount,
+      requiredGradeId: toFiniteNumber(form.requiredGradeId, 1),
       rates: buildTermRates(),
     }
   }
