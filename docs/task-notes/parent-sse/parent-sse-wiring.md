@@ -36,6 +36,13 @@ SSE 배선 자체는 살아 있다. 끊긴 곳은 **수신부**다.
 | `Parents/Child/FinanceApprovalDetail.vue` | ❌ | ✅ |
 | 나머지 28개 | ❌ | ❌ (이번 범위 밖) |
 
+자녀 화면 한 곳도 같이 붙였다. 부모 이슈지만 원인이 같고, 08번 시드로 만기 데이터를
+넣어 둔 직후라 바로 확인할 수 있어서다.
+
+| 화면 | 배선 전 | 배선 후 |
+|---|---|---|
+| `Child/Finance/MyProducts.vue` | ❌ | ✅ |
+
 자녀 쪽과 비교하면 비대칭이 뚜렷했다. 자녀 퀘스트 목록에는
 `useServerEvents(refreshTabs, ['QUEST'])`가 있는데 부모 퀘스트 목록에는 대응되는 줄이 없었다.
 
@@ -85,7 +92,13 @@ useServerEvents(loadChildDetail)
 useServerEvents(fetchDetail, [
   'DEPOSIT_ENROLLMENT', 'SAVING_ENROLLMENT', 'LOAN_ENROLLMENT',
 ])
+
+// Child/Finance/MyProducts.vue  (loadProducts + fetchWalletBalance)
+useServerEvents(() => { loadProducts(); fetchWalletBalance() })
 ```
+
+`MyProducts`만 두 함수를 함께 부른다. 화면 상단의 '내 지갑' 잔액이 납입·만기로 같이
+움직이는데, 상품 목록만 다시 읽으면 잔액이 낡은 채로 남는다.
 
 ### 타입을 좁힌 곳과 안 좁힌 곳
 
@@ -136,7 +149,35 @@ frontend/src/pages/Parents/RequestList.vue
 frontend/src/pages/Parents/ParentsNotification.vue
 frontend/src/pages/Parents/Child/ChildDetail.vue
 frontend/src/pages/Parents/Child/FinanceApprovalDetail.vue
+frontend/src/pages/Child/Finance/MyProducts.vue
 ```
+
+## 6. 남은 구멍 — 별도 이슈
+
+전수 대조 중 확인한 것. 이번 브랜치에서는 손대지 않았다.
+
+### 부모가 자녀 지갑 변화를 못 받는 경로 (백엔드)
+
+`TransferService.publishWalletOwnerChanged()`는 **지갑 주인**에게만 발행한다.
+자녀 지갑 → 적금·예금 상품 지갑처럼 양쪽이 모두 자녀 소유인 이동은 자녀에게만 신호가 가고,
+자녀 잔액을 보여주는 부모 홈·자녀 상세는 낡은 채로 남는다.
+
+결제는 이 문제를 이미 알고 `PaymentService.publishParentWalletViewChangedBestEffort()`로
+막아 뒀다(주석: "알림 수신자와 동기화 수신자가 갈리는 자리"). 예적금 쪽에는 그 대응이 없다.
+
+해당 경로는 적금 자동납입, 예금 예치, 그리고 **이자가 0원인 만기**다.
+(이자가 있으면 부모 지갑에서 이자가 나가므로 부모도 이체 신호를 받는다)
+
+중도해지·가입 신청은 부모에게 알림이 가므로 신호도 함께 간다 — 구멍이 아니다.
+
+### `CHARGE` 타입은 발행처가 없다
+
+enum·DB CHECK·프론트 구독 목록에 모두 있으나 백엔드에서 한 번도 발행하지 않는다.
+`charge` 도메인 전체에 `notificationService`도 `eventPublisher`도 없다.
+
+영향은 작다. 충전은 `ChargeService`가 `principal`로 부모 지갑을 직접 조회하는 동기 플로우라
+(walletId를 파라미터로 받지 않는다) 부모가 그 화면에서 결과를 바로 본다.
+다른 탭에 홈을 열어 뒀을 때만 낡는다. 쓸 게 아니라면 enum에서 빼는 것도 방법이다.
 
 각 파일에 `import { useServerEvents } from '@/composables/useServerEvents'` 한 줄과
 호출 한 줄씩. 기존 로직은 건드리지 않았다.
