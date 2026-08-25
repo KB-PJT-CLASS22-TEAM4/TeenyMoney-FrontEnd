@@ -42,6 +42,14 @@ SSE 배선 자체는 살아 있다. 끊긴 곳은 **수신부**다.
 | 화면 | 배선 전 | 배선 후 |
 |---|---|---|
 | `Child/Finance/MyProducts.vue` | ❌ | ✅ |
+| `Child/Quest/QuestDetail.vue` | ❌ | ✅ |
+
+`Child/Quest/QuestDetail`은 이번 이슈의 거울상이다. 부모 쪽 증상이 "자녀가 인증을 올렸는데
+화면이 안 바뀐다"였다면, 자녀 쪽은 "부모가 승인했는데 화면이 안 바뀐다"였다.
+인증을 올린 자녀는 이 화면을 켜 둔 채 검토를 기다리므로 체감이 특히 크다.
+
+조회 자체는 정상이었다. `<KeepAlive>`가 어디에도 없어 화면을 나갔다 들어오면 재마운트되고
+`onMounted`가 최신 상태를 읽는다. 막혀 있던 것은 "켜 둔 채 기다릴 때의 자동 갱신"뿐이다.
 
 자녀 쪽과 비교하면 비대칭이 뚜렷했다. 자녀 퀘스트 목록에는
 `useServerEvents(refreshTabs, ['QUEST'])`가 있는데 부모 퀘스트 목록에는 대응되는 줄이 없었다.
@@ -95,7 +103,13 @@ useServerEvents(fetchDetail, [
 
 // Child/Finance/MyProducts.vue  (loadProducts + fetchWalletBalance)
 useServerEvents(() => { loadProducts(); fetchWalletBalance() })
+
+// Child/Quest/QuestDetail.vue  (loadQuest)
+useServerEvents(loadQuest, ['QUEST'])
 ```
+
+자녀 퀘스트 상세는 `loadParentProfile`을 함께 부르지 않는다. 부모 이름과 프로필은
+퀘스트 상태와 함께 바뀌지 않으므로 매 이벤트마다 다시 읽을 이유가 없다.
 
 `MyProducts`만 두 함수를 함께 부른다. 화면 상단의 '내 지갑' 잔액이 납입·만기로 같이
 움직이는데, 상품 목록만 다시 읽으면 잔액이 낡은 채로 남는다.
@@ -150,6 +164,7 @@ frontend/src/pages/Parents/ParentsNotification.vue
 frontend/src/pages/Parents/Child/ChildDetail.vue
 frontend/src/pages/Parents/Child/FinanceApprovalDetail.vue
 frontend/src/pages/Child/Finance/MyProducts.vue
+frontend/src/pages/Child/Quest/QuestDetail.vue
 ```
 
 ## 6. 남은 구멍 — 별도 이슈

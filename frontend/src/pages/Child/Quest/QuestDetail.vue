@@ -163,6 +163,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useQuestStore } from '@/stores/quest'
 import { getQuestDetail, submitQuestVerification } from '@/api/quest'
 import { getMyParent } from '@/api/families'
+import { useServerEvents } from '@/composables/useServerEvents'
 import { PARENT_PROFILE_IMAGE, resolveProfileImageUrl } from '@/utils/profileImages'
 import { calcKstDDay, formatKstDateTime, getKstParts, parseServerDate } from '@/utils/datetime'
 import ChildPageNav from '@/components/Child/ChildPageNav.vue'
@@ -259,6 +260,13 @@ onMounted(() => {
   loadQuest()
   loadParentProfile()
 })
+
+// 인증을 올린 자녀는 이 화면을 켜 둔 채 부모의 검토를 기다린다. 그동안 상태를 바꾸는 것은
+// 부모이지 자녀가 아니므로, 신호 없이는 '승인 대기'인 채로 멈춰 있다.
+// 부모 Quest/QuestDetail에 넣은 것과 같은 배선의 반대쪽이다.
+//
+// loadParentProfile은 부르지 않는다. 부모 이름과 프로필은 퀘스트 상태와 함께 바뀌지 않는다.
+useServerEvents(loadQuest, ['QUEST'])
 
 // 제출 시점 인증 일시 미리보기 (실제 저장 시각은 서버 응답 기준)
 const nowLabel = formatKstDateTime(new Date())
