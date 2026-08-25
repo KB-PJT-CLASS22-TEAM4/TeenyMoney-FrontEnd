@@ -129,6 +129,15 @@
       >
         {{ screenContent.primaryLabel }}
       </button>
+      <button
+        v-if="screenContent.skipLabel"
+        class="skip"
+        type="button"
+        :disabled="isTransitioning"
+        @click="handleSkip"
+      >
+        {{ screenContent.skipLabel }}
+      </button>
     </footer>
   </main>
 </template>
@@ -291,9 +300,9 @@ function nextFeatureSlide() {
   });
 }
 
-function goPrimary() {
+function leaveOnboarding(routeName) {
   localStorage.removeItem(ONBOARDING_PENDING_MEMBER_KEY);
-  router.push({ name: config.value.primaryRoute });
+  router.push({ name: routeName });
 }
 
 function handlePrimary() {
@@ -303,7 +312,13 @@ function handlePrimary() {
     nextFeatureSlide();
     return;
   }
-  goPrimary();
+  leaveOnboarding(config.value.primaryRoute);
+}
+
+function handleSkip() {
+  if (isTransitioning.value || !config.value?.skipRoute) return;
+  cancelAutoExpand();
+  leaveOnboarding(config.value.skipRoute);
 }
 
 onMounted(() => {
@@ -646,6 +661,9 @@ onBeforeUnmount(() => {
   left: 18px;
   z-index: 4;
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
 }
 button {
   border: 0;
@@ -668,6 +686,24 @@ button {
 }
 
 .primary:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.skip {
+  height: 36px;
+  background: transparent;
+  color: #8b939c;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+}
+
+.skip:active {
+  color: #59616a;
+}
+
+.skip:disabled {
   cursor: default;
   pointer-events: none;
 }

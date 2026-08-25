@@ -43,6 +43,15 @@ test('알 수 없는 역할은 온보딩 화면을 구성하지 않는다', () =
   assert.equal(getFeatureOnboardingSlides('GUEST'), null)
 })
 
+test('부모는 초대 코드를 나중에 하고 홈으로 건너뛸 수 있다', () => {
+  const parent = getOnboardingConfig('PARENT')
+  assert.equal(parent.skipLabel, '나중에 하기')
+  assert.equal(parent.skipRoute, 'parents-home')
+
+  const child = getOnboardingConfig('CHILD')
+  assert.equal('skipLabel' in child, false)
+})
+
 test('역할별 온보딩 이동 경로와 슬라이드가 모두 정의되어 있다', () => {
   for (const role of ['PARENT', 'CHILD']) {
     const config = getOnboardingConfig(role)
