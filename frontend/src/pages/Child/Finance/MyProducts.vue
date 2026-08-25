@@ -84,6 +84,7 @@ const savingsTypeMap = { FREE: '자유적금', FIXED: '정액적금' }
 const statusMap = {
   PENDING: { label: '승인 대기 중', color: 'orange' },
   ACTIVE: null,
+  MATURED: { label: '만기 완료', color: 'green' },
   TERMINATED: { label: '중도해지 완료', color: 'red' },
   CLOSED: { label: '중도해지 완료', color: 'red' },
   EARLY_TERMINATED: { label: '중도해지 완료', color: 'red' },
@@ -101,6 +102,7 @@ const statusMap = {
 function isEnrollmentTerminated(p) {
   return (
     p.terminated === true ||
+    p.status === 'MATURED' ||
     p.status === 'TERMINATED' ||
     p.status === 'CANCELLED' ||
     p.status === 'CANCELED' ||
@@ -307,17 +309,13 @@ function mapEnrolledProduct(p) {
     ? getOrStoreDepositAmount(enrollmentId, explicitDepositAmount)
     : 0
 
-  // 예·적금은 중도해지든 정상 만기든 백엔드가 같은 상태값(TERMINATED/CLOSED)을 내려준다.
-  // 실제로 중도해지를 실행했을 때만 ProductsCancel.vue가 로컬에 해지일을 캐시해두므로,
-  // 그 캐시가 없고 만기일이 이미 지났다면 정상 만기로 판단한다.
-  const isEndedByCancelStatus = p.status === 'TERMINATED' || p.status === 'CLOSED'
-  const cachedTerminatedDate = isEndedByCancelStatus ? getCachedTerminatedDate(enrollmentId) : null
-  const reachedMaturityDate = Boolean(p.maturityDate) && (() => {
-    const maturity = parseServerDate(p.maturityDate)
-    return maturity ? new Date() >= maturity : false
-  })()
-  const isMatured = isEndedByCancelStatus && !isLoan && !cachedTerminatedDate && reachedMaturityDate
-  const isEarlyTerminated = isEndedByCancelStatus && !isMatured
+  // 백엔드가 정상 만기(MATURED)와 중도해지(TERMINATED/CLOSED/EARLY_TERMINATED)를
+  // 별개 상태값으로 내려주므로 그대로 구분한다.
+  const isMatured = !isLoan && p.status === 'MATURED'
+  const isEarlyTerminated =
+    !isLoan &&
+    (p.status === 'TERMINATED' || p.status === 'CLOSED' || p.status === 'EARLY_TERMINATED')
+  const cachedTerminatedDate = isEarlyTerminated ? getCachedTerminatedDate(enrollmentId) : null
   const terminatedDate = isEarlyTerminated ? cachedTerminatedDate : null
 
   // 대출 상환 완료: 조기상환으로 완제된 경우 원래 만기일이 아니라 실제 완제일을 보여준다.
