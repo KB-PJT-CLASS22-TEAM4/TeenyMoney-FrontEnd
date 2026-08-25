@@ -10,6 +10,7 @@ const ONBOARDING_CONFIG = {
     cardLabel: '첫 번째 할 일',
     cardTitle: '자녀 초대하기',
     primaryLabel: '초대 코드 만들기',
+    skipLabel: '나중에 하기',
     primaryRoute: 'parents-link-code',
     skipRoute: 'parents-home',
     preview: {
