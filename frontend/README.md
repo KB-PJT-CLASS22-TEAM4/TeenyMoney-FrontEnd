@@ -1,38 +1,13 @@
 # frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+티니머니 Vue 애플리케이션 소스입니다. 서비스 소개, 화면 목록, 환경변수, 배포 방법은
+[저장소 루트 README](../README.md)에 정리했습니다.
 
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
+```bash
+npm install       # 의존성 설치
+npm run dev       # 개발 서버 (/api는 개발 통합 서버로 프록시)
+npm test          # node --test test/
+npm run build     # dist/ 생성
 ```
 
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
+환경변수는 루트의 `.env.example`을 참고해 이 디렉터리에 `.env`로 만듭니다.
